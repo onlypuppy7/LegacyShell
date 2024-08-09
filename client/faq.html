@@ -1,0 +1,104 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <title>Shell Shockers FAQ</title>
+</head>
+<body>
+<div style="margin: auto; max-width: 700px">
+	<h1>Shell Shockers FAQ</h1><hr>
+	<h2>Index</h2>
+	<ul>
+		<li><a href="#system">System requirements</a>
+		<li><a href="#lag">Lag! what should I do?</a>
+		<li><a href="#slow">My frame rate is low. Now what?</a>
+		<li><a href="#webgl">How do I enable WebGL?</a>
+		<li><a href="#websockets">WebSockets? Say <i>What?</i></a>
+	</ul>
+
+	<hr><a name="system"></a>
+	<h2>System requirements</h2>
+	<p>We're still in the process of working this out, but here's a rough idea:</p>
+	<ul>
+		<li>A mouse and keyboard. No official mobile support (yet!)
+		<li>2.0Ghz processor
+		<li>4GB RAM
+		<li>A broadband connection
+		<li>A <a href="#webgl">WebGL</a> and <a href="#websockets">WebSocket</a>-compatible browser. Most any modern browser will do!
+		<li>Graphics accelerator that supports WebGL
+	</ul>
+
+	<hr><a name="lag"></a>
+	<h2>Lag! What should I do?</h2>
+	<p>If your shots are getting off really late, or you're bouncing around all over the place, here are a few things you can try:
+	<ul>
+		<li>Pause or cancel any active downloads or streams. Turn off that cat video!
+		<li>Close any file-sharing applications
+		<li>Close apps that download in the background (Steam, etc.)
+		<li>Try a different server
+		<li>Restart your router
+		<li>If you're on WiFi, try a wired connection if you can
+	</ul>
+	<p>Generally speaking, we like to see a ping of 100ms or less. You can see your ping in the upper-left corner of the game window as you play. You can get away with higher pings if they're consistent, but they rarely are!</p>
+
+	<hr><a name="slow"></a>
+	<h2>My frame rate is low. Now what?</h2>
+	<p>(Frame rate is indicated by the FPS readout in the upper-left corner of the game window. 60 is best!)</p>
+	<ul>
+		<li>Try closing other apps, browsers, and tabs
+		<li>If you're running multiple displays, try moving your browser window to another one
+		<li>Install the latest video drivers for your card. Here are some links for common brands:<br>
+			<a target="_window" href="http://www.nvidia.com/Download/index.aspx">NVIDIA</a>&nbsp;
+			<a target="_window" href="http://support.amd.com/en-us/download">ATI</a>&nbsp;
+			<a target="_window" href="https://www.intel.com/content/www/us/en/support/graphics-drivers.html">Intel</a>
+	</ul>
+	<p>There are also all kinds of crazy settings available (too many to cover here) in Chrome by entering <code>chrome://flags</code> in the address bar, or <code>about:config</code> if you're using Firefox. Be careful, though; fiddling with these could cause problems and may even cause your computer to lock up!</p>
+
+	<hr><a name="webgl"></a>
+	<h2>How do I enable WebGL?</h2>
+	<p>That depends on your browser! Shell Shockers requires WebGL, so if you can play the game already, it's enabled, and you don't have to worry about this! Otherwise, follow the directions for your browser below. If your browser version is older than the one listed, download the latest! You'll thank me later.</p>
+	<h3>Chrome 49</h3>
+	<b>Step 1 - Enable hardware acceleration</b>
+	<ul>
+		<li>Enter <code>chrome://settings</code> in the address bar
+		<li>Open the Advanced settings (probably at the bottom)
+		<li>In the System section, make sure that "Use hardware acceleration when available" is checked. If not, you'll have to restart Chrome after you change it.
+	</ul>
+
+	<b>Step 2 - Enable WebGL</b>
+	<ul>
+		<li>Enter <code>chrome://flags</code> in the address bar
+		<li>In older versions, ensure that Disable WebGL is <b><i>not</i></b> activated. In newer versions,  search for WebGL 2.0 and set it to "Enabled". Again, you'll have to restart Chrome once you've done so.
+	</ul>
+
+	<h3>Firefox 54</h3>
+	<ul>
+		<li>Enter <code>about:config</code> in the address bar
+		<li>Search for webgl.disabled and make sure it's set to <code>false</code>
+	</ul>
+	<p>Changes take effect immediately.</p>
+	<h3>Safari 10.1</h3>
+	<ul>
+		<li>Select Safari->Preferences from the menu bar
+		<li>Select the Advanced tab
+		<li>Make sure that the Show Develop menu in menu bar checkbox is checked
+		<li>In the Develop menu, select Experimental Features and make sure that WebGL 2.0 is checked
+	</ul>
+	<h3>Internet Explorer 11 / Edge 14</h3>
+	<p>Should be enabled by default. If not, you probably need to update your graphics driver!</p>
+
+	<hr><a name="websockets"></a>
+	<h2>WebSockets? Say <i>What?</i></h2>
+	<p>WebSockets allow for efficient communication that is vital for games of this type. Here's a list of browsers that support it. If yours isn't on the list, or is older than the version shown, you should download a new one!</p>
+	<h3>Supported browsers</h3>
+	<ul>
+		<li>Chrome 43
+		<li>Firefox 48
+		<li>Edge 14
+		<li>IE 10
+		<li>Safari 6.0
+	</ul>
+	<hr>
+</div>
+</body>
+</html>
