@@ -1,0 +1,1065 @@
+/* ------------------------------------------------------------------------------------------------- Universal Stuff -- */
+* {
+    --egg-brown: #532a19;
+    --egg-yolk: #f7941d;
+    --egg-tan: #fff2e3;
+
+    --ss-white: #ffffff;
+    --ss-offwhite: #fff3e4;
+    --ss-yellow: #faf179;
+    --ss-yolk: #f79520;
+    --ss-brown: #532a1a;
+    --ss-blue1: #91cadb;
+    --ss-blue2: #5ebbd9;
+    --ss-blue3: #0b93bd;
+    --ss-blue4: #0e7697;
+
+    font-family: 'Nunito', sans-serif;
+    font-size: 2.2vh;
+    font-weight: bold;
+    line-height: 1.2em;
+    outline: none;
+}
+
+@keyframes shinytext {
+    0% {color: white;}
+    50% {color: #ffd500;}
+    100% {color: white;}
+}
+
+html, body {
+    padding: 0;
+    margin: 0;
+    overflow: hidden;
+    width: 100%;
+    height: 100%;
+}
+
+#mainMenu, #customizationMenu, #itemSelectorMenu {
+    color: var(--egg-brown);
+}
+
+.textShadow {
+    text-shadow:
+        0em 0em .1em #000,
+        0em .1em .2em #000;
+}
+
+a { 
+	color: var(--egg-brown);
+	text-decoration: none; 
+}
+
+.clickable {
+	cursor: pointer;
+	pointer-events: auto;
+}
+
+.fill {
+	width: 100%;
+    height: 100%;
+}
+
+ul {
+    padding-left: 1em;
+    list-style-position: outside;
+}
+
+li {
+    margin-bottom: 0.5em;
+}
+
+.centered {
+	top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.centerText { text-align: center; }
+
+.topLeft { transform-origin: top left; }
+
+.hideme { display: none; }
+
+.invisible { visibility: hidden; }
+
+.absolute { position: absolute; }
+
+.fixed { position: fixed; }
+
+.flex { display: flex; }
+
+.nowrap { white-space: nowrap; }
+
+.spaceUnder_small {
+	margin-bottom: 0.2em;
+}
+
+.spaceUnder_med {
+    margin-bottom: 1em;
+}
+
+.paddingUnder_med {
+	padding-bottom: 1em;
+}
+
+.roundCorners {
+	border-radius: 0.6em;
+}
+
+.inline_image {
+	vertical-align: middle;
+}
+
+.underline {
+	text-decoration: underline;
+}
+
+
+/* ------------------------------------------------------------------------------------------------- UI Elements -- */
+
+.ui_blackOverlay {
+    position: fixed;
+    margin: 0;
+	position: absolute;
+	top: 0; 
+	width: 100%; 
+	height: 100%;
+	background: rgba(0, 0, 0, 0.6);
+}
+
+.ui_closeButton {
+	position: absolute; 
+	width: 1.5em; 
+	height: 1.5em; 
+	top: 0; 
+	right: 0;
+}
+
+.text_red { color: #e33; }
+.text_orange { color: #e73; }
+.text_yellow { color: #ca4; }
+.text_yolk { color: #f7941d; }
+.text_green { color: #3b8; }
+.text_blue { color: #86c8ff; }
+.text_darkblue { color: #004883; }
+.text_darkgreen { color: #066509; }
+.text_purple { color: #c39; }
+.text_white { color: #fff; }
+.text_grey { color: #ccc; }
+
+button.red { background: linear-gradient(#e33, #d22); }
+button.orange { background: linear-gradient(#f84, #e73); }
+button.yellow { background: linear-gradient(#db5, #ca4); }
+button.yolk { background: linear-gradient(#ffbf72,#f7941d); }
+button.green { background: linear-gradient(#4c9, #3b8); }
+button.blue { background: linear-gradient(#49d, #38c); }
+button.purple { background: linear-gradient(#e4b, #c39); }
+button.clear { background: linear-gradient(rgba(255, 64, 192, 0.25), rgba(128, 32, 96, 0.75)) }
+button.white { background: linear-gradient(#fff, #eee); }
+button.grey { background: linear-gradient(#ccc, #bbb); }
+button.shiny {    
+	background: linear-gradient(0deg, #ffd335, #f7941d, #fff8d6);
+	-webkit-animation: glitter 6s ease infinite;
+	-moz-animation: glitter 6s ease infinite;
+	-o-animation: glitter 6s ease infinite;
+	animation: glitter 6s ease infinite;
+}
+
+@-webkit-keyframes glitter {
+    0%{background-position:50% 0%}
+    50%{background-position:50% 100%}
+    100%{background-position:50% 0%}
+}
+@-moz-keyframes glitter {
+    0%{background-position:50% 0%}
+    50%{background-position:50% 100%}
+    100%{background-position:50% 0%}
+}
+@-o-keyframes glitter {
+    0%{background-position:50% 0%}
+    50%{background-position:50% 100%}
+    100%{background-position:50% 0%}
+}
+@keyframes glitter { 
+    0%{background-position:50% 0%}
+    50%{background-position:50% 100%}
+    100%{background-position:50% 0%}
+}
+
+.roundedBorder {
+    border-style: solid;
+    border-width: 0.4em;
+    border-color: #e82;
+    border-radius: 0.6em;
+    box-shadow: 0 0.25em 2em rgba(0, 0, 0, 1);
+}
+
+/* -------------------------------------------------------------------------------------------- Loading Spinner -- */
+
+#spinnerHeader {
+	margin-bottom: 0.5em;
+}
+
+.centerSpinner {
+	position: relative; 
+	left: 50%; 
+	transform: translateX(-3em)
+}
+
+.spinner {
+    border: 1.25em solid orange;
+    border-top: 0.5em solid orange;
+    padding-top: 0.75em;
+    border-radius: 50%;
+    width: 4em;
+    height: 4em;
+    background: white;
+    animation: spin 0.75s linear infinite;
+}
+
+#spinnerHeader, #spinnerFooter {
+	color: orange;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* ------------------------------------------------------------------------------- Footer / Social / Notification -- */
+
+.fb-like {
+	margin-right: 2em; 
+	vertical-align: middle;
+}
+
+#footerlinks {
+	position: absolute;
+	text-align: center;
+	bottom: 1em;
+	left: 50%;
+	transform: translateX(-50%);
+	font-size: 0.9em !important;
+	text-decoration: none;
+}
+
+#footerlinks a {
+	font-size: 0.9em !important;
+}
+
+#sociallinks {
+	position: absolute;
+	display: block;
+	right: 4em;
+	bottom: 1em;
+}
+
+#sociallinks>img {
+	width: 2.5em;
+	vertical-align: middle;
+}
+
+#notification {
+	position: absolute;
+    color: var(--egg-brown);
+    background: white;
+    left: 50%; top: 1em;
+    transform: translateX(-50%);
+    padding: 0.75em;
+    box-shadow: 0.1em 0.1em 0.4em rgba(0, 0, 0, 0.5);
+    text-align: left;
+}
+
+#notification img {
+	width: 2em; 
+	height: 2em;
+	margin-right: 0.75em;
+}
+
+/* -------------------------------------------------------------------------------------------------------- Server List -- */
+
+#serverItem {
+	width: 22em; margin-top: 0.25em;
+}
+
+.serverTable {
+	width: 100%; 
+	margin-top: 0.25em;
+	text-align: left;
+}
+
+
+/* ---------------------------------------------------------------------------------------------------------------- Ads -- */
+	
+#preroll {
+	position: fixed;
+}
+
+.bigAdContainer {
+	position: absolute;
+	max-width: calc(800px + 1.5em);
+	max-height: calc(600px + 1.5em);
+	width: calc(120vh + 1.5em);
+	height: calc(90vh + 1.5em);
+}
+
+#bigAdImg {
+	position: absolute;
+    width: calc(100% - 1.5em);
+    height: calc(100% - 1.5em);
+}
+
+#houseAd_300x250 {
+	pointer-events: all;								/*I dont think this actually does anything... */
+}
+
+/* ------------------------------------------------------------------------------------------------- Content Panes -- */
+#canvas {
+    background: black;
+    position: absolute;
+    pointer-events: none;
+}
+
+#mainMenu {
+	position: absolute;
+	overflow-y: scroll;
+	overflow-x: hidden;
+}
+
+#game {
+    color: #fff;
+    text-shadow:
+        0em 0em .1em #000,
+        0em .1em .2em #000;
+}
+
+.shadedPane {
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 0.2em;
+    display: inline-block;
+}
+
+.lightPane {
+    background: rgba(224, 240, 255, 0.75);
+    border-radius: 0.4em;
+    margin: 0.5em;
+    padding: 0.75em;
+}
+
+.pane_faq {
+	position: absolute; 
+	top: 100%; 
+	width: 60%; 
+	min-width: 50em; 
+	left: 50%; 
+	transform: translateX(-50%);
+}
+
+#feedback {
+	text-align: left;
+	width: 30em;
+	white-space: normal;
+}
+
+#feedbackEmail {
+    width: 100%;
+}
+
+#changelog {
+	text-align: left; 
+	white-space: nowrap;
+}
+
+/* ------------------------------------------------------------------------------------------------- Golden Chicken -- */
+
+#upgradeIndicator {
+	position: absolute;
+	left: 0.6em;
+	bottom: 0.5em;
+	width: 7em;
+	height: 7em;
+}
+
+#upgradeIndicator>img {
+	height: 7em;
+}
+
+#upgradeIndicator.ingame {
+	top: 5em;
+	right: 1em;
+	bottom: auto;
+	left: auto;
+	width: 4em;
+	height: 4em;
+	pointer-events: none;
+}
+
+#upgradeIndicator.ingame>img {
+	height: 4em;
+}
+
+#showBuyPassDialogButton {
+	position: absolute; 
+	left: 1em; 
+	bottom: 0.5em;
+	pointer-events: none;
+}
+
+#showBuyPassDialogButton>img {
+	 height: 8em;
+}
+
+#buyPassChickenSpeech {
+	float: right;
+	margin-top: 0em;
+	pointer-events: none;
+	animation-timing-function: cubic-bezier();
+	animation-name: popVisible;
+	animation-iteration-count: infinite;
+	animation-delay: 1s;
+	animation-duration: 10s;
+	animation-fill-mode: both;
+	font-size: 1em;
+	background: url('../img/speechBubble01.png') no-repeat center center;
+	background-size: contain;
+	padding: 1.2em 1em 1em 2.5em;
+	width: 10em;
+	height: 4em;
+	text-align: center;
+}
+
+
+@-webkit-keyframes popVisible {
+	0% { transform: scale(0); }
+	2% { transform: scale(1.1); }
+	3% { transform: scale(1); }
+	40% { transform: scale(1); }
+	41% { transform: scale(1.1); }
+	43% { transform: scale(0); }
+	100% { transform: scale(0); }
+} 
+
+@keyframes popVisible {
+	0% { transform: scale(0); }
+	2% { transform: scale(1.1); }
+	3% { transform: scale(1); }
+	40% { transform: scale(1); }
+	41% { transform: scale(1.1); }
+	43% { transform: scale(0); }
+	100% { transform: scale(0); }
+}
+
+#showBuyPassDialogButton>.ssbutton {
+	width: 10em; 
+	display: inline-block;
+}
+
+#buyPassDialog, #createGameDialog, #gotNuggetPopup, #applixirPopup {
+    position: absolute;
+    top: 0; 
+    width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    color: #FFF;
+}
+
+#buyPassContainer, #createGameContainer, #gotNuggetContainer, #applixirContainer {
+	left: 50%; top: 45%;
+    transform: translate(-50%, -50%);
+    background-image: linear-gradient(#1f91b6, #a8e2f6) !important;
+    padding: 1em;
+    white-space: nowrap;
+}
+
+#buyPassDetails {
+	border-style: none;
+	padding: 0.5em;
+	background: #5ebbda;
+	margin-bottom: 1em;
+	line-height: 38px;
+	min-height: 7em;
+}
+
+#buyPassDetails ul {
+	list-style-type: none;
+}
+
+#buyPassDetails .inline_image {
+	height: 1.5em;
+}
+
+#buyPassDisclaimer {
+	font-size: 0.7em;
+	margin-top: 1em;
+	color: var(--egg-brown);
+}
+
+.buyPassItem {
+	display: inline-block;
+	background: #1192bc;
+	margin: 1em;
+	padding: 2em;
+}
+
+
+
+
+
+/* ------------------------------------------------------------------------------------------------- Login Bar -- */
+
+#logout {
+	text-align: left;	
+}
+
+#profilePic {
+	float: left; margin-right: 0.25em; display: none; height: 1.75em;
+}
+
+#serverName {
+	margin-left: 1em;
+	margin-top: 0.25em;
+	text-decoration: underline !important;
+}
+
+/* ------------------------------------------------------------------------------------------------- Team Elements -- */
+
+.redTeam {
+    font-size: 2em;
+    color: #f00;
+}
+
+.blueTeam {
+    font-size: 2em;
+    color: #0af;
+}
+
+.team {
+    display: none;
+    position: absolute;
+    left: 50%;
+    bottom: 0.25em;
+    transform: translateX(-50%);
+    font-size: 2em;
+}
+
+/* ------------------------------------------------------------------------------------------------- Form Elements -- */
+
+input, textarea {
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+    background-clip: padding-box;
+}
+
+select {
+    font-size: 1em;
+    background: #fff;
+    height: 2em;
+}
+
+.textInput {
+    padding: 0.5em;
+    height: 2em;
+}
+
+.textInput, textarea, select {
+	color: var(--egg-brown); 
+	box-shadow: inset 0 0.1em 0.2em rgba(0, 0, 0, 0.33);
+    border-style: solid;
+    border-width: 0.1em;
+    border-color: var(--egg-brown);
+    border-radius: 0.2em;
+}
+
+textarea {
+	resize: none;
+	width: 100%;
+	margin-top: 0.5em;
+	padding: 0.5em;
+}
+
+.ss_slider {
+	width: 14em;
+	
+}
+
+.ss_checkbox {
+	height: 0.9em;
+}
+
+.ss_link {
+    display: inline-block;
+	text-decoration: underline;
+	cursor: pointer;
+    margin: 1em;
+}
+
+
+/* ------------------------------------------------------------------------------------------------- Text Formatting -- */
+
+h1 { font-family: 'Sigmar One', Sans-Serif; font-size: 1.6em; margin: 0; }
+h2 { font-family: 'Nunito', Sans-Serif; font-size: 1.5em; }
+h3 { font-family: 'Nunito', Sans-Serif; font-size: 1.2em; }
+small { font-size: 0.9em; }
+
+h2, h3 {
+    margin: 0.2em;
+    font-weight: bolder;
+}
+
+/* --------------------------------------------------------------------------------------------------- Button Styles -- */
+
+button > h1 {
+    color: #fff;
+}
+
+.sizeMed {
+	width: 10em;
+}
+
+.ssbutton {
+    background: linear-gradient(#ace, #def);
+    height: 1.75em;
+    color: #fff;
+    cursor: pointer;
+    text-align: center;
+    border-radius: 0.3em;
+    border: solid;
+    border-color: rgba(0, 0, 0, 0.33);
+    border-width: 0.1em;
+    text-shadow: 0em 0em 0.2em #000;
+    box-shadow: 0 0.1em 0.2em rgba(0, 0, 0, 0.33);
+    pointer-events: all;
+}
+
+.itemContainer {
+    position: relative;
+    width: 8em; 
+    height: 8em; 
+    padding: 0em; 
+    margin: 0em;
+}
+
+.itemLock, .itemLockPhysical {
+    display: inline-block; 
+    position: absolute; 
+    width: 5em;
+    left: 2.9em; 
+    bottom: 0.5em; 
+    background-color: rgb(250, 203, 205, 0.85); 
+    border-radius: 0.5em;
+}
+
+.itemLockPhysicalImg {
+    width: 2em; 
+    height: 2em; 
+    margin-left: auto; 
+    margin-right: auto; 
+    display: block;
+}
+
+.itemButton {
+    box-sizing: border-box;
+    background: linear-gradient(#ace, #def);
+    width: 8em;
+    height: 8em;
+    cursor: pointer;
+    border-radius: 0.4em;
+    border: solid;
+    border-color: rgba(0, 32, 64, 0.33);
+    border-width: 0.1em;
+    text-shadow: 0em 0em 0.2em #000;
+    box-shadow: 0 0.1em 0.2em rgba(0, 0, 0, 0.33);
+}
+
+.itemButtonSelected {
+    box-sizing: border-box;
+    background: linear-gradient(#f93, #fed);
+    width: 8em;
+    height: 8em;
+    cursor: pointer;
+    border-radius: 0.4em;
+    border: solid;
+    border-color: #fff;
+    border-width: 0.2em;
+    text-shadow: 0em 0em 0.2em #000;
+    box-shadow: 0 0.1em 0.2em rgba(0, 0, 0, 0.33);
+}
+
+.showItemList {
+    list-style: none;
+}
+
+.showItemTemplate {
+    text-align: center;
+}
+
+.showItemTemplateRender {
+    cursor: default
+}
+
+.showItemTemplateLeft {
+    margin-left: 2em;
+}
+
+.chat {
+    position: absolute;
+    width: 40%;
+    border: none;
+    pointer-events: none;
+    color: #ccc;
+    text-align: left;
+    text-shadow:
+        0em 0em .1em #000,
+        0em .1em .2em #000;
+}
+
+.friendCode {
+	position: absolute; 
+	top: -10em;
+    resize: none;
+    border-width: 0;
+    font-size: 1.2em;
+    font-weight: 900;
+    color: var(--egg-brown);
+}
+
+.bgap { margin-bottom: 1em; }
+.lgap { margin-left: 0.5em; }
+.rgap { margin-right: 0.5em; }
+
+.flexCol, .flexRow {
+    display: flex;
+    flex-wrap: nowrap;
+}
+
+.flexCol {
+    align-items: center;
+    flex-direction: column;
+    text-align: center;
+}
+
+.flexRow {
+    /*width: 100%;*/
+    flex-direction: row;
+}
+
+.icon {
+    cursor: pointer;
+    pointer-events: all;
+    height: 2.25em;
+}
+
+.buttonIcon {
+    float: left;
+    width: 1.25em;
+    height: 1.25em;
+}
+
+.grenade {
+    width: 2em;
+}
+
+.settings {
+    position: absolute;
+    right: 1em;
+    top: 4em;
+    background: var(--egg-tan);
+    color: var(--egg-brown);
+}
+
+.arrow {
+    height: 3em;
+    cursor: pointer;
+    padding: 0.7em;
+}
+
+.statLabel {
+    text-align: right;
+    font-size: 1.1em;
+    white-space: nowrap;
+}
+
+.statBar {
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+    background-clip: padding-box;
+
+    background: #def;
+    width: 6em;
+    height: 1.1em;
+    border: solid;
+    border-color: var(--egg-brown);
+    border-width: 0.1em;
+    border-radius: 0.2em;
+    border-right-width: 1em;
+}
+
+.playerSlot {
+    text-align: right;
+    margin: 0.5em;
+}
+
+.playerNameAndScore {
+    display: table-cell;
+    border-radius: 0.2em;
+    padding-top: 0.05em; padding-bottom: 0.05em;
+    padding-left: 0.5em; padding-right: 0.5em;
+    overflow-y: hidden;
+}
+
+.otherPlayer > span {
+    pointer-events: all;
+    cursor: pointer;
+    font-weight: 600 !important;
+    font-size: 0.9em !important;
+}
+
+.thisPlayer > span {
+    color: #ff0;
+    font-weight: 700;
+    font-size: 1em;
+}
+
+.upgradedPlayer {
+    color: #ffd000;
+    font-weight: 800;
+    animation: shinytext 1.5s infinite !important;
+}
+
+.alert {
+    position: absolute;
+    display: block;
+    padding-top: 0.5em;
+    padding-bottom: 1em;
+    padding-left: 1.5em;
+    padding-right: 1.5em;
+    background: var(--egg-tan);
+    color: var(--egg-brown);
+    /*text-align: center;*/
+}
+
+.alertMessage {
+    max-height: 32em;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding-bottom: 0.5em;
+}
+
+.redeemCodeDialog {
+    position: absolute;
+    display: block;
+    padding-top: 0.5em;
+    padding-bottom: 1em;
+    padding-left: 1.5em;
+    padding-right: 1.5em;
+    background: var(--egg-tan);
+    text-align: center;
+}
+
+.colorSelector {
+    position: relative;
+    padding: 0 0.7em;
+    margin: 0 0 0.2em 0.2em;
+    border: solid 0.1em;
+    border-radius: 0.2em;
+    cursor: pointer;
+
+}
+
+.lockedColor {
+	background-image: url('../img/ico_padlock.png') !important;
+    background-position: center center !important;
+    background-size: contain !important;
+}
+
+.selectedColor {
+	border-color: #FFF;
+}
+
+.whiteHeader {
+    color: #fff;
+    text-shadow: 0 0 0.2em black;
+}
+
+.unselectable {
+    -ms-user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -o-user-select: none;
+    user-select: none;
+}
+
+/* -------------------------------------------------------------------------------------------------------- FIREBASE -- */
+
+.firebaseui-container {
+    background: transparent;
+    box-shadow: none;
+}
+
+.firebaseui-input-floating-button {
+    color: #f00;
+}
+
+/* ------------------------------------------------------------------------------------------------- SETTINGS POPUP -- */
+
+#settingsMenu {
+    background: rgba(0, 0, 0, 0.7);
+}
+
+#settingsContainer {
+    position: absolute;
+    top: 45%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--ss-blue2);
+    border-radius: 0.2em;
+    padding: 0.5em;
+    white-space: nowrap;
+}
+
+#settingsContainer h1 {
+    font-size: 1.3em;
+    color: var(--ss-blue3);
+    margin-bottom: 0.5em;
+}
+
+#settingsContainer .pane {
+    display: inline-block;
+    vertical-align: top;
+    margin: 1em;
+    margin-left: 2em;
+    margin-right: 2em;
+}
+
+#settingsContainer .label {
+    display: inline-block;
+    color: var(--ss-white);
+    margin: 0.2em;
+    margin-left: 0.5em;
+}
+
+#settingsContainer .box {
+    display: inline-block;
+    width: 12em;
+    text-align: center;
+    padding: 0.2em;
+    cursor: pointer;
+    border-radius: 0.2em;
+    margin: 0.2em;
+}
+
+#settingsContainer .defined {
+    color: var(--ss-blue4);
+    background: var(--ss-blue1);
+}
+
+#settingsContainer .undefined {
+    color: var(--ss-blue2);
+    background: var(--ss-blue3);
+}
+
+#settingsContainer .active {
+    color: var(--ss-blue1);
+    background: var(--ss-blue4);
+}
+
+.settingsPane {
+    display: inline-block;
+}
+
+#settingsMenu input {
+	
+}
+
+/* ------------------------------------------------------------------------------------------------- FRONT END -- */
+
+#specialmessage {
+	position: absolute; 
+	left: 50%; 
+	transform: translateX(-50%); 
+	top: 1.5em;	
+}
+
+#logo {
+	width: 22em; 
+	margin: 0 auto;
+}
+
+#logo img{
+	width: 100%;
+}
+
+.merch-container {
+    display: inline-block;
+    position: relative;
+    background: #f84;
+    margin: 0.25em;
+    width: 2.15em;
+    height: 2.15em;
+    border-radius: 0.2em;
+}
+
+@keyframes merch-anim {
+    0% { transform: translate(-50%, -50%) scale(0.8) }
+    60% { transform: translate(-50%, -50%) scale(0.8) }
+    80% { transform: translate(-50%, -50%) scale(1.2) rotate(-15deg) }
+    100% { transform: translate(-50%, -50%) scale(1.2) rotate(15deg) }
+}
+
+.merch-icon {
+    position: absolute;
+    animation: merch-anim 1s infinite alternate;
+    width: 2.15em;
+    height: 2.15em;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+#twitchContainer {
+    color: white;
+    width: 15em;
+}
+
+#twitchStreams {
+    direction: rtl;
+    height: 9em;
+    margin-top: 0.2em;
+    overflow-y: auto;
+}
+
+#twitchIcon {
+    width: 1.8em;
+}
+
+#twitchHeader {
+    display: inline-block;
+    font-size: 1.2em;
+    line-height: 1em;
+}
+
+.twitchRow {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 0.2em;
+    padding: 0.2em;
+    margin-bottom: 0.2em;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.twitchAvatar {
+    float: left;
+    margin-right: 0.5em;
+    height: 2em;
+}
+
+.twitchName {
+}
+
+.twitchViewers {
+    font-weight: normal; 
+    font-size: 0.7em; 
+}
+
+/* ------------------------------------------------------------------------------------------------- GAME UI -- */
+

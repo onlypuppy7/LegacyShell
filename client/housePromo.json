@@ -1,0 +1,21 @@
+{
+	"big": [
+		{
+			"label": "Killstreak",
+			"link": "https://killstreak.tv",
+			"active": false,
+			"id": "small_jqrb278j0",
+			"imageExt": ".png"
+		}
+	],
+	"small": [
+		{
+			"label": "Killstreak",
+			"active": true,
+			"id": "small_jqrb278j0",
+			"link": "https://killstreak.tv",
+			"imageExt": ".jpg"
+		}
+	],
+	"houseAdPercentChance": 100
+}
