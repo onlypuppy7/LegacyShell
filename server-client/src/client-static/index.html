@@ -153,7 +153,7 @@
 	-->
 	<!-- End Ironsource -->
 
-	<script>var version = '0.17.0';</script>
+	<script>var version = 'LEGACYSHELLVERSION';</script>
 	<script src="src/servers.js?SERVERJSHASH"></script>
 	<script src="src/gameplayTips.js?GAMEPLAYTIPSHASH"></script>
 	<script src="src/shellshock.min.js?SHELLSHOCKMINJSHASH"></script>
@@ -373,13 +373,15 @@
 		
 		<!-- Footer --> 
 		<div id="sociallinks">
+    <!--
     <div class="fb-like" data-href="https://www.facebook.com/ShellShockersGame" data-layout="ssbutton" data-action="like" data-size="small" data-show-faces="false" data-share="true"></div>
     <a class="merch-container" target="_blank" rel="noopener" href="https://shell-shockers.myshopify.com/collections/all">
         <img class="merch-icon" src="img/ico_merch.png">
     </a>
     <a target="_blank" rel="noopener" href="https://www.facebook.com/ShellShockersGame"><img src="img/fbLogo.png"></a>
     <a target="_blank" rel="noopener" href="https://twitter.com/eggcombat"><img src="img/twitterLogo.png"></a>
-    <a target="_blank" rel="noopener" href="https://discord.gg/uAXe4qe"><img src="img/discordLogo.png"></a>
+    --> 
+    <a target="_blank" rel="noopener" href="https://discord.gg/NqHzHXkzth"><img src="img/discordLogo.png"></a>
 </div>
 
 <div id="versionlink">
@@ -387,11 +389,15 @@
 </div>
 
 <div id="footerlinks">
-	<a class="clickable" onclick="extern.showChangelog()">v <script>document.write(version);</script></a>
+	<a class="clickable" onclick="extern.showChangelog()">Based on: v 0.17.0</a>
+    &nbsp;|&nbsp;
+	<a class="clickable" onclick="extern.showChangelog()">LegacyShell: <script>document.write(version);</script></a>
+    <!--
     &nbsp;|&nbsp;
     <a href="https://www.bluewizard.com/privacypolicy" target="_window">Privacy Policy</a>
     &nbsp;|&nbsp;
     <a href="https://www.bluewizard.com/terms" target="_window">Terms of Service</a>
+    -->
     <br>
     <a href="http://www.bluewizard.com" target="_blank">Copyright &copy;2018 BWD, 2024 LegacyShell Team</a>
 </div>
