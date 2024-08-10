@@ -1,14 +1,15 @@
 {
-    "name": "legacyshell",
-    "version": "alpha 0.0.1",
-    "description": "Server software for LegacyShell",
-    "main": "server.js",
-    "scripts": {
-      "start": "node server.js"
-    },
-    "dependencies": {
-      "express": "^4.18.2",
-      "js-yaml": "^4.1.0"
-    }
+  "name": "legacyshell",
+  "version": "alpha 0.0.1",
+  "description": "Server software for LegacyShell",
+  "main": "server.js",
+  "scripts": {
+    "start": "node start.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "find-up": "^7.0.0",
+    "js-yaml": "^4.1.0",
+    "terser": "^5.16.4"
   }
-  
+}
