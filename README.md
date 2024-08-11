@@ -24,6 +24,10 @@ So depending on your use case, you could either be using all or some of the serv
 ## Installation
 1. Navigate to the root directory in your terminal of choice.
 2. Enter: `npm install`
+3. Enter: `npm start` to set up the config (just roll with it for now).
 
 ## Starting up the server
-1. `npm start`
+At the moment you have to start up each section separately. Perhaps in the future there can be a script for them all. I recommend using a program such as tmux (linux), or creating at least a quick batch script to open everything in separate terminal windows.
+- `node run client`
+- `node run services`
+- `node run websocket`
