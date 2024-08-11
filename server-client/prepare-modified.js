@@ -47,8 +47,8 @@ function prepareModified(ss) {
         console.log(`SHA-256 hash of the minified SHELLSHOCKMINJS: ${hashes.SHELLSHOCKMINJSHASH}`);
 
         let serversJs = fs.readFileSync(sourceServersJsPath, 'utf8');
-        serversJs = serversJs.replace(/LEGACYSHELLSERVICESPORT/g, "13371");
-        serversJs = serversJs.replace(/LEGACYSHELLWEBSOCKETPORT/g, "13372");
+        serversJs = serversJs.replace(/LEGACYSHELLSERVICESPORT/g, ss.config.services.port || "13371");
+        serversJs = serversJs.replace(/LEGACYSHELLWEBSOCKETPORT/g, ss.config.websocket.port || "13372");
 
         fs.writeFileSync(destinationServersJsPath, serversJs, 'utf8');
         console.log(`servers.js copied and modified to ${destinationServersJsPath}`);
