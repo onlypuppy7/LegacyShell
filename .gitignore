@@ -1,2 +1,5 @@
 /node_modules
 /server-client/store
+/server-services/store
+/server-websocket/store
+/store

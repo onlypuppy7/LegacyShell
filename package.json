@@ -2,16 +2,16 @@
   "name": "legacyshell",
   "version": "alpha 0.0.1",
   "description": "Server software for LegacyShell",
-  "main": "server.js",
+  "main": "start.js",
   "scripts": {
     "start": "node start.js",
     "client": "node server-client/run-client.js",
-    "services": "node server-services/start.js",
-    "websocket": "node server-websocket/start.js"
+    "services": "node server-services/run-services.js",
+    "websocket": "node server-websocket/run-websocket.js"
   },
   "dependencies": {
     "express": "^4.18.2",
     "js-yaml": "^4.1.0",
-    "terser": "^5.16.4"
+    "uglify-js": "^3.19.2"
   }
 }
