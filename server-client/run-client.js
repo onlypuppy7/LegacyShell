@@ -17,7 +17,7 @@ const config = yaml.load(fs.readFileSync(configPath, 'utf8'));
 
 try {
     console.log('Generating modified files (eg minifying shellshock.min.js)...');
-    execSync('node server-client/prepare_modified.js', { stdio: 'inherit' });
+    execSync('node server-client/prepare-modified.js', { stdio: 'inherit' });
 } catch (error) {
     console.error('Modification failed:', error);
 };

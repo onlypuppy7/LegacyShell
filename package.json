@@ -5,7 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node start.js",
-    "client": "node server-client/start.js",
+    "client": "node server-client/run-client.js",
     "services": "node server-services/start.js",
     "websocket": "node server-websocket/start.js"
   },

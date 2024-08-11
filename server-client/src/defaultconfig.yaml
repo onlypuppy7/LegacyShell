@@ -1,3 +1,9 @@
 # config.yaml, yep
-server:
+client:
   port: 13370
+
+services:
+  port: 13371
+
+websocket:
+  port: 13372
