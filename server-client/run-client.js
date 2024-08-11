@@ -28,7 +28,7 @@ ss.log.green("Created ss object!");
 //##### END CREATE SS OBJECT
 
 try {
-    console.log('Generating modified files (eg minifying shellshock.min.js)...');
+    ss.log.blue('Generating modified files (eg minifying shellshock.min.js)...');
     prepareModified(ss);
 } catch (error) {
     console.error('Modification failed:', error);
@@ -42,5 +42,5 @@ app.use(express.static(path.join(__dirname, 'store', 'client-modified'))); //ser
 app.use(express.static(path.join(__dirname, 'src', 'client-static'))); //server-client\src\client-static
 
 app.listen(port, () => {
-    console.log(`Server is running on http://localhost:${port}`);
+    ss.log.success(`Server is running on http://localhost:${port}`);
 });
