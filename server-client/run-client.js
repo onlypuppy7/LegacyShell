@@ -2,12 +2,13 @@
 const yaml = require('js-yaml');
 const fs = require('fs');
 const path = require('path');
+const log = require('../src/coloured-logging.js');
 //libraries
 const express = require('express');
 //other scripts
 const { prepareModified } = require('./prepare-modified.js');
 
-//START CREATE SS OBJECT
+//##### START CREATE SS OBJECT
 const ss = {};
 //ss.config
 const configPath = path.join(__dirname, '..', 'store', 'config.yaml');
@@ -21,15 +22,17 @@ ss.rootDir = path.resolve(ss.rootDir || __dirname);
 //ss.packageJson
 const packageJsonPath = path.join(ss.rootDir, '..', 'package.json');
 ss.packageJson = require(packageJsonPath);
-//END CREATE SS OBJECT
+//ss.log
+ss.log = log;
+ss.log.green("Created ss object!");
+//##### END CREATE SS OBJECT
 
 try {
     console.log('Generating modified files (eg minifying shellshock.min.js)...');
-    // console.log(ss);
     prepareModified(ss);
-    // execSync('node server-client/prepare-modified.js', { stdio: 'inherit' });
 } catch (error) {
     console.error('Modification failed:', error);
+    process.exit(1);
 };
 
 const app = express();
