@@ -4,9 +4,6 @@ const UglifyJS = require('uglify-js');
 const crypto = require('crypto');
 
 function prepareModified(ss) {
-    // console.log("ss");
-    // console.log(ss);
-
     const sourceShellJsPath = path.join(ss.rootDir, 'src', 'client-static', 'src', 'shellshock.min.js');
     const destinationShellJsPath = path.join(ss.rootDir, 'store', 'client-modified', 'src', 'shellshock.min.js');
 
@@ -25,7 +22,7 @@ function prepareModified(ss) {
 
     try {
         const sourceCode = fs.readFileSync(sourceShellJsPath, 'utf8');
-        console.log("Minifying/obfuscating shellshock.min.js...");
+        ss.log.italic("Minifying/obfuscating shellshock.min.js...");
 
         const result = UglifyJS.minify(sourceCode);
 
@@ -44,7 +41,7 @@ function prepareModified(ss) {
         let hashSum = crypto.createHash('sha256');
         hashSum.update(fileBuffer);
         hashes.SHELLSHOCKMINJSHASH = hashSum.digest('hex');
-        console.log(`SHA-256 hash of the minified SHELLSHOCKMINJS: ${hashes.SHELLSHOCKMINJSHASH}`);
+        ss.log.italic(`SHA-256 hash of the minified SHELLSHOCKMINJS: ${hashes.SHELLSHOCKMINJSHASH}`);
 
         let serversJs = fs.readFileSync(sourceServersJsPath, 'utf8');
         serversJs = serversJs.replace(/LEGACYSHELLSERVICESPORT/g, ss.config.services.port || "13371");
@@ -57,7 +54,7 @@ function prepareModified(ss) {
         hashSum = crypto.createHash('sha256');
         hashSum.update(fileBuffer);
         hashes.SERVERJSHASH = hashSum.digest('hex');
-        console.log(`SHA-256 hash of the modified SERVERJS: ${hashes.SERVERJSHASH}`);
+        ss.log.italic(`SHA-256 hash of the modified SERVERJS: ${hashes.SERVERJSHASH}`);
 
         let htmlContent = fs.readFileSync(sourceHtmlPath, 'utf8');
         htmlContent = htmlContent.replace(/SHELLSHOCKMINJSHASH/g, hashes.SHELLSHOCKMINJSHASH);
