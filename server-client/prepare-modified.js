@@ -4,8 +4,8 @@ const UglifyJS = require('uglify-js');
 const crypto = require('crypto');
 
 function prepareModified(ss) {
-    console.log("ss");
-    console.log(ss);
+    // console.log("ss");
+    // console.log(ss);
 
     const sourceShellJsPath = path.join(ss.rootDir, 'src', 'client-static', 'src', 'shellshock.min.js');
     const destinationShellJsPath = path.join(ss.rootDir, 'store', 'client-modified', 'src', 'shellshock.min.js');

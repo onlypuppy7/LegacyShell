@@ -1,27 +1,31 @@
-const express = require('express');
+//ss object
 const yaml = require('js-yaml');
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
-const configPath = path.join(__dirname, '..', 'store', 'config.yaml');
+//libraries
+const express = require('express');
+//other scripts
 const { prepareModified } = require('./prepare-modified.js');
 
+//START CREATE SS OBJECT
 const ss = {};
-
+//ss.config
+const configPath = path.join(__dirname, '..', 'store', 'config.yaml');
 if (!fs.existsSync(configPath)) {
     console.log('config.yaml not found, make sure you have run the main js first...');
     process.exit(1);
 };
-
 ss.config = yaml.load(fs.readFileSync(configPath, 'utf8'));
-
+//ss.rootDir
 ss.rootDir = path.resolve(ss.rootDir || __dirname);
+//ss.packageJson
 const packageJsonPath = path.join(ss.rootDir, '..', 'package.json');
 ss.packageJson = require(packageJsonPath);
+//END CREATE SS OBJECT
 
 try {
     console.log('Generating modified files (eg minifying shellshock.min.js)...');
-    console.log(ss);
+    // console.log(ss);
     prepareModified(ss);
     // execSync('node server-client/prepare-modified.js', { stdio: 'inherit' });
 } catch (error) {
