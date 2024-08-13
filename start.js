@@ -7,6 +7,7 @@ const defaultConfigPath = path.join(__dirname, 'src', 'defaultconfig.yaml');
 
 if (!fs.existsSync(configPath)) {
     console.log('config.yaml not found, copying from defaultconfig.yaml...');
+    fs.mkdirSync(path.join(__dirname, 'store'), { recursive: true });
     fs.copyFileSync(defaultConfigPath, configPath);
     console.log('config.yaml created successfully.');
 };
