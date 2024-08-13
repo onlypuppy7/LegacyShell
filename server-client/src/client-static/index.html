@@ -58,8 +58,11 @@
 		})();
 	</script>
 
-	<script src="https://cdn.onesignal.com/sdks/OneSignalSDK.js" async=""></script>
+    <!-- legacyshell libs (not bloat) -->
     <script src="https://cdn.jsdelivr.net/npm/js-sha256@0.9.0/src/sha256.min.js"></script>
+
+    <!-- bloat vv TODO remove this bs -->
+	<script src="https://cdn.onesignal.com/sdks/OneSignalSDK.js" async=""></script>
 	<script>
 	  var osAppId = 'dae68bc6-167c-4012-8644-90fe9db39950';
 	  
@@ -81,7 +84,7 @@
 	  });
 	</script>
 
-	<!-- Ad blocker detection -->
+	<!-- Ad blocker detection (BLOAT) -->
 	<script src="src/ads.js?1545890169"></script>
 
 	<script type="application/ld+json">
@@ -110,7 +113,7 @@
 
 	<!-- European Union detection -->
 	<script>isFromEU = 0 ? true : false</script>
-	<!-- AdInPlay -->
+	<!-- AdInPlay (BLOAT) -->
 	<meta name="viewport" content="minimal-ui, user-scalable=no, initial-scale=1, maximum-scale=1, width=device-width" />
 	<script async src="//api.adinplay.com/libs/aiptag/pub/SSK/legacy.onlypuppy7.online/tag.min.js"></script>
 	<script>
@@ -120,13 +123,13 @@
 		aiptag.cmd.player = aiptag.cmd.player || [];
 	</script>
 
-	<!-- Firebase -->
+	<!-- Firebase (BLOAT) -->
 	<script>var firebase</script>
 	<script src="https://www.gstatic.com/firebasejs/4.11.0/firebase.js"></script>
 	<script src="https://cdn.firebase.com/libs/firebaseui/2.7.0/firebaseui.js"></script>
 	<link type="text/css" rel="stylesheet" href="https://cdn.firebase.com/libs/firebaseui/2.7.0/firebaseui.css" />
 
-	<!-- Facebook Pixel Code -->
+	<!-- Facebook Pixel Code (GLOWING BLOAT) -->
 	<script>
 		!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
 		n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
@@ -139,10 +142,10 @@
 	<noscript>
 		<img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=771186996377132&ev=PageView&noscript=1"/>
 	</noscript>
-	<!-- DO NOT MODIFY -->
+	<!-- DO NOT MODIFY (I WILL) -->
 	<!-- End Facebook Pixel Code -->
 
-	<!-- Ironsource -->
+	<!-- Ironsource BLOAT -->
 	<!--
 	<script src="https://static.ultra-rv.com/rv-min.js"></script>
 	<script type="text/javascript">
@@ -374,7 +377,7 @@
 		
 		<!-- Footer --> 
 		<div id="sociallinks">
-    <!--
+    <!-- COMMENTED OUT (BLOAT)
     <div class="fb-like" data-href="https://www.facebook.com/ShellShockersGame" data-layout="ssbutton" data-action="like" data-size="small" data-show-faces="false" data-share="true"></div>
     <a class="merch-container" target="_blank" rel="noopener" href="https://shell-shockers.myshopify.com/collections/all">
         <img class="merch-icon" src="img/ico_merch.png">
@@ -393,7 +396,7 @@
 	<a class="clickable" onclick="extern.showChangelog()">Based on: v 0.17.0</a>
     &nbsp;|&nbsp;
 	<a class="clickable" onclick="extern.showChangelog()">LegacyShell: <script>document.write(version);</script></a>
-    <!--
+    <!-- more bloat
     &nbsp;|&nbsp;
     <a href="https://www.bluewizard.com/privacypolicy" target="_window">Privacy Policy</a>
     &nbsp;|&nbsp;
@@ -1578,7 +1581,7 @@
         <p id="spinnerFooter">Wait for it...</p>
     </div>
 </div>
-	<!-- AdInPlay test -->
+	<!-- AdInPlay test BLOAT -->
 	<script>var _0x5c2b=["\x73\x63\x72\x69\x70\x74\x73","\x6F\x75\x74\x65\x72\x48\x54\x4D\x4C","\x6C\x65\x6E\x67\x74\x68"];var uuid=0;(function(){var _0xce0cx2=false;for(var _0xce0cx3 in document[_0x5c2b[0]]){var _0xce0cx4=document[_0x5c2b[0]][_0xce0cx3];if(_0xce0cx4[_0x5c2b[1]]&& _0xce0cx4[_0x5c2b[1]][_0x5c2b[2]]> 3000000){uuid= 255;break}}})()
 </script>
 </body>
