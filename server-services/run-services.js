@@ -41,7 +41,11 @@ wss.on('connection', (ws) => {
         switch (msg.cmd) {
             case "validateLogin":
                 ws.send(JSON.stringify({
-                    kills: 0
+                    kills: 20,
+                    deaths: 10,
+                    streak: 100,
+                    currentBalance: 1337,
+                    ownedItemIds: []
                 }));
                 break;
             default:
