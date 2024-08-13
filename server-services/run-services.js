@@ -31,27 +31,31 @@ let port = ss.config.services.port || 13371;
 const wss = new WebSocket.Server({ port: port });
 
 wss.on('connection', (ws) => {
-    console.log('New client connected');
-
-    ws.send('Welcome to the WebSocket server!');
-
     ws.on('message', (message) => {
-        console.log(`Received:`, message);
-        
         const jsonString = message.toString('utf8');
+        const msg = JSON.parse(jsonString);
         
-        const jsonObject = JSON.parse(jsonString);
-        
-        console.log(jsonObject);
+        console.log(msg);
 
-        ws.send(`Server received: ${message}`);
+        //client cmds
+        switch (msg.cmd) {
+            case "validateLogin":
+                ws.send(JSON.stringify({
+                    "pen": "hi guys",
+                }));
+                break;
+            default:
+                break;
+        };
+
+        //server cmds (priveleged)
+
     });
 
     ws.on('close', () => {
         console.log('Client disconnected');
     });
 
-    // Handle errors
     ws.on('error', (error) => {
         console.error(`WebSocket error: ${error}`);
     });

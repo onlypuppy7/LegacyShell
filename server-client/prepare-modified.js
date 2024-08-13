@@ -22,20 +22,25 @@ function prepareModified(ss) {
 
     try {
         const sourceCode = fs.readFileSync(sourceShellJsPath, 'utf8');
-        ss.log.italic("Minifying/obfuscating shellshock.min.js...");
 
-        const result = UglifyJS.minify(sourceCode);
-
-        if (result.error) {
-            throw new Error(`Minification failed: ${result.error}`);
+        if (ss.config.client.minify) {
+            ss.log.italic("Minifying/obfuscating shellshock.min.js...");
+            const result = UglifyJS.minify(sourceCode);
+    
+            if (result.error) {
+                throw new Error(`Minification failed: ${result.error}`);
+            };
+    
+            if (result.code === undefined) {
+                throw new Error("Minification resulted in undefined code.");
+            };
+    
+            fs.writeFileSync(destinationShellJsPath, result.code, 'utf8');
+            console.log(`Minified file saved to ${destinationShellJsPath}`);
+        } else {
+            fs.writeFileSync(destinationShellJsPath, sourceCode, 'utf8');
+            console.log(`Skipped minification (config set). Saved to ${destinationShellJsPath}`);
         };
-
-        if (result.code === undefined) {
-            throw new Error("Minification resulted in undefined code.");
-        };
-
-        fs.writeFileSync(destinationShellJsPath, result.code, 'utf8');
-        console.log(`Minified file saved to ${destinationShellJsPath}`);
 
         let fileBuffer = fs.readFileSync(destinationShellJsPath);
         let hashSum = crypto.createHash('sha256');
