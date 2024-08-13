@@ -45,7 +45,31 @@ wss.on('connection', (ws) => {
                     deaths: 10,
                     streak: 100,
                     currentBalance: 1337,
-                    ownedItemIds: []
+                    ownedItemIds: [
+                        1001, 1002, 1003, //hats
+                        2001, 2002, 2003, 2039, //stamps
+                        3100, 3101, //eggk47 / soldier (0)
+                        3600, 3601, //dozengauge / scrambler (1)
+                        3400, 3401, //csg1 / freeranger (2)
+                        3800, 3801, //eggsploder / rpegg (3)
+                        3000, 3001, //cluck9mm / pistol
+                    ],
+                    loadout: {
+                        primaryId: [3100, 3601, 3400, 3800], //each corresponds to the classIdx
+                        secondaryId: [3000, 3001, 3000, 3000], //each gun gets their own pistol combo
+                        classIdx: 1, //selected gun
+                        colorIdx: 2, //selected egg colour
+                        hatId: 1001,
+                        stampId: 2002,
+                    },
+                    session: "lmao",
+                    version: 20, //idk what this does
+                    upgradeProductId: null,
+                    upgradeMultiplier: null,
+                    upgradeAdFree: null,
+                    upgradeExpiryDate: null,
+                    upgradeIsExpired: null,
+                    maybeSchoolEmail: false,
                 }));
                 break;
             default:
