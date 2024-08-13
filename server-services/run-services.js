@@ -5,6 +5,7 @@ const path = require('path');
 const log = require('../src/coloured-logging.js');
 //libraries
 const WebSocket = require('ws');
+const sqlite3 = require('sqlite3').verbose();
 //other scripts
 
 //##### START CREATE SS OBJECT
@@ -27,9 +28,35 @@ ss.log.green("Created ss object!");
 //##### END CREATE SS OBJECT
 
 
+//init db (ooooh! sql! fancy! a REAL database! not a slow json!)
+fs.mkdirSync(path.join(__dirname, 'store'), { recursive: true });
+const db = new sqlite3.Database('./server-services/store/accountData.db');
+db.serialize(() => {
+    db.run(`
+        CREATE TABLE IF NOT EXISTS users (
+            username TEXT PRIMARY KEY,
+            kills INTEGER,
+            deaths INTEGER,
+            streak INTEGER,
+            currentBalance INTEGER,
+            ownedItemIds TEXT,  -- Will store as JSON string
+            loadout TEXT,       -- Will store as JSON string
+            session TEXT,
+            version INTEGER,
+            upgradeProductId TEXT,
+            upgradeMultiplier INTEGER,
+            upgradeAdFree INTEGER,
+            upgradeExpiryDate TEXT,
+            upgradeIsExpired INTEGER,
+            maybeSchoolEmail INTEGER
+        )
+    `);
+});
+ss.log.green("accountData DB set up!");
+
+//start ws
 let port = ss.config.services.port || 13371;
 const wss = new WebSocket.Server({ port: port });
-
 wss.on('connection', (ws) => {
     ws.on('message', (message) => {
         const jsonString = message.toString('utf8');
