@@ -21,7 +21,15 @@ function prepareModified(ss) {
     };
 
     try {
-        const sourceCode = fs.readFileSync(sourceShellJsPath, 'utf8');
+        let sourceCode = fs.readFileSync(sourceShellJsPath, 'utf8');
+
+        sourceCode = sourceCode.replace(/LEGACYSHELLITEMSHATIDS/g, fs.readFileSync(path.join(ss.rootDir, 'src', 'items', 'items-hats.json'), 'utf8'));
+        sourceCode = sourceCode.replace(/LEGACYSHELLITEMSSTAMPIDS/g, fs.readFileSync(path.join(ss.rootDir, 'src', 'items', 'items-stamps.json'), 'utf8'));
+        sourceCode = sourceCode.replace(/LEGACYSHELLITEMSEGGK47IDS/g, fs.readFileSync(path.join(ss.rootDir, 'src', 'items', 'items-eggk47.json'), 'utf8'));
+        sourceCode = sourceCode.replace(/LEGACYSHELLITEMSDOZENGAUGEIDS/g, fs.readFileSync(path.join(ss.rootDir, 'src', 'items', 'items-dozengauge.json'), 'utf8'));
+        sourceCode = sourceCode.replace(/LEGACYSHELLITEMSCSG1IDS/g, fs.readFileSync(path.join(ss.rootDir, 'src', 'items', 'items-csg1.json'), 'utf8'));
+        sourceCode = sourceCode.replace(/LEGACYSHELLITEMSRPEGGIDS/g, fs.readFileSync(path.join(ss.rootDir, 'src', 'items', 'items-rpegg.json'), 'utf8'));
+        sourceCode = sourceCode.replace(/LEGACYSHELLITEMSCLUCK9MMIDS/g, fs.readFileSync(path.join(ss.rootDir, 'src', 'items', 'items-cluck9mm.json'), 'utf8'));
 
         if (ss.config.client.minify) {
             ss.log.italic("Minifying/obfuscating shellshock.min.js...");

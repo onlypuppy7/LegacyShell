@@ -1,0 +1,124 @@
+[{
+    "id": 3e3,
+    "name": "Cluck 9mm",
+    "price": 0,
+    "item_type_id": 4,
+    "item_type_name": "Secondary",
+    "category_name": "Shared Secondary Weapons",
+    "exclusive_for_class": null,
+    "item_data": {
+        "class": Cluck9mm,
+        "meshName": "gun_cluck9mm"
+    },
+    "is_available": true
+}, {
+    "id": 3001,
+    "name": "Cluck 9mm GOLD",
+    "price": 1500,
+    "item_type_id": 4,
+    "item_type_name": "Secondary",
+    "category_name": "Shared Secondary Weapons",
+    "exclusive_for_class": null,
+    "item_data": {
+        "class": Cluck9mm,
+        "meshName": "gun_cluck9mm_Gold"
+    },
+    "is_available": true
+}, {
+    "id": 3002,
+    "name": "Happy Gun Bear Cluck 9mm",
+    "price": 5e3,
+    "item_type_id": 4,
+    "item_type_name": "Secondary",
+    "category_name": "Shared Secondary Weapons",
+    "exclusive_for_class": null,
+    "item_data": {
+        "class": Cluck9mm,
+        "meshName": "gun_cluck9mm_Bear"
+    },
+    "is_available": true
+}, {
+    "id": 3003,
+    "name": "Cluck 9mm Halloween",
+    "price": 3e3,
+    "item_type_id": 4,
+    "item_type_name": "Secondary",
+    "category_name": "Shared Secondary Weapons",
+    "exclusive_for_class": null,
+    "item_data": {
+        "class": Cluck9mm,
+        "meshName": "gun_cluck9mm_Halloween",
+        "tags": ["Halloween"]
+    },
+    "is_available": false
+}, {
+    "id": 3004,
+    "name": "Cluck 9mm Thanksgiving",
+    "price": 3e3,
+    "item_type_id": 4,
+    "item_type_name": "Secondary",
+    "category_name": "Shared Secondary Weapons",
+    "exclusive_for_class": null,
+    "item_data": {
+        "class": Cluck9mm,
+        "meshName": "gun_cluck9mm_Turkey",
+        "tags": ["Thanksgiving"]
+    },
+    "is_available": false
+}, {
+    "id": 3005,
+    "name": "Cluck 9mm Christmas",
+    "price": 3e3,
+    "item_type_id": 4,
+    "item_type_name": "Secondary",
+    "category_name": "Shared Secondary Weapons",
+    "exclusive_for_class": null,
+    "item_data": {
+        "class": Cluck9mm,
+        "meshName": "gun_cluck9mm_Present",
+        "tags": ["Christmas"]
+    },
+    "is_available": false
+}, {
+    "id": 3006,
+    "name": "Cluck 9mm New Years",
+    "price": 3e3,
+    "item_type_id": 4,
+    "item_type_name": "Secondary",
+    "category_name": "Shared Secondary Weapons",
+    "exclusive_for_class": null,
+    "item_data": {
+        "class": Cluck9mm,
+        "meshName": "gun_cluck9mm_NewYear",
+        "tags": ["NewYears2019"]
+    },
+    "is_available": false
+}, {
+    "id": 3007,
+    "name": "Cluck 9mm Groundhog",
+    "price": 3e3,
+    "item_type_id": 4,
+    "item_type_name": "Secondary",
+    "category_name": "Shared Secondary Weapons",
+    "exclusive_for_class": null,
+    "item_data": {
+        "class": Cluck9mm,
+        "meshName": "gun_cluck9mm_Groundhog",
+        "tags": ["GroundhogDay"]
+    },
+    "is_available": true
+}, {
+    "id": 3008,
+    "name": "Cluck 9mm Buck Rogers",
+    "price": 0,
+    "item_type_id": 4,
+    "item_type_name": "Secondary",
+    "category_name": "Shared Secondary Weapons",
+    "exclusive_for_class": null,
+    "item_data": {
+        "class": Cluck9mm,
+        "meshName": "gun_cluck9mm_Buck",
+        "tags": ["Promotional"]
+    },
+    "is_available": false
+}]
