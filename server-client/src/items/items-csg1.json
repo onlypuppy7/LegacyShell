@@ -1,0 +1,124 @@
+[{
+    "id": 3400,
+    "name": "CSG1",
+    "price": 0,
+    "item_type_id": 3,
+    "item_type_name": "Primary",
+    "category_name": "Ranger Primary Weapons",
+    "exclusive_for_class": 2,
+    "item_data": {
+        "class": CSG1,
+        "meshName": "gun_csg1"
+    },
+    "is_available": true
+}, {
+    "id": 3401,
+    "name": "CSG1 GOLD",
+    "price": 2e3,
+    "item_type_id": 3,
+    "item_type_name": "Primary",
+    "category_name": "Ranger Primary Weapons",
+    "exclusive_for_class": 2,
+    "item_data": {
+        "class": CSG1,
+        "meshName": "gun_csg1_Gold"
+    },
+    "is_available": true
+}, {
+    "id": 3402,
+    "name": "Happy Gun Bear CSG1",
+    "price": 5e3,
+    "item_type_id": 3,
+    "item_type_name": "Primary",
+    "category_name": "Ranger Primary Weapons",
+    "exclusive_for_class": 2,
+    "item_data": {
+        "class": CSG1,
+        "meshName": "gun_csg1_Bear"
+    },
+    "is_available": true
+}, {
+    "id": 3403,
+    "name": "CSG1 Halloween",
+    "price": 3e3,
+    "item_type_id": 3,
+    "item_type_name": "Primary",
+    "category_name": "Ranger Primary Weapons",
+    "exclusive_for_class": 2,
+    "item_data": {
+        "class": CSG1,
+        "meshName": "gun_csg1_Halloween",
+        "tags": ["Halloween"]
+    },
+    "is_available": false
+}, {
+    "id": 3404,
+    "name": "CSG1 Thanksgiving",
+    "price": 3e3,
+    "item_type_id": 3,
+    "item_type_name": "Primary",
+    "category_name": "Ranger Primary Weapons",
+    "exclusive_for_class": 2,
+    "item_data": {
+        "class": CSG1,
+        "meshName": "gun_csg1_Turkey",
+        "tags": ["Thanksgiving"]
+    },
+    "is_available": false
+}, {
+    "id": 3405,
+    "name": "CSG1 Christmas",
+    "price": 3e3,
+    "item_type_id": 3,
+    "item_type_name": "Primary",
+    "category_name": "Ranger Primary Weapons",
+    "exclusive_for_class": 2,
+    "item_data": {
+        "class": CSG1,
+        "meshName": "gun_csg1_Present",
+        "tags": ["Christmas"]
+    },
+    "is_available": false
+}, {
+    "id": 3406,
+    "name": "CSG1 New Years",
+    "price": 3e3,
+    "item_type_id": 3,
+    "item_type_name": "Primary",
+    "category_name": "Ranger Primary Weapons",
+    "exclusive_for_class": 2,
+    "item_data": {
+        "class": CSG1,
+        "meshName": "gun_csg1_NewYear",
+        "tags": ["NewYears2019"]
+    },
+    "is_available": false
+}, {
+    "id": 3407,
+    "name": "CSG1 Groundhog",
+    "price": 3e3,
+    "item_type_id": 3,
+    "item_type_name": "Primary",
+    "category_name": "Ranger Primary Weapons",
+    "exclusive_for_class": 2,
+    "item_data": {
+        "class": CSG1,
+        "meshName": "gun_csg1_Groundhog",
+        "tags": ["GroundhogDay"]
+    },
+    "is_available": true
+}, {
+    "id": 3408,
+    "name": "CSG1 Buck Rogers",
+    "price": 0,
+    "item_type_id": 3,
+    "item_type_name": "Primary",
+    "category_name": "Ranger Primary Weapons",
+    "exclusive_for_class": 2,
+    "item_data": {
+        "class": CSG1,
+        "meshName": "gun_csg1_Buck",
+        "tags": ["Promotional"]
+    },
+    "is_available": false
+}]

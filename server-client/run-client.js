@@ -8,6 +8,8 @@ const express = require('express');
 //other scripts
 const { prepareModified } = require('./prepare-modified.js');
 
+//storage
+fs.mkdirSync(path.join(__dirname, 'store'), { recursive: true });
 //##### START CREATE SS OBJECT
 const ss = {};
 //ss.config

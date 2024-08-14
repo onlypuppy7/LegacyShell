@@ -8,6 +8,8 @@ const WebSocket = require('ws');
 const sqlite3 = require('sqlite3').verbose();
 //other scripts
 
+//storage
+fs.mkdirSync(path.join(__dirname, 'store'), { recursive: true });
 //##### START CREATE SS OBJECT
 const ss = {};
 //ss.config
@@ -29,7 +31,6 @@ ss.log.green("Created ss object!");
 
 
 //init db (ooooh! sql! fancy! a REAL database! not a slow json!)
-fs.mkdirSync(path.join(__dirname, 'store'), { recursive: true });
 const db = new sqlite3.Database('./server-services/store/accountData.db');
 db.serialize(() => {
     db.run(`
