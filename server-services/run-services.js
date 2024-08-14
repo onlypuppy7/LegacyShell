@@ -129,37 +129,26 @@ wss.on('connection', (ws) => {
             // Client commands
             switch (msg.cmd) {
                 case "validateLogin":
-                    ws.send(JSON.stringify({
-                        kills: 20,
-                        deaths: 10,
-                        streak: 100,
-                        currentBalance: 1337,
-                        ownedItemIds: [
-                            1001, 1002, 1003, // hats
-                            2001, 2002, 2003, 2039, // stamps
-                            3100, 3101, // eggk47 / soldier (0)
-                            3600, 3601, // dozengauge / scrambler (1)
-                            3400, 3401, // csg1 / freeranger (2)
-                            3800, 3801, // eggsploder / rpegg (3)
-                            3000, 3001, // cluck9mm / pistol
-                        ],
-                        loadout: {
-                            primaryId: [3100, 3601, 3400, 3800], // each corresponds to the classIdx
-                            secondaryId: [3000, 3001, 3000, 3000], // each gun gets their own pistol combo
-                            classIdx: 1, // selected gun
-                            colorIdx: 2, // selected egg color
-                            hatId: 1001,
-                            stampId: 2002,
-                        },
-                        session: "lmao",
-                        version: 20, // idk what this does
-                        upgradeProductId: null,
-                        upgradeMultiplier: null,
-                        upgradeAdFree: null,
-                        upgradeExpiryDate: null,
-                        upgradeIsExpired: null,
-                        maybeSchoolEmail: false,
-                    }));
+                    getUserData(msg.username, true, true)
+                    .then(userData => {
+                        if (userData) {
+                            // console.log("hm", userData.password, sha256(msg.password), userData.password);
+                            if (userData.password && (sha256(msg.password) == userData.password)) {
+                                // console.log("yes", msg, userData)
+                                delete userData.password;
+                                ws.send(JSON.stringify(userData));
+                            } else {
+                                // console.log("no", msg, userData)
+                                ws.send(JSON.stringify({ error: 'Incorrect password.' }));
+                            };
+                        } else {
+                            console.log('No data found for the given username.');
+                            ws.send(JSON.stringify({ error: 'User doesn\'t exist' }));
+                        };
+                    }).catch((err) => {
+                        ss.log.red('Error:', err);
+                        ws.send(JSON.stringify({ error: 'Database error.' }))
+                    });
                     break;
                 case "validateRegister":
                     if (msg.username.length < 3 || !/^[A-Za-z0-9?!._-]+$/.test(msg.username)) ws.send(JSON.stringify({ error: 'Invalid username.' }));
@@ -174,7 +163,10 @@ wss.on('connection', (ws) => {
                                     } else {
                                         console.log('No data found for the given username.');
                                     }
-                                }).catch(err => console.error('Error:', err));
+                                }).catch((err) => {
+                                    ss.log.red('Error:', err);
+                                    ws.send(JSON.stringify({ error: 'Database error.' }))
+                                });
                             } else {
                                 if (result == "SQLITE_CONSTRAINT") ws.send(JSON.stringify({ error: 'Username is already taken.' })); //or something
                                 else ws.send(JSON.stringify({ error: 'Database error.' }));

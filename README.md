@@ -10,9 +10,9 @@ In order to emulate all the parts of the webgame shellshock.io, one must replica
 - Client file server
     - Providing the files needed to play the game in the browser, eg the js, html, images, etc.
     - There can be as many of these to act as mirrors as wanted. Just they will need to be configured to connect to the services server.
-- Websocket server
+- Game server
     - This server allows gameplay to take place. It simulates the game being played and sends packets to all the players, keeping them in sync.
-    - So long as the websocket server is added and authorised by the owner of the services server, then there can be as many as desired to increase the region count.
+    - So long as the game server is added and authorised by the owner of the services server, then there can be as many as desired to increase the region count.
 
 So depending on your use case, you could either be using all or some of the servers.
 
@@ -30,7 +30,7 @@ So depending on your use case, you could either be using all or some of the serv
 At the moment you have to start up each section separately. Perhaps in the future there can be a script for them all. I recommend using a program such as tmux (linux), or creating at least a quick batch script to open everything in separate terminal windows.
 - `node run client`
 - `node run services`
-- `node run websocket`
+- `node run game`
 
 ## Models
 egg.babylon contains hats.

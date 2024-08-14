@@ -6,5 +6,5 @@ client:
 services:
   port: 13371
 
-websocket:
+game:
   port: 13372

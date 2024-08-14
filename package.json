@@ -7,7 +7,7 @@
     "start": "node start.js",
     "client": "node server-client/run-client.js",
     "services": "node server-services/run-services.js",
-    "websocket": "node server-websocket/run-websocket.js"
+    "game": "node server-game/run-game.js"
   },
   "dependencies": {
     "colors": "^1.4.0",

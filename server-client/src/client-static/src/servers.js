@@ -9,7 +9,7 @@ var servicesServer = 'wss://services.legacy.onlypuppy7.online:443';
 if (location.hostname.startsWith('localhost')) {
     servicesServer = 'ws://localhost:LEGACYSHELLSERVICESPORT';
 	debug = true;
-	servers.push({ name: 'local', address: '127.0.0.1:LEGACYSHELLWEBSOCKETPORT' });
+	servers.push({ name: 'local', address: 'localhost:LEGACYSHELLWEBSOCKETPORT' });
 }
 
 // if (location.hostname.startsWith('staging.legacy.onlypuppy7.online')) {

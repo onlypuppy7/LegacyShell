@@ -1,5 +1,5 @@
 /node_modules
 /server-client/store
 /server-services/store
-/server-websocket/store
+/server-game/store
 /store
