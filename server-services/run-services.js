@@ -85,17 +85,24 @@ const createAccount = async (username, password) => {
         return true;
     } catch (error) {
         console.error('Error creating account:', error.code);
+
+        return error.code;
     };
 };
 
-const getUserData = async (username) => {
+const getUserData = async (username, convertJson, retainSensitive) => {
     try {
         const query = `SELECT * FROM users WHERE username = ?`;
         const user = await getOne(query, [username]);
 
         if (user) {
-            user.ownedItemIds = JSON.parse(user.ownedItemIds);
-            user.loadout = JSON.parse(user.loadout);
+            if (convertJson) {
+                user.ownedItemIds = JSON.parse(user.ownedItemIds);
+                user.loadout = JSON.parse(user.loadout);
+            };
+            if (!retainSensitive) {
+                delete user.password;
+            };
             console.log('User data retrieved:', user);
             return user;
         } else {
@@ -155,17 +162,23 @@ wss.on('connection', (ws) => {
                     }));
                     break;
                 case "validateRegister":
-                    createAccount(msg.username, msg.password)
-                        .then(() => {
-                            getUserData(msg.username)
-                            .then(userData => {
-                                if (userData) {
-                                    console.log(`Retrieved user data:`, userData);
-                                    ws.send(JSON.stringify(userData));
-                                } else {
-                                    console.log('No data found for the given username.');
-                                }
-                            }).catch(err => console.error('Error:', err));
+                    if (msg.username.length < 3 || !/^[A-Za-z0-9?!._-]+$/.test(msg.username)) ws.send(JSON.stringify({ error: 'Invalid username.' }));
+                    else createAccount(msg.username, msg.password)
+                        .then((result) => {
+                            if (result === true) {
+                                getUserData(msg.username, true)
+                                .then(userData => {
+                                    if (userData) {
+                                        console.log(`Retrieved user data:`, userData);
+                                        ws.send(JSON.stringify(userData));
+                                    } else {
+                                        console.log('No data found for the given username.');
+                                    }
+                                }).catch(err => console.error('Error:', err));
+                            } else {
+                                if (result == "SQLITE_CONSTRAINT") ws.send(JSON.stringify({ error: 'Username is already taken.' })); //or something
+                                else ws.send(JSON.stringify({ error: 'Database error.' }));
+                            };
                         }).catch(err => {
                             console.error('Error:', err);
                             ws.send(JSON.stringify({ error: 'Internal server error' }));

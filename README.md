@@ -31,3 +31,6 @@ At the moment you have to start up each section separately. Perhaps in the futur
 - `node run client`
 - `node run services`
 - `node run websocket`
+
+## Models
+egg.babylon contains hats.
