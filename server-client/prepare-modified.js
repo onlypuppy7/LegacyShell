@@ -35,15 +35,15 @@ function prepareModified(ss) {
         if (ss.config.client.minify) {
             ss.log.italic("Minifying/obfuscating shellshock.min.js...");
             const result = UglifyJS.minify(sourceCode);
-    
+
             if (result.error) {
                 throw new Error(`Minification failed: ${result.error}`);
             };
-    
+
             if (result.code === undefined) {
                 throw new Error("Minification resulted in undefined code.");
             };
-    
+
             fs.writeFileSync(destinationShellJsPath, result.code, 'utf8');
             console.log(`Minified file saved to ${destinationShellJsPath}`);
         } else {
@@ -59,7 +59,8 @@ function prepareModified(ss) {
 
         let serversJs = fs.readFileSync(sourceServersJsPath, 'utf8');
         serversJs = serversJs.replace(/LEGACYSHELLSERVICESPORT/g, ss.config.services.port || "13371");
-        serversJs = serversJs.replace(/LEGACYSHELLWEBSOCKETPORT/g, ss.config.websocket.port || "13372");
+        serversJs = serversJs.replace(/LEGACYSHELLWEBSOCKETPORT/g, ss.config.game.port || "13372");
+        serversJs = serversJs.replace(/LEGACYSHELLSERVICESSERVER/g, ss.config.client.servicesURL || "wss://services.legacy.onlypuppy7.online:443");
 
         fs.writeFileSync(destinationServersJsPath, serversJs, 'utf8');
         console.log(`servers.js copied and modified to ${destinationServersJsPath}`);
@@ -73,6 +74,7 @@ function prepareModified(ss) {
         let htmlContent = fs.readFileSync(sourceHtmlPath, 'utf8');
         htmlContent = htmlContent.replace(/SHELLSHOCKMINJSHASH/g, hashes.SHELLSHOCKMINJSHASH);
         htmlContent = htmlContent.replace(/LEGACYSHELLVERSION/g, ss.packageJson.version);
+        htmlContent = htmlContent.replace(/DISCORDSERVER/g, ss.config.discordServer);
 
         fs.writeFileSync(destinationHtmlPath, htmlContent, 'utf8');
         console.log(`index.html copied and modified to ${destinationHtmlPath}`);

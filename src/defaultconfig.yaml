@@ -2,9 +2,13 @@
 client:
   port: 13370
   minify: true #this lags startup of the server by a few seconds, in theory though will reduce lag longer term
+  servicesURL: "wss://services.legacy.onlypuppy7.online:443"
 
 services:
   port: 13371
+  feedback: false # a discord webhook for all feedback to be sent. leave to "false" to disable feedback
 
 game:
   port: 13372
+
+discordServer: cR27mZtJJC # do NOT put anything except the link/vanity as the rest is filled in!

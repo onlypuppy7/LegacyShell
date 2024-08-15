@@ -130,25 +130,25 @@ wss.on('connection', (ws) => {
             switch (msg.cmd) {
                 case "validateLogin":
                     getUserData(msg.username, true, true)
-                    .then(userData => {
-                        if (userData) {
-                            // console.log("hm", userData.password, sha256(msg.password), userData.password);
-                            if (userData.password && (sha256(msg.password) == userData.password)) {
-                                // console.log("yes", msg, userData)
-                                delete userData.password;
-                                ws.send(JSON.stringify(userData));
+                        .then(userData => {
+                            if (userData) {
+                                // console.log("hm", userData.password, sha256(msg.password), userData.password);
+                                if (userData.password && (sha256(msg.password) == userData.password)) {
+                                    // console.log("yes", msg, userData)
+                                    delete userData.password;
+                                    ws.send(JSON.stringify(userData));
+                                } else {
+                                    // console.log("no", msg, userData)
+                                    ws.send(JSON.stringify({ error: 'Incorrect password.' }));
+                                };
                             } else {
-                                // console.log("no", msg, userData)
-                                ws.send(JSON.stringify({ error: 'Incorrect password.' }));
+                                console.log('No data found for the given username.');
+                                ws.send(JSON.stringify({ error: 'User doesn\'t exist' }));
                             };
-                        } else {
-                            console.log('No data found for the given username.');
-                            ws.send(JSON.stringify({ error: 'User doesn\'t exist' }));
-                        };
-                    }).catch((err) => {
-                        ss.log.red('Error:', err);
-                        ws.send(JSON.stringify({ error: 'Database error.' }))
-                    });
+                        }).catch((err) => {
+                            ss.log.red('Error:', err);
+                            ws.send(JSON.stringify({ error: 'Database error.' }))
+                        });
                     break;
                 case "validateRegister":
                     if (msg.username.length < 3 || !/^[A-Za-z0-9?!._-]+$/.test(msg.username)) ws.send(JSON.stringify({ error: 'Invalid username.' }));
@@ -156,17 +156,17 @@ wss.on('connection', (ws) => {
                         .then((result) => {
                             if (result === true) {
                                 getUserData(msg.username, true)
-                                .then(userData => {
-                                    if (userData) {
-                                        console.log(`Retrieved user data:`, userData);
-                                        ws.send(JSON.stringify(userData));
-                                    } else {
-                                        console.log('No data found for the given username.');
-                                    }
-                                }).catch((err) => {
-                                    ss.log.red('Error:', err);
-                                    ws.send(JSON.stringify({ error: 'Database error.' }))
-                                });
+                                    .then(userData => {
+                                        if (userData) {
+                                            console.log(`Retrieved user data:`, userData);
+                                            ws.send(JSON.stringify(userData));
+                                        } else {
+                                            console.log('No data found for the given username.');
+                                        }
+                                    }).catch((err) => {
+                                        ss.log.red('Error:', err);
+                                        ws.send(JSON.stringify({ error: 'Database error.' }))
+                                    });
                             } else {
                                 if (result == "SQLITE_CONSTRAINT") ws.send(JSON.stringify({ error: 'Username is already taken.' })); //or something
                                 else ws.send(JSON.stringify({ error: 'Database error.' }));
@@ -176,7 +176,35 @@ wss.on('connection', (ws) => {
                             ws.send(JSON.stringify({ error: 'Internal server error' }));
                         });
                     break;
+                case "feedback":
+                    if (ss.config.services.feedback && ss.config.services.feedback.length > 10) {
+                        const formData = new FormData();
+
+                        const jsonBlob = new Blob([Object.entries(msg).map(([key, value]) => `${key}: ${value}`).join('\n')], { type: 'text/plain' });
+                        formData.append('file', jsonBlob, 'stats.txt');
+
+                        formData.append('payload_json', JSON.stringify({
+                            username: 'LegacyShell Feedback',
+                            avatar_url: msg.url + 'favicon.ico',
+                            allowed_mentions: {
+                                parse: []
+                            },
+                            embeds: [{
+                                description: `> from ${msg.email}\n\n${msg.comments}`
+                            }]
+                        }));
+
+                        fetch(ss.config.services.feedback, {
+                            method: 'POST',
+                            body: formData
+                        });
+                    } else
+                        ss.log.blue("Feedback received, no discord webhook set!:", msg);
+
+                    ws.send(JSON.stringify({ success: true }));
+                    break;
                 default:
+                    console.log("user sent", msg.cmd || "[[unknown cmd]]", "to services, not running  function")
                     break;
             }
 
@@ -196,4 +224,4 @@ wss.on('connection', (ws) => {
     });
 });
 
-console.log('WebSocket server is running on ws://localhost:'+port);
+console.log('WebSocket server is running on ws://localhost:' + port);
