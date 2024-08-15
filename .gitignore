@@ -1,4 +1,9 @@
+# node internals
 /node_modules
+bun.lockb
+package-lock.json
+
+# cached stores
 /server-client/store
 /server-services/store
 /server-game/store

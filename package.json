@@ -1,20 +1,23 @@
 {
-  "name": "legacyshell",
-  "version": "alpha 0.0.1",
-  "description": "Server software for LegacyShell",
-  "main": "start.js",
-  "scripts": {
-    "start": "node start.js",
-    "client": "node server-client/run-client.js",
-    "services": "node server-services/run-services.js",
-    "game": "node server-game/run-game.js"
-  },
-  "dependencies": {
-    "colors": "^1.4.0",
-    "express": "^4.18.2",
-    "js-yaml": "^4.1.0",
-    "sqlite3": "^5.1.7",
-    "uglify-js": "^3.19.2",
-    "ws": "^8.18.0"
-  }
+    "name": "legacyshell",
+    "version": "alpha 0.0.1",
+    "description": "Server software for LegacyShell",
+    "main": "start.js",
+    "scripts": {
+        "start": "node start.js",
+        "client": "node server-client/run-client.js",
+        "services": "node server-services/run-services.js",
+        "game": "node server-game/run-game.js",
+        "bclient": "bun server-client/run-client.js",
+        "bservices": "bun server-services/run-services.js",
+        "bgame": "bun server-game/run-game.js"
+    },
+    "dependencies": {
+        "colors": "^1.4.0",
+        "express": "^4.18.2",
+        "js-yaml": "^4.1.0",
+        "sqlite3": "^5.1.7",
+        "uglify-js": "^3.19.2",
+        "ws": "^8.18.0"
+    }
 }

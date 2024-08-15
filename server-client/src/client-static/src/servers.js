@@ -4,7 +4,7 @@ var servers = [
 
 var debug = false;
 
-var servicesServer = 'wss://services.legacy.onlypuppy7.online:443';
+var servicesServer = 'LEGACYSHELLSERVICESSERVER';
 
 if (location.hostname.startsWith('localhost')) {
     servicesServer = 'ws://localhost:LEGACYSHELLSERVICESPORT';
