@@ -1,15 +1,12 @@
-const yaml = require('js-yaml');
-const fs = require('fs');
-const path = require('path');
+import fs from 'node:fs';
+import path from 'node:path';
 
-const configPath = path.join(__dirname, 'store', 'config.yaml');
-const defaultConfigPath = path.join(__dirname, 'src', 'defaultconfig.yaml');
+const configPath = path.join(import.meta.dirname, 'store', 'config.yaml');
+const defaultConfigPath = path.join(import.meta.dirname, 'src', 'defaultconfig.yaml');
 
 if (!fs.existsSync(configPath)) {
     console.log('config.yaml not found, copying from defaultconfig.yaml...');
-    fs.mkdirSync(path.join(__dirname, 'store'), { recursive: true });
+    fs.mkdirSync(path.join(import.meta.dirname, 'store'), { recursive: true });
     fs.copyFileSync(defaultConfigPath, configPath);
-    console.log('config.yaml created successfully.');
-};
-
-const config = yaml.load(fs.readFileSync(configPath, 'utf8'));
+    console.log('local config.yaml created successfully.');
+} else console.log('start script already ran once. it [currently] has no further function.')

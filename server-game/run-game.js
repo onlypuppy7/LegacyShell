@@ -1,32 +1,30 @@
 //ss object
-const yaml = require('js-yaml');
-const fs = require('fs');
-const path = require('path');
-const log = require('../src/coloured-logging.js');
-//libraries
-const WebSocket = require('ws');
-//other scripts
+import fs from 'fs';
+import path from 'path';
+import yaml from 'js-yaml';
+import WebSocket from 'ws';
+
+import log from '../src/coloured-logging.js';
 
 //storage
-fs.mkdirSync(path.join(__dirname, 'store'), { recursive: true });
-//##### START CREATE SS OBJECT
-const ss = {};
-//ss.config
-const configPath = path.join(__dirname, '..', 'store', 'config.yaml');
+fs.mkdirSync(path.join(import.meta.dirname, 'store'), { recursive: true });
+
+const configPath = path.join(import.meta.dirname, '..', 'store', 'config.yaml');
 if (!fs.existsSync(configPath)) {
     console.log('config.yaml not found, make sure you have run the main js first...');
     process.exit(1);
 };
-ss.config = yaml.load(fs.readFileSync(configPath, 'utf8'));
-//ss.rootDir
-ss.rootDir = path.resolve(ss.rootDir || __dirname);
-//ss.packageJson
-const packageJsonPath = path.join(ss.rootDir, '..', 'package.json');
-ss.packageJson = require(packageJsonPath);
-//ss.log
-ss.log = log;
+
+const ss = {
+    rootDir: path.resolve(import.meta.dirname),
+    config: yaml.load(fs.readFileSync(configPath, 'utf8')),
+    log
+};
+
+const { version } = JSON.parse(fs.readFileSync(path.join(ss.rootDir, '..', 'package.json'), 'utf8'));
+ss.version = version;
+
 ss.log.green("Created ss object!");
-//##### END CREATE SS OBJECT
 
 //start ws
 let port = ss.config.services.websocket || 13372;
