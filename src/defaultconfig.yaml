@@ -7,6 +7,17 @@ client:
 services:
   port: 13371
   feedback: false # a discord webhook for all feedback to be sent. leave to "false" to disable feedback
+  ratelimit: #limit spammy requests
+    regular:
+      max_count: 10
+      reset_interval: 60 #in seconds
+    sensitive:
+      max_count: 5
+      reset_interval: 300 #in seconds
+      cmds:
+        - "validateLogin"
+        - "validateRegister"
+        - "feedback"
 
 game:
   port: 13372

@@ -29,6 +29,7 @@ ss.packageJson = require(packageJsonPath);
 //ss.log
 ss.log = log;
 ss.log.green("Created ss object!");
+// console.log(ss.config.services.ratelimit.sensitive);
 //##### END CREATE SS OBJECT
 
 
@@ -60,8 +61,17 @@ db.serialize(() => {
             dateModified INTEGER DEFAULT (strftime('%s', 'now'))
         )
     `);
+    db.run(`
+        CREATE TABLE IF NOT EXISTS ip_requests (
+            ip TEXT PRIMARY KEY,
+            sensitive_count INTEGER DEFAULT 0,
+            regular_count INTEGER DEFAULT 0,
+            last_sensitive_reset INTEGER DEFAULT (strftime('%s', 'now')),
+            last_regular_reset INTEGER DEFAULT (strftime('%s', 'now'))
+        )
+    `);
 });
-ss.log.green("accountData DB set up!");
+ss.log.green("account data DB set up!");
 
 const sha256 = (data) => {
     const hash = crypto.createHash('sha256');
@@ -74,6 +84,77 @@ const runQuery = util.promisify(db.run.bind(db));
 const getAll = util.promisify(db.all.bind(db));
 const getOne = util.promisify(db.get.bind(db));
 
+//ratelimiting
+const addRequest = async (ip, type) => {
+    const now = Math.floor(Date.now() / 1000);
+
+    let result = await getOne(`
+        SELECT * FROM ip_requests WHERE ip = ?
+    `, [ip]);
+
+    if (!result) {
+        await runQuery(`
+            INSERT INTO ip_requests (ip) VALUES (?)
+        `, [ip]);
+        result = { sensitive_count: 0, regular_count: 0 };
+    }
+
+    let { sensitive_count, regular_count, last_sensitive_reset, last_regular_reset } = result;
+
+    //reset counts, if necessary
+    if (now - last_sensitive_reset > (ss.config.services.ratelimit.sensitive.reset_interval || 5 * 60)) { // reset sensitive count every 5 minutes
+        sensitive_count = 0;
+        await runQuery(`
+            UPDATE ip_requests
+            SET sensitive_count = 0, last_sensitive_reset = ?
+            WHERE ip = ?
+        `, [now, ip]);
+    };
+    if (now - last_regular_reset > (ss.config.services.ratelimit.regular.reset_interval || 60)) { // reset regular count every 1 minute
+        regular_count = 0;
+        await runQuery(`
+            UPDATE ip_requests
+            SET regular_count = 0, last_regular_reset = ?
+            WHERE ip = ?
+        `, [now, ip]);
+    };
+
+    //update with new counts
+    if (type === 'sensitive') {
+        sensitive_count++;
+        await runQuery(`
+            UPDATE ip_requests
+            SET sensitive_count = ?
+            WHERE ip = ?
+        `, [sensitive_count, ip]);
+    } else if (type === 'regular') {
+        regular_count++;
+        await runQuery(`
+            UPDATE ip_requests
+            SET regular_count = ?
+            WHERE ip = ?
+        `, [regular_count, ip]);
+    };
+
+    return { sensitive_count: sensitive_count, regular_count: regular_count };
+};
+
+const acceptRequest = async (ip, type) => {
+    const counts = await addRequest(ip, type);
+
+    console.log(counts);
+
+    if (type === 'sensitive' && counts.sensitive_count >= (ss.config.services.ratelimit.sensitive.max_count || 5)) {
+        return false;
+    } else if (type === 'regular' && counts.regular_count >= (ss.config.services.ratelimit.regular.max_count || 10)) {
+        return false;
+    };
+
+    return true;
+};
+
+
+//account stuff
 const createAccount = async (username, password) => {
     password = sha256(password);
     try {
@@ -123,8 +204,17 @@ wss.on('connection', (ws) => {
         try {
             const jsonString = message.toString('utf8');
             const msg = JSON.parse(jsonString);
+            const ip = ws._socket.remoteAddress; // Get the IP address of the client
+            const cmdType = ss.config.services.ratelimit.sensitive.cmds.includes(msg.cmd) ? "sensitive" : "regular";
 
-            console.log(msg);
+            console.log(cmdType, msg);
+
+            const isAccepted = await acceptRequest(ip, cmdType);
+
+            if (!isAccepted) {
+                ws.send(JSON.stringify({ error: 'Too many requests. Please try again later.' }));
+                return;
+            };
 
             // Client commands
             switch (msg.cmd) {
