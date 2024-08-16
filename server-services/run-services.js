@@ -1,37 +1,34 @@
-//ss object
-const yaml = require('js-yaml');
-const fs = require('fs');
-const path = require('path');
-const log = require('../src/coloured-logging.js');
-//libraries
-const WebSocket = require('ws');
-const sqlite3 = require('sqlite3').verbose();
-const crypto = require('crypto');
-const util = require('util');
-//other scripts
+import fs from 'fs';
+import path from 'path';
+import crypto from 'crypto';
+import util from 'util';
+import yaml from 'js-yaml';
+import sqlite3 from 'sqlite3';
+import WebSocket from 'ws';
+
+import log from '../src/coloured-logging.js';
+
+sqlite3.verbose();
 
 //storage
-fs.mkdirSync(path.join(__dirname, 'store'), { recursive: true });
-//##### START CREATE SS OBJECT
-const ss = {};
-//ss.config
-const configPath = path.join(__dirname, '..', 'store', 'config.yaml');
+fs.mkdirSync(path.join(import.meta.dirname, 'store'), { recursive: true });
+
+const configPath = path.join(import.meta.dirname, '..', 'store', 'config.yaml');
 if (!fs.existsSync(configPath)) {
     console.log('config.yaml not found, make sure you have run the main js first...');
     process.exit(1);
 };
-ss.config = yaml.load(fs.readFileSync(configPath, 'utf8'));
-//ss.rootDir
-ss.rootDir = path.resolve(ss.rootDir || __dirname);
-//ss.packageJson
-const packageJsonPath = path.join(ss.rootDir, '..', 'package.json');
-ss.packageJson = require(packageJsonPath);
-//ss.log
-ss.log = log;
-ss.log.green("Created ss object!");
-// console.log(ss.config.services.ratelimit.sensitive);
-//##### END CREATE SS OBJECT
 
+const ss = {
+    rootDir: path.resolve(import.meta.dirname),
+    config: yaml.load(fs.readFileSync(configPath, 'utf8')),
+    log
+};
+
+const { version } = JSON.parse(fs.readFileSync(path.join(ss.rootDir, '..', 'package.json'), 'utf8'));
+ss.version = version;
+
+ss.log.green("Created ss object!");
 
 //init db (ooooh! sql! fancy! a REAL database! not a slow json!)
 const db = new sqlite3.Database('./server-services/store/accountData.db');
@@ -81,21 +78,16 @@ const sha256 = (data) => {
 
 //db stuff
 const runQuery = util.promisify(db.run.bind(db));
-const getAll = util.promisify(db.all.bind(db));
 const getOne = util.promisify(db.get.bind(db));
 
 //ratelimiting
 const addRequest = async (ip, type) => {
     const now = Math.floor(Date.now() / 1000);
 
-    let result = await getOne(`
-        SELECT * FROM ip_requests WHERE ip = ?
-    `, [ip]);
+    let result = await getOne(`SELECT * FROM ip_requests WHERE ip = ?`, [ip]);
 
     if (!result) {
-        await runQuery(`
-            INSERT INTO ip_requests (ip) VALUES (?)
-        `, [ip]);
+        await runQuery(`INSERT INTO ip_requests (ip) VALUES (?)`, [ip]);
         result = { sensitive_count: 0, regular_count: 0 };
     }
 
@@ -110,6 +102,7 @@ const addRequest = async (ip, type) => {
             WHERE ip = ?
         `, [now, ip]);
     };
+
     if (now - last_regular_reset > (ss.config.services.ratelimit.regular.reset_interval || 60)) { // reset regular count every 1 minute
         regular_count = 0;
         await runQuery(`
@@ -199,13 +192,20 @@ const getUserData = async (username, convertJson, retainSensitive) => {
 //start ws
 let port = ss.config.services.port || 13371;
 const wss = new WebSocket.Server({ port: port });
-wss.on('connection', (ws) => {
+wss.on('connection', (ws, req) => {
+    // Apparently, WS ips die after disconnect?
+    // https://stackoverflow.com/questions/12444598/why-is-socket-remoteaddress-undefined-on-end-event
+
+    let ip = req.socket.remoteAddress;
+
     ws.on('message', async (message) => {
         try {
             const jsonString = message.toString('utf8');
             const msg = JSON.parse(jsonString);
-            const ip = ws._socket.remoteAddress; // Get the IP address of the client
             const cmdType = ss.config.services.ratelimit.sensitive.cmds.includes(msg.cmd) ? "sensitive" : "regular";
+
+            if (ss.config.services.ratelimit.protect_ips)
+                ip = crypto.createHash('md5').update(ip).digest('hex');
 
             console.log(cmdType, msg);
 

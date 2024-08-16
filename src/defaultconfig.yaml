@@ -18,6 +18,7 @@ services:
         - "validateLogin"
         - "validateRegister"
         - "feedback"
+    protect_ips: true
 
 game:
   port: 13372

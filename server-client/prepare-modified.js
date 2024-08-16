@@ -1,7 +1,7 @@
-const fs = require('fs');
-const path = require('path');
-const UglifyJS = require('uglify-js');
-const crypto = require('crypto');
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import UglifyJS from 'uglify-js';
 
 function prepareModified(ss) {
     const sourceShellJsPath = path.join(ss.rootDir, 'src', 'client-static', 'src', 'shellshock.min.js');
@@ -73,7 +73,7 @@ function prepareModified(ss) {
 
         let htmlContent = fs.readFileSync(sourceHtmlPath, 'utf8');
         htmlContent = htmlContent.replace(/SHELLSHOCKMINJSHASH/g, hashes.SHELLSHOCKMINJSHASH);
-        htmlContent = htmlContent.replace(/LEGACYSHELLVERSION/g, ss.packageJson.version);
+        htmlContent = htmlContent.replace(/LEGACYSHELLVERSION/g, ss.version);
         htmlContent = htmlContent.replace(/DISCORDSERVER/g, ss.config.discordServer);
 
         fs.writeFileSync(destinationHtmlPath, htmlContent, 'utf8');
@@ -84,4 +84,4 @@ function prepareModified(ss) {
     }
 }
 
-module.exports = { prepareModified };
+export default prepareModified;
