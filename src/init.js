@@ -10,4 +10,4 @@ if (!fs.existsSync(configPath)) {
     fs.mkdirSync(storeFolder, { recursive: true });
     fs.copyFileSync(defaultConfigPath, configPath);
     console.log('local config.yaml created successfully.');
-} else console.log('your legacyshell client has already been initialized. you do not need to run this script.');
+} else console.log('your legacyshell server environment has already been initialized. you do not need to run this script.');
