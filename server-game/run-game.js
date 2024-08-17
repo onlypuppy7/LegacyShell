@@ -18,11 +18,9 @@ if (!fs.existsSync(configPath)) {
 const ss = {
     rootDir: path.resolve(import.meta.dirname),
     config: yaml.load(fs.readFileSync(configPath, 'utf8')),
+    packageJson: JSON.parse(fs.readFileSync(path.join(path.resolve(import.meta.dirname), '..', 'package.json'), 'utf8')),
     log
 };
-
-const { version } = JSON.parse(fs.readFileSync(path.join(ss.rootDir, '..', 'package.json'), 'utf8'));
-ss.version = version;
 
 ss.log.green('created ss object!');
 

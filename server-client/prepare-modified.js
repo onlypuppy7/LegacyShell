@@ -73,7 +73,7 @@ function prepareModified(ss) {
 
         let htmlContent = fs.readFileSync(sourceHtmlPath, 'utf8');
         htmlContent = htmlContent.replace(/SHELLSHOCKMINJSHASH/g, hashes.SHELLSHOCKMINJSHASH);
-        htmlContent = htmlContent.replace(/LEGACYSHELLVERSION/g, ss.version);
+        htmlContent = htmlContent.replace(/LEGACYSHELLVERSION/g, ss.packageJson.version);
         htmlContent = htmlContent.replace(/DISCORDSERVER/g, ss.config.discordServer);
 
         fs.writeFileSync(destinationHtmlPath, htmlContent, 'utf8');
