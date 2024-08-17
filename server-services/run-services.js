@@ -47,7 +47,7 @@ db.serialize(() => {
             currentBalance INTEGER DEFAULT 1000,
             eggsSpent INTEGER DEFAULT 0,
             ownedItemIds TEXT DEFAULT '[1001,1002,1003,1004,1005,1006,2001,2002,2003,2004,2005,2006,3100,3600,3400,3800,3000]',  -- Will store as JSON string
-            loadout TEXT DEFAULT '{'primaryId':[3100,3600,3400,3800],'secondaryId':[3000,3000,3000,3000],'classIdx':0,'colorIdx':0,'hatId':null,'stampId':null}',       -- Will store as JSON string
+            loadout TEXT DEFAULT '{"primaryId":[3100,3600,3400,3800],"secondaryId":[3000,3000,3000,3000],"classIdx":0,"colorIdx":0,"hatId":null,"stampId":null}',       -- Will store as JSON string
             session TEXT DEFAULT '1234567890',
             version INTEGER DEFAULT 1,
             upgradeProductId TEXT DEFAULT NULL,
