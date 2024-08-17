@@ -70,6 +70,16 @@ db.serialize(() => {
             last_regular_reset INTEGER DEFAULT (strftime('%s', 'now'))
         )
     `);
+
+    //WIP!
+    db.run(`
+    CREATE TABLE IF NOT EXISTS sessions (
+        session_id TEXT PRIMARY KEY,
+        user_id INTEGER UNIQUE,
+        created_at INTEGER DEFAULT (strftime('%s', 'now')),
+        expires_at INTEGER
+    )
+    `);
 });
 
 ss.log.green('account DB set up!');
