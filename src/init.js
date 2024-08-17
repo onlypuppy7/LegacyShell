@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const storeFolder = path.join(import.meta.dirname, '..', '..', 'store');
+const storeFolder = path.join(import.meta.dirname, '..', 'store');
 const configPath = path.join(storeFolder, 'config.yaml');
 const defaultConfigPath = path.join(import.meta.dirname, 'defaultconfig.yaml');
 
