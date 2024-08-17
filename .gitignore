@@ -8,3 +8,6 @@ package-lock.json
 /server-services/store
 /server-game/store
 /store
+
+# my crap
+/assets/0.18.2
