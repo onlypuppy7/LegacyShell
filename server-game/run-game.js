@@ -6,7 +6,7 @@ import WebSocket from 'ws';
 
 import log from '../src/coloured-logging.js';
 
-//storage
+// temporary storage for the game server. currently unused, but good to have. for now.
 fs.mkdirSync(path.join(import.meta.dirname, 'store'), { recursive: true });
 
 const configPath = path.join(import.meta.dirname, '..', 'store', 'config.yaml');
@@ -24,11 +24,11 @@ const ss = {
 const { version } = JSON.parse(fs.readFileSync(path.join(ss.rootDir, '..', 'package.json'), 'utf8'));
 ss.version = version;
 
-ss.log.green("Created ss object!");
+ss.log.green('created ss object!');
 
-//start ws
-let port = ss.config.services.websocket || 13372;
+const port = ss.config.services.websocket || 13372;
 const wss = new WebSocket.Server({ port: port });
+
 wss.on('connection', (ws) => {
     ws.on('message', async (message) => {
         try {
@@ -39,7 +39,7 @@ wss.on('connection', (ws) => {
 
             // Client commands
             switch (msg.cmd) {
-                case "validateLogin":
+                case 'validateLogin':
                     break;
                 default:
                     break;
@@ -52,13 +52,8 @@ wss.on('connection', (ws) => {
         }
     });
 
-    ws.on('close', () => {
-        console.log('Client disconnected');
-    });
-
-    ws.on('error', (error) => {
-        console.error(`WebSocket error: ${error}`);
-    });
+    ws.on('close', () => console.log('Client disconnected'));
+    ws.on('error', (e) => console.error(`WebSocket error:`, e));
 });
 
-console.log('WebSocket server is running on ws://localhost:'+port);
+console.log('WebSocket server is running on ws://localhost:' + port);
