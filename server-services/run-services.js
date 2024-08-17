@@ -5,7 +5,8 @@ import util from 'node:util';
 
 import yaml from 'js-yaml';
 import sqlite3 from 'sqlite3';
-import WebSocket from 'ws';
+import WebSocket, { WebSocketServer } from 'ws';
+
 
 import rl from './ratelimit.js';
 import log from '../src/coloured-logging.js';
@@ -24,11 +25,9 @@ if (!fs.existsSync(configPath)) {
 const ss = {
     rootDir: path.resolve(import.meta.dirname),
     config: yaml.load(fs.readFileSync(configPath, 'utf8')),
+    packageJson: JSON.parse(fs.readFileSync(path.join(path.resolve(import.meta.dirname), '..', 'package.json'), 'utf8')),
     log
 };
-
-const { version } = JSON.parse(fs.readFileSync(path.join(ss.rootDir, '..', 'package.json'), 'utf8'));
-ss.version = version;
 
 ss.log.green('created ss object!');
 
@@ -82,14 +81,14 @@ const sha256 = (data) => {
 };
 
 //db stuff
-const runQuery = util.promisify(db.run.bind(db));
-const getOne = util.promisify(db.get.bind(db));
+ss.runQuery = util.promisify(db.run.bind(db));
+ss.getOne = util.promisify(db.get.bind(db));
 
 //account stuff
 const createAccount = async (username, password) => {
     password = sha256(password);
     try {
-        await runQuery(`
+        await ss.runQuery(`
             INSERT INTO users (username, password)
             VALUES (?, ?)
         `, [username, password]);
@@ -105,7 +104,7 @@ const createAccount = async (username, password) => {
 const getUserData = async (username, convertJson, retainSensitive) => {
     try {
         const query = `SELECT * FROM users WHERE username = ?`;
-        const user = await getOne(query, [username]);
+        const user = await ss.getOne(query, [username]);
 
         if (user) {
             if (convertJson) {
@@ -128,7 +127,8 @@ const getUserData = async (username, convertJson, retainSensitive) => {
 };
 
 const port = ss.config.services.port || 13371;
-const wss = new WebSocket.Server({ port: port });
+const wss = new WebSocketServer({ port: port });
+
 
 wss.on('connection', (ws, req) => {
     // Apparently, WS ips die after disconnect?
@@ -145,7 +145,7 @@ wss.on('connection', (ws, req) => {
             if (ss.config.services.ratelimit.protect_ips)
                 ip = crypto.createHash('md5').update(ip).digest('hex');
 
-            const isAccepted = await rl.acceptRequest(ip, cmdType);
+            const isAccepted = await rl.allowRequest(ss, ip, cmdType);
             if (!isAccepted) return ws.send(JSON.stringify({ error: 'Too many requests. Please try again later.' }));
 
             // Client commands

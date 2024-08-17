@@ -5,11 +5,11 @@
     "description": "Server software for LegacyShell",
     "main": "start.js",
     "scripts": {
-        "init": "node scripts/init/index.js",
+        "init": "node src/init.js",
         "client": "node server-client/run-client.js",
         "services": "node server-services/run-services.js",
         "game": "node server-game/run-game.js",
-        "binit": "bun scripts/init/index.js",
+        "binit": "bun src/init.js",
         "bclient": "bun server-client/run-client.js",
         "bservices": "bun server-services/run-services.js",
         "bgame": "bun server-game/run-game.js"
