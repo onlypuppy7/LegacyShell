@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import bcrypt from 'bcrypt';
 import util from 'node:util';
 
 import yaml from 'js-yaml';
@@ -73,7 +74,7 @@ db.serialize(() => {
             UPDATE users SET dateModified = strftime('%s', 'now') WHERE id = OLD.id;
         END;
     `);
-    
+
     db.run(`
         CREATE TABLE IF NOT EXISTS ip_requests (
             ip TEXT PRIMARY KEY,
@@ -97,19 +98,29 @@ db.serialize(() => {
 
 ss.log.green('account DB set up!');
 
-const sha256 = (data) => {
-    const hash = crypto.createHash('sha256');
-    hash.update(data);
-    return hash.digest('hex');
-};
 
 //db stuff
 ss.runQuery = util.promisify(db.run.bind(db));
 ss.getOne = util.promisify(db.get.bind(db));
 
 //account stuff
+const hashPassword = (data) => {
+    return bcrypt.hashSync(data, 10);
+};
+
+const comparePassword = async (username, receivedPassword) => {
+    try {
+        const result = await ss.getOne(`SELECT password FROM users WHERE username = ?`, [username]);
+        if (!result) return "Username not found"
+        const storedHash = result.password;
+        return bcrypt.compareSync(receivedPassword, storedHash);
+    } catch (error) {
+        console.error(error); return "Database error.";
+    };
+};
+
 const createAccount = async (username, password) => {
-    password = sha256(password);
+    password = hashPassword(password);
     try {
         await ss.runQuery(`
             INSERT INTO users (username, password)
@@ -174,25 +185,31 @@ wss.on('connection', (ws, req) => {
             // Client commands
             switch (msg.cmd) {
                 case 'validateLogin':
-                    getUserData(msg.username, true, true).then(userData => {
-                        if (userData) {
-                            if (userData.password && (sha256(msg.password) == userData.password)) {
-                                // console.log('yes', msg, userData)
-                                delete userData.password;
-                                ws.send(JSON.stringify(userData));
-                            } else ws.send(JSON.stringify({ error: 'Incorrect password.' }));
+                    comparePassword(msg.username, msg.password).then(isPasswordCorrect => {
+                        if (isPasswordCorrect === true) {
+                            getUserData(msg.username, true).then(userData => {
+                                if (userData) {
+                                    delete userData.password;
+                                    ws.send(JSON.stringify(userData));
+                                } else { //this case shouldnt happen
+                                    console.log('No data found for the given username.');
+                                    ws.send(JSON.stringify({ error: 'User doesn\'t exist' }));
+                                };
+                            }).catch((err) => {
+                                console.error('Error:', err);
+                                ws.send(JSON.stringify({ error: 'Database error.' }))
+                            });
                         } else {
-                            console.log('No data found for the given username.');
-                            ws.send(JSON.stringify({ error: 'User doesn\'t exist' }));
+                            ws.send(JSON.stringify({ error: isPasswordCorrect }));
                         };
-                    }).catch((err) => {
-                        ss.log.red('Error:', err);
-                        ws.send(JSON.stringify({ error: 'Database error.' }))
+                    }).catch(error => {
+                        console.error('Error comparing passwords:', error);
+                        ws.send(JSON.stringify({ error: 'Internal server error' }));
                     });
                     break;
-
                 case 'validateRegister':
                     if (msg.username.length < 3 || !/^[A-Za-z0-9?!._-]+$/.test(msg.username)) ws.send(JSON.stringify({ error: 'Invalid username.' }));
+                    else if (!(/^[a-f0-9]{64}$/i).test(msg.password)) ws.send(JSON.stringify({ error: 'Internal server error' })); //not really, but if ur trying to make weird requests then im not helping you, fuck off
                     else createAccount(msg.username, msg.password).then((result) => {
                         if (result === true) {
                             getUserData(msg.username, true).then(userData => {
