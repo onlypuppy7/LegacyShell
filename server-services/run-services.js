@@ -62,6 +62,19 @@ db.serialize(() => {
     `);
 
     db.run(`
+        CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
+    `);
+    
+    db.run(`
+        CREATE TRIGGER IF NOT EXISTS update_dateModified
+        AFTER UPDATE ON users
+        FOR EACH ROW
+        BEGIN
+            UPDATE users SET dateModified = strftime('%s', 'now') WHERE id = OLD.id;
+        END;
+    `);
+    
+    db.run(`
         CREATE TABLE IF NOT EXISTS ip_requests (
             ip TEXT PRIMARY KEY,
             sensitive_count INTEGER DEFAULT 0,
