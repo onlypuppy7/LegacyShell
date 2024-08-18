@@ -33,7 +33,7 @@ const ss = {
 ss.log.green('created ss object!');
 
 //init db (ooooh! sql! fancy! a REAL database! not a slow json!)
-const db = new sqlite3.Database('./server-services/store/accountData.db');
+const db = new sqlite3.Database('./server-services/store/LegacyShellData.db');
 
 db.serialize(() => {
     db.run(`
@@ -41,6 +41,8 @@ db.serialize(() => {
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT UNIQUE,
             password TEXT,
+            authToken TEXT,
+            session TEXT DEFAULT '1234567890',
             kills INTEGER DEFAULT 0,
             deaths INTEGER DEFAULT 0,
             streak INTEGER DEFAULT 0,
@@ -48,7 +50,6 @@ db.serialize(() => {
             eggsSpent INTEGER DEFAULT 0,
             ownedItemIds TEXT DEFAULT '[1001,1002,1003,1004,1005,1006,2001,2002,2003,2004,2005,2006,3100,3600,3400,3800,3000]',  -- Will store as JSON string
             loadout TEXT DEFAULT '{"primaryId":[3100,3600,3400,3800],"secondaryId":[3000,3000,3000,3000],"classIdx":0,"colorIdx":0,"hatId":null,"stampId":null}',       -- Will store as JSON string
-            session TEXT DEFAULT '1234567890',
             version INTEGER DEFAULT 1,
             upgradeProductId TEXT DEFAULT NULL,
             upgradeMultiplier INTEGER DEFAULT NULL,
@@ -64,6 +65,10 @@ db.serialize(() => {
 
     db.run(`
         CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
+    `);
+
+    db.run(`
+        CREATE INDEX IF NOT EXISTS idx_users_authToken ON users(authToken);
     `);
     
     db.run(`
@@ -111,9 +116,28 @@ const hashPassword = (data) => {
 const comparePassword = async (username, receivedPassword) => {
     try {
         const result = await ss.getOne(`SELECT password FROM users WHERE username = ?`, [username]);
-        if (!result) return "Username not found"
+        if (!result) return "Username not found";
         const storedHash = result.password;
         return bcrypt.compareSync(receivedPassword, storedHash);
+    } catch (error) {
+        console.error(error); return "Database error.";
+    };
+};
+
+const generateToken = async (username) => {
+    const newToken = crypto.randomBytes(32).toString('hex');
+    await ss.runQuery(`UPDATE users SET authToken = ? WHERE username = ?`, [newToken, username]);
+    return newToken;
+};
+
+const compareAuthToken = async (username, receivedAuthToken) => {
+    try {
+        const result = await ss.getOne(`SELECT authToken FROM users WHERE username = ?`, [username]);
+        if (!result) return "Username not found";
+        const storedToken = result.authToken;
+        let success = (storedToken == receivedAuthToken);
+        if (success) await generateToken(username);
+        return success;
     } catch (error) {
         console.error(error); return "Database error.";
     };
@@ -130,7 +154,6 @@ const createAccount = async (username, password) => {
         return true;
     } catch (error) {
         console.error('Error creating account:', error.code);
-
         return error.code;
     };
 };
@@ -185,8 +208,9 @@ wss.on('connection', (ws, req) => {
             // Client commands
             switch (msg.cmd) {
                 case 'validateLogin':
-                    comparePassword(msg.username, msg.password).then(isPasswordCorrect => {
+                    comparePassword(msg.username, msg.password).then(async (isPasswordCorrect) => {
                         if (isPasswordCorrect === true) {
+                            await generateToken(msg.username);
                             getUserData(msg.username, true).then(userData => {
                                 if (userData) {
                                     delete userData.password;
@@ -207,11 +231,36 @@ wss.on('connection', (ws, req) => {
                         ws.send(JSON.stringify({ error: 'Internal server error' }));
                     });
                     break;
+                case 'validateLoginViaAuthToken':
+                    compareAuthToken(msg.username, msg.authToken).then(async (accessGranted) => {
+                        if (accessGranted === true) {
+                            await generateToken(msg.username);
+                            getUserData(msg.username, true).then(userData => {
+                                if (userData) {
+                                    delete userData.password;
+                                    ws.send(JSON.stringify(userData));
+                                } else { //this case shouldnt happen
+                                    console.log('No data found for the given username.');
+                                    ws.send(JSON.stringify({ error: 'User doesn\'t exist' }));
+                                };
+                            }).catch((err) => {
+                                console.error('Error:', err);
+                                ws.send(JSON.stringify({ error: 'Database error.' }))
+                            });
+                        } else {
+                            ws.send(JSON.stringify({ error: accessGranted }));
+                        };
+                    }).catch(error => {
+                        console.error('Error comparing passwords:', error);
+                        ws.send(JSON.stringify({ error: 'Internal server error' }));
+                    });
+                    break;
                 case 'validateRegister':
                     if (msg.username.length < 3 || !/^[A-Za-z0-9?!._-]+$/.test(msg.username)) ws.send(JSON.stringify({ error: 'Invalid username.' }));
                     else if (!(/^[a-f0-9]{64}$/i).test(msg.password)) ws.send(JSON.stringify({ error: 'Internal server error' })); //not really, but if ur trying to make weird requests then im not helping you, fuck off
-                    else createAccount(msg.username, msg.password).then((result) => {
+                    else createAccount(msg.username, msg.password).then(async (result) => {
                         if (result === true) {
+                            await generateToken(msg.username);
                             getUserData(msg.username, true).then(userData => {
                                 if (userData) {
                                     console.log(`Retrieved user data:`, userData);
@@ -222,7 +271,7 @@ wss.on('connection', (ws, req) => {
                                 ws.send(JSON.stringify({ error: 'Database error.' }))
                             });
                         } else {
-                            if (result == 'SQLITE_CONSTRAINT') ws.send(JSON.stringify({ error: 'Username is already taken.' })); //or something
+                            if (result == 'SQLITE_CONSTRAINT') ws.send(JSON.stringify({ error: 'Username is already taken.' })); //or something, idk
                             else ws.send(JSON.stringify({ error: 'Database error.' }));
                         };
                     }).catch(err => {
@@ -245,13 +294,13 @@ wss.on('connection', (ws, req) => {
                         }));
 
                         fetch(ss.config.services.feedback, { method: 'POST', body: formData });
-                    } else ss.log.blue('Feedback received, no discord webhook set!:', msg);
+                    } else ss.log.blue('Feedback received, no discord webhook set!:'+JSON.stringify(msg));
 
                     ws.send(JSON.stringify({ success: true }));
                     break;
 
                 default:
-                    console.log('user sent', msg.cmd || '[[unknown cmd]]', 'to services, not running  function')
+                    console.log('user sent', msg.cmd || '(unknown cmd)', 'to services, not running function')
                     break;
             }
         } catch (error) {
