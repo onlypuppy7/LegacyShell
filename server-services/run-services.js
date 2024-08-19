@@ -95,6 +95,7 @@ db.serialize(() => {
     CREATE TABLE IF NOT EXISTS sessions (
         session_id TEXT PRIMARY KEY,
         user_id INTEGER UNIQUE,
+        ip_address TEXT,
         created_at INTEGER DEFAULT (strftime('%s', 'now')),
         expires_at INTEGER
     )

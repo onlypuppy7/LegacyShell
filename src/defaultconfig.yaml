@@ -16,10 +16,11 @@ services:
       reset_interval: 300 #in seconds
       cmds:
         - "validateLogin"
+        - "validateLoginViaAuthToken"
         - "validateRegister"
         - "feedback"
     protect_ips: true
-    password_cost_factor: 10 #higher is more secure, but will require more processing power
+    password_cost_factor: 10 #higher is more secure, but will require more processing power - run "npm run bcrypt" to determine the recommended cost
 
 game:
   port: 13372
