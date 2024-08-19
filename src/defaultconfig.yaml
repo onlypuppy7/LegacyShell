@@ -26,3 +26,4 @@ game:
   port: 13372
 
 discordServer: F3Xh5bhXTr # do NOT put anything except the link/vanity as the rest is filled in!
+verbose: false # loads of more logs?

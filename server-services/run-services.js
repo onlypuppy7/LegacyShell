@@ -190,6 +190,7 @@ const getUserData = async (username, convertJson, retainSensitive) => {
 const port = ss.config.services.port || 13371;
 const wss = new WebSocketServer({ port: port });
 
+const standardError = async (ws) => { ws.send(JSON.stringify({ error: 'Internal server error' })); };
 
 wss.on('connection', (ws, req) => {
     // Apparently, WS ips die after disconnect?
@@ -207,7 +208,10 @@ wss.on('connection', (ws, req) => {
                 ip = crypto.createHash('md5').update(ip).digest('hex');
 
             const isAccepted = await rl.allowRequest(ss, ip, cmdType);
-            if (!isAccepted) return ws.send(JSON.stringify({ error: 'Too many requests. Please try again later.' }));
+            if (!isAccepted) {
+                ss.config.verbose && ss.log.red("rejected some bs from "+ip+" "+cmdType);
+                return ws.send(JSON.stringify({ error: 'Too many requests. Please try again later.' }));
+            };
 
             // Client commands
             switch (msg.cmd) {
@@ -232,7 +236,7 @@ wss.on('connection', (ws, req) => {
                         };
                     }).catch(error => {
                         console.error('Error comparing passwords:', error);
-                        ws.send(JSON.stringify({ error: 'Internal server error' }));
+                        standardError(ws);
                     });
                     break;
                 case 'validateLoginViaAuthToken':
@@ -256,12 +260,12 @@ wss.on('connection', (ws, req) => {
                         };
                     }).catch(error => {
                         console.error('Error comparing passwords:', error);
-                        ws.send(JSON.stringify({ error: 'Internal server error' }));
+                        standardError(ws);
                     });
                     break;
                 case 'validateRegister':
                     if (msg.username.length < 3 || !/^[A-Za-z0-9?!._-]+$/.test(msg.username)) ws.send(JSON.stringify({ error: 'Invalid username.' }));
-                    else if (!(/^[a-f0-9]{64}$/i).test(msg.password)) ws.send(JSON.stringify({ error: 'Internal server error' })); //not really, but if ur trying to make weird requests then im not helping you, fuck off
+                    else if (!(/^[a-f0-9]{64}$/i).test(msg.password)) standardError(ws); //not really, but if ur trying to make weird requests then im not helping you, fuck off
                     else createAccount(msg.username, msg.password).then(async (result) => {
                         if (result === true) {
                             await generateToken(msg.username);
@@ -280,7 +284,7 @@ wss.on('connection', (ws, req) => {
                         };
                     }).catch(err => {
                         console.error('Error:', err);
-                        ws.send(JSON.stringify({ error: 'Internal server error' }));
+                        standardError(ws);
                     });
                     break;
                 case 'feedback':
@@ -309,7 +313,7 @@ wss.on('connection', (ws, req) => {
             }
         } catch (error) {
             console.error('Error processing message:', error);
-            ws.send(JSON.stringify({ error: 'Internal server error' }));
+            standardError(ws);
         }
     });
 
