@@ -27,6 +27,7 @@ const ss = {
     rootDir: path.resolve(import.meta.dirname),
     config: yaml.load(fs.readFileSync(configPath, 'utf8')),
     packageJson: JSON.parse(fs.readFileSync(path.join(path.resolve(import.meta.dirname), '..', 'package.json'), 'utf8')),
+    requests_cache: {},
     log
 };
 
@@ -36,6 +37,7 @@ ss.log.green('created ss object!');
 const db = new sqlite3.Database('./server-services/store/LegacyShellData.db');
 
 db.serialize(() => {
+    //USERS
     db.run(`
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -80,6 +82,7 @@ db.serialize(() => {
         END;
     `);
 
+    //RATELIMITING
     db.run(`
         CREATE TABLE IF NOT EXISTS ip_requests (
             ip TEXT PRIMARY KEY,
@@ -90,7 +93,7 @@ db.serialize(() => {
         )
     `);
 
-    //WIP!
+    //WIP! SESSIONS
     db.run(`
     CREATE TABLE IF NOT EXISTS sessions (
         session_id TEXT PRIMARY KEY,
