@@ -19,6 +19,7 @@ services:
         - "validateRegister"
         - "feedback"
     protect_ips: true
+    password_cost_factor: 10 #higher is more secure, but will require more processing power
 
 game:
   port: 13372
