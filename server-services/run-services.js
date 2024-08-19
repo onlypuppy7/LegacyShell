@@ -110,7 +110,7 @@ ss.getOne = util.promisify(db.get.bind(db));
 
 //account stuff
 const hashPassword = (data) => {
-    return bcrypt.hashSync(data, 10);
+    return bcrypt.hashSync(data, ss.config.services.password_cost_factor || 10);
 };
 
 const comparePassword = async (username, receivedPassword) => {

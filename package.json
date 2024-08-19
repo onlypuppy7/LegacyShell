@@ -6,6 +6,7 @@
     "main": "start.js",
     "scripts": {
         "init": "node src/init.js",
+        "bcrypt": "node src/bcrypt-tester.js",
         "client": "node server-client/run-client.js",
         "services": "node server-services/run-services.js",
         "game": "node server-game/run-game.js",
