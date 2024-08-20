@@ -117,12 +117,19 @@ const hashPassword = (data) => {
     return bcrypt.hashSync(data, ss.config.services.password_cost_factor || 10);
 };
 
-const comparePassword = async (username, receivedPassword) => {
+const comparePassword = async (userData, receivedPassword) => {
     try {
-        const result = await ss.getOne(`SELECT password FROM users WHERE username = ?`, [username]);
-        if (!result) return "Username not found";
-        const storedHash = result.password;
-        return bcrypt.compareSync(receivedPassword, storedHash);
+        console.log(receivedPassword, userData.password);
+        return bcrypt.compareSync(receivedPassword, userData.password);
+    } catch (error) {
+        console.error(error); return "Database error.";
+    };
+};
+
+const compareAuthToken = async (userData, receivedAuthToken) => {
+    try {
+        let success = (receivedAuthToken == userData.authToken);
+        return success;
     } catch (error) {
         console.error(error); return "Database error.";
     };
@@ -130,26 +137,15 @@ const comparePassword = async (username, receivedPassword) => {
 
 const generateToken = async (username) => {
     const newToken = crypto.randomBytes(32).toString('hex');
+    ss.config.verbose && ss.log.bgBlue("services: Writing to DB: set new token "+username);
     await ss.runQuery(`UPDATE users SET authToken = ? WHERE username = ?`, [newToken, username]);
     return newToken;
-};
-
-const compareAuthToken = async (username, receivedAuthToken) => {
-    try {
-        const result = await ss.getOne(`SELECT authToken FROM users WHERE username = ?`, [username]);
-        if (!result) return "Username not found";
-        const storedToken = result.authToken;
-        let success = (storedToken == receivedAuthToken);
-        if (success) await generateToken(username);
-        return success;
-    } catch (error) {
-        console.error(error); return "Database error.";
-    };
 };
 
 const createAccount = async (username, password) => {
     password = hashPassword(password);
     try {
+        ss.config.verbose && ss.log.bgBlue("services: Writing to DB: add new user "+username);
         await ss.runQuery(`
             INSERT INTO users (username, password)
             VALUES (?, ?)
@@ -164,8 +160,8 @@ const createAccount = async (username, password) => {
 
 const getUserData = async (username, convertJson, retainSensitive) => {
     try {
-        const query = `SELECT * FROM users WHERE username = ?`;
-        const user = await ss.getOne(query, [username]);
+        ss.config.verbose && ss.log.bgCyan("services: Reading from DB: get user "+username);
+        const user = await ss.getOne(`SELECT * FROM users WHERE username = ?`, [username]);
 
         if (user) {
             if (convertJson) {
@@ -175,7 +171,8 @@ const getUserData = async (username, convertJson, retainSensitive) => {
             if (!retainSensitive) {
                 delete user.password;
             };
-            console.log('User data retrieved:', user);
+            // console.log('User data retrieved:', user);
+            console.log('User data retrieved');
             return user;
         } else {
             console.log('User not found');
@@ -213,55 +210,59 @@ wss.on('connection', (ws, req) => {
                 return ws.send(JSON.stringify({ error: 'Too many requests. Please try again later.' }));
             };
 
+            ss.config.verbose && ss.log.dim("Received cmd: "+msg.cmd+"; type: "+cmdType);
+
             // Client commands
             switch (msg.cmd) {
                 case 'validateLogin':
-                    comparePassword(msg.username, msg.password).then(async (isPasswordCorrect) => {
-                        if (isPasswordCorrect === true) {
-                            await generateToken(msg.username);
-                            getUserData(msg.username, true).then(userData => {
-                                if (userData) {
+                    getUserData(msg.username, true, true).then(userData => {
+                        if (userData) {
+                            comparePassword(userData, msg.password).then(async (isPasswordCorrect) => {
+                                if (isPasswordCorrect === true) {
+                                    userData.authToken = await generateToken(msg.username);
                                     delete userData.password;
                                     ws.send(JSON.stringify(userData));
-                                } else { //this case shouldnt happen
-                                    console.log('No data found for the given username.');
-                                    ws.send(JSON.stringify({ error: 'User doesn\'t exist' }));
+                                } else {
+                                    ws.send(JSON.stringify({ error: isPasswordCorrect }));
                                 };
-                            }).catch((err) => {
-                                console.error('Error:', err);
-                                ws.send(JSON.stringify({ error: 'Database error.' }))
+                            }).catch(error => {
+                                console.error('Error comparing passwords:', error);
+                                standardError(ws);
                             });
                         } else {
-                            ws.send(JSON.stringify({ error: isPasswordCorrect }));
+                            console.log('No data found for the given username.');
+                            ws.send(JSON.stringify({ error: 'User doesn\'t exist' }));
                         };
-                    }).catch(error => {
-                        console.error('Error comparing passwords:', error);
-                        standardError(ws);
+                    }).catch((err) => {
+                        console.error('Error:', err);
+                        ws.send(JSON.stringify({ error: 'Database error.' }))
                     });
                     break;
                 case 'validateLoginViaAuthToken':
-                    compareAuthToken(msg.username, msg.authToken).then(async (accessGranted) => {
-                        if (accessGranted === true) {
-                            await generateToken(msg.username);
-                            getUserData(msg.username, true).then(userData => {
-                                if (userData) {
+                    getUserData(msg.username, true, true).then(userData => {
+                        if (userData) {
+                            compareAuthToken(userData, msg.authToken).then(async (accessGranted) => {
+                                if (accessGranted === true) {
+                                    userData.authToken = await generateToken(msg.username);
                                     delete userData.password;
                                     ws.send(JSON.stringify(userData));
-                                } else { //this case shouldnt happen
-                                    console.log('No data found for the given username.');
-                                    ws.send(JSON.stringify({ error: 'User doesn\'t exist' }));
+                                } else {
+                                    ws.send(JSON.stringify({ error: accessGranted }));
                                 };
-                            }).catch((err) => {
-                                console.error('Error:', err);
-                                ws.send(JSON.stringify({ error: 'Database error.' }))
+                            }).catch(error => {
+                                console.error('Error comparing passwords:', error);
+                                standardError(ws);
                             });
-                        } else {
-                            ws.send(JSON.stringify({ error: accessGranted }));
+                        } else { //this case shouldnt happen
+                            console.log('No data found for the given username.');
+                            ws.send(JSON.stringify({ error: 'User doesn\'t exist' }));
                         };
-                    }).catch(error => {
-                        console.error('Error comparing passwords:', error);
-                        standardError(ws);
+                    }).catch((err) => {
+                        console.error('Error:', err);
+                        ws.send(JSON.stringify({ error: 'Database error.' }))
                     });
+
+
                     break;
                 case 'validateRegister':
                     if (msg.username.length < 3 || !/^[A-Za-z0-9?!._-]+$/.test(msg.username)) ws.send(JSON.stringify({ error: 'Invalid username.' }));
@@ -271,7 +272,7 @@ wss.on('connection', (ws, req) => {
                             await generateToken(msg.username);
                             getUserData(msg.username, true).then(userData => {
                                 if (userData) {
-                                    console.log(`Retrieved user data:`, userData);
+                                    // console.log(`Retrieved user data:`, userData);
                                     ws.send(JSON.stringify(userData));
                                 } else console.log('No data found for the given username.');
                             }).catch((err) => {
@@ -317,7 +318,7 @@ wss.on('connection', (ws, req) => {
         }
     });
 
-    ws.on('close', () => console.log('Client disconnected'));
+    ws.on('close', () => ss.log.dim('Client disconnected'));
     ws.on('error', (error) => console.error(`WebSocket error: ${error}`));
 });
 
