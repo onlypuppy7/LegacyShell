@@ -1,7 +1,7 @@
 # config.yaml, yep
 client:
   port: 13370
-  minify: true #this lags startup of the server by a few seconds, in theory though will reduce lag longer term
+  minify: true #this lags startup of the server by a few seconds, in theory though will reduce lag longer term for both clients and the server itself
   servicesURL: "wss://services.legacy.onlypuppy7.online:443"
 
 services:

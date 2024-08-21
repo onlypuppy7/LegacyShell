@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import crypto from 'node:crypto';
 import bcrypt from 'bcrypt';
 import util from 'node:util';
@@ -8,25 +9,27 @@ import yaml from 'js-yaml';
 import sqlite3 from 'sqlite3';
 import WebSocket, { WebSocketServer } from 'ws';
 
-
 import rl from './ratelimit.js';
 import log from '../src/coloured-logging.js';
 
 sqlite3.verbose();
 
-// storage for the services server. holds the DB.
-fs.mkdirSync(path.join(import.meta.dirname, 'store'), { recursive: true });
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-const configPath = path.join(import.meta.dirname, '..', 'store', 'config.yaml');
+// storage for the services server. holds the DB.
+fs.mkdirSync(path.join(__dirname, 'store'), { recursive: true });
+
+const configPath = path.join(__dirname, '..', 'store', 'config.yaml');
 if (!fs.existsSync(configPath)) {
     console.log('config.yaml not found, make sure you have run the main js first...');
     process.exit(1);
 };
 
 const ss = {
-    rootDir: path.resolve(import.meta.dirname),
+    rootDir: path.resolve(__dirname),
     config: yaml.load(fs.readFileSync(configPath, 'utf8')),
-    packageJson: JSON.parse(fs.readFileSync(path.join(path.resolve(import.meta.dirname), '..', 'package.json'), 'utf8')),
+    packageJson: JSON.parse(fs.readFileSync(path.join(path.resolve(__dirname), '..', 'package.json'), 'utf8')),
     requests_cache: {},
     log
 };
