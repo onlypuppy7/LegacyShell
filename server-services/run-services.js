@@ -223,7 +223,7 @@ wss.on('connection', (ws, req) => {
                                     delete userData.password;
                                     ws.send(JSON.stringify(userData));
                                 } else {
-                                    ws.send(JSON.stringify({ error: isPasswordCorrect }));
+                                    ss.config.services.protect_usernames ? ws.send(JSON.stringify({ error: "Username or password is incorrect." })) : ws.send(JSON.stringify({ error: "Password is incorrect." }));
                                 };
                             }).catch(error => {
                                 console.error('Error comparing passwords:', error);
@@ -231,7 +231,7 @@ wss.on('connection', (ws, req) => {
                             });
                         } else {
                             console.log('No data found for the given username.');
-                            ws.send(JSON.stringify({ error: 'User doesn\'t exist' }));
+                            ss.config.services.protect_usernames ? ws.send(JSON.stringify({ error: "Username or password is incorrect." })) : ws.send(JSON.stringify({ error: "User doesn't exist" }));
                         };
                     }).catch((err) => {
                         console.error('Error:', err);
