@@ -1,7 +1,7 @@
 {
     "name": "legacyshell",
     "type": "module",
-    "version": "v0.0.2-alpha",
+    "version": "v0.0.3-alpha",
     "description": "Server software for LegacyShell",
     "main": "start.js",
     "scripts": {
