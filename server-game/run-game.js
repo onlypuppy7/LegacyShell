@@ -1,28 +1,24 @@
 //ss object
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'node:url';
 import yaml from 'js-yaml';
 import WebSocket from 'ws';
 
 import log from '../src/coloured-logging.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 // temporary storage for the game server. currently unused, but good to have. for now.
-fs.mkdirSync(path.join(__dirname, 'store'), { recursive: true });
+fs.mkdirSync(path.join(import.meta.dirname, 'store'), { recursive: true });
 
-const configPath = path.join(__dirname, '..', 'store', 'config.yaml');
+const configPath = path.join(import.meta.dirname, '..', 'store', 'config.yaml');
 if (!fs.existsSync(configPath)) {
     console.log('config.yaml not found, make sure you have run the main js first...');
     process.exit(1);
 };
 
 const ss = {
-    rootDir: path.resolve(__dirname),
+    rootDir: path.resolve(import.meta.dirname),
     config: yaml.load(fs.readFileSync(configPath, 'utf8')),
-    packageJson: JSON.parse(fs.readFileSync(path.join(path.resolve(__dirname), '..', 'package.json'), 'utf8')),
+    packageJson: JSON.parse(fs.readFileSync(path.join(path.resolve(import.meta.dirname), '..', 'package.json'), 'utf8')),
     log
 };
 
