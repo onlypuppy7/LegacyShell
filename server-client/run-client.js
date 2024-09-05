@@ -63,8 +63,9 @@ function connectWebSocket(retryCount = 0) {
         const configInfo = JSON.parse(data);
 
         ss.config.client = { ...ss.config.client, ...configInfo };
+        ss.distributed_config = yaml.dump(configInfo, { indent: 4 });
 
-        console.log(ss.config)
+        console.log(ss.distributed_config);
 
         if (!retrieved) startServer();
     });

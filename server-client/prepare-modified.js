@@ -75,6 +75,8 @@ function prepareModified(ss) {
         htmlContent = htmlContent.replace(/SHELLSHOCKMINJSHASH/g, hashes.SHELLSHOCKMINJSHASH);
         htmlContent = htmlContent.replace(/LEGACYSHELLVERSION/g, ss.packageJson.version);
         htmlContent = htmlContent.replace(/DISCORDSERVER/g, ss.config.discordServer);
+        htmlContent = htmlContent.replace(/LEGACYSHELLSYNCURL/g, ss.config.client.sync_server);
+        htmlContent = htmlContent.replace(/LEGACYSHELLCONFIG/g, ss.distributed_config.replace(/\n/g, '<br>'));
 
         fs.writeFileSync(destinationHtmlPath, htmlContent, 'utf8');
         console.log(`index.html copied and modified to ${destinationHtmlPath}`);
