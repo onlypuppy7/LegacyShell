@@ -1,8 +1,7 @@
 # config.yaml, yep
 client:
+  sync_server: "ws://localhost:13371" #this is basically the services server. but its not! this is what the client server will internally use to retrieve its configs and shit. in theory the sync server could put in a different services URL entirely! anyway, if the client and services servers are both running on the same machine, you can keep this as localhost.
   port: 13370
-  minify: true #this lags startup of the server by a few seconds, in theory though will reduce lag longer term for both clients and the server itself
-  servicesURL: "wss://services-legacy.onlypuppy7.online:443"
 
 services:
   port: 13371
@@ -22,6 +21,11 @@ services:
         - "validateRegister"
         - "feedback"
     protect_ips: true
+  #this is what the other servers will ping this server for
+  distributed_configs:
+    client:
+      servicesURL: "wss://services-legacy.onlypuppy7.online:443"
+      minify: true #this lags startup of the server by a few seconds, in theory though will reduce lag longer term for both clients and the server itself  
 
 game:
   port: 13372
