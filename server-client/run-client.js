@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import yaml from 'js-yaml';
 import express from 'express';
+import WebSocket from 'ws';
 
 import log from '../src/coloured-logging.js';
 import prepareModified from './prepare-modified.js';
@@ -24,20 +25,63 @@ const ss = {
 
 ss.log.green("Created ss object!");
 
-try {
-    ss.log.blue('Generating modified files (eg minifying shellshock.min.js)...');
-    prepareModified(ss);
-} catch (error) {
-    console.error('Modification failed:', error);
-    process.exit(1);
+function startServer() {
+    retrieved = true;
+    try {
+        ss.log.blue('Generating modified files (eg minifying shellshock.min.js)...');
+        prepareModified(ss);
+    } catch (error) {
+        console.error('Modification failed:', error);
+        process.exit(1);
+    };
+
+    const app = express();
+    const port = ss.config.client.port || 13370;
+
+    app.use(express.static(path.join(import.meta.dirname, 'store', 'client-modified'))); // server-client\store\client-modified
+    app.use(express.static(path.join(import.meta.dirname, 'src', 'client-static'))); // server-client\src\client-static
+
+    app.listen(port, () => {
+        ss.log.success(`Server is running on http://localhost:${port}`);
+    });
 };
 
-const app = express();
-const port = ss.config.client.port || 13370;
+let retrieved = false;
 
-app.use(express.static(path.join(import.meta.dirname, 'store', 'client-modified'))); //server-client\store\client-modified
-app.use(express.static(path.join(import.meta.dirname, 'src', 'client-static'))); //server-client\src\client-static
+function connectWebSocket(retryCount = 0) {
+    const ws = new WebSocket(ss.config.client.sync_server); // Use the sync server URL from the config
 
-app.listen(port, () => {
-    ss.log.success(`Server is running on http://localhost:${port}`);
-});
+    ws.on('open', function open() {
+        ss.log.blue('WebSocket connection opened. Requesting config information...');
+        ws.send(JSON.stringify({
+            cmd: "requestConfig",
+        }));
+    });
+
+    ws.on('message', function message(data) {
+        ss.log.green('Received config information from sync server.');
+        const configInfo = JSON.parse(data);
+
+        ss.config.client = { ...ss.config.client, ...configInfo };
+
+        console.log(ss.config)
+
+        if (!retrieved) startServer();
+    });
+
+    ws.on('error', function error(err) {
+        ss.log.red(`WebSocket connection failed: ${err.message}. Retrying in 30 seconds... (Attempt ${retryCount + 1})`);
+        setTimeout(() => {
+            connectWebSocket(retryCount + 1);
+        }, 30000);
+    });
+
+    ws.on('close', function close() {
+        ss.log.yellow('WebSocket connection closed. Retrying in 30 seconds...');
+        setTimeout(() => {
+            connectWebSocket(retryCount + 1);
+        }, 30000);
+    });
+};
+
+connectWebSocket();
