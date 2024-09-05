@@ -214,6 +214,9 @@ wss.on('connection', (ws, req) => {
 
             // Client commands
             switch (msg.cmd) {
+                case 'requestConfig':
+                    ws.send(JSON.stringify(ss.config.services.distributed_configs.client));
+                    break;
                 case 'validateLogin':
                     getUserData(msg.username, true, true).then(userData => {
                         if (userData) {
