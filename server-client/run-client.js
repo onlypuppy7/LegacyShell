@@ -67,19 +67,19 @@ function connectWebSocket(retryCount = 0) {
 
         console.log(ss.distributed_config);
 
-        if (!retrieved) startServer();
+        startServer();
     });
 
     ws.on('error', function error(err) {
         ss.log.red(`WebSocket connection failed: ${err.message}. Retrying in 30 seconds... (Attempt ${retryCount + 1})`);
-        setTimeout(() => {
+        if (!retrieved) setTimeout(() => {
             connectWebSocket(retryCount + 1);
         }, 30000);
     });
 
     ws.on('close', function close() {
         ss.log.yellow('WebSocket connection closed. Retrying in 30 seconds...');
-        setTimeout(() => {
+        if (!retrieved) setTimeout(() => {
             connectWebSocket(retryCount + 1);
         }, 30000);
     });
