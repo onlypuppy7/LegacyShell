@@ -7,7 +7,7 @@
     "category_name": "Scrambler Primary Weapons",
     "exclusive_for_class": 1,
     "item_data": {
-        "class": DozenGauge,
+        "class": "DozenGauge",
         "meshName": "gun_dozenGauge"
     },
     "is_available": true
@@ -20,7 +20,7 @@
     "category_name": "Scrambler Primary Weapons",
     "exclusive_for_class": 1,
     "item_data": {
-        "class": DozenGauge,
+        "class": "DozenGauge",
         "meshName": "gun_dozenGauge_Gold"
     },
     "is_available": true
@@ -33,7 +33,7 @@
     "category_name": "Scrambler Primary Weapons",
     "exclusive_for_class": 1,
     "item_data": {
-        "class": DozenGauge,
+        "class": "DozenGauge",
         "meshName": "gun_dozenGauge_Bear"
     },
     "is_available": true
@@ -46,7 +46,7 @@
     "category_name": "Scrambler Primary Weapons",
     "exclusive_for_class": 1,
     "item_data": {
-        "class": DozenGauge,
+        "class": "DozenGauge",
         "meshName": "gun_dozenGauge_Halloween",
         "tags": ["Halloween"]
     },
@@ -60,7 +60,7 @@
     "category_name": "Scrambler Primary Weapons",
     "exclusive_for_class": 1,
     "item_data": {
-        "class": DozenGauge,
+        "class": "DozenGauge",
         "meshName": "gun_dozenGauge_Turkey",
         "tags": ["Thanksgiving"]
     },
@@ -74,7 +74,7 @@
     "category_name": "Scrambler Primary Weapons",
     "exclusive_for_class": 1,
     "item_data": {
-        "class": DozenGauge,
+        "class": "DozenGauge",
         "meshName": "gun_dozenGauge_Present",
         "tags": ["Christmas"]
     },
@@ -88,7 +88,7 @@
     "category_name": "Scrambler Primary Weapons",
     "exclusive_for_class": 1,
     "item_data": {
-        "class": DozenGauge,
+        "class": "DozenGauge",
         "meshName": "gun_dozenGauge_NewYear",
         "tags": ["NewYears2019"]
     },
@@ -102,7 +102,7 @@
     "category_name": "Scrambler Primary Weapons",
     "exclusive_for_class": 1,
     "item_data": {
-        "class": DozenGauge,
+        "class": "DozenGauge",
         "meshName": "gun_dozenGauge_Groundhog",
         "tags": ["GroundhogDay"]
     },
@@ -116,7 +116,7 @@
     "category_name": "Scrambler Primary Weapons",
     "exclusive_for_class": 1,
     "item_data": {
-        "class": DozenGauge,
+        "class": "DozenGauge",
         "meshName": "gun_dozenGauge_Buck",
         "tags": ["Promotional"]
     },
