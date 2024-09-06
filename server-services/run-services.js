@@ -95,8 +95,8 @@ db.serialize(() => {
 
     //WIP! SESSIONS
     db.run(`
-    CREATE TABLE IF NOT EXISTS item_data (
-        id TEXT PRIMARY KEY,
+    CREATE TABLE IF NOT EXISTS sessions (
+        session_id TEXT PRIMARY KEY,
         user_id INTEGER UNIQUE,
         ip_address TEXT,
         created_at INTEGER DEFAULT (strftime('%s', 'now')),
@@ -107,14 +107,16 @@ db.serialize(() => {
     //WIP! ITEMS
     db.run(`
     CREATE TABLE IF NOT EXISTS items (
-        session_id INTEGER PRIMARY KEY,
+        id INTEGER PRIMARY KEY,
         name TEXT DEFAULT 'Unknown item',
         is_available BOOLEAN DEFAULT TRUE,
         price INTEGER DEFAULT 0,
+        item_class TEXT DEFAULT 'Unknown class',
         item_type_id INTEGER DEFAULT 0,
         item_type_name TEXT DEFAULT 0,
         exclusive_for_class INTEGER,
-        item_data TEXT DEFAULT '{"class":Eggk47,"meshName":"gun_eggk47"}'
+        item_data TEXT DEFAULT '{"class":Eggk47,"meshName":"gun_eggk47"}',
+        created_at INTEGER DEFAULT (strftime('%s', 'now'))
     )
     `);
 });
@@ -198,145 +200,181 @@ const getUserData = async (username, convertJson, retainSensitive) => {
     }
 };
 
-const port = ss.config.services.port || 13371;
-const wss = new WebSocketServer({ port: port });
+const initItemsTable = async () => {
+    try {
+        const countResult = await ss.getOne('SELECT COUNT(*) AS count FROM items');
+        if (countResult.count > 0) {
+            ss.log.italic('No need to init items table');
+            return;
+        };
 
-const standardError = async (ws) => { ws.send(JSON.stringify({ error: 'Internal server error' })); };
+        ss.log.blue('Items table is empty. Initializing with JSON data...');
 
-wss.on('connection', (ws, req) => {
-    // Apparently, WS ips die after disconnect?
-    // https://stackoverflow.com/questions/12444598/why-is-socket-remoteaddress-undefined-on-end-event
+        const jsonDir = path.join(ss.rootDir, 'src', 'items');
+        const files = fs.readdirSync(jsonDir);
+        for (const file of files) {
+            if (path.extname(file) === '.json') {
+                ss.log.beige(`Inserting: ${file}`);
+                const filePath = path.join(jsonDir, file);
+                const fileContent = fs.readFileSync(filePath, 'utf8');
+                const jsonData = JSON.parse(fileContent);
 
-    let ip = req.socket.remoteAddress;
-
-    ws.on('message', async (message) => {
-        try {
-            const jsonString = message.toString('utf8');
-            const msg = JSON.parse(jsonString);
-            const cmdType = ss.config.services.ratelimit.sensitive.cmds.includes(msg.cmd) ? 'sensitive' : 'regular';
-
-            if (ss.config.services.ratelimit.protect_ips)
-                ip = crypto.createHash('md5').update(ip).digest('hex');
-
-            const isAccepted = await rl.allowRequest(ss, ip, cmdType);
-            if (!isAccepted) {
-                ss.config.verbose && ss.log.red("rejected some bs from "+ip+" "+cmdType);
-                return ws.send(JSON.stringify({ error: 'Too many requests. Please try again later.' }));
+                for (const item of jsonData) {
+                    await ss.runQuery(`
+                        INSERT INTO items (id, name, is_available, price, item_class, item_type_id, item_type_name, exclusive_for_class, item_data)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    `, [item.id, item.name, item.is_available, item.price, path.parse(file).name, item.item_type_id, item.item_type_name, item.exclusive_for_class, JSON.stringify(item.item_data)]);
+                };
             };
+        };
+        ss.log.green('Items table initialized with JSON data.');
+    } catch (error) {
+        console.error('Error initializing items table:', error);
+    };
+};
 
-            ss.config.verbose && ss.log.dim("Received cmd: "+msg.cmd+"; type: "+cmdType);
+initItemsTable().then(() => {
 
-            // Client commands
-            switch (msg.cmd) {
-                case 'requestConfig':
-                    ws.send(JSON.stringify(ss.config.services.distributed_configs.client));
-                    break;
-                case 'validateLogin':
-                    getUserData(msg.username, true, true).then(userData => {
-                        if (userData) {
-                            comparePassword(userData, msg.password).then(async (isPasswordCorrect) => {
-                                if (isPasswordCorrect === true) {
-                                    userData.authToken = await generateToken(msg.username);
-                                    delete userData.password;
-                                    ws.send(JSON.stringify(userData));
-                                } else {
-                                    ss.config.services.protect_usernames ? ws.send(JSON.stringify({ error: "Username or password is incorrect." })) : ws.send(JSON.stringify({ error: "Password is incorrect." }));
-                                };
-                            }).catch(error => {
-                                console.error('Error comparing passwords:', error);
-                                standardError(ws);
-                            });
-                        } else {
-                            console.log('No data found for the given username.');
-                            ss.config.services.protect_usernames ? ws.send(JSON.stringify({ error: "Username or password is incorrect." })) : ws.send(JSON.stringify({ error: "User doesn't exist" }));
-                        };
-                    }).catch((err) => {
-                        console.error('Error:', err);
-                        ws.send(JSON.stringify({ error: 'Database error.' }))
-                    });
-                    break;
-                case 'validateLoginViaAuthToken':
-                    getUserData(msg.username, true, true).then(userData => {
-                        if (userData) {
-                            compareAuthToken(userData, msg.authToken).then(async (accessGranted) => {
-                                if (accessGranted === true) {
-                                    userData.authToken = await generateToken(msg.username);
-                                    delete userData.password;
-                                    ws.send(JSON.stringify(userData));
-                                } else {
-                                    ws.send(JSON.stringify({ error: accessGranted }));
-                                };
-                            }).catch(error => {
-                                console.error('Error comparing passwords:', error);
-                                standardError(ws);
-                            });
-                        } else { //this case shouldnt happen
-                            console.log('No data found for the given username.');
-                            ws.send(JSON.stringify({ error: 'User doesn\'t exist' }));
-                        };
-                    }).catch((err) => {
-                        console.error('Error:', err);
-                        ws.send(JSON.stringify({ error: 'Database error.' }))
-                    });
-
-
-                    break;
-                case 'validateRegister':
-                    if (msg.username.length < 3 || !/^[A-Za-z0-9?!._-]+$/.test(msg.username)) ws.send(JSON.stringify({ error: 'Invalid username.' }));
-                    else if (!(/^[a-f0-9]{64}$/i).test(msg.password)) standardError(ws); //not really, but if ur trying to make weird requests then im not helping you, fuck off
-                    else createAccount(msg.username, msg.password).then(async (result) => {
-                        if (result === true) {
-                            await generateToken(msg.username);
-                            getUserData(msg.username, true).then(userData => {
-                                if (userData) {
-                                    // console.log(`Retrieved user data:`, userData);
-                                    ws.send(JSON.stringify(userData));
-                                } else console.log('No data found for the given username.');
-                            }).catch((err) => {
-                                ss.log.red('Error:', err);
-                                ws.send(JSON.stringify({ error: 'Database error.' }))
-                            });
-                        } else {
-                            if (result == 'SQLITE_CONSTRAINT') ws.send(JSON.stringify({ error: 'Username is already taken.' })); //or something, idk
-                            else ws.send(JSON.stringify({ error: 'Database error.' }));
-                        };
-                    }).catch(err => {
-                        console.error('Error:', err);
-                        standardError(ws);
-                    });
-                    break;
-                case 'feedback':
-                    if (ss.config.services.feedback && ss.config.services.feedback.length > 10) {
-                        const formData = new FormData();
-
-                        const jsonBlob = new Blob([Object.entries(msg).map(([key, value]) => `${key}: ${value}`).join('\n')], { type: 'text/plain' });
-                        formData.append('file', jsonBlob, 'stats.txt');
-
-                        formData.append('payload_json', JSON.stringify({
-                            username: 'LegacyShell Feedback',
-                            avatar_url: msg.url + 'favicon.ico',
-                            allowed_mentions: { parse: [] },
-                            embeds: [{ description: `> from ${msg.email}\n\n${msg.comments}` }]
-                        }));
-
-                        fetch(ss.config.services.feedback, { method: 'POST', body: formData });
-                    } else ss.log.blue('Feedback received, no discord webhook set!:'+JSON.stringify(msg));
-
-                    ws.send(JSON.stringify({ success: true }));
-                    break;
-
-                default:
-                    console.log('user sent', msg.cmd || '(unknown cmd)', 'to services, not running function')
-                    break;
+    const port = ss.config.services.port || 13371;
+    const wss = new WebSocketServer({ port: port });
+    
+    const standardError = async (ws) => { ws.send(JSON.stringify({ error: 'Internal server error' })); };
+    
+    wss.on('connection', (ws, req) => {
+        // Apparently, WS ips die after disconnect?
+        // https://stackoverflow.com/questions/12444598/why-is-socket-remoteaddress-undefined-on-end-event
+    
+        let ip = req.socket.remoteAddress;
+    
+        ws.on('message', async (message) => {
+            try {
+                const jsonString = message.toString('utf8');
+                const msg = JSON.parse(jsonString);
+                const cmdType = ss.config.services.ratelimit.sensitive.cmds.includes(msg.cmd) ? 'sensitive' : 'regular';
+    
+                if (ss.config.services.ratelimit.protect_ips)
+                    ip = crypto.createHash('md5').update(ip).digest('hex');
+    
+                const isAccepted = await rl.allowRequest(ss, ip, cmdType);
+                if (!isAccepted) {
+                    ss.config.verbose && ss.log.red("rejected some bs from "+ip+" "+cmdType);
+                    return ws.send(JSON.stringify({ error: 'Too many requests. Please try again later.' }));
+                };
+    
+                ss.config.verbose && ss.log.dim("Received cmd: "+msg.cmd+"; type: "+cmdType);
+    
+                // Client commands
+                switch (msg.cmd) {
+                    case 'requestConfig':
+                        ws.send(JSON.stringify(ss.config.services.distributed_configs.client));
+                        break;
+                    case 'validateLogin':
+                        getUserData(msg.username, true, true).then(userData => {
+                            if (userData) {
+                                comparePassword(userData, msg.password).then(async (isPasswordCorrect) => {
+                                    if (isPasswordCorrect === true) {
+                                        userData.authToken = await generateToken(msg.username);
+                                        delete userData.password;
+                                        ws.send(JSON.stringify(userData));
+                                    } else {
+                                        ss.config.services.protect_usernames ? ws.send(JSON.stringify({ error: "Username or password is incorrect." })) : ws.send(JSON.stringify({ error: "Password is incorrect." }));
+                                    };
+                                }).catch(error => {
+                                    console.error('Error comparing passwords:', error);
+                                    standardError(ws);
+                                });
+                            } else {
+                                console.log('No data found for the given username.');
+                                ss.config.services.protect_usernames ? ws.send(JSON.stringify({ error: "Username or password is incorrect." })) : ws.send(JSON.stringify({ error: "User doesn't exist" }));
+                            };
+                        }).catch((err) => {
+                            console.error('Error:', err);
+                            ws.send(JSON.stringify({ error: 'Database error.' }))
+                        });
+                        break;
+                    case 'validateLoginViaAuthToken':
+                        getUserData(msg.username, true, true).then(userData => {
+                            if (userData) {
+                                compareAuthToken(userData, msg.authToken).then(async (accessGranted) => {
+                                    if (accessGranted === true) {
+                                        userData.authToken = await generateToken(msg.username);
+                                        delete userData.password;
+                                        ws.send(JSON.stringify(userData));
+                                    } else {
+                                        ws.send(JSON.stringify({ error: accessGranted }));
+                                    };
+                                }).catch(error => {
+                                    console.error('Error comparing passwords:', error);
+                                    standardError(ws);
+                                });
+                            } else { //this case shouldnt happen
+                                console.log('No data found for the given username.');
+                                ws.send(JSON.stringify({ error: 'User doesn\'t exist' }));
+                            };
+                        }).catch((err) => {
+                            console.error('Error:', err);
+                            ws.send(JSON.stringify({ error: 'Database error.' }))
+                        });
+    
+    
+                        break;
+                    case 'validateRegister':
+                        if (msg.username.length < 3 || !/^[A-Za-z0-9?!._-]+$/.test(msg.username)) ws.send(JSON.stringify({ error: 'Invalid username.' }));
+                        else if (!(/^[a-f0-9]{64}$/i).test(msg.password)) standardError(ws); //not really, but if ur trying to make weird requests then im not helping you, fuck off
+                        else createAccount(msg.username, msg.password).then(async (result) => {
+                            if (result === true) {
+                                await generateToken(msg.username);
+                                getUserData(msg.username, true).then(userData => {
+                                    if (userData) {
+                                        // console.log(`Retrieved user data:`, userData);
+                                        ws.send(JSON.stringify(userData));
+                                    } else console.log('No data found for the given username.');
+                                }).catch((err) => {
+                                    ss.log.red('Error:', err);
+                                    ws.send(JSON.stringify({ error: 'Database error.' }))
+                                });
+                            } else {
+                                if (result == 'SQLITE_CONSTRAINT') ws.send(JSON.stringify({ error: 'Username is already taken.' })); //or something, idk
+                                else ws.send(JSON.stringify({ error: 'Database error.' }));
+                            };
+                        }).catch(err => {
+                            console.error('Error:', err);
+                            standardError(ws);
+                        });
+                        break;
+                    case 'feedback':
+                        if (ss.config.services.feedback && ss.config.services.feedback.length > 10) {
+                            const formData = new FormData();
+    
+                            const jsonBlob = new Blob([Object.entries(msg).map(([key, value]) => `${key}: ${value}`).join('\n')], { type: 'text/plain' });
+                            formData.append('file', jsonBlob, 'stats.txt');
+    
+                            formData.append('payload_json', JSON.stringify({
+                                username: 'LegacyShell Feedback',
+                                avatar_url: msg.url + 'favicon.ico',
+                                allowed_mentions: { parse: [] },
+                                embeds: [{ description: `> from ${msg.email}\n\n${msg.comments}` }]
+                            }));
+    
+                            fetch(ss.config.services.feedback, { method: 'POST', body: formData });
+                        } else ss.log.blue('Feedback received, no discord webhook set!:'+JSON.stringify(msg));
+    
+                        ws.send(JSON.stringify({ success: true }));
+                        break;
+    
+                    default:
+                        console.log('user sent', msg.cmd || '(unknown cmd)', 'to services, not running function')
+                        break;
+                }
+            } catch (error) {
+                console.error('Error processing message:', error);
+                standardError(ws);
             }
-        } catch (error) {
-            console.error('Error processing message:', error);
-            standardError(ws);
-        }
+        });
+    
+        ws.on('close', () => ss.log.dim('Client disconnected'));
+        ws.on('error', (error) => console.error(`WebSocket error: ${error}`));
     });
-
-    ws.on('close', () => ss.log.dim('Client disconnected'));
-    ws.on('error', (error) => console.error(`WebSocket error: ${error}`));
+    
+    console.log('WebSocket server is running on ws://localhost:' + port);
 });
-
-console.log('WebSocket server is running on ws://localhost:' + port);
