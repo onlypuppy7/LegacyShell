@@ -99,7 +99,7 @@ db.serialize(() => {
         session_id TEXT PRIMARY KEY,
         user_id INTEGER UNIQUE,
         ip_address TEXT,
-        created_at INTEGER DEFAULT (strftime('%s', 'now')),
+        dateCreated INTEGER DEFAULT (strftime('%s', 'now')),
         expires_at INTEGER
     )
     `);
@@ -116,8 +116,18 @@ db.serialize(() => {
         item_type_name TEXT DEFAULT 0,
         exclusive_for_class INTEGER,
         item_data TEXT DEFAULT '{"class":Eggk47,"meshName":"gun_eggk47"}',
-        created_at INTEGER DEFAULT (strftime('%s', 'now'))
+        dateCreated INTEGER DEFAULT (strftime('%s', 'now')),
+        dateModified INTEGER DEFAULT (strftime('%s', 'now'))
     )
+    `);
+    
+    db.run(`
+        CREATE TRIGGER IF NOT EXISTS update_dateModified_items
+        AFTER UPDATE ON items
+        FOR EACH ROW
+        BEGIN
+            UPDATE items SET dateModified = strftime('%s', 'now') WHERE id = OLD.id;
+        END;
     `);
 });
 
@@ -210,7 +220,8 @@ const getItemData = async (retainSensitive) => {
             return items.map(item => {
                 if (!retainSensitive) {
                     delete item.item_class;
-                    delete item.created_at;
+                    delete item.dateCreated;
+                    delete item.dateModified;
                 };
                 item.item_data = JSON.parse(item.item_data);
                 return item;
@@ -291,10 +302,14 @@ initItemsTable().then(() => {
                 // Client commands
                 switch (msg.cmd) {
                     case 'requestConfig':
+                        const result = await ss.getOne('SELECT MAX(dateModified) AS maxDateModified FROM items');
+
+                        ss.config.verbose && console.log(result.maxDateModified, msg.lastItems);
+
                         ws.send(JSON.stringify(
                             {
                                 ...ss.config.services.distributed_configs.client,
-                                items: await getItemData(),
+                                items: result.maxDateModified > msg.lastItems ? await getItemData() : false,
                             }
                         ));
                         break;
