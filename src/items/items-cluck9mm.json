@@ -7,7 +7,7 @@
     "category_name": "Shared Secondary Weapons",
     "exclusive_for_class": null,
     "item_data": {
-        "class": Cluck9mm,
+        "class": "Cluck9mm",
         "meshName": "gun_cluck9mm"
     },
     "is_available": true
@@ -20,7 +20,7 @@
     "category_name": "Shared Secondary Weapons",
     "exclusive_for_class": null,
     "item_data": {
-        "class": Cluck9mm,
+        "class": "Cluck9mm",
         "meshName": "gun_cluck9mm_Gold"
     },
     "is_available": true
@@ -33,7 +33,7 @@
     "category_name": "Shared Secondary Weapons",
     "exclusive_for_class": null,
     "item_data": {
-        "class": Cluck9mm,
+        "class": "Cluck9mm",
         "meshName": "gun_cluck9mm_Bear"
     },
     "is_available": true
@@ -46,7 +46,7 @@
     "category_name": "Shared Secondary Weapons",
     "exclusive_for_class": null,
     "item_data": {
-        "class": Cluck9mm,
+        "class": "Cluck9mm",
         "meshName": "gun_cluck9mm_Halloween",
         "tags": ["Halloween"]
     },
@@ -60,7 +60,7 @@
     "category_name": "Shared Secondary Weapons",
     "exclusive_for_class": null,
     "item_data": {
-        "class": Cluck9mm,
+        "class": "Cluck9mm",
         "meshName": "gun_cluck9mm_Turkey",
         "tags": ["Thanksgiving"]
     },
@@ -74,7 +74,7 @@
     "category_name": "Shared Secondary Weapons",
     "exclusive_for_class": null,
     "item_data": {
-        "class": Cluck9mm,
+        "class": "Cluck9mm",
         "meshName": "gun_cluck9mm_Present",
         "tags": ["Christmas"]
     },
@@ -88,7 +88,7 @@
     "category_name": "Shared Secondary Weapons",
     "exclusive_for_class": null,
     "item_data": {
-        "class": Cluck9mm,
+        "class": "Cluck9mm",
         "meshName": "gun_cluck9mm_NewYear",
         "tags": ["NewYears2019"]
     },
@@ -102,7 +102,7 @@
     "category_name": "Shared Secondary Weapons",
     "exclusive_for_class": null,
     "item_data": {
-        "class": Cluck9mm,
+        "class": "Cluck9mm",
         "meshName": "gun_cluck9mm_Groundhog",
         "tags": ["GroundhogDay"]
     },
@@ -116,7 +116,7 @@
     "category_name": "Shared Secondary Weapons",
     "exclusive_for_class": null,
     "item_data": {
-        "class": Cluck9mm,
+        "class": "Cluck9mm",
         "meshName": "gun_cluck9mm_Buck",
         "tags": ["Promotional"]
     },

@@ -95,12 +95,26 @@ db.serialize(() => {
 
     //WIP! SESSIONS
     db.run(`
-    CREATE TABLE IF NOT EXISTS sessions (
-        session_id TEXT PRIMARY KEY,
+    CREATE TABLE IF NOT EXISTS item_data (
+        id TEXT PRIMARY KEY,
         user_id INTEGER UNIQUE,
         ip_address TEXT,
         created_at INTEGER DEFAULT (strftime('%s', 'now')),
         expires_at INTEGER
+    )
+    `);
+
+    //WIP! ITEMS
+    db.run(`
+    CREATE TABLE IF NOT EXISTS items (
+        session_id INTEGER PRIMARY KEY,
+        name TEXT DEFAULT 'Unknown item',
+        is_available BOOLEAN DEFAULT TRUE,
+        price INTEGER DEFAULT 0,
+        item_type_id INTEGER DEFAULT 0,
+        item_type_name TEXT DEFAULT 0,
+        exclusive_for_class INTEGER,
+        item_data TEXT DEFAULT '{"class":Eggk47,"meshName":"gun_eggk47"}'
     )
     `);
 });

@@ -7,7 +7,7 @@
     "category_name": "Soldier Primary Weapons",
     "exclusive_for_class": 0,
     "item_data": {
-        "class": Eggk47,
+        "class": "Eggk47",
         "meshName": "gun_eggk47"
     },
     "is_available": true
@@ -20,7 +20,7 @@
     "category_name": "Soldier Primary Weapons",
     "exclusive_for_class": 0,
     "item_data": {
-        "class": Eggk47,
+        "class": "Eggk47",
         "meshName": "gun_eggk47_Gold"
     },
     "is_available": true
@@ -33,7 +33,7 @@
     "category_name": "Soldier Primary Weapons",
     "exclusive_for_class": 0,
     "item_data": {
-        "class": Eggk47,
+        "class": "Eggk47",
         "meshName": "gun_eggk47_Bear"
     },
     "is_available": true
@@ -46,7 +46,7 @@
     "category_name": "Soldier Primary Weapons",
     "exclusive_for_class": 0,
     "item_data": {
-        "class": Eggk47,
+        "class": "Eggk47",
         "meshName": "gun_eggk47_Halloween",
         "tags": ["Halloween"]
     },
@@ -60,7 +60,7 @@
     "category_name": "Soldier Primary Weapons",
     "exclusive_for_class": 0,
     "item_data": {
-        "class": Eggk47,
+        "class": "Eggk47",
         "meshName": "gun_eggk47_Turkey",
         "tags": ["Thanksgiving"]
     },
@@ -74,7 +74,7 @@
     "category_name": "Soldier Primary Weapons",
     "exclusive_for_class": 0,
     "item_data": {
-        "class": Eggk47,
+        "class": "Eggk47",
         "meshName": "gun_eggk47_Present",
         "tags": ["Christmas"]
     },
@@ -88,7 +88,7 @@
     "category_name": "Soldier Primary Weapons",
     "exclusive_for_class": 0,
     "item_data": {
-        "class": Eggk47,
+        "class": "Eggk47",
         "meshName": "gun_eggk47_NewYear",
         "tags": ["NewYears2019"]
     },
@@ -102,7 +102,7 @@
     "category_name": "Soldier Primary Weapons",
     "exclusive_for_class": 0,
     "item_data": {
-        "class": Eggk47,
+        "class": "Eggk47",
         "meshName": "gun_eggk47_Groundhog",
         "tags": ["GroundhogDay"]
     },
@@ -116,7 +116,7 @@
     "category_name": "Soldier Primary Weapons",
     "exclusive_for_class": 0,
     "item_data": {
-        "class": Eggk47,
+        "class": "Eggk47",
         "meshName": "gun_eggk47_Buck",
         "tags": ["Promotional"]
     },
