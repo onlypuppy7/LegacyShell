@@ -66,7 +66,7 @@ function connectWebSocket(retryCount = 0) {
         ss.log.blue('WebSocket connection opened. Requesting config information...');
         ws.send(JSON.stringify({
             cmd: "requestConfig",
-            lastItems: getLastSavedTimestamp(itemsFilePath),
+            lastItems: Math.floor(getLastSavedTimestamp(itemsFilePath)/1000), //well in theory, if its not in existence this returns 0 and we should get it :D
         }));
     });
 
