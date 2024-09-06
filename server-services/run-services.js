@@ -127,6 +127,7 @@ ss.log.green('account DB set up!');
 //db stuff
 ss.runQuery = util.promisify(db.run.bind(db));
 ss.getOne = util.promisify(db.get.bind(db));
+ss.getAll = util.promisify(db.all.bind(db));
 
 //account stuff
 const hashPassword = (data) => {
@@ -200,6 +201,30 @@ const getUserData = async (username, convertJson, retainSensitive) => {
     }
 };
 
+const getItemData = async (retainSensitive) => {
+    try {
+        ss.config.verbose && ss.log.bgCyan("services: Reading from DB: get items");
+        const items = await ss.getAll(`SELECT * FROM items`);
+
+        if (items) {
+            return items.map(item => {
+                if (!retainSensitive) {
+                    delete item.item_class;
+                    delete item.created_at;
+                };
+                item.item_data = JSON.parse(item.item_data);
+                return item;
+            });
+        } else {
+            console.log('Items not found');
+            return null;
+        };
+    } catch (error) {
+        console.error('Error retrieving items data:', error);
+        return null;
+    };
+};
+
 const initItemsTable = async () => {
     try {
         const countResult = await ss.getOne('SELECT COUNT(*) AS count FROM items');
@@ -266,7 +291,12 @@ initItemsTable().then(() => {
                 // Client commands
                 switch (msg.cmd) {
                     case 'requestConfig':
-                        ws.send(JSON.stringify(ss.config.services.distributed_configs.client));
+                        ws.send(JSON.stringify(
+                            {
+                                ...ss.config.services.distributed_configs.client,
+                                items: await getItemData(),
+                            }
+                        ));
                         break;
                     case 'validateLogin':
                         getUserData(msg.username, true, true).then(userData => {

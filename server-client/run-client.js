@@ -38,15 +38,26 @@ function startServer() {
     const app = express();
     const port = ss.config.client.port || 13370;
 
-    app.use(express.static(path.join(import.meta.dirname, 'store', 'client-modified'))); // server-client\store\client-modified
-    app.use(express.static(path.join(import.meta.dirname, 'src', 'client-static'))); // server-client\src\client-static
+    app.use(express.static(path.join(ss.rootDir, 'store', 'client-modified'))); // server-client\store\client-modified
+    app.use(express.static(path.join(ss.rootDir, 'src', 'client-static'))); // server-client\src\client-static
 
     app.listen(port, () => {
         ss.log.success(`Server is running on http://localhost:${port}`);
     });
 };
 
+function getLastSavedTimestamp(filePath) {
+    try {
+        const stats = fs.statSync(filePath);
+        return stats.mtimeMs;
+    } catch (error) {
+        ss.log.yellow('Error getting file timestamp. It probably doesn\'t exist... yet!'); //it just doesnt exist. who cares LMAO
+        return 0;
+    };
+};
+
 let retrieved = false;
+let itemsFilePath = path.join(ss.rootDir, 'store', 'items.json');
 
 function connectWebSocket(retryCount = 0) {
     const ws = new WebSocket(ss.config.client.sync_server); // Use the sync server URL from the config
@@ -55,6 +66,7 @@ function connectWebSocket(retryCount = 0) {
         ss.log.blue('WebSocket connection opened. Requesting config information...');
         ws.send(JSON.stringify({
             cmd: "requestConfig",
+            lastItems: getLastSavedTimestamp(itemsFilePath),
         }));
     });
 
@@ -62,26 +74,47 @@ function connectWebSocket(retryCount = 0) {
         ss.log.green('Received config information from sync server.');
         const configInfo = JSON.parse(data);
 
-        ss.config.client = { ...ss.config.client, ...configInfo };
-        ss.distributed_config = yaml.dump(configInfo, { indent: 4 });
+        if (configInfo.items) {
+            ss.log.blue("Items loaded from newly retrieved json.")
+            configInfo.items = JSON.stringify(configInfo.items);
+            fs.writeFileSync(itemsFilePath, configInfo.items); //dont convert the json. there is no need.
+            ss.items = configInfo.items;
+            delete configInfo.items;
+        } else {
+            ss.log.italic("Items loaded from previously saved json.");
+            if (fs.existsSync(itemsFilePath)) {
+                ss.items = fs.readFileSync(itemsFilePath, 'utf8');
+            } else {
+                ss.log.red("Shit. We're fucked. We didn't receive an items json nor do we have one stored. FUUUU-");
+            };
+        };
 
-        console.log(ss.distributed_config);
+        // console.log(ss.items);
+
+        ss.config.client = { ...ss.config.client, ...configInfo };
+        ss.distributed_config = yaml.dump(configInfo, { indent: 4 }); //this is for later usage displaying for all to see
+
+        ss.config.verbose && console.log(ss.distributed_config);
 
         startServer();
     });
 
     ws.on('error', function error(err) {
-        ss.log.red(`WebSocket connection failed: ${err.message}. Retrying in 30 seconds... (Attempt ${retryCount + 1})`);
-        if (!retrieved) setTimeout(() => {
-            connectWebSocket(retryCount + 1);
-        }, 30000);
+        if (!retrieved) {
+            ss.log.red(`WebSocket connection failed: ${err.message}. Retrying in 30 seconds... (Attempt ${retryCount + 1})`);
+            setTimeout(() => {
+                connectWebSocket(retryCount + 1);
+            }, 30000);
+        };
     });
 
     ws.on('close', function close() {
-        ss.log.yellow('WebSocket connection closed. Retrying in 30 seconds...');
-        if (!retrieved) setTimeout(() => {
-            connectWebSocket(retryCount + 1);
-        }, 30000);
+        if (!retrieved) {
+            ss.log.yellow('WebSocket connection closed. Retrying in 30 seconds...');
+            setTimeout(() => {
+                connectWebSocket(retryCount + 1);
+            }, 30000);
+        };
     });
 };
 
