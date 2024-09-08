@@ -223,6 +223,7 @@ const getItemData = async (retainSensitive) => {
                     delete item.dateCreated;
                     delete item.dateModified;
                 };
+                item.is_available = item.is_available === 1;
                 item.item_data = JSON.parse(item.item_data);
                 return item;
             });
