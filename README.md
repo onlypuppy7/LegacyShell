@@ -33,4 +33,4 @@ At the moment you have to start up each section separately. Perhaps in the futur
 - `node run game`
 
 ## Models
-egg.babylon contains hats.
+egg.babylon contains hats, and stamps, i think. probably.
