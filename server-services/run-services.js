@@ -28,6 +28,7 @@ const ss = {
     config: yaml.load(fs.readFileSync(configPath, 'utf8')),
     packageJson: JSON.parse(fs.readFileSync(path.join(path.resolve(import.meta.dirname), '..', 'package.json'), 'utf8')),
     requests_cache: {},
+    clamp: (value, min, max) => { return Math.min(Math.max(value, min), max) },
     log
 };
 
@@ -235,15 +236,30 @@ const addItemToPlayer = async (item_id, userData, isBuying, force) => { //force 
                 return "INSUFFICIENT_FUNDS";
             };
         };
+        userData.ownedItemIds = [...userData.ownedItemIds, item_id];
+
         ss.config.verbose && ss.log.bgBlue("services: Writing to DB: set new balance + ownedItemIds "+userData.username);
         await ss.runQuery(`
             UPDATE users 
             SET currentBalance = ?, ownedItemIds = ?
             WHERE id = ?
-        `, [userData.currentBalance, JSON.stringify([...userData.ownedItemIds, item_id]), userData.id]);
+        `, [userData.currentBalance, JSON.stringify(userData.ownedItemIds), userData.id]);
         return "SUCCESS"; //god, i hope
     } catch (error) {
         console.error('Error retrieving item data:', error);
+        return "ITEM_NOT_FOUND";
+    };
+};
+
+const doesPlayerOwnItem = async (userData, item_id, item_class) => {
+    try {
+        if (["Hats", "Stamps"].includes(item_class) && item_id === null) return true;
+        const item = await getItemData(item_id, true);
+        console.log(userData.ownedItemIds, item_id, item_class, userData.ownedItemIds.includes(item_id), item.item_class == item_class, userData.ownedItemIds.includes(item_id) && item.item_class == item_class);
+        if (userData.ownedItemIds.includes(item_id) && item.item_class == item_class) return true;
+        return false;
+    } catch (error) {
+        console.error('Error retrieving item data:', item_id, item_class, error);
         return "ITEM_NOT_FOUND";
     };
 };
@@ -431,6 +447,20 @@ initItemsTable().then(() => {
                 };
     
                 ss.config.verbose && ss.log.dim("Received cmd: "+msg.cmd+"; type: "+cmdType), console.log(msg);
+
+                let sessionData, userData;
+
+                if (msg.session) {
+                    sessionData = await retrieveSession(msg.session, ip);
+                    try {
+                        if (sessionData) {
+                            userData = await getUserData(sessionData.user_id, true);
+                        };
+                    } catch (error) {
+                        ss.log.red("WHY IS THERE AN ERROR?? error with session -> userData");
+                        console.error(error);
+                    };
+                };
     
                 // Client commands
                 switch (msg.cmd) {
@@ -495,45 +525,43 @@ initItemsTable().then(() => {
                             console.error('Error:', err);
                             ws.send(JSON.stringify({ error: 'Database error.' }))
                         });
-    
-    
-                        break;
-                        case 'validateRegister':
-                            try {
-                                if (msg.username.length < 3 || !/^[A-Za-z0-9?!._-]+$/.test(msg.username)) {
-                                    ws.send(JSON.stringify({ error: 'Invalid username.' }));
-                                    return;
-                                };
-                                if (!(/^[a-f0-9]{64}$/i).test(msg.password)) {
-                                    standardError(ws);
-                                    return;
-                                };
-                                const accountCreationResult = await createAccount(msg.username, msg.password);
-                        
-                                if (accountCreationResult === true) {
-                                    const newToken = await generateToken(msg.username);
-                        
-                                    const userData = await getUserData(msg.username, true);
-                                    if (userData) {
-                                        userData.session = await createSession(userData.id, ip);
-                                        userData.authToken = newToken;
-                                        ws.send(JSON.stringify(userData));
-                                    } else {
-                                        console.log('No data found for the given username.');
-                                        ws.send(JSON.stringify({ error: 'Database error.' }));
-                                    };
-                                } else {
-                                    if (accountCreationResult === 'SQLITE_CONSTRAINT') {
-                                        ws.send(JSON.stringify({ error: 'Username is already taken.' }));
-                                    } else {
-                                        ws.send(JSON.stringify({ error: 'Database error.' }));
-                                    };
-                                };
-                            } catch (error) {
-                                console.error('Error in validateRegister:', error);
-                                standardError(ws);
+                    break;
+                    case 'validateRegister':
+                        try {
+                            if (msg.username.length < 3 || !/^[A-Za-z0-9?!._-]+$/.test(msg.username)) {
+                                ws.send(JSON.stringify({ error: 'Invalid username.' }));
+                                return;
                             };
-                            break;
+                            if (!(/^[a-f0-9]{64}$/i).test(msg.password)) {
+                                standardError(ws);
+                                return;
+                            };
+                            const accountCreationResult = await createAccount(msg.username, msg.password);
+                    
+                            if (accountCreationResult === true) {
+                                const newToken = await generateToken(msg.username);
+                    
+                                const userData = await getUserData(msg.username, true);
+                                if (userData) {
+                                    userData.session = await createSession(userData.id, ip);
+                                    userData.authToken = newToken;
+                                    ws.send(JSON.stringify(userData));
+                                } else {
+                                    console.log('No data found for the given username.');
+                                    ws.send(JSON.stringify({ error: 'Database error.' }));
+                                };
+                            } else {
+                                if (accountCreationResult === 'SQLITE_CONSTRAINT') {
+                                    ws.send(JSON.stringify({ error: 'Username is already taken.' }));
+                                } else {
+                                    ws.send(JSON.stringify({ error: 'Database error.' }));
+                                };
+                            };
+                        } catch (error) {
+                            console.error('Error in validateRegister:', error);
+                            standardError(ws);
+                        };
+                        break;
                     case 'feedback':
                         if (ss.config.services.feedback && ss.config.services.feedback.length > 10) {
                             const formData = new FormData();
@@ -553,13 +581,65 @@ initItemsTable().then(() => {
     
                         ws.send(JSON.stringify({ success: true }));
                         break;
+                    case 'saveEquip':
+                        try {
+                            if (userData) {
+                                // class_idx: this.classIdx
+                                userData.loadout.classIdx = ss.clamp(Math.floor(msg.class_idx), 0, 3);
+                                // soldier_primary_item_id:
+                                if (doesPlayerOwnItem(userData, msg.soldier_primary_item_id, "Eggk47")) 
+                                    userData.loadout.primaryId[0] = msg.soldier_primary_item_id;
+                                // soldier_secondary_item_id
+                                if (doesPlayerOwnItem(userData, msg.soldier_secondary_item_id, "Cluck9mm")) 
+                                    userData.loadout.secondaryId[0] = msg.soldier_secondary_item_id;
+                                // scrambler_primary_item_id
+                                if (doesPlayerOwnItem(userData, msg.scrambler_primary_item_id, "DozenGauge")) 
+                                    userData.loadout.primaryId[1] = msg.scrambler_primary_item_id;
+                                // scrambler_secondary_item_id
+                                if (doesPlayerOwnItem(userData, msg.scrambler_secondary_item_id, "Cluck9mm")) 
+                                    userData.loadout.secondaryId[1] = msg.scrambler_secondary_item_id;
+                                // ranger_primary_item_id: 
+                                if (doesPlayerOwnItem(userData, msg.ranger_primary_item_id, "CSG1")) 
+                                    userData.loadout.primaryId[2] = msg.ranger_primary_item_id;
+                                // ranger_secondary_item_id
+                                if (doesPlayerOwnItem(userData, msg.ranger_secondary_item_id, "Cluck9mm")) 
+                                    userData.loadout.secondaryId[2] = msg.ranger_secondary_item_id;
+                                // eggsploder_primary_item_id
+                                if (doesPlayerOwnItem(userData, msg.eggsploder_primary_item_id, "RPEGG")) 
+                                    userData.loadout.primaryId[3] = msg.eggsploder_primary_item_id;
+                                // eggsploder_secondary_item_id
+                                if (doesPlayerOwnItem(userData, msg.eggsploder_secondary_item_id, "Cluck9mm")) 
+                                    userData.loadout.secondaryId[3] = msg.eggsploder_secondary_item_id;
+                                // hat_id: updateHatId,
+                                if (doesPlayerOwnItem(userData, msg.hat_id, "Hats")) 
+                                    userData.loadout.hatId = msg.hat_id;
+                                // stamp_id: updateStampId,
+                                if (doesPlayerOwnItem(userData, msg.stamp_id, "Stamps")) 
+                                    userData.loadout.stampId = msg.stamp_id;
+                                // color: this.colorIdx,
+                                userData.loadout.colorIdx = ss.clamp(Math.floor(msg.color), 0, 6); //if vip, then eep
+
+                                ss.config.verbose && ss.log.bgBlue("services: Writing to DB: set new loadout "+userData.username), console.log(userData.loadout);
+                                await ss.runQuery(`
+                                    UPDATE users 
+                                    SET loadout = ?
+                                    WHERE id = ?
+                                `, [JSON.stringify(userData.loadout), userData.id]);
+
+                                ws.send(JSON.stringify({ 
+                                    result: "success",
+                                }));
+                            };
+                        } catch (error) {
+                            console.error(error);
+                            standardError(ws);
+                        };
+                        break;
                     case 'buy':
-                        const session = await retrieveSession(msg.session, ip);
-                        let buyingResult, userData = "PLAYER_NOT_FOUND";
+                        let buyingResult = "PLAYER_NOT_FOUND";
 
                         try {
-                            if (session) {
-                                userData = await getUserData(session.user_id, true);
+                            if (userData) {
                                 buyingResult = await addItemToPlayer(msg.item_id, userData, true, false);
                             }; //ELSE -> achievement: how did we get here?
                         } catch (error) {
@@ -567,18 +647,19 @@ initItemsTable().then(() => {
                             console.error(error);
                             buyingResult = "ERROR";
                         };
-
-                        // console.log({ 
-                        //     result: buyingResult, //cases: SUCCESS, INSUFFICIENT_FUNDS, ALREADY_OWNED, PLAYER_NOT_FOUND, ITEM_NOT_FOUND, ERROR
-                        //     current_balance: userData.currentBalance || 0,
-                        //     item_id: msg.item_id,
-                        // })
     
                         ws.send(JSON.stringify({ 
                             result: buyingResult, //cases: SUCCESS, INSUFFICIENT_FUNDS, ALREADY_OWNED, PLAYER_NOT_FOUND, ITEM_NOT_FOUND, ERROR
                             current_balance: userData.currentBalance || 0,
                             item_id: msg.item_id,
                         }));
+                        break;
+                    case 'checkBalance':
+                        if (userData) {
+                            ws.send(JSON.stringify({ current_balance: userData.currentBalance }));
+                        } else {
+                            standardError(ws);
+                        };
                         break;
     
                     default:
