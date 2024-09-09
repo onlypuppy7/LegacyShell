@@ -32,6 +32,7 @@ const ss = {
 };
 
 ss.log.green('created ss object!');
+ss.config.verbose && ss.log.bgGray("VERBOSE LOGGING ENABLED!!!!!!");
 
 //init db (ooooh! sql! fancy! a REAL database! not a slow json!)
 const db = new sqlite3.Database('./server-services/store/LegacyShellData.db');
@@ -44,7 +45,6 @@ db.serialize(() => {
             username TEXT UNIQUE,
             password TEXT,
             authToken TEXT,
-            session TEXT DEFAULT '1234567890',
             kills INTEGER DEFAULT 0,
             deaths INTEGER DEFAULT 0,
             streak INTEGER DEFAULT 0,
@@ -104,7 +104,7 @@ db.serialize(() => {
     )
     `);
 
-    //WIP! ITEMS
+    //ITEMS
     db.run(`
     CREATE TABLE IF NOT EXISTS items (
         id INTEGER PRIMARY KEY,
@@ -131,7 +131,7 @@ db.serialize(() => {
     `);
 });
 
-ss.log.green('account DB set up!');
+ss.log.green('account DB set up! (if it didnt exist already i suppose)');
 
 
 //db stuff
@@ -185,10 +185,20 @@ const createAccount = async (username, password) => {
     };
 };
 
-const getUserData = async (username, convertJson, retainSensitive) => {
+const getUserData = async (identifier, convertJson, retainSensitive) => {
     try {
-        ss.config.verbose && ss.log.bgCyan("services: Reading from DB: get user "+username);
-        const user = await ss.getOne(`SELECT * FROM users WHERE username = ?`, [username]);
+        let user;
+
+        if (typeof identifier === 'string') {
+            ss.config.verbose && ss.log.bgCyan("services: Reading from DB: get user via username "+identifier);
+            user = await ss.getOne(`SELECT * FROM users WHERE username = ?`, [identifier]);
+        } else if (Number.isInteger(identifier)) {
+            ss.config.verbose && ss.log.bgCyan("services: Reading from DB: get user via ID "+identifier);
+            user = await ss.getOne(`SELECT * FROM users WHERE id = ?`, [identifier]);
+        } else {
+            ss.log.red('Invalid identifier type '+identifier);
+            return null;
+        };
 
         if (user) {
             if (convertJson) {
@@ -208,10 +218,61 @@ const getUserData = async (username, convertJson, retainSensitive) => {
     } catch (error) {
         console.error('Error retrieving user data:', error);
         return null;
-    }
+    };
 };
 
-const getItemData = async (retainSensitive) => {
+const addItemToPlayer = async (item_id, userData, isBuying, force) => { //force is for item codes and stuff
+    try {
+        if (userData.ownedItemIds.includes(item_id)) return "ALREADY_OWNED";
+
+        const item = await getItemData(item_id);
+
+        if ((!item) || (!(force || item.is_available))) return "ITEM_NOT_FOUND";
+        if (isBuying) {
+            if (userData.currentBalance >= item.price) {
+                userData.currentBalance -= item.price;
+            } else {
+                return "INSUFFICIENT_FUNDS";
+            };
+        };
+        ss.config.verbose && ss.log.bgBlue("services: Writing to DB: set new balance + ownedItemIds "+userData.username);
+        await ss.runQuery(`
+            UPDATE users 
+            SET currentBalance = ?, ownedItemIds = ?
+            WHERE id = ?
+        `, [userData.currentBalance, JSON.stringify([...userData.ownedItemIds, item_id]), userData.id]);
+        return "SUCCESS"; //god, i hope
+    } catch (error) {
+        console.error('Error retrieving item data:', error);
+        return "ITEM_NOT_FOUND";
+    };
+};
+
+const getItemData = async (item_id, retainSensitive) => {
+    try {
+        ss.config.verbose && ss.log.bgCyan(`services: Reading from DB: get item ${item_id}`);
+        const item = await ss.getOne(`SELECT * FROM items WHERE id = ?`, [item_id]);
+
+        if (item) {
+            if (!retainSensitive) {
+                delete item.item_class;
+                delete item.dateCreated;
+                delete item.dateModified;
+            };
+            item.is_available = item.is_available === 1;
+            item.item_data = JSON.parse(item.item_data);
+            return item;
+        } else {
+            console.log('Item not found');
+            return null;
+        };
+    } catch (error) {
+        console.error('Error retrieving item data:', error);
+        return null;
+    };
+};
+
+const getAllItemData = async (retainSensitive) => {
     try {
         ss.config.verbose && ss.log.bgCyan("services: Reading from DB: get items");
         const items = await ss.getAll(`SELECT * FROM items`);
@@ -236,6 +297,75 @@ const getItemData = async (retainSensitive) => {
         return null;
     };
 };
+
+const createSession = async (user_id, ip_address) => {
+    deleteAllSessionsForUser(user_id);
+
+    const session_id = crypto.randomBytes(32).toString('hex');
+    const expires_at = Math.floor(Date.now() / 1000) + (60 * (ss.config.services.session_expiry_time || 180));
+
+    try {
+        ss.config.verbose && ss.log.bgBlue("services: Writing to DB: create new session "+user_id);
+        await ss.runQuery(`
+            INSERT INTO sessions (session_id, user_id, ip_address, expires_at)
+            VALUES (?, ?, ?, ?)
+        `, [session_id, user_id, ip_address, expires_at]);
+        return session_id;
+    } catch (error) {
+        console.error('Error creating session:', error);
+        return null;
+    };
+};
+
+
+const retrieveSession = async (session_id, ip_address) => {
+    try {
+        ss.config.verbose && ss.log.bgCyan("services: Reading from DB: get session for session_id " + session_id);
+
+        const session = await ss.getOne(`
+            SELECT * FROM sessions WHERE session_id = ? AND expires_at > strftime('%s', 'now')
+        `, [session_id]);
+
+        if (!session) {
+            ss.log.yellow(`No valid session found for session_id: ${session_id}`);
+            return null;
+        };
+
+        ss.config.verbose && console.log(session, ip_address);
+
+        if (session.ip_address !== ip_address) {
+            await deleteAllSessionsForUser(session.user_id);
+            return null;
+        };
+
+        ss.log.green(`Session retrieved for session_id: ${session_id}`);
+        return session;
+    } catch (error) {
+        console.error('Error retrieving session:', error);
+        return null;
+    };
+};
+
+const deleteAllSessionsForUser = async (user_id) => {
+    try {
+        ss.config.verbose && ss.log.bgCyan(`services: Deleting from DB: all sessions for user_id: ${user_id}`);
+        await ss.runQuery(`DELETE FROM sessions WHERE user_id = ?`, [user_id]);
+    } catch (error) {
+        console.error('Error deleting sessions:', error);
+    };
+};
+
+const cleanupExpiredSessions = async () => {
+    try {
+        ss.config.verbose && ss.log.bgCyan("services: Cleaning up expired sessions");
+        await ss.runQuery(`DELETE FROM sessions WHERE expires_at < strftime('%s', 'now')`);
+        ss.log.green('Expired sessions cleaned up');
+    } catch (error) {
+        console.error('Error cleaning up expired sessions:', error);
+    }
+};
+
+setInterval(cleanupExpiredSessions, 1000 * 60 * (ss.config.services.session_cleanup_interval || 3));
 
 const initItemsTable = async () => {
     try {
@@ -271,13 +401,15 @@ const initItemsTable = async () => {
 };
 
 initItemsTable().then(() => {
+    cleanupExpiredSessions();
 
     const port = ss.config.services.port || 13371;
     const wss = new WebSocketServer({ port: port });
     
     const standardError = async (ws) => { ws.send(JSON.stringify({ error: 'Internal server error' })); };
     
-    wss.on('connection', (ws, req) => {
+    wss.on('connection', (ws, req) => { //this here is basically our main loop
+
         // Apparently, WS ips die after disconnect?
         // https://stackoverflow.com/questions/12444598/why-is-socket-remoteaddress-undefined-on-end-event
     
@@ -298,7 +430,7 @@ initItemsTable().then(() => {
                     return ws.send(JSON.stringify({ error: 'Too many requests. Please try again later.' }));
                 };
     
-                ss.config.verbose && ss.log.dim("Received cmd: "+msg.cmd+"; type: "+cmdType);
+                ss.config.verbose && ss.log.dim("Received cmd: "+msg.cmd+"; type: "+cmdType), console.log(msg);
     
                 // Client commands
                 switch (msg.cmd) {
@@ -310,7 +442,7 @@ initItemsTable().then(() => {
                         ws.send(JSON.stringify(
                             {
                                 ...ss.config.services.distributed_configs.client,
-                                items: result.maxDateModified > msg.lastItems ? await getItemData() : false,
+                                items: result.maxDateModified > msg.lastItems ? await getAllItemData() : false,
                             }
                         ));
                         break;
@@ -320,6 +452,7 @@ initItemsTable().then(() => {
                                 comparePassword(userData, msg.password).then(async (isPasswordCorrect) => {
                                     if (isPasswordCorrect === true) {
                                         userData.authToken = await generateToken(msg.username);
+                                        userData.session = await createSession(userData.id, ip);
                                         delete userData.password;
                                         ws.send(JSON.stringify(userData));
                                     } else {
@@ -344,6 +477,7 @@ initItemsTable().then(() => {
                                 compareAuthToken(userData, msg.authToken).then(async (accessGranted) => {
                                     if (accessGranted === true) {
                                         userData.authToken = await generateToken(msg.username);
+                                        userData.session = await createSession(userData.id, ip);
                                         delete userData.password;
                                         ws.send(JSON.stringify(userData));
                                     } else {
@@ -364,30 +498,42 @@ initItemsTable().then(() => {
     
     
                         break;
-                    case 'validateRegister':
-                        if (msg.username.length < 3 || !/^[A-Za-z0-9?!._-]+$/.test(msg.username)) ws.send(JSON.stringify({ error: 'Invalid username.' }));
-                        else if (!(/^[a-f0-9]{64}$/i).test(msg.password)) standardError(ws); //not really, but if ur trying to make weird requests then im not helping you, fuck off
-                        else createAccount(msg.username, msg.password).then(async (result) => {
-                            if (result === true) {
-                                await generateToken(msg.username);
-                                getUserData(msg.username, true).then(userData => {
+                        case 'validateRegister':
+                            try {
+                                if (msg.username.length < 3 || !/^[A-Za-z0-9?!._-]+$/.test(msg.username)) {
+                                    ws.send(JSON.stringify({ error: 'Invalid username.' }));
+                                    return;
+                                };
+                                if (!(/^[a-f0-9]{64}$/i).test(msg.password)) {
+                                    standardError(ws);
+                                    return;
+                                };
+                                const accountCreationResult = await createAccount(msg.username, msg.password);
+                        
+                                if (accountCreationResult === true) {
+                                    const newToken = await generateToken(msg.username);
+                        
+                                    const userData = await getUserData(msg.username, true);
                                     if (userData) {
-                                        // console.log(`Retrieved user data:`, userData);
+                                        userData.session = await createSession(userData.id, ip);
+                                        userData.authToken = newToken;
                                         ws.send(JSON.stringify(userData));
-                                    } else console.log('No data found for the given username.');
-                                }).catch((err) => {
-                                    ss.log.red('Error:', err);
-                                    ws.send(JSON.stringify({ error: 'Database error.' }))
-                                });
-                            } else {
-                                if (result == 'SQLITE_CONSTRAINT') ws.send(JSON.stringify({ error: 'Username is already taken.' })); //or something, idk
-                                else ws.send(JSON.stringify({ error: 'Database error.' }));
+                                    } else {
+                                        console.log('No data found for the given username.');
+                                        ws.send(JSON.stringify({ error: 'Database error.' }));
+                                    };
+                                } else {
+                                    if (accountCreationResult === 'SQLITE_CONSTRAINT') {
+                                        ws.send(JSON.stringify({ error: 'Username is already taken.' }));
+                                    } else {
+                                        ws.send(JSON.stringify({ error: 'Database error.' }));
+                                    };
+                                };
+                            } catch (error) {
+                                console.error('Error in validateRegister:', error);
+                                standardError(ws);
                             };
-                        }).catch(err => {
-                            console.error('Error:', err);
-                            standardError(ws);
-                        });
-                        break;
+                            break;
                     case 'feedback':
                         if (ss.config.services.feedback && ss.config.services.feedback.length > 10) {
                             const formData = new FormData();
@@ -407,15 +553,42 @@ initItemsTable().then(() => {
     
                         ws.send(JSON.stringify({ success: true }));
                         break;
+                    case 'buy':
+                        const session = await retrieveSession(msg.session, ip);
+                        let buyingResult, userData = "PLAYER_NOT_FOUND";
+
+                        try {
+                            if (session) {
+                                userData = await getUserData(session.user_id, true);
+                                buyingResult = await addItemToPlayer(msg.item_id, userData, true, false);
+                            }; //ELSE -> achievement: how did we get here?
+                        } catch (error) {
+                            ss.log.red("WHY IS THERE AN ERROR??");
+                            console.error(error);
+                            buyingResult = "ERROR";
+                        };
+
+                        // console.log({ 
+                        //     result: buyingResult, //cases: SUCCESS, INSUFFICIENT_FUNDS, ALREADY_OWNED, PLAYER_NOT_FOUND, ITEM_NOT_FOUND, ERROR
+                        //     current_balance: userData.currentBalance || 0,
+                        //     item_id: msg.item_id,
+                        // })
+    
+                        ws.send(JSON.stringify({ 
+                            result: buyingResult, //cases: SUCCESS, INSUFFICIENT_FUNDS, ALREADY_OWNED, PLAYER_NOT_FOUND, ITEM_NOT_FOUND, ERROR
+                            current_balance: userData.currentBalance || 0,
+                            item_id: msg.item_id,
+                        }));
+                        break;
     
                     default:
                         console.log('user sent', msg.cmd || '(unknown cmd)', 'to services, not running function')
                         break;
-                }
+                };
             } catch (error) {
                 console.error('Error processing message:', error);
                 standardError(ws);
-            }
+            };
         });
     
         ws.on('close', () => ss.log.dim('Client disconnected'));

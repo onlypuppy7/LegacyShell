@@ -82,6 +82,7 @@ function connectWebSocket(retryCount = 0) {
             delete configInfo.items;
         } else {
             ss.log.italic("Items loaded from previously saved json.");
+            delete configInfo.items; //still delete the false, derp
             if (fs.existsSync(itemsFilePath)) {
                 ss.items = fs.readFileSync(itemsFilePath, 'utf8');
             } else {
