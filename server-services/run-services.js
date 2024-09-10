@@ -54,11 +54,12 @@ db.serialize(() => {
             ownedItemIds TEXT DEFAULT '[1001,1002,1003,1004,1005,1006,2001,2002,2003,2004,2005,2006,3100,3600,3400,3800,3000]',  -- Will store as JSON string
             loadout TEXT DEFAULT '{"primaryId":[3100,3600,3400,3800],"secondaryId":[3000,3000,3000,3000],"classIdx":0,"colorIdx":0,"hatId":null,"stampId":null}',       -- Will store as JSON string
             version INTEGER DEFAULT 1,
+
             upgradeProductId TEXT DEFAULT NULL,
             upgradeMultiplier INTEGER DEFAULT NULL,
-            upgradeAdFree INTEGER DEFAULT NULL,
-            upgradeExpiryDate TEXT DEFAULT NULL,
-            upgradeIsExpired INTEGER DEFAULT NULL,
+            upgradeAdFree BOOLEAN DEFAULT TRUE,
+            upgradeExpiryDate INTEGER DEFAULT 0,
+
             maybeSchoolEmail INTEGER DEFAULT NULL,
             adminRoles INTEGER DEFAULT 0,
             dateCreated INTEGER DEFAULT (strftime('%s', 'now')),
@@ -244,6 +245,12 @@ const getUserData = async (identifier, convertJson, retainSensitive) => {
             if (!retainSensitive) {
                 delete user.password;
             };
+
+            user.upgradeAdFree = !!user.upgradeAdFree;
+            user.upgradeExpiryDate = user.upgradeExpiryDate || 0;
+            user.upgradeIsExpired = Math.floor(Date.now() / 1000) > user.upgradeExpiryDate;
+            if (user.upgradeIsExpired) user.upgradeMultiplier = null, user.upgradeProductId = null;
+
             // console.log('User data retrieved:', user);
             console.log('User data retrieved');
             return user;
@@ -579,6 +586,7 @@ initItemsTable().then(() => {
                         ws.send(JSON.stringify(
                             {
                                 ...ss.config.services.distributed_configs.client,
+                                nugget_interval: ss.config.services.nugget_interval,
                                 items: result.maxDateModified > msg.lastItems ? await getAllItemData() : false,
                             }
                         ));
@@ -724,7 +732,7 @@ initItemsTable().then(() => {
                                 if (doesPlayerOwnItem(userData, msg.stamp_id, "Stamps")) 
                                     userData.loadout.stampId = msg.stamp_id;
                                 // color: this.colorIdx,
-                                userData.loadout.colorIdx = ss.clamp(Math.floor(msg.color), 0, 6); //if vip, then eep
+                                userData.loadout.colorIdx = ss.clamp(Math.floor(msg.color), 0, userData.upgradeIsExpired ? 6 : 13); //if vip, then eep
 
                                 ss.config.verbose && ss.log.bgBlue("services: Writing to DB: set new loadout "+userData.username) //, console.log(userData.loadout);
                                 await ss.runQuery(`
@@ -811,6 +819,67 @@ initItemsTable().then(() => {
                     case 'checkBalance':
                         if (userData) {
                             ws.send(JSON.stringify({ current_balance: userData.currentBalance }));
+                        } else {
+                            standardError(ws);
+                        };
+                        break;
+                    case 'getUpgrade':
+                        if (userData) {
+                            ss.config.verbose && console.log({
+                                upgradeProductId: userData.upgradeProductId,
+                                multiplier: userData.upgradeMultiplier,
+                                hideAds: userData.upgradeAdFree,
+                                isExpired: userData.upgradeIsExpired,
+                            });
+                            ws.send(JSON.stringify({
+                                upgradeProductId: userData.upgradeProductId,
+                                multiplier: userData.upgradeMultiplier,
+                                hideAds: userData.upgradeAdFree,
+                                isExpired: userData.upgradeIsExpired,
+                            }));
+                            // ws.send(JSON.stringify({
+                            //     upgradeProductId: 1,
+                            //     multiplier: 2,
+                            //     hideAds: true,
+                            //     isExpired: false,
+                            // }));
+                        } else {
+                            standardError(ws);
+                        };
+                        break;
+                    case 'token': //this initiates the nugget "game" thing
+                        if (userData) {
+                            let oneHour = Math.floor(Date.now() / 1000) + (60*60);
+                            if (userData.upgradeIsExpired) {
+                                ss.config.verbose && console.log(userData.upgradeExpiryDate, (userData.upgradeExpiryDate + (ss.config.services.nugget_interval * 60 * 60)), Math.floor(Date.now() / 1000), (userData.upgradeExpiryDate + (ss.config.services.nugget_interval * 60 * 60)) < Math.floor(Date.now() / 1000));
+                                if ((userData.upgradeExpiryDate + (ss.config.services.nugget_interval * 60 * 60)) < Math.floor(Date.now() / 1000)) {
+                                    userData.upgradeExpiryDate = oneHour; //set it to one hour.
+                                    userData.upgradeAdFree = true;
+                                    userData.upgradeMultiplier = 2;
+                                    userData.upgradeProductId = 1; //actually, idk what these ids correspond to. but it seems fine when its at 1.
+    
+                                    ss.config.verbose && ss.log.bgBlue("services: Writing to DB: set new upgrade stuff "+userData.username) //, console.log(userData.loadout);
+                                    await ss.runQuery(`
+                                        UPDATE users 
+                                        SET 
+                                            upgradeExpiryDate = ?,
+                                            upgradeAdFree = ?,
+                                            upgradeMultiplier = ?,
+                                            upgradeProductId = ?
+                                        WHERE id = ?
+                                    `, [userData.upgradeExpiryDate, userData.upgradeAdFree, userData.upgradeMultiplier, userData.upgradeProductId, userData.id]);
+    
+                                    ws.send(JSON.stringify({
+                                        token: 1, //sure. go with it.
+                                    }));
+                                } else {
+                                    console.log("Please wait to unlock again.");
+                                    ws.send(JSON.stringify({ error: "Please wait to unlock again.", }));
+                                };
+                            } else {
+                                console.log("User already has VIP.");
+                                ws.send(JSON.stringify({ error: "User already has VIP.", }));
+                            };
                         } else {
                             standardError(ws);
                         };
