@@ -94,7 +94,7 @@ db.serialize(() => {
         )
     `);
 
-    //WIP! SESSIONS
+    //SESSIONS
     db.run(`
     CREATE TABLE IF NOT EXISTS sessions (
         session_id TEXT PRIMARY KEY,
@@ -130,6 +130,41 @@ db.serialize(() => {
             UPDATE items SET dateModified = strftime('%s', 'now') WHERE id = OLD.id;
         END;
     `);
+
+    //ITEMS (i removed some chars from ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 for ease of reading such as 0/O, 1/I)
+    //i know this looks horrible, and it is. but it has to be done so that you can just insert stuff in a sql editor. please just accept this and move on w ur life.
+    //remember to change the '31' value if you change the character set.
+    db.run(`
+    CREATE TABLE IF NOT EXISTS codes (
+        key TEXT PRIMARY KEY DEFAULT (substr('ABCDEFGHJKMNPQRSTUVWXYZ23456789', abs(random()) % 31 + 1, 1) ||
+                                   substr('ABCDEFGHJKMNPQRSTUVWXYZ23456789', abs(random()) % 31 + 1, 1) ||
+                                   substr('ABCDEFGHJKMNPQRSTUVWXYZ23456789', abs(random()) % 31 + 1, 1) ||
+                                   substr('ABCDEFGHJKMNPQRSTUVWXYZ23456789', abs(random()) % 31 + 1, 1) ||
+                                   substr('ABCDEFGHJKMNPQRSTUVWXYZ23456789', abs(random()) % 31 + 1, 1) ||
+                                   substr('ABCDEFGHJKMNPQRSTUVWXYZ23456789', abs(random()) % 31 + 1, 1) ||
+                                   substr('ABCDEFGHJKMNPQRSTUVWXYZ23456789', abs(random()) % 31 + 1, 1) ||
+                                   substr('ABCDEFGHJKMNPQRSTUVWXYZ23456789', abs(random()) % 31 + 1, 1) ||
+                                   substr('ABCDEFGHJKMNPQRSTUVWXYZ23456789', abs(random()) % 31 + 1, 1) ||
+                                   substr('ABCDEFGHJKMNPQRSTUVWXYZ23456789', abs(random()) % 31 + 1, 1) ||
+                                   substr('ABCDEFGHJKMNPQRSTUVWXYZ23456789', abs(random()) % 31 + 1, 1) ||
+                                   substr('ABCDEFGHJKMNPQRSTUVWXYZ23456789', abs(random()) % 31 + 1, 1)),
+        item_ids TEXT DEFAULT '[]',
+        eggs_given INTEGER DEFAULT 0,
+        uses INTEGER DEFAULT 1,
+        used_by TEXT DEFAULT '[]',
+        dateCreated INTEGER DEFAULT (strftime('%s', 'now')),
+        dateModified INTEGER DEFAULT (strftime('%s', 'now'))
+    )
+    `);
+    
+    db.run(`
+        CREATE TRIGGER IF NOT EXISTS update_dateModified_codes
+        AFTER UPDATE ON codes
+        FOR EACH ROW
+        BEGIN
+            UPDATE codes SET dateModified = strftime('%s', 'now') WHERE key = OLD.key;
+        END;
+    `);
 });
 
 ss.log.green('account DB set up! (if it didnt exist already i suppose)');
@@ -157,7 +192,7 @@ const comparePassword = async (userData, receivedPassword) => {
 const compareAuthToken = async (userData, receivedAuthToken) => {
     try {
         let success = (receivedAuthToken == userData.authToken);
-        return success;
+        return success ? true : "Validation failed.";
     } catch (error) {
         console.error(error); return "Database error.";
     };
@@ -284,6 +319,77 @@ const getItemData = async (item_id, retainSensitive) => {
         };
     } catch (error) {
         console.error('Error retrieving item data:', error);
+        return null;
+    };
+};
+
+const getCodeData = async (code_key, retainSensitive) => {
+    try {
+        ss.config.verbose && ss.log.bgCyan(`services: Reading from DB: get code ${code_key}`);
+        const code = await ss.getOne(`SELECT * FROM codes WHERE key = ?`, [code_key]);
+
+        if (code) {
+            ss.config.verbose && console.log(code);
+            code.used_by = JSON.parse(code.used_by);
+            code.item_ids = JSON.parse(code.item_ids);
+            if (!retainSensitive) {
+                delete code.uses;
+                delete code.used_by;
+                delete code.dateCreated;
+                delete code.dateModified;
+            };
+            return code;
+        } else {
+            console.log('Code not found');
+            return null;
+        };
+    } catch (error) {
+        console.error('Error retrieving code data:', error);
+        return null;
+    };
+};
+
+const addCodeToPlayer = async (code_key, userData) => {
+    try {
+        const code = (await getCodeData(code_key, true)) || [];
+        code.result = "ERROR"; //default if it fails, i guess
+
+        if (code.used_by) { //exists
+            if ((code.uses >= 1) && (!code.used_by.includes(userData.id))) {
+                for (const item_id of code.item_ids) {
+                    await addItemToPlayer(item_id, userData, false, true);
+                };
+                userData.currentBalance += code.eggs_given;
+
+                ss.config.verbose && ss.log.bgBlue("services: Writing to DB: set new balance + ownedItemIds "+userData.username);
+                await ss.runQuery(`
+                    UPDATE users 
+                    SET currentBalance = ?, ownedItemIds = ?
+                    WHERE id = ?
+                `, [userData.currentBalance, JSON.stringify(userData.ownedItemIds), userData.id]);
+
+                code.uses -= 1;
+                code.used_by = [...code.used_by, userData.id];
+
+                ss.config.verbose && ss.log.bgBlue("services: Writing to DB: update code "+code_key);
+                await ss.runQuery(`
+                    UPDATE codes 
+                    SET uses = ?, used_by = ?
+                    WHERE key = ?
+                `, [code.uses, JSON.stringify(code.used_by), code_key]);
+
+                code.result = "SUCCESS";
+            } else {
+                code.result = "CODE_PREV_REDEEMED";
+            };
+        } else {
+            console.log('Code not found');
+            code.result = "CODE_NOT_FOUND";
+        };
+
+        return code;
+    } catch (error) {
+        console.error('Error retrieving code data:', error);
         return null;
     };
 };
@@ -453,7 +559,8 @@ initItemsTable().then(() => {
                 if (msg.session) {
                     sessionData = await retrieveSession(msg.session, ip);
                     try {
-                        if (sessionData) {
+                        console.log(sessionData.expires_at, (Math.floor(Date.now() / 1000)))
+                        if (sessionData && (sessionData.expires_at > (Math.floor(Date.now() / 1000)))) {
                             userData = await getUserData(sessionData.user_id, true);
                         };
                     } catch (error) {
@@ -619,7 +726,7 @@ initItemsTable().then(() => {
                                 // color: this.colorIdx,
                                 userData.loadout.colorIdx = ss.clamp(Math.floor(msg.color), 0, 6); //if vip, then eep
 
-                                ss.config.verbose && ss.log.bgBlue("services: Writing to DB: set new loadout "+userData.username), console.log(userData.loadout);
+                                ss.config.verbose && ss.log.bgBlue("services: Writing to DB: set new loadout "+userData.username) //, console.log(userData.loadout);
                                 await ss.runQuery(`
                                     UPDATE users 
                                     SET loadout = ?
@@ -652,6 +759,48 @@ initItemsTable().then(() => {
                             result: buyingResult, //cases: SUCCESS, INSUFFICIENT_FUNDS, ALREADY_OWNED, PLAYER_NOT_FOUND, ITEM_NOT_FOUND, ERROR
                             current_balance: userData.currentBalance || 0,
                             item_id: msg.item_id,
+                        }));
+                        break;
+                    case 'redeem':
+                        let redeemResult = [];
+
+                        try {
+                            if (userData) {
+                                redeemResult = await addCodeToPlayer(msg.code, userData);
+                            };
+                        } catch (error) {
+                            ss.log.red("WHY IS THERE AN ERROR??");
+                            console.error(error);
+                        };
+
+                        console.log(redeemResult);
+    
+                        ws.send(JSON.stringify({ 
+                            result: redeemResult.result || "ERROR", //cases: SUCCESS, INSUFFICIENT_FUNDS, ALREADY_OWNED, PLAYER_NOT_FOUND, ITEM_NOT_FOUND, ERROR
+                            // error: !redeemResult.item_ids,
+
+                            item_ids: redeemResult.item_ids || [],
+                            eggs_given: redeemResult.eggs_given || 0,
+                        }));
+                        break;
+                    case 'preview':
+                        let previewResult = [];
+
+                        try {
+                            if (userData) {
+                                previewResult = await getCodeData(msg.code, true);
+                            };
+                        } catch (error) {
+                            ss.log.red("WHY IS THERE AN ERROR??");
+                            console.error(error);
+                        };
+
+                        console.log(previewResult);
+    
+                        ws.send(JSON.stringify({ 
+                            item_ids: previewResult.item_ids || [],
+                            eggs_given: previewResult.eggs_given || 0,
+                            uses: previewResult.uses
                         }));
                         break;
                     case 'checkBalance':

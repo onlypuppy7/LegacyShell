@@ -1838,6 +1838,17 @@
                     onclick="extern.redeemCode()">OK</button>
             </div>
 
+            <div id="previewCodeResult" class="redeemCodeDialog roundedBorder" style="
+        left: 50%; top: 45%;
+        transform: translate(-50%, -50%);
+        display: none;
+    ">
+                <h1 style="margin-bottom: 0.2em"></h1>
+                <div id="previewCodeResultText" style="padding-bottom: 2em;"></div>
+                <button id="previewCodeCompleteButton" class="ssbutton green" style="width: 10em; display: inline-block;"
+                    onclick="extern.closePreviewCodeDialog()">OK</button>
+            </div>
+
             <div id="redeemCodeResult" class="redeemCodeDialog roundedBorder" style="
         left: 50%; top: 45%;
         transform: translate(-50%, -50%);
