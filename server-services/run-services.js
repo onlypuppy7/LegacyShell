@@ -776,7 +776,7 @@ initItemsTable().then(() => {
                         console.log(redeemResult);
     
                         ws.send(JSON.stringify({ 
-                            result: redeemResult.result || "ERROR", //cases: SUCCESS, INSUFFICIENT_FUNDS, ALREADY_OWNED, PLAYER_NOT_FOUND, ITEM_NOT_FOUND, ERROR
+                            result: redeemResult.result || "ERROR", //cases: SUCCESS, CODE_PREV_REDEEMED, CODE_NOT_FOUND, ERROR
                             // error: !redeemResult.item_ids,
 
                             item_ids: redeemResult.item_ids || [],
@@ -795,12 +795,17 @@ initItemsTable().then(() => {
                             console.error(error);
                         };
 
-                        console.log(previewResult);
+                        let canBeUsed = previewResult ? (previewResult.uses > 0 ? (previewResult.used_by.includes(userData.id) ? "CODE_PREV_REDEEMED" : "SUCCESS") : "CODE_PREV_REDEEMED") : "CODE_NOT_FOUND";
+                        console.log(canBeUsed, previewResult);
+
+                        if (canBeUsed !== "SUCCESS") previewResult = [];
     
                         ws.send(JSON.stringify({ 
+                            result: canBeUsed, //cases: SUCCESS, CODE_PREV_REDEEMED, CODE_NOT_FOUND, ERROR
+
                             item_ids: previewResult.item_ids || [],
                             eggs_given: previewResult.eggs_given || 0,
-                            uses: previewResult.uses
+                            uses: previewResult.uses || 0,
                         }));
                         break;
                     case 'checkBalance':

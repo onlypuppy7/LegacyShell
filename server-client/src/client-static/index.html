@@ -1835,20 +1835,26 @@
                 <button id="redeemCodeButtonCancel" class="ssbutton red" style="width: 10em; display: inline-block"
                     onclick="extern.closeRedeemCodeDialog()">Cancel</button>
                 <button id="redeemCodeButtonOK" class="ssbutton green" style="width: 10em; display: inline-block"
-                    onclick="extern.redeemCode()">OK</button>
+                    onclick="extern.previewCode()">OK</button>
             </div>
 
             <div id="previewCodeResult" class="redeemCodeDialog roundedBorder" style="
-        left: 50%; top: 45%;
-        transform: translate(-50%, -50%);
-        display: none;
-    ">
+                left: 50%; top: 45%;
+                transform: translate(-50%, -50%);
+                display: none;
+            ">
                 <h1 style="margin-bottom: 0.2em"></h1>
                 <div id="previewCodeResultText" style="padding-bottom: 2em;"></div>
-                <button id="previewCodeCompleteButton" class="ssbutton green" style="width: 10em; display: inline-block;"
-                    onclick="extern.closePreviewCodeDialog()">OK</button>
-            </div>
 
+                <div id="previewCodeUsesRemaining" style="padding-bottom: 0.5em; font-size: 1.2em; font-weight: bold;">
+                    Uses Remaining: <span id="usesCount">0</span>
+                </div>
+                <button id="previewCodeRejectButton" class="ssbutton red" style="width: 10em; display: inline-block;"
+                    onclick="extern.closeRedeemCodeDialog()">Not today.</button>
+                <button id="previewCodeAcceptButton" class="ssbutton green" style="width: 10em; display: inline-block;"
+                    onclick="extern.redeemCode()">YES!</button>
+            </div>
+        
             <div id="redeemCodeResult" class="redeemCodeDialog roundedBorder" style="
         left: 50%; top: 45%;
         transform: translate(-50%, -50%);
