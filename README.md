@@ -32,5 +32,31 @@ At the moment you have to start up each section separately. Perhaps in the futur
 - `node run services`
 - `node run game`
 
+## Navigating the database
+The LegacyShellData.db database in /server-services/store houses most critical information.
+These tags provide information about the function of the table:
+> (USER-EDITABLE) indicates that the table is *INTENDED* to be edited 
+> 
+> (SYS-EDITABLE) indicates that the table is *NOT DESIGNED* to be edited, but can still be edited if you know what you're doing
+> 
+> (SYS-READONLY) indicates that the table is *NOT INTENDED* to be edited, and doing so will have **no effect**, they can be **ignored and overwritten** by LegacyShell processes.
+
+Here is a breakdown of the tables:
+### codes (USER-EDITABLE)
+This table holds all item/egg codes that can be used. To add codes, open the database in a SQL editor, add rows and edit their information as desired.
+Once a code is completely used, it does not get deleted. Instead it stays be able to alert players that the code has been used up.
+Codes may contain item(s), eggs, or both.
+Codes may be set to be used multiple times, however can only be redeemed once per account.
+### ip_requests (SYS-EDITABLE)
+This table holds records about ips in regards to ratelimit functions.
+### items (USER-EDITABLE)
+This table holds records about all the items that the game recognises. Ensuring the correct models are present, here you can either change minor settings such as price and if they should appear in the shop, or you can add new items entirely.
+### maps (SYS-READONLY)
+This table holds records about the maps that the game recognises. **You cannot directly edit this table**. It is generated from the json files in /server-services/src/maps and it is intended to instead modify those files. The json files in that directory are directly compatible with those exported from the Shell Shockers map editor.
+### sessions (SYS-EDITABLE)
+This table holds records about sessions and their associated ips and account ids. This is not a very interesting table.
+### users (SYS-EDITABLE)
+This table holds records about all registered accounts for the services server instance. You can change things like egg counts and inventories.
+
 ## Models
 egg.babylon contains hats, and stamps, i think. probably.

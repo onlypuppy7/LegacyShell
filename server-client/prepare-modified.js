@@ -26,6 +26,11 @@ function prepareModified(ss) {
         ss.log.italic("Inserting item jsons into shellshock.min.js...");
         sourceCode = sourceCode.replace(/LEGACYSHELLITEMS/g, ss.items); //akshually
         delete ss.items; //MEMORY LEAK FUCKING MI-Mi-mi-MITIGATED!!!
+        ss.log.italic("Inserting map jsons into shellshock.min.js...");
+        sourceCode = sourceCode.replace(/LEGACYSHELLMINMAPS/g, ss.maps); //akshually
+        delete ss.maps; //MEMORY LEAK FUCKING MI-Mi-mi-MITIGATED!!!
+        ss.log.italic("Inserting babylon into shellshock.min.js...");
+        sourceCode = sourceCode.replace(/LEGACYSHELLBABYLON/g, fs.readFileSync(path.join(ss.rootDir, 'src', 'babylon.js')));
 
         if (ss.config.client.minify) {
             ss.log.italic("Minifying/obfuscating shellshock.min.js...");
