@@ -166,6 +166,40 @@ db.serialize(() => {
             UPDATE codes SET dateModified = strftime('%s', 'now') WHERE key = OLD.key;
         END;
     `);
+
+    //WIP! MAPS
+    db.run(`
+    CREATE TABLE IF NOT EXISTS maps (
+        name TEXT PRIMARY KEY DEFAULT 'Unknown map',
+        sun TEXT DEFAULT '{"direction":{"x":0.2,"y":1,"z":-0.3},"color":"#FFFFFF"}',
+        ambient TEXT DEFAULT '#000000', --NOT USED!
+        fog TEXT DEFAULT '{"density":0.1,"color":"#33334C"}', --NOT USED!
+        data TEXT DEFAULT '{}',
+        palette TEXT DEFAULT '[null,null,null,null,null,null,null,null,null,null]',
+        render TEXT DEFAULT '{}', --NOT USED!
+        width INTEGER DEFAULT -9999,
+        height INTEGER DEFAULT -9999,
+        depth INTEGER DEFAULT -9999,
+        surfaceArea INTEGER DEFAULT 0,
+        extents TEXT DEFAULT '{"x":{"max":0,"min":10000},"y":{"max":0,"min":10000},"z":{"max":0,"min":10000},"width":-9999,"height":-9999,"depth":-9999}',
+        skybox TEXT DEFAULT '',
+        modes TEXT DEFAULT '{"FFA":true,"Teams":true}', --NOT USED!
+        availability TEXT DEFAULT 'both', --NOT USED!
+        numPlayers INTEGER DEFAULT 18, --NOT USED!
+
+        dateCreated INTEGER DEFAULT (strftime('%s', 'now')),
+        dateModified INTEGER DEFAULT (strftime('%s', 'now'))
+    )
+    `);
+    
+    db.run(`
+        CREATE TRIGGER IF NOT EXISTS update_dateModified_maps
+        AFTER UPDATE ON maps
+        FOR EACH ROW
+        BEGIN
+            UPDATE items SET dateModified = strftime('%s', 'now') WHERE name = OLD.name;
+        END;
+    `);
 });
 
 ss.log.green('account DB set up! (if it didnt exist already i suppose)');
@@ -403,7 +437,7 @@ const addCodeToPlayer = async (code_key, userData) => {
 
 const getAllItemData = async (retainSensitive) => {
     try {
-        ss.config.verbose && ss.log.bgCyan("services: Reading from DB: get items");
+        ss.config.verbose && ss.log.bgCyan("services: Reading from DB: get all items");
         const items = await ss.getAll(`SELECT * FROM items`);
 
         if (items) {
@@ -423,6 +457,36 @@ const getAllItemData = async (retainSensitive) => {
         };
     } catch (error) {
         console.error('Error retrieving items data:', error);
+        return null;
+    };
+};
+
+const getAllMapData = async (retainSensitive) => {
+    try {
+        ss.config.verbose && ss.log.bgCyan("services: Reading from DB: get all maps");
+        const maps = await ss.getAll(`SELECT * FROM maps`);
+
+        if (maps) {
+            return maps.map(map => { // yes, m a p
+                if (!retainSensitive) {
+                    delete map.dateCreated;
+                    delete map.dateModified;
+                };
+                map.sun = JSON.parse(map.sun);
+                map.fog = JSON.parse(map.fog);
+                map.data = JSON.parse(map.data);
+                map.palette = JSON.parse(map.palette);
+                map.render = JSON.parse(map.render);
+                map.extents = JSON.parse(map.extents);
+                map.modes = JSON.parse(map.modes);
+                return map;
+            });
+        } else {
+            console.log('Maps not found');
+            return null;
+        };
+    } catch (error) {
+        console.error('Error retrieving maps data:', error);
         return null;
     };
 };
@@ -477,7 +541,7 @@ const retrieveSession = async (session_id, ip_address) => {
 
 const deleteAllSessionsForUser = async (user_id) => {
     try {
-        ss.config.verbose && ss.log.bgCyan(`services: Deleting from DB: all sessions for user_id: ${user_id}`);
+        ss.config.verbose && ss.log.bgPurple(`services: Deleting from DB: all sessions for user_id: ${user_id}`);
         await ss.runQuery(`DELETE FROM sessions WHERE user_id = ?`, [user_id]);
     } catch (error) {
         console.error('Error deleting sessions:', error);
@@ -486,7 +550,7 @@ const deleteAllSessionsForUser = async (user_id) => {
 
 const cleanupExpiredSessions = async () => {
     try {
-        ss.config.verbose && ss.log.bgCyan("services: Cleaning up expired sessions");
+        ss.config.verbose && ss.log.bgPurple(`services: Deleting from DB: Cleaning up expired sessions`);
         await ss.runQuery(`DELETE FROM sessions WHERE expires_at < strftime('%s', 'now')`);
         ss.log.green('Expired sessions cleaned up');
     } catch (error) {
@@ -496,40 +560,82 @@ const cleanupExpiredSessions = async () => {
 
 setInterval(cleanupExpiredSessions, 1000 * 60 * (ss.config.services.session_cleanup_interval || 3));
 
-const initItemsTable = async () => {
+const initTables = async () => {
     try {
-        const countResult = await ss.getOne('SELECT COUNT(*) AS count FROM items');
-        if (countResult.count > 0) {
+        //ITEMS TABLE
+        ss.config.verbose && ss.log.bgCyan("services: Reading from DB: count items");
+        if ((await ss.getOne('SELECT COUNT(*) AS count FROM items')).count > 0) {
             ss.log.italic('No need to init items table');
-            return;
+        } else {
+            ss.log.blue('Items table is empty. Initializing with JSON data...');
+    
+            const jsonDir = path.join(ss.rootDir, 'src', 'items');
+            const files = fs.readdirSync(jsonDir);
+            for (const file of files) {
+                if (path.extname(file) === '.json') {
+                    ss.log.beige(`Inserting: ${file}`);
+                    const filePath = path.join(jsonDir, file);
+                    const fileContent = fs.readFileSync(filePath, 'utf8');
+                    const jsonData = JSON.parse(fileContent);
+    
+                    for (const item of jsonData) {
+                        await ss.runQuery(`
+                            INSERT INTO items (id, name, is_available, price, item_class, item_type_id, item_type_name, exclusive_for_class, item_data)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        `, [item.id, item.name, item.is_available, item.price, path.parse(file).name, item.item_type_id, item.item_type_name, item.exclusive_for_class, JSON.stringify(item.item_data)]);
+                    };
+                };
+            };
+            ss.log.green('Items table initialized with JSON data.');
         };
 
-        ss.log.blue('Items table is empty. Initializing with JSON data...');
+        ss.log.blue('Initializing maps from JSON data...');
+    
+        ss.config.verbose && ss.log.bgPurple(`services: Deleting from DB: all maps`);
+        await ss.runQuery('DELETE FROM maps;');
 
-        const jsonDir = path.join(ss.rootDir, 'src', 'items');
+        const jsonDir = path.join(ss.rootDir, 'src', 'maps');
         const files = fs.readdirSync(jsonDir);
         for (const file of files) {
             if (path.extname(file) === '.json') {
                 ss.log.beige(`Inserting: ${file}`);
                 const filePath = path.join(jsonDir, file);
                 const fileContent = fs.readFileSync(filePath, 'utf8');
-                const jsonData = JSON.parse(fileContent);
+                const map = JSON.parse(fileContent);
 
-                for (const item of jsonData) {
-                    await ss.runQuery(`
-                        INSERT INTO items (id, name, is_available, price, item_class, item_type_id, item_type_name, exclusive_for_class, item_data)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    `, [item.id, item.name, item.is_available, item.price, path.parse(file).name, item.item_type_id, item.item_type_name, item.exclusive_for_class, JSON.stringify(item.item_data)]);
-                };
+                await ss.runQuery(`
+                    INSERT INTO maps ( name, sun, ambient, fog, data, palette, render, width, height, depth, surfaceArea, extents, skybox, modes, availability, numPlayers, dateCreated, dateModified ) 
+                    VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )
+                `, [
+                        map.name || 'Unknown map',
+                        map.sun ? JSON.stringify(map.sun) : '{"direction":{"x":0.2,"y":1,"z":-0.3},"color":"#FFFFFF"}',
+                        map.ambient || '#000000', //NOT USED!
+                        map.fog ? JSON.stringify(map.fog) : '{"density":0.1,"color":"#33334C"}', //NOT USED!
+                        map.data ? JSON.stringify(map.data) : '{}',
+                        map.palette ? JSON.stringify(map.palette) : '[null,null,null,null,null,null,null,null,null,null]',
+                        map.render ? JSON.stringify(map.render) : '{}',
+                        map.width || -9999,
+                        map.height || -9999,
+                        map.depth || -9999,
+                        map.surfaceArea || 0,
+                        map.extents ? JSON.stringify(map.extents) : '{"x":{"max":0,"min":10000},"y":{"max":0,"min":10000},"z":{"max":0,"min":10000},"width":-9999,"height":-9999,"depth":-9999}',
+                        map.skybox || '',
+                        map.modes ? JSON.stringify(map.modes) : '{"FFA":true,"Teams":true}', //NOT USED!
+                        map.availability || 'both', //NOT USED!
+                        map.numPlayers || 18, //NOT USED!
+                        Math.floor(Date.now() / 1000),
+                        Math.floor(Date.now() / 1000)
+                    ]
+                );
             };
         };
-        ss.log.green('Items table initialized with JSON data.');
+        ss.log.green('Maps table initialized with JSON data.');
     } catch (error) {
         console.error('Error initializing items table:', error);
     };
 };
 
-initItemsTable().then(() => {
+initTables().then(() => {
     cleanupExpiredSessions();
 
     const port = ss.config.services.port || 13371;
@@ -579,15 +685,20 @@ initItemsTable().then(() => {
                 // Client commands
                 switch (msg.cmd) {
                     case 'requestConfig':
-                        const result = await ss.getOne('SELECT MAX(dateModified) AS maxDateModified FROM items');
+                        ss.config.verbose && ss.log.bgCyan("services: Reading from DB: get max modified of items");
+                        const items = await ss.getOne('SELECT MAX(dateModified) AS maxDateModified FROM items');
+                        ss.config.verbose && ss.log.bgCyan("services: Reading from DB: get max modified of maps");
+                        const maps = await ss.getOne('SELECT MAX(dateModified) AS maxDateModified FROM maps');
 
-                        ss.config.verbose && console.log(result.maxDateModified, msg.lastItems);
+                        ss.config.verbose && console.log("items", items.maxDateModified, msg.lastItems);
+                        ss.config.verbose && console.log("maps", maps.maxDateModified, maps.lastMaps);
 
                         ws.send(JSON.stringify(
                             {
                                 ...ss.config.services.distributed_configs.client,
                                 nugget_interval: ss.config.services.nugget_interval,
-                                items: result.maxDateModified > msg.lastItems ? await getAllItemData() : false,
+                                items: items.maxDateModified > msg.lastItems ? await getAllItemData() : false,
+                                maps: maps.maxDateModified > msg.lastMaps ? await getAllMapData() : false,
                             }
                         ));
                         break;

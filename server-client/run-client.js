@@ -58,6 +58,7 @@ function getLastSavedTimestamp(filePath) {
 
 let retrieved = false;
 let itemsFilePath = path.join(ss.rootDir, 'store', 'items.json');
+let mapsFilePath = path.join(ss.rootDir, 'store', 'maps.json');
 
 function connectWebSocket(retryCount = 0) {
     const ws = new WebSocket(ss.config.client.sync_server); // Use the sync server URL from the config
@@ -67,6 +68,7 @@ function connectWebSocket(retryCount = 0) {
         ws.send(JSON.stringify({
             cmd: "requestConfig",
             lastItems: Math.floor(getLastSavedTimestamp(itemsFilePath)/1000), //well in theory, if its not in existence this returns 0 and we should get it :D
+            lastMaps: Math.floor(getLastSavedTimestamp(mapsFilePath)/1000), //well in theory, if its not in existence this returns 0 and we should get it :D
         }));
     });
 
@@ -87,6 +89,22 @@ function connectWebSocket(retryCount = 0) {
                 ss.items = fs.readFileSync(itemsFilePath, 'utf8');
             } else {
                 ss.log.red("Shit. We're fucked. We didn't receive an items json nor do we have one stored. FUUUU-");
+            };
+        };
+
+        if (configInfo.maps) {
+            ss.log.blue("Maps loaded from newly retrieved json.")
+            configInfo.maps = JSON.stringify(configInfo.maps);
+            fs.writeFileSync(mapsFilePath, configInfo.maps); //dont convert the json. there is no need.
+            ss.maps = configInfo.maps;
+            delete configInfo.maps;
+        } else {
+            ss.log.italic("Maps loaded from previously saved json.");
+            delete configInfo.maps; //still delete the false, derp
+            if (fs.existsSync(mapsFilePath)) {
+                ss.maps = fs.readFileSync(mapsFilePath, 'utf8');
+            } else {
+                ss.log.red("Shit. We're fucked. We didn't receive a maps json nor do we have one stored. FUUUU-");
             };
         };
 
