@@ -2,7 +2,7 @@
 import fs from 'fs';
 import path from 'path';
 import yaml from 'js-yaml';
-import WebSocket from 'ws';
+import WebSocket, { WebSocketServer } from 'ws';
 
 import log from '../src/coloured-logging.js';
 
@@ -24,12 +24,13 @@ const ss = {
 
 ss.log.green('created ss object!');
 
-const port = ss.config.services.websocket || 13372;
-const wss = new WebSocket.Server({ port: port });
+const port = ss.config.game.websocket || 13372;
+const wss = new WebSocketServer({ port: port });
 
 wss.on('connection', (ws) => {
     ws.on('message', async (message) => {
         try {
+            console.log("msg", message);
             const jsonString = message.toString('utf8');
             const msg = JSON.parse(jsonString);
 

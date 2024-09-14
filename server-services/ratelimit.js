@@ -94,15 +94,15 @@ export const addRequest = async (ss, ip, type) => {
     ss.requests_cache[ip] = result;
 
     return true;
-}
+};
 
 export const allowRequest = async (ss, ip, type) => {
     const verdict = await addRequest(ss, ip, type);
 
     return verdict;
-}
+};
 
 export default {
     addRequest,
     allowRequest
-}
+};

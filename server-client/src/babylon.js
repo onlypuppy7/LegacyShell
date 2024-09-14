@@ -21757,19 +21757,46 @@
                         for (var i = 0; i < scene.soundTracks.length; i++) scene.soundTracks[i].switchPanningModelToEqualPower()
                 }, AudioSceneComponent.prototype._afterRender = function () {
                     var scene = this.scene;
-                    if (this._audioEnabled && scene._mainSoundTrack && scene.soundTracks && (0 !== scene._mainSoundTrack.soundCollection.length || 1 !== scene.soundTracks.length)) {
-                        var listeningCamera, audioEngine = BABYLON.Engine.audioEngine;
-                        if ((listeningCamera = 0 < scene.activeCameras.length ? scene.activeCameras[0] : scene.activeCamera) && audioEngine.audioContext) {
-                            audioEngine.audioContext.listener.setPosition(listeningCamera.globalPosition.x, listeningCamera.globalPosition.y, listeningCamera.globalPosition.z), listeningCamera.rigCameras && 0 < listeningCamera.rigCameras.length && (listeningCamera = listeningCamera.rigCameras[0]);
-                            var i, mat = BABYLON.Matrix.Invert(listeningCamera.getViewMatrix()),
-                                cameraDirection = BABYLON.Vector3.TransformNormal(new BABYLON.Vector3(0, 0, -1), mat);
-                            for (cameraDirection.normalize(), isNaN(cameraDirection.x) || isNaN(cameraDirection.y) || isNaN(cameraDirection.z) || audioEngine.audioContext.listener.setOrientation(cameraDirection.x, cameraDirection.y, cameraDirection.z, 0, 1, 0), i = 0; i < scene.mainSoundTrack.soundCollection.length; i++) {
-                                var sound = scene.mainSoundTrack.soundCollection[i];
-                                sound.useCustomAttenuation && sound.updateDistanceFromListener()
+                    if (!this._audioEnabled || !scene._mainSoundTrack || !scene.soundTracks || (scene._mainSoundTrack.soundCollection.length === 0 && scene.soundTracks.length === 1)) {
+                        return;
+                    }
+                    var listeningCamera;
+                    var audioEngine = BABYLON.Engine.audioEngine;
+                    if (scene.activeCameras.length > 0) {
+                        listeningCamera = scene.activeCameras[0];
+                    }
+                    else {
+                        listeningCamera = scene.activeCamera;
+                    }
+                    if (listeningCamera && audioEngine.audioContext) {
+                        audioEngine.audioContext.listener.setPosition(listeningCamera.position.x, listeningCamera.position.y, listeningCamera.position.z);
+                        // for VR cameras
+                        if (listeningCamera.rigCameras && listeningCamera.rigCameras.length > 0) {
+                            listeningCamera = listeningCamera.rigCameras[0];
+                        }
+                        var mat = BABYLON.Matrix.Invert(listeningCamera.getViewMatrix());
+                        var cameraDirection = BABYLON.Vector3.TransformNormal(new BABYLON.Vector3(0, 0, -1), mat);
+                        cameraDirection.normalize();
+                        // To avoid some errors on GearVR
+                        if (!isNaN(cameraDirection.x) && !isNaN(cameraDirection.y) && !isNaN(cameraDirection.z)) {
+                            audioEngine.audioContext.listener.setOrientation(cameraDirection.x, cameraDirection.y, cameraDirection.z, 0, 1, 0);
+                        }
+                        var i;
+                        for (i = 0; i < scene.mainSoundTrack.soundCollection.length; i++) {
+                            var sound = scene.mainSoundTrack.soundCollection[i];
+                            if (sound.useCustomAttenuation) {
+                                sound.updateDistanceFromListener();
                             }
-                            if (scene.soundTracks)
-                                for (i = 0; i < scene.soundTracks.length; i++)
-                                    for (var j = 0; j < scene.soundTracks[i].soundCollection.length; j++)(sound = scene.soundTracks[i].soundCollection[j]).useCustomAttenuation && sound.updateDistanceFromListener()
+                        }
+                        if (scene.soundTracks) {
+                            for (i = 0; i < scene.soundTracks.length; i++) {
+                                for (var j = 0; j < scene.soundTracks[i].soundCollection.length; j++) {
+                                    sound = scene.soundTracks[i].soundCollection[j];
+                                    if (sound.useCustomAttenuation) {
+                                        sound.updateDistanceFromListener();
+                                    }
+                                }
+                            }
                         }
                     }
                 }, AudioSceneComponent
