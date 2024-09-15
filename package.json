@@ -7,9 +7,9 @@
     "scripts": {
         "init": "node src/init.js",
         "bcrypt": "node src/bcrypt-tester.js",
-        "client": "node server-client/run-client.js",
-        "services": "node server-services/run-services.js",
-        "game": "node server-game/run-game.js",
+        "client": "node src/perpetual.js --client",
+        "services": "node src/perpetual.js --services",
+        "game": "node src/perpetual.js --game",
         "binit": "bun src/init.js",
         "bclient": "bun server-client/run-client.js",
         "bservices": "bun server-services/run-services.js",
