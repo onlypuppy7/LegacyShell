@@ -200,6 +200,18 @@ db.serialize(() => {
             UPDATE items SET dateModified = strftime('%s', 'now') WHERE name = OLD.name;
         END;
     `);
+
+    //GAME SERVERS
+    //allows a server to make certain sensitive operations, such as adding eggs, retrieving user stats.
+    //providing one of these auth keys also bypasses ratelimiting
+    db.run(`
+    CREATE TABLE IF NOT EXISTS game_servers (
+        auth_key TEXT PRIMARY KEY DEFAULT (substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1)),
+        name TEXT DEFAULT 'Unnamed server',
+        dateCreated INTEGER DEFAULT (strftime('%s', 'now')),
+        dateModified INTEGER DEFAULT (strftime('%s', 'now'))
+    )
+    `);
 });
 
 ss.log.green('account DB set up! (if it didnt exist already i suppose)');
@@ -491,6 +503,21 @@ const getAllMapData = async (retainSensitive) => {
     };
 };
 
+const getAuthKeyData = async (auth_key) => {
+    try {
+        ss.config.verbose && ss.log.bgCyan(`services: Reading from DB: get code ${auth_key}`);
+        const data = await ss.getOne(`SELECT * FROM game_servers WHERE auth_key = ?`, [auth_key]);
+        if (data) return data;
+        else {
+            console.log('Data not found');
+            return null;
+        };
+    } catch (error) {
+        console.error('Error retrieving data:', error);
+        return null;
+    };
+};
+
 const createSession = async (user_id, ip_address) => {
     deleteAllSessionsForUser(user_id);
 
@@ -654,19 +681,35 @@ initTables().then(() => {
             try {
                 const jsonString = message.toString('utf8');
                 const msg = JSON.parse(jsonString);
-                const cmdType = ss.config.services.ratelimit.sensitive.cmds.includes(msg.cmd) ? 'sensitive' : 'regular';
-    
+                let cmdType = 'regular';
+                ss.config.services.ratelimit.sensitive.cmds.includes(msg.cmd) && (cmdType = 'sensitive');
+                ([
+                    "getUser", //modify this i guess
+                    "addEggs",
+                ]).includes(msg.cmd) && (cmdType = 'auth_required');
+                
+                ss.config.verbose && ss.log.dim("Received cmd: "+msg.cmd+"; type: "+cmdType), console.log(msg);
+
                 if (ss.config.services.ratelimit.protect_ips)
                     ip = crypto.createHash('md5').update(ip).digest('hex');
+
+                let isAccepted;
+
+                if (msg.auth_key) {
+                    isAccepted = await getAuthKeyData(msg.auth_key); //bypass RL
+                    if (isAccepted) ss.log.special('Found auth key '+isAccepted.name);
+                    else ss.log.red('Invalid auth key');
+                } else if (cmdType == 'auth_required') {
+                    isAccepted = false;
+                } else {
+                    isAccepted = await rl.allowRequest(ss, ip, cmdType);
+                };
     
-                const isAccepted = await rl.allowRequest(ss, ip, cmdType);
                 if (!isAccepted) {
                     ss.config.verbose && ss.log.red("rejected some bs from "+ip+" "+cmdType);
                     return ws.send(JSON.stringify({ error: 'Too many requests. Please try again later.' }));
                 };
     
-                ss.config.verbose && ss.log.dim("Received cmd: "+msg.cmd+"; type: "+cmdType), console.log(msg);
-
                 let sessionData, userData;
 
                 if (msg.session) {

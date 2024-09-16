@@ -3,6 +3,10 @@
 
 Remake of Shell Shocker's web servers, for a classic version. Then, maybe even extending it.
 
+## Forewarning:
+
+LegacyShell is currently in active development and is not ready for production use. Tables in databases may appear or disappear between updates and configs will need manually updating.
+
 ## Explanation:
 In order to emulate all the parts of the webgame shellshock.io, one must replicate the following:
 - Services server
@@ -34,6 +38,8 @@ At the moment you have to start up each section separately. Perhaps in the futur
 - `node run services`
 - `node run game`
 
+These commands will launch the server in a custom wrapper, designed to make keeping track of everything easy and configurable. It will restart in case of crashes, schedule daily restarts, log to files and log to a Discord webhook (all dependent on config). To modify it's settings, use the `perpetual` section of the config.yaml.
+
 ## Navigating the database
 The LegacyShellData.db database in /server-services/store houses most critical information.
 These tags provide information about the function of the table:
@@ -45,10 +51,13 @@ These tags provide information about the function of the table:
 
 Here is a breakdown of the tables:
 ### codes (USER-EDITABLE)
-This table holds all item/egg codes that can be used. To add codes, open the database in a SQL editor, add rows and edit their information as desired.
+This table holds all item/egg codes that can be used. To add codes, open the database in a SQL editor, add a row. A random code should be automatically generated. You can then edit other information as desired.
 Once a code is completely used, it does not get deleted. Instead it stays be able to alert players that the code has been used up.
 Codes may contain item(s), eggs, or both.
 Codes may be set to be used multiple times, however can only be redeemed once per account.
+### game_servers (USER-EDITABLE)
+This table holds all authorised game servers. To add an authorised game server, open the database in a SQL editor, add a row. A random auth code should be automatically generated. You can then edit other information as desired (name).
+Be cautious about who you give this code to, as it has the potential to ruin your entire database! Rate limits are bypassed and sensitive operations are allowed to those with one.
 ### ip_requests (SYS-EDITABLE)
 This table holds records about ips in regards to ratelimit functions.
 ### items (USER-EDITABLE)

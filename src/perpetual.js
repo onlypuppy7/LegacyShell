@@ -76,13 +76,13 @@ let maxMessageLength = 1900;
 let messagesSent = 0;
 
 const logSend = (msg) => {
-    msg = `${getTimestamp()} ${msg}`;
+    msg = `#${getTimestamp()} ${msg}`;
     ss.log.muted(msg);
     appendLog(msg);
 };
 
 const logNoSend = (msg) => {
-    msg = `${getTimestamp()} ${msg}`;
+    msg = `#${getTimestamp()} ${msg}`;
     ss.log.muted(msg);
     appendLog(msg, true);
 };
@@ -141,8 +141,7 @@ const sendLogsToWebhook = () => {
 
     // console.log(queuedChunks.length, logQueue, queuedChunks)
     if (queuedChunks.length > 0) {
-        logNoSend(`Sending log chunk to webhook...`);
-
+        // logNoSend(`Sending log chunk to webhook...`);
         fetch(options.webhook_url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
