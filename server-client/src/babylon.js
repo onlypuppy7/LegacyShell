@@ -37829,3 +37829,54 @@
         earcut: earcut
     }), BABYLON
 });
+
+
+
+// [LS] BABYLON modifications
+BABYLON.Skeleton.prototype.disableBlending = function () {
+    this.bones.forEach(function (bone) {
+        bone.animations.forEach(function (animation) {
+            animation.enableBlending = false
+        })
+    })
+};
+BABYLON.Scene.prototype.cloneMesh = function (name, parent) {
+    return this.getMeshByName(name).clone("", parent)
+};
+BABYLON.Scene.prototype.cloneSkeleton = function (name) {
+    var skeleton = this.getSkeletonByName(name).clone();
+    return skeleton.name = name + Date.now(), skeleton
+};
+BABYLON.DynamicTexture.prototype.clearRect = function (x, y, w, h) {
+    this._context.clearRect(x, y, w, h)
+};
+BABYLON.AbstractMesh.prototype.setLayerMask = function (mask) {
+    this.layerMask = mask;
+    for (var children = this.getChildMeshes(), i = 0; i < children.length; i++) children[i].setLayerMask(mask)
+};
+BABYLON.AbstractMesh.prototype.setRenderingGroupId = function (id) {
+    this.renderingGroupId = id;
+    for (var children = this.getChildMeshes(), i = 0; i < children.length; i++) children[i].setRenderingGroupId(id)
+};
+BABYLON.TransformNode.prototype.setVisible = function (visible) {
+    this.isVisible = visible, this._isWorldMatrixFrozen = !visible;
+    for (var children = this.getChildTransformNodes(), i = 0; i < children.length; i++) children[i].setVisible(visible)
+};
+BABYLON.AbstractMesh.prototype.setMaterial = function (mat) {
+    this.material = mat;
+    for (var children = this.getChildMeshes(), i = 0; i < children.length; i++) children[i].setMaterial(mat)
+};
+BABYLON.AbstractMesh.prototype.attachSound = function (sound) {
+    this.attachedSounds || (this.attachedSounds = []);
+    var clonedSound = sound.clone();
+    return clonedSound.attachToMesh(this), this.attachedSounds.push(clonedSound), clonedSound
+};
+BABYLON.TransformNode.prototype.disposeOfSounds = function () {
+    if (this.attachedSounds)
+        for (var s in this.attachedSounds) {
+            var sound = this.attachedSounds[s];
+            sound && (sound.detachFromMesh(), sound.dispose())
+        }
+    for (var children = this.getChildTransformNodes(), i = 0; i < children.length; i++) children[i].disposeOfSounds()
+};
+BABYLON.Effect.ShadersStore.standardVertexShader = "\n#include<instancesDeclaration>\n#include<bonesDeclaration>\n\nprecision lowp float;\n\n// Attributes\nattribute vec3 position;\nattribute vec3 normal;\nattribute vec4 color;\nattribute vec2 uv;\n\n// Uniforms\nuniform mat4 view;\nuniform mat4 viewProjection;\nuniform mat4 shadowLightMat;\nuniform vec3 cameraPosition;\nuniform vec3 colorMult;\n\n// Varying\nvarying vec4 vPositionFromLight;\nvarying vec3 vPositionFromCamera;\nvarying vec3 vNormal;\nvarying vec4 vColor;\nvarying vec4 vEmissiveColor;\nvarying float fFogDistance;\n\n#ifdef EGGSHELL\n\tvarying vec2 vUV;\n#endif\n\nfloat random(vec3 p)\n{\n    vec3 K1 = vec3(23.14069263277926, 2.665144142690225, 8.2318798443);\n    return fract(cos(dot(p, K1)) * 12345.6789);\n}\n\n// MAIN\nvoid main(void) {\n\t#include<instancesVertex>\n\t#include<bonesVertex>\n\tvec4 worldPosition = finalWorld * vec4(position, 1.);\n\n\t#ifdef RECEIVESHADOWS\n\t\tvPositionFromLight = shadowLightMat * worldPosition;\n\t#endif\n\n\tvNormal = normalize(vec3(finalWorld * vec4(normal, 0.0)));\n\tvColor = color;\n\t\n\t#ifdef COLORMULT\n\t\tvColor.rgb *= colorMult;\n\t#endif\n\n\t#ifdef DIRT\n\t\tvColor.rgb *= random(floor(worldPosition.xyz + vec3(0.5, 0.5, 0.5))) * 0.2 + 0.7;\n\t#endif\n\n\tfFogDistance = (view * worldPosition).z;\n\tgl_Position = viewProjection * worldPosition;\n\n\t#ifdef EGGSHELL\n\t\tvUV = uv;\n\t\tvPositionFromCamera = normalize(cameraPosition - worldPosition.xyz);\n\t#endif\n}\n", BABYLON.Effect.ShadersStore.standardPixelShader = "\n#define FOGMODE_NONE 0.\n#define FOGMODE_EXP 1.\n#define FOGMODE_EXP2 2.\n#define FOGMODE_LINEAR 3.\n#define E 2.71828\n\nprecision lowp float;\n\n// Uniforms\nuniform sampler2D shadowSampler;\nuniform vec3 shadowParams;\nuniform vec4 vFogInfos;\nuniform vec3 vFogColor;\nuniform vec3 emissiveColor;\nuniform mat4 worldView;\nuniform float hp;\nuniform vec3 colorMult;\nuniform vec4 outlineColor;\nuniform sampler2D textureSampler;\nuniform vec2 stampOffset;\n\n// Varying\nvarying vec4 vPositionFromLight;\nvarying vec3 vPositionFromCamera;\nvarying vec4 vColor;\nvarying vec2 vUV;\nvarying vec3 vNormal;\nvarying float fFogDistance;\n\nconst float sOff = .001;\n\n// FUNCTIONS\nfloat unpack(vec4 color)\n{\n\tconst vec4 bit_shift = vec4(1.0 / (255.0 * 255.0 * 255.0), 1.0 / (255.0 * 255.0), 1.0 / 255.0, 1.0);\n\treturn dot(color, bit_shift);\n}\n\nfloat random(vec2 p)\n{\n    vec2 K1 = vec2(23.14069263277926, 2.665144142690225);\n    return fract(cos(dot(p, K1)) * 12345.6789);\n}\n\nfloat calcFogFactor()\n{\n\tfloat fogCoeff = 1.0;\n\tfloat fogStart = vFogInfos.y;\n\tfloat fogEnd = vFogInfos.z;\n\tfloat fogDensity = vFogInfos.w;\n\n\tfogCoeff = 1.0 / pow(E, fFogDistance * fFogDistance * fogDensity * fogDensity * 4.); // Exp2\n\n\treturn clamp(fogCoeff, 0.0, 1.0);\n}\n\nfloat computeShadow(vec4 vPositionFromLight, sampler2D shadowSampler, float darkness)\n{\n\tvec3 depth = vPositionFromLight.xyz / vPositionFromLight.w;\n\tdepth = 0.5 * depth + vec3(0.5);\n\tvec2 uv = depth.xy;\n\n\tif (uv.x < 0. || uv.x > 1.0 || uv.y < 0. || uv.y > 1.0)\n\t{\n\t\treturn 1.0;\n\t}\n\n\t#ifndef SHADOWFULLFLOAT\n\t\tfloat shadow = unpack(texture2D(shadowSampler, uv));\n\t#else\n\t\tfloat shadow = texture2D(shadowSampler, uv).x;\n\t#endif\n\n\tif (depth.z < shadow) return 1.;\n\tfloat s = clamp((depth.z - shadow) * 12. + 0.5, 0.5, 1.0);\n\treturn min(1.0, max(s, length(vPositionFromLight.xy)));\n}\n\nvec3 desaturate(vec3 color, float amount)\n{\n    vec3 gray = vec3(dot(vec3(0.2126,0.7152,0.0722), color));\n    return vec3(mix(color, gray, amount));\n}\n\n// MAIN\nvoid main(void)\n{\n\tvec4 color = vColor;\n\n\t#ifdef EGGSHELL // Show cracks and stamp texture!\n\t\tcolor.rgb = min((color.rgb - 0.5) * 4. + hp + 2., 1.);\n\t\tcolor.rgb *= colorMult;\n\t\tvec2 uv = clamp(vUV, vec2(0., 0.9375), vec2(.0625, 1.));\n\t\tuv += stampOffset;\n\t\tcolor.rgb = mix(color.rgb, texture2D(textureSampler, uv).rgb, texture2D(textureSampler, uv).a);\n\t#endif\n\n\t#ifdef RECEIVESHADOWS\n\t\tfloat s = computeShadow(vPositionFromLight, shadowSampler, shadowParams.x);\n\t\tcolor *= vec4(s, s, s, 1.);\n\t#endif\n\n\tcolor.rgb *= max(max(0., -vNormal.y * 0.4), dot(vNormal, normalize(vec3(.2, 1., .1)) * 1.) + 0.4);\n\t//color.rgb *= max(0., dot(vNormal, normalize(vec3(-.2, 1., -.1))) + 0.4);\n\n\t#ifdef FLASH\n\t\tcolor.rgb += emissiveColor;\n\t#endif\n\n\tfloat fog = calcFogFactor();\n\tcolor.rgb = fog * color.rgb + (1.0 - fog) * vFogColor;\n\n\t#ifdef EGGSHELL\n\t\tfloat f = step(dot(vNormal, vPositionFromCamera), 0.4);\n\t\tcolor.rgb = mix(color.rgb, outlineColor.rgb, f * outlineColor.a);\n\t#endif\n\n\tgl_FragColor = color;\n}\n";

@@ -265,46 +265,37 @@
 }, {
     "id": 1020,
     "name": "ShellShockers Hat",
-    "price": 0,
+    "price": 20000,
     "item_type_id": 1,
     "item_type_name": "Hat",
     "category_name": "Hats",
     "exclusive_for_class": null,
     "item_data": {
-        "meshName": "hat_shellshockers",
-        "unlock": "physical",
-        "physicalUnlockText": "Buy a REAL HAT to unlock this lid!",
-        "physicalItemStoreURL": "https://shell-shockers.myshopify.com/products/splat-hat"
+        "meshName": "hat_shellshockers"
     },
     "is_available": true
 }, {
     "id": 1021,
     "name": "Frying Pan",
-    "price": 0,
+    "price": 10000,
     "item_type_id": 1,
     "item_type_name": "Hat",
     "category_name": "Hats",
     "exclusive_for_class": null,
     "item_data": {
-        "meshName": "hat_fryingPan",
-        "unlock": "physical",
-        "physicalUnlockText": "Buy a REAL SHIRT to get this pan!",
-        "physicalItemStoreURL": "https://shell-shockers.myshopify.com/products/no-pans-tee"
+        "meshName": "hat_fryingPan"
     },
     "is_available": true
 }, {
     "id": 1022,
     "name": "Horns",
-    "price": 0,
+    "price": 10000,
     "item_type_id": 1,
     "item_type_name": "Hat",
     "category_name": "Hats",
     "exclusive_for_class": null,
     "item_data": {
-        "meshName": "hat_horns",
-        "unlock": "physical",
-        "physicalUnlockText": "Buy a REAL SHIRT to rock these horns!",
-        "physicalItemStoreURL": "https://shell-shockers.myshopify.com/products/logo-tee"
+        "meshName": "hat_horns"
     },
     "is_available": true
 }, {

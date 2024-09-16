@@ -27,7 +27,9 @@ services:
   distributed_configs:
     client:
       servicesURL: "wss://services-legacy.onlypuppy7.online:443"
-      minify: true #this lags startup of the server by a few seconds, in theory though will reduce lag longer term for both clients and the server itself  
+      minify: true #this lags startup of the server by a few seconds, in theory though will reduce lag longer term for both clients and the server itself
+      discordServer: F3Xh5bhXTr # do NOT put anything except the ending id/vanity as the rest is filled in!
+      githubURL: "https://github.com/onlypuppy7/LegacyShell/"
 
 game:
   port: 13372
@@ -74,5 +76,4 @@ perpetual:
     webhook_ping_user: "" #ENTER THE USER ID. for when there is an error. empty = no ping.
     webhook_ping_role: "" #ENTER THE ROLE ID. for when there is an error. empty = no ping.
 
-discordServer: F3Xh5bhXTr # do NOT put anything except the link/vanity as the rest is filled in!
 verbose: false # loads of more logs?
