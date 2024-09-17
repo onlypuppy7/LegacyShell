@@ -20,7 +20,8 @@ const ss = {
     rootDir: path.resolve(import.meta.dirname),
     config: yaml.load(fs.readFileSync(configPath, 'utf8')),
     packageJson: JSON.parse(fs.readFileSync(path.join(path.resolve(import.meta.dirname), '..', 'package.json'), 'utf8')),
-    log
+    log,
+    cache: {},
 };
 
 ss.log.green("Created ss object!");
@@ -59,6 +60,7 @@ function getLastSavedTimestamp(filePath) {
 let retrieved = false;
 let itemsFilePath = path.join(ss.rootDir, 'store', 'items.json');
 let mapsFilePath = path.join(ss.rootDir, 'store', 'maps.json');
+let serversFilePath = path.join(ss.rootDir, 'store', 'servers.json');
 
 function connectWebSocket(retryCount = 0) {
     const ws = new WebSocket(ss.config.client.sync_server); // Use the sync server URL from the config
@@ -68,7 +70,8 @@ function connectWebSocket(retryCount = 0) {
         ws.send(JSON.stringify({
             cmd: "requestConfig",
             lastItems: Math.floor(getLastSavedTimestamp(itemsFilePath)/1000), //well in theory, if its not in existence this returns 0 and we should get it :D
-            lastMaps: Math.floor(getLastSavedTimestamp(mapsFilePath)/1000), //well in theory, if its not in existence this returns 0 and we should get it :D
+            lastMaps: Math.floor(getLastSavedTimestamp(mapsFilePath)/1000), //this will always be retrieved. ignore the fact that it does that.
+            lastServers: Math.floor(getLastSavedTimestamp(serversFilePath)/1000),
         }));
     });
 
@@ -76,44 +79,34 @@ function connectWebSocket(retryCount = 0) {
         ss.log.green('Received config information from sync server.');
         const configInfo = JSON.parse(data);
 
-        if (configInfo.items) {
-            ss.log.blue("Items loaded from newly retrieved json.")
-            configInfo.items = JSON.stringify(configInfo.items);
-            fs.writeFileSync(itemsFilePath, configInfo.items); //dont convert the json. there is no need.
-            ss.items = configInfo.items;
-            delete configInfo.items;
-        } else {
-            ss.log.italic("Items loaded from previously saved json.");
-            delete configInfo.items; //still delete the false, derp
-            if (fs.existsSync(itemsFilePath)) {
-                ss.items = fs.readFileSync(itemsFilePath, 'utf8');
+        const load = function(thing, filePath) {
+            if (configInfo[thing]) {
+                ss.log.blue(`[${thing}] loaded from newly retrieved json.`)
+                configInfo[thing] = JSON.stringify(configInfo[thing]);
+                fs.writeFileSync(filePath, configInfo[thing]); //dont convert the json. there is no need.
+                ss.cache[thing] = configInfo[thing];
+                delete configInfo[thing];
             } else {
-                ss.log.red("Shit. We're fucked. We didn't receive an items json nor do we have one stored. FUUUU-");
+                ss.log.italic(`[${thing}] loaded from previously saved json.`);
+                delete configInfo[thing]; //still delete the false, derp
+                if (fs.existsSync(filePath)) {
+                    ss.cache[thing] = fs.readFileSync(filePath, 'utf8');
+                } else {
+                    ss.log.red(`Shit. We're fucked. We didn't receive an [${thing}] json nor do we have one stored. FUUUU-`);
+                };
             };
         };
 
-        if (configInfo.maps) {
-            ss.log.blue("Maps loaded from newly retrieved json.")
-            configInfo.maps = JSON.stringify(configInfo.maps);
-            fs.writeFileSync(mapsFilePath, configInfo.maps); //dont convert the json. there is no need.
-            ss.maps = configInfo.maps;
-            delete configInfo.maps;
-        } else {
-            ss.log.italic("Maps loaded from previously saved json.");
-            delete configInfo.maps; //still delete the false, derp
-            if (fs.existsSync(mapsFilePath)) {
-                ss.maps = fs.readFileSync(mapsFilePath, 'utf8');
-            } else {
-                ss.log.red("Shit. We're fucked. We didn't receive a maps json nor do we have one stored. FUUUU-");
-            };
-        };
+        load("items", itemsFilePath);
+        load("maps", mapsFilePath);
+        load("servers", serversFilePath);
 
         // console.log(ss.items);
 
         ss.config.client = { ...ss.config.client, ...configInfo };
         ss.distributed_config = yaml.dump(configInfo, { indent: 4 }); //this is for later usage displaying for all to see
 
-        ss.config.verbose && console.log(ss.distributed_config);
+        ss.config.verbose && ss.log.info(`\n${ss.distributed_config}`);
 
         startServer();
     });

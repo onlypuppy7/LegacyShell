@@ -204,18 +204,28 @@ db.serialize(() => {
     //GAME SERVERS
     //allows a server to make certain sensitive operations, such as adding eggs, retrieving user stats.
     //providing one of these auth keys also bypasses ratelimiting
+    //also the cancer massive substring thing of doom yeah bitch im NOT sorry
     db.run(`
     CREATE TABLE IF NOT EXISTS game_servers (
         auth_key TEXT PRIMARY KEY DEFAULT (substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1)),
         name TEXT DEFAULT 'Unnamed server',
+        address TEXT DEFAULT 'Unnamed server',
         dateCreated INTEGER DEFAULT (strftime('%s', 'now')),
         dateModified INTEGER DEFAULT (strftime('%s', 'now'))
     )
     `);
+    
+    db.run(`
+        CREATE TRIGGER IF NOT EXISTS update_dateModified_game_servers
+        AFTER UPDATE ON game_servers
+        FOR EACH ROW
+        BEGIN
+            UPDATE game_servers SET dateModified = strftime('%s', 'now') WHERE name = OLD.name;
+        END;
+    `);
 });
 
 ss.log.green('account DB set up! (if it didnt exist already i suppose)');
-
 
 //db stuff
 ss.runQuery = util.promisify(db.run.bind(db));
@@ -518,6 +528,29 @@ const getAuthKeyData = async (auth_key) => {
     };
 };
 
+const getAllGameServerData = async (retainSensitive) => {
+    try {
+        ss.config.verbose && ss.log.bgCyan(`services: Reading from DB: get all game servers`);
+        const data = await ss.getAll(`SELECT * FROM game_servers`);
+        if (data) {
+            return data.map(server => {
+                if (!retainSensitive) {
+                    delete server.auth_key;
+                    delete server.dateCreated;
+                    delete server.dateModified;
+                };
+                return data;
+            });
+        } else {
+            console.log('Data not found');
+            return null;
+        };
+    } catch (error) {
+        console.error('Error retrieving data:', error);
+        return null;
+    };
+};
+
 const createSession = async (user_id, ip_address) => {
     deleteAllSessionsForUser(user_id);
 
@@ -725,26 +758,34 @@ initTables().then(() => {
                     };
                 };
     
-                // Client commands
                 switch (msg.cmd) {
+                    // Sync commands
                     case 'requestConfig':
                         ss.config.verbose && ss.log.bgCyan("services: Reading from DB: get max modified of items");
                         const items = await ss.getOne('SELECT MAX(dateModified) AS maxDateModified FROM items');
                         ss.config.verbose && ss.log.bgCyan("services: Reading from DB: get max modified of maps");
                         const maps = await ss.getOne('SELECT MAX(dateModified) AS maxDateModified FROM maps');
+                        ss.config.verbose && ss.log.bgCyan("services: Reading from DB: get max modified of game_servers");
+                        const game_servers = await ss.getOne('SELECT MAX(dateModified) AS maxDateModified FROM game_servers');
 
+                        let timeNow = Math.floor(Date.now()/1000);
+                        ss.config.verbose && console.log("TIME NOW", timeNow);
                         ss.config.verbose && console.log("items", items.maxDateModified, msg.lastItems);
-                        ss.config.verbose && console.log("maps", maps.maxDateModified, maps.lastMaps);
+                        ss.config.verbose && console.log("maps", maps.maxDateModified, msg.lastMaps);
+                        ss.config.verbose && console.log("game_servers", game_servers.maxDateModified, msg.lastServers);
 
-                        ws.send(JSON.stringify(
-                            {
-                                ...ss.config.services.distributed_configs.client,
-                                nugget_interval: ss.config.services.nugget_interval,
-                                items: items.maxDateModified > msg.lastItems ? await getAllItemData() : false,
-                                maps: maps.maxDateModified > msg.lastMaps ? await getAllMapData() : false,
-                            }
-                        ));
+                        let response = {
+                            ...ss.config.services.distributed_configs.client,
+                            nugget_interval: ss.config.services.nugget_interval,
+                        };
+
+                        if (msg.lastItems !== undefined)    response.items  = items.maxDateModified         > msg.lastItems     ? await getAllItemData()            : false;
+                        if (msg.lastMaps !== undefined)     response.maps   = maps.maxDateModified          > msg.lastMaps      ? await getAllMapData()             : false;
+                        if (msg.lastServers !== undefined)  response.servers= game_servers.maxDateModified  > msg.lastServers   ? await getAllGameServerData()[0]   : false;
+
+                        ws.send(JSON.stringify( response ));
                         break;
+                    // Client commands
                     case 'validateLogin':
                         getUserData(msg.username, true, true).then(userData => {
                             if (userData) {
