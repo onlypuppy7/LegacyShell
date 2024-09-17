@@ -32,6 +32,8 @@ services:
       githubURL: "https://github.com/onlypuppy7/LegacyShell/"
 
 game:
+  services_server: "ws://localhost:13371"
+  auth_key: "AUTH_KEY" #this is given by the owner of the services server, and can be revoked.
   port: 13372
 
 #config for how you want the files to continually run. setup for error notifications on discord!

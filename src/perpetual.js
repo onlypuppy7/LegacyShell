@@ -3,6 +3,7 @@ import fetch from 'node-fetch';
 import fs from 'fs';
 import path from 'path';
 import yaml from 'js-yaml';
+import readline from 'readline';
 
 import log from '../src/coloured-logging.js';
 
@@ -25,7 +26,7 @@ if (!fs.existsSync(configPath)) {
 };
 
 const ss = {
-    rootDir: path.join(import.meta.dirname, '..'),
+    rootDir: path.join(import.meta.dirname),
     config: yaml.load(fs.readFileSync(configPath, 'utf8')),
     packageJson: JSON.parse(fs.readFileSync(path.join(path.resolve(import.meta.dirname), '..', 'package.json'), 'utf8')),
     log
@@ -43,7 +44,7 @@ const options = {
     dailyrestart_time:      passed.dailyrestart_time        || "4:00",
     //file logging
     logfile_enable:         passed.logfile_enable           || true,
-    logfile_location:       path.join(ss.rootDir, "store", "logs", server_type), //no editing kek
+    logfile_location:       path.join(ss.rootDir, '..', "store", "logs", server_type), //no editing kek
     //webhook logging
     webhook_url:            passed.webhook_url              || "", //false or empty is disabled
     webhook_username:       passed.webhook_username         || "Webhook", //eg "LegacyShell: Client Server"
@@ -51,6 +52,24 @@ const options = {
     webhook_ping_user:      passed.webhook_ping_user        || false, //this might flood your shit
     webhook_ping_role:      passed.webhook_ping_role        || false,
 };
+
+const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+    prompt: '> '
+});
+
+rl.prompt();
+rl.on('line', (line) => {
+    let cmd = line.trim();
+    if (cmd == "r" || cmd == "restart") {
+        startProcess();
+    };
+    rl.prompt();
+}).on('close', () => {
+    logSend('Exiting interactive mode');
+    process.exit(0);
+});
 
 // console.log(process.argv, passed);
 
@@ -171,7 +190,7 @@ const startProcess = () => {
     if (runningProcess) {
         logSend(`Stopping previous process...`);
         runningProcess.kill('SIGINT');
-    }
+    };
 
     logSend(`Starting process: ${options.process_cmd}`);
     

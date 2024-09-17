@@ -1,6 +1,4 @@
-var servers = [
-    { name: 'LegacyShell', address: 'matchmaker.legacy.onlypuppy7.online:443' },
-];
+var servers = LEGACYSHELLSERVERS;
 
 var debug = false;
 

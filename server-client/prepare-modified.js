@@ -24,11 +24,9 @@ function prepareModified(ss) {
         let sourceCode = fs.readFileSync(sourceShellJsPath, 'utf8');
 
         ss.log.italic("Inserting item jsons into shellshock.min.js...");
-        sourceCode = sourceCode.replace(/LEGACYSHELLITEMS/g, ss.items); //akshually
-        delete ss.items; //MEMORY LEAK FUCKING MI-Mi-mi-MITIGATED!!!
+        sourceCode = sourceCode.replace(/LEGACYSHELLITEMS/g, ss.cache.items); //akshually
         ss.log.italic("Inserting map jsons into shellshock.min.js...");
-        sourceCode = sourceCode.replace(/LEGACYSHELLMINMAPS/g, ss.maps); //akshually
-        delete ss.maps; //MEMORY LEAK FUCKING MI-Mi-mi-MITIGATED!!!
+        sourceCode = sourceCode.replace(/LEGACYSHELLMINMAPS/g, ss.cache.maps); //akshually
         ss.log.italic("Inserting babylon into shellshock.min.js...");
         sourceCode = sourceCode.replace(/LEGACYSHELLBABYLON/g, fs.readFileSync(path.join(ss.rootDir, 'src', 'babylon.js')));
 
@@ -61,6 +59,7 @@ function prepareModified(ss) {
         serversJs = serversJs.replace(/LEGACYSHELLSERVICESPORT/g, ss.config.services.port || "13371");
         serversJs = serversJs.replace(/LEGACYSHELLWEBSOCKETPORT/g, ss.config.game.port || "13372");
         serversJs = serversJs.replace(/LEGACYSHELLSERVICESSERVER/g, ss.config.client.servicesURL || "wss://services.legacy.onlypuppy7.online:443");
+        serversJs = serversJs.replace(/LEGACYSHELLSERVERS/g, ss.cache.servers || "[{ name: 'LegacyShell', address: 'matchmaker.legacy.onlypuppy7.online:443' }]");
 
         fs.writeFileSync(destinationServersJsPath, serversJs, 'utf8');
         console.log(`servers.js copied and modified to ${destinationServersJsPath}`);
@@ -82,6 +81,7 @@ function prepareModified(ss) {
         fs.writeFileSync(destinationHtmlPath, htmlContent, 'utf8');
         console.log(`index.html copied and modified to ${destinationHtmlPath}`);
 
+        delete ss.cache; //MEMORY LEAK FUCKING MI-Mi-mi-MITIGATED!!!
     } catch (error) {
         console.error('An error occurred during the file processing:', error);
     }
