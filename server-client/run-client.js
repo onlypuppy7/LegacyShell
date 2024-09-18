@@ -1,30 +1,22 @@
-import fs from 'fs';
-import path from 'path';
+//basic
+import fs from 'node:fs';
+import path from 'node:path';
 import yaml from 'js-yaml';
-import express from 'express';
+//getting configs
 import WebSocket from 'ws';
-
-import log from '../src/coloured-logging.js';
+//web server
+import express from 'express';
+//legacyshell: basic
 import prepareModified from './prepare-modified.js';
+import misc from '../src/shell/general/misc.js';
+//
 
-//storage
-fs.mkdirSync(path.join(import.meta.dirname, 'store'), { recursive: true });
+let ss = misc.instanciateSS(import.meta.dirname);
 
-const configPath = path.join(import.meta.dirname, '..', 'store', 'config.yaml');
-if (!fs.existsSync(configPath)) {
-    console.log('config.yaml not found, make sure you have run the main js first...');
-    process.exit(1);
-};
-
-const ss = {
-    rootDir: path.resolve(import.meta.dirname),
-    config: yaml.load(fs.readFileSync(configPath, 'utf8')),
-    packageJson: JSON.parse(fs.readFileSync(path.join(path.resolve(import.meta.dirname), '..', 'package.json'), 'utf8')),
-    log,
+ss = {
+    ...ss,
     cache: {},
 };
-
-ss.log.green("Created ss object!");
 
 function startServer() {
     retrieved = true;
@@ -39,28 +31,20 @@ function startServer() {
     const app = express();
     const port = ss.config.client.port || 13370;
 
-    app.use(express.static(path.join(ss.rootDir, 'store', 'client-modified'))); // server-client\store\client-modified
-    app.use(express.static(path.join(ss.rootDir, 'src', 'client-static'))); // server-client\src\client-static
+    app.use(express.static(path.join(ss.currentDir, 'store', 'client-modified'))); // server-client\store\client-modified
+    app.use(express.static(path.join(ss.currentDir, 'src', 'client-static'))); // server-client\src\client-static
 
     app.listen(port, () => {
         ss.log.success(`Server is running on http://localhost:${port}`);
     });
 };
 
-function getLastSavedTimestamp(filePath) {
-    try {
-        const stats = fs.statSync(filePath);
-        return stats.mtimeMs;
-    } catch (error) {
-        ss.log.yellow('Error getting file timestamp. It probably doesn\'t exist... yet!'); //it just doesnt exist. who cares LMAO
-        return 0;
-    };
-};
+//all this is retrieving the config:
 
 let retrieved = false;
-let itemsFilePath = path.join(ss.rootDir, 'store', 'items.json');
-let mapsFilePath = path.join(ss.rootDir, 'store', 'maps.json');
-let serversFilePath = path.join(ss.rootDir, 'store', 'servers.json');
+let itemsFilePath = path.join(ss.currentDir, 'store', 'items.json');
+let mapsFilePath = path.join(ss.currentDir, 'store', 'maps.json');
+let serversFilePath = path.join(ss.currentDir, 'store', 'servers.json');
 
 function connectWebSocket(retryCount = 0) {
     const ws = new WebSocket(ss.config.client.sync_server); // Use the sync server URL from the config
@@ -69,9 +53,9 @@ function connectWebSocket(retryCount = 0) {
         ss.log.blue('WebSocket connection opened. Requesting config information...');
         ws.send(JSON.stringify({
             cmd: "requestConfig",
-            lastItems: Math.floor(getLastSavedTimestamp(itemsFilePath)/1000), //well in theory, if its not in existence this returns 0 and we should get it :D
-            lastMaps: Math.floor(getLastSavedTimestamp(mapsFilePath)/1000), //this will always be retrieved. ignore the fact that it does that.
-            lastServers: Math.floor(getLastSavedTimestamp(serversFilePath)/1000),
+            lastItems: Math.floor(misc.getLastSavedTimestamp(itemsFilePath)/1000), //well in theory, if its not in existence this returns 0 and we should get it :D
+            lastMaps: Math.floor(misc.getLastSavedTimestamp(mapsFilePath)/1000), //this will always be retrieved. ignore the fact that it does that.
+            lastServers: Math.floor(misc.getLastSavedTimestamp(serversFilePath)/1000),
         }));
     });
 

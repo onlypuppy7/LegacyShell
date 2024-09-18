@@ -4,14 +4,14 @@ import crypto from 'node:crypto';
 import UglifyJS from 'uglify-js';
 
 function prepareModified(ss) {
-    const sourceShellJsPath = path.join(ss.rootDir, 'src', 'client-static', 'src', 'shellshock.min.js');
-    const destinationShellJsPath = path.join(ss.rootDir, 'store', 'client-modified', 'src', 'shellshock.min.js');
+    const sourceShellJsPath = path.join(ss.currentDir, 'src', 'client-static', 'src', 'shellshock.min.js');
+    const destinationShellJsPath = path.join(ss.currentDir, 'store', 'client-modified', 'src', 'shellshock.min.js');
 
-    const sourceServersJsPath = path.join(ss.rootDir, 'src', 'client-static', 'src', 'servers.js');
-    const destinationServersJsPath = path.join(ss.rootDir, 'store', 'client-modified', 'src', 'servers.js');
+    const sourceServersJsPath = path.join(ss.currentDir, 'src', 'client-static', 'src', 'servers.js');
+    const destinationServersJsPath = path.join(ss.currentDir, 'store', 'client-modified', 'src', 'servers.js');
 
-    const sourceHtmlPath = path.join(ss.rootDir, 'src', 'client-static', 'index.html');
-    const destinationHtmlPath = path.join(ss.rootDir, 'store', 'client-modified', 'index.html');
+    const sourceHtmlPath = path.join(ss.currentDir, 'src', 'client-static', 'index.html');
+    const destinationHtmlPath = path.join(ss.currentDir, 'store', 'client-modified', 'index.html');
 
     const hashes = {};
 
@@ -28,7 +28,7 @@ function prepareModified(ss) {
         ss.log.italic("Inserting map jsons into shellshock.min.js...");
         sourceCode = sourceCode.replace(/LEGACYSHELLMINMAPS/g, ss.cache.maps); //akshually
         ss.log.italic("Inserting babylon into shellshock.min.js...");
-        sourceCode = sourceCode.replace(/LEGACYSHELLBABYLON/g, fs.readFileSync(path.join(ss.rootDir, 'src', 'babylon.js')));
+        sourceCode = sourceCode.replace(/LEGACYSHELLBABYLON/g, fs.readFileSync(path.join(ss.currentDir, 'src', 'babylon.js')));
 
         if (ss.config.client.minify) {
             ss.log.italic("Minifying/obfuscating shellshock.min.js...");

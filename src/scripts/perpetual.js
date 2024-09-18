@@ -1,11 +1,13 @@
+//basic
+import fs from 'node:fs';
+import path from 'node:path';
+import yaml from 'js-yaml';
+//legacyshell: basic
+import misc from '../../src/shell/general/misc.js';
+//legacyshell: perpetual
 import { spawn } from 'child_process';
 import fetch from 'node-fetch';
-import fs from 'fs';
-import path from 'path';
-import yaml from 'js-yaml';
 import readline from 'readline';
-
-import log from '../src/coloured-logging.js';
 
 // optional passing of args instead of the yaml (warning cancer do not use)
 
@@ -19,18 +21,7 @@ import log from '../src/coloured-logging.js';
 // };
 // passed = (typeof passed == 'object' && !Array.isArray(passed)) ? passed : {}; //idk what all this is for
 
-const configPath = path.join(import.meta.dirname, '..', 'store', 'config.yaml');
-if (!fs.existsSync(configPath)) {
-    console.log('config.yaml not found, make sure you have run the main js first...');
-    process.exit(1);
-};
-
-const ss = {
-    rootDir: path.join(import.meta.dirname),
-    config: yaml.load(fs.readFileSync(configPath, 'utf8')),
-    packageJson: JSON.parse(fs.readFileSync(path.join(path.resolve(import.meta.dirname), '..', 'package.json'), 'utf8')),
-    log
-};
+let ss = misc.instanciateSS(import.meta.dirname, true);
 
 let server_type = process.argv[2].replace("--","");
 
@@ -44,7 +35,7 @@ const options = {
     dailyrestart_time:      passed.dailyrestart_time        || "4:00",
     //file logging
     logfile_enable:         passed.logfile_enable           || true,
-    logfile_location:       path.join(ss.rootDir, '..', "store", "logs", server_type), //no editing kek
+    logfile_location:       path.join(ss.rootDir, "store", "logs", server_type), //no editing kek
     //webhook logging
     webhook_url:            passed.webhook_url              || "", //false or empty is disabled
     webhook_username:       passed.webhook_username         || "Webhook", //eg "LegacyShell: Client Server"
@@ -62,9 +53,9 @@ const rl = readline.createInterface({
 rl.prompt();
 rl.on('line', (line) => {
     let cmd = line.trim();
-    if (cmd == "r" || cmd == "restart") {
+    if (cmd === "r" || cmd === "restart") {
         startProcess();
-    };
+    }
     rl.prompt();
 }).on('close', () => {
     logSend('Exiting interactive mode');

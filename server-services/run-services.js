@@ -1,624 +1,51 @@
+//basic
 import fs from 'node:fs';
 import path from 'node:path';
-import crypto from 'node:crypto';
-import bcrypt from 'bcrypt';
-import util from 'node:util';
-
 import yaml from 'js-yaml';
-import sqlite3 from 'sqlite3';
+//legacyshell: basic
+import misc from '../src/shell/general/misc.js';
+//legacyshell: database
+import sqlite3 from 'sqlite3'; //db
+import util from 'node:util';
+import crypto from 'node:crypto'; //passwds
+//legacyshell: services
 import WebSocket, { WebSocketServer } from 'ws';
-
-
-import rl from './ratelimit.js';
-import log from '../src/coloured-logging.js';
-
-sqlite3.verbose();
-
-// storage for the services server. holds the DB.
-fs.mkdirSync(path.join(import.meta.dirname, 'store'), { recursive: true });
-
-const configPath = path.join(import.meta.dirname, '..', 'store', 'config.yaml');
-if (!fs.existsSync(configPath)) {
-    console.log('config.yaml not found, make sure you have run the main js first...');
-    process.exit(1);
-};
-
-const ss = {
-    rootDir: path.resolve(import.meta.dirname),
-    config: yaml.load(fs.readFileSync(configPath, 'utf8')),
-    packageJson: JSON.parse(fs.readFileSync(path.join(path.resolve(import.meta.dirname), '..', 'package.json'), 'utf8')),
-    requests_cache: {},
-    clamp: (value, min, max) => { return Math.min(Math.max(value, min), max) },
-    log
-};
-
-ss.log.green('created ss object!');
-ss.config.verbose && ss.log.bgGray("VERBOSE LOGGING ENABLED!!!!!!");
+import rl from './src/ratelimit.js';
+import accs from './src/data_management/accountManagement.js';
+import sess from './src/data_management/sessionManagement.js';
+import data from './src/data_management/dataManagement.js';
+//
 
 //init db (ooooh! sql! fancy! a REAL database! not a slow json!)
 const db = new sqlite3.Database('./server-services/store/LegacyShellData.db');
 
-db.serialize(() => {
-    //USERS
-    db.run(`
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE,
-            password TEXT,
-            authToken TEXT,
-            kills INTEGER DEFAULT 0,
-            deaths INTEGER DEFAULT 0,
-            streak INTEGER DEFAULT 0,
-            currentBalance INTEGER DEFAULT 1000,
-            eggsSpent INTEGER DEFAULT 0,
-            ownedItemIds TEXT DEFAULT '[1001,1002,1003,1004,1005,1006,2001,2002,2003,2004,2005,2006,3100,3600,3400,3800,3000]',  -- Will store as JSON string
-            loadout TEXT DEFAULT '{"primaryId":[3100,3600,3400,3800],"secondaryId":[3000,3000,3000,3000],"classIdx":0,"colorIdx":0,"hatId":null,"stampId":null}',       -- Will store as JSON string
-            version INTEGER DEFAULT 1,
+let ss = misc.instanciateSS(import.meta.dirname);
 
-            upgradeProductId TEXT DEFAULT NULL,
-            upgradeMultiplier INTEGER DEFAULT NULL,
-            upgradeAdFree BOOLEAN DEFAULT TRUE,
-            upgradeExpiryDate INTEGER DEFAULT 0,
+ss = {
+    ...ss,
+    requests_cache: {},
+    db,
+    accs,
+    sess,
+    data,
+    //db stuff
+    runQuery:   util.promisify(db.run.bind(db)),
+    getOne:     util.promisify(db.get.bind(db)),
+    getAll:     util.promisify(db.all.bind(db)),
+};
 
-            maybeSchoolEmail INTEGER DEFAULT NULL,
-            adminRoles INTEGER DEFAULT 0,
-            dateCreated INTEGER DEFAULT (strftime('%s', 'now')),
-            dateModified INTEGER DEFAULT (strftime('%s', 'now'))
-        )
-    `);
+//yeah we're doing this. deal with it fuckface.
+accs.setSS(ss);
+sess.setSS(ss);
+data.setSS(ss);
 
-    db.run(`
-        CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
-    `);
-
-    db.run(`
-        CREATE INDEX IF NOT EXISTS idx_users_authToken ON users(authToken);
-    `);
-    
-    db.run(`
-        CREATE TRIGGER IF NOT EXISTS update_dateModified
-        AFTER UPDATE ON users
-        FOR EACH ROW
-        BEGIN
-            UPDATE users SET dateModified = strftime('%s', 'now') WHERE id = OLD.id;
-        END;
-    `);
-
-    //RATELIMITING
-    db.run(`
-        CREATE TABLE IF NOT EXISTS ip_requests (
-            ip TEXT PRIMARY KEY,
-            sensitive_count INTEGER DEFAULT 0,
-            regular_count INTEGER DEFAULT 0,
-            last_sensitive_reset INTEGER DEFAULT (strftime('%s', 'now')),
-            last_regular_reset INTEGER DEFAULT (strftime('%s', 'now'))
-        )
-    `);
-
-    //SESSIONS
-    db.run(`
-    CREATE TABLE IF NOT EXISTS sessions (
-        session_id TEXT PRIMARY KEY,
-        user_id INTEGER UNIQUE,
-        ip_address TEXT,
-        dateCreated INTEGER DEFAULT (strftime('%s', 'now')),
-        expires_at INTEGER
-    )
-    `);
-
-    //ITEMS
-    db.run(`
-    CREATE TABLE IF NOT EXISTS items (
-        id INTEGER PRIMARY KEY,
-        name TEXT DEFAULT 'Unknown item',
-        is_available BOOLEAN DEFAULT TRUE,
-        price INTEGER DEFAULT 0,
-        item_class TEXT DEFAULT 'Unknown class',
-        item_type_id INTEGER DEFAULT 0,
-        item_type_name TEXT DEFAULT 0,
-        exclusive_for_class INTEGER,
-        item_data TEXT DEFAULT '{"class":Eggk47,"meshName":"gun_eggk47"}',
-        dateCreated INTEGER DEFAULT (strftime('%s', 'now')),
-        dateModified INTEGER DEFAULT (strftime('%s', 'now'))
-    )
-    `);
-    
-    db.run(`
-        CREATE TRIGGER IF NOT EXISTS update_dateModified_items
-        AFTER UPDATE ON items
-        FOR EACH ROW
-        BEGIN
-            UPDATE items SET dateModified = strftime('%s', 'now') WHERE id = OLD.id;
-        END;
-    `);
-
-    //ITEMS (i removed some chars from ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 for ease of reading such as 0/O, 1/I)
-    //i know this looks horrible, and it is. but it has to be done so that you can just insert stuff in a sql editor. please just accept this and move on w ur life.
-    //remember to change the '31' value if you change the character set.
-    db.run(`
-    CREATE TABLE IF NOT EXISTS codes (
-        key TEXT PRIMARY KEY DEFAULT (substr('ABCDEFGHJKMNPQRSTUVWXYZ23456789', abs(random()) % 31 + 1, 1) ||
-                                   substr('ABCDEFGHJKMNPQRSTUVWXYZ23456789', abs(random()) % 31 + 1, 1) ||
-                                   substr('ABCDEFGHJKMNPQRSTUVWXYZ23456789', abs(random()) % 31 + 1, 1) ||
-                                   substr('ABCDEFGHJKMNPQRSTUVWXYZ23456789', abs(random()) % 31 + 1, 1) ||
-                                   substr('ABCDEFGHJKMNPQRSTUVWXYZ23456789', abs(random()) % 31 + 1, 1) ||
-                                   substr('ABCDEFGHJKMNPQRSTUVWXYZ23456789', abs(random()) % 31 + 1, 1) ||
-                                   substr('ABCDEFGHJKMNPQRSTUVWXYZ23456789', abs(random()) % 31 + 1, 1) ||
-                                   substr('ABCDEFGHJKMNPQRSTUVWXYZ23456789', abs(random()) % 31 + 1, 1) ||
-                                   substr('ABCDEFGHJKMNPQRSTUVWXYZ23456789', abs(random()) % 31 + 1, 1) ||
-                                   substr('ABCDEFGHJKMNPQRSTUVWXYZ23456789', abs(random()) % 31 + 1, 1) ||
-                                   substr('ABCDEFGHJKMNPQRSTUVWXYZ23456789', abs(random()) % 31 + 1, 1) ||
-                                   substr('ABCDEFGHJKMNPQRSTUVWXYZ23456789', abs(random()) % 31 + 1, 1)),
-        item_ids TEXT DEFAULT '[]',
-        eggs_given INTEGER DEFAULT 0,
-        uses INTEGER DEFAULT 1,
-        used_by TEXT DEFAULT '[]',
-        dateCreated INTEGER DEFAULT (strftime('%s', 'now')),
-        dateModified INTEGER DEFAULT (strftime('%s', 'now'))
-    )
-    `);
-    
-    db.run(`
-        CREATE TRIGGER IF NOT EXISTS update_dateModified_codes
-        AFTER UPDATE ON codes
-        FOR EACH ROW
-        BEGIN
-            UPDATE codes SET dateModified = strftime('%s', 'now') WHERE key = OLD.key;
-        END;
-    `);
-
-    //WIP! MAPS
-    db.run(`
-    CREATE TABLE IF NOT EXISTS maps (
-        name TEXT PRIMARY KEY DEFAULT 'Unknown map',
-        sun TEXT DEFAULT '{"direction":{"x":0.2,"y":1,"z":-0.3},"color":"#FFFFFF"}',
-        ambient TEXT DEFAULT '#000000', --NOT USED!
-        fog TEXT DEFAULT '{"density":0.1,"color":"#33334C"}', --NOT USED!
-        data TEXT DEFAULT '{}',
-        palette TEXT DEFAULT '[null,null,null,null,null,null,null,null,null,null]',
-        render TEXT DEFAULT '{}', --NOT USED!
-        width INTEGER DEFAULT -9999,
-        height INTEGER DEFAULT -9999,
-        depth INTEGER DEFAULT -9999,
-        surfaceArea INTEGER DEFAULT 0,
-        extents TEXT DEFAULT '{"x":{"max":0,"min":10000},"y":{"max":0,"min":10000},"z":{"max":0,"min":10000},"width":-9999,"height":-9999,"depth":-9999}',
-        skybox TEXT DEFAULT '',
-        modes TEXT DEFAULT '{"FFA":true,"Teams":true}', --NOT USED!
-        availability TEXT DEFAULT 'both', --NOT USED!
-        numPlayers INTEGER DEFAULT 18, --NOT USED!
-
-        dateCreated INTEGER DEFAULT (strftime('%s', 'now')),
-        dateModified INTEGER DEFAULT (strftime('%s', 'now'))
-    )
-    `);
-    
-    db.run(`
-        CREATE TRIGGER IF NOT EXISTS update_dateModified_maps
-        AFTER UPDATE ON maps
-        FOR EACH ROW
-        BEGIN
-            UPDATE items SET dateModified = strftime('%s', 'now') WHERE name = OLD.name;
-        END;
-    `);
-
-    //GAME SERVERS
-    //allows a server to make certain sensitive operations, such as adding eggs, retrieving user stats.
-    //providing one of these auth keys also bypasses ratelimiting
-    //also the cancer massive substring thing of doom yeah bitch im NOT sorry
-    db.run(`
-    CREATE TABLE IF NOT EXISTS game_servers (
-        auth_key TEXT PRIMARY KEY DEFAULT (substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1)),
-        name TEXT DEFAULT 'Unnamed server',
-        address TEXT DEFAULT 'Unnamed server',
-        dateCreated INTEGER DEFAULT (strftime('%s', 'now')),
-        dateModified INTEGER DEFAULT (strftime('%s', 'now'))
-    )
-    `);
-    
-    db.run(`
-        CREATE TRIGGER IF NOT EXISTS update_dateModified_game_servers
-        AFTER UPDATE ON game_servers
-        FOR EACH ROW
-        BEGIN
-            UPDATE game_servers SET dateModified = strftime('%s', 'now') WHERE name = OLD.name;
-        END;
-    `);
-});
+data.initDB();
 
 ss.log.green('account DB set up! (if it didnt exist already i suppose)');
 
-//db stuff
-ss.runQuery = util.promisify(db.run.bind(db));
-ss.getOne = util.promisify(db.get.bind(db));
-ss.getAll = util.promisify(db.all.bind(db));
-
 //account stuff
-const hashPassword = (data) => {
-    return bcrypt.hashSync(data, ss.config.services.password_cost_factor || 10);
-};
 
-const comparePassword = async (userData, receivedPassword) => {
-    try {
-        console.log(receivedPassword, userData.password);
-        return bcrypt.compareSync(receivedPassword, userData.password);
-    } catch (error) {
-        console.error(error); return "Database error.";
-    };
-};
-
-const compareAuthToken = async (userData, receivedAuthToken) => {
-    try {
-        let success = (receivedAuthToken == userData.authToken);
-        return success ? true : "Validation failed.";
-    } catch (error) {
-        console.error(error); return "Database error.";
-    };
-};
-
-const generateToken = async (username) => {
-    const newToken = crypto.randomBytes(32).toString('hex');
-    ss.config.verbose && ss.log.bgBlue("services: Writing to DB: set new token "+username);
-    await ss.runQuery(`UPDATE users SET authToken = ? WHERE username = ?`, [newToken, username]);
-    return newToken;
-};
-
-const createAccount = async (username, password) => {
-    password = hashPassword(password);
-    try {
-        ss.config.verbose && ss.log.bgBlue("services: Writing to DB: add new user "+username);
-        await ss.runQuery(`
-            INSERT INTO users (username, password)
-            VALUES (?, ?)
-        `, [username, password]);
-
-        return true;
-    } catch (error) {
-        console.error('Error creating account:', error.code);
-        return error.code;
-    };
-};
-
-const getUserData = async (identifier, convertJson, retainSensitive) => {
-    try {
-        let user;
-
-        if (typeof identifier === 'string') {
-            ss.config.verbose && ss.log.bgCyan("services: Reading from DB: get user via username "+identifier);
-            user = await ss.getOne(`SELECT * FROM users WHERE username = ?`, [identifier]);
-        } else if (Number.isInteger(identifier)) {
-            ss.config.verbose && ss.log.bgCyan("services: Reading from DB: get user via ID "+identifier);
-            user = await ss.getOne(`SELECT * FROM users WHERE id = ?`, [identifier]);
-        } else {
-            ss.log.red('Invalid identifier type '+identifier);
-            return null;
-        };
-
-        if (user) {
-            if (convertJson) {
-                user.ownedItemIds = JSON.parse(user.ownedItemIds);
-                user.loadout = JSON.parse(user.loadout);
-            };
-            if (!retainSensitive) {
-                delete user.password;
-            };
-
-            user.upgradeAdFree = !!user.upgradeAdFree;
-            user.upgradeExpiryDate = user.upgradeExpiryDate || 0;
-            user.upgradeIsExpired = Math.floor(Date.now() / 1000) > user.upgradeExpiryDate;
-            if (user.upgradeIsExpired) user.upgradeMultiplier = null, user.upgradeProductId = null;
-
-            // console.log('User data retrieved:', user);
-            console.log('User data retrieved');
-            return user;
-        } else {
-            console.log('User not found');
-            return null;
-        }
-    } catch (error) {
-        console.error('Error retrieving user data:', error);
-        return null;
-    };
-};
-
-const addItemToPlayer = async (item_id, userData, isBuying, force) => { //force is for item codes and stuff
-    try {
-        if (userData.ownedItemIds.includes(item_id)) return "ALREADY_OWNED";
-
-        const item = await getItemData(item_id);
-
-        if ((!item) || (!(force || item.is_available))) return "ITEM_NOT_FOUND";
-        if (isBuying) {
-            if (userData.currentBalance >= item.price) {
-                userData.currentBalance -= item.price;
-            } else {
-                return "INSUFFICIENT_FUNDS";
-            };
-        };
-        userData.ownedItemIds = [...userData.ownedItemIds, item_id];
-
-        ss.config.verbose && ss.log.bgBlue("services: Writing to DB: set new balance + ownedItemIds "+userData.username);
-        await ss.runQuery(`
-            UPDATE users 
-            SET currentBalance = ?, ownedItemIds = ?
-            WHERE id = ?
-        `, [userData.currentBalance, JSON.stringify(userData.ownedItemIds), userData.id]);
-        return "SUCCESS"; //god, i hope
-    } catch (error) {
-        console.error('Error retrieving item data:', error);
-        return "ITEM_NOT_FOUND";
-    };
-};
-
-const doesPlayerOwnItem = async (userData, item_id, item_class) => {
-    try {
-        if (["Hats", "Stamps"].includes(item_class) && item_id === null) return true;
-        const item = await getItemData(item_id, true);
-        console.log(userData.ownedItemIds, item_id, item_class, userData.ownedItemIds.includes(item_id), item.item_class == item_class, userData.ownedItemIds.includes(item_id) && item.item_class == item_class);
-        if (userData.ownedItemIds.includes(item_id) && item.item_class == item_class) return true;
-        return false;
-    } catch (error) {
-        console.error('Error retrieving item data:', item_id, item_class, error);
-        return "ITEM_NOT_FOUND";
-    };
-};
-
-const getItemData = async (item_id, retainSensitive) => {
-    try {
-        ss.config.verbose && ss.log.bgCyan(`services: Reading from DB: get item ${item_id}`);
-        const item = await ss.getOne(`SELECT * FROM items WHERE id = ?`, [item_id]);
-
-        if (item) {
-            if (!retainSensitive) {
-                delete item.item_class;
-                delete item.dateCreated;
-                delete item.dateModified;
-            };
-            item.is_available = !!item.is_available;
-            item.item_data = JSON.parse(item.item_data);
-            return item;
-        } else {
-            console.log('Item not found');
-            return null;
-        };
-    } catch (error) {
-        console.error('Error retrieving item data:', error);
-        return null;
-    };
-};
-
-const getCodeData = async (code_key, retainSensitive) => {
-    try {
-        ss.config.verbose && ss.log.bgCyan(`services: Reading from DB: get code ${code_key}`);
-        const code = await ss.getOne(`SELECT * FROM codes WHERE key = ?`, [code_key]);
-
-        if (code) {
-            ss.config.verbose && console.log(code);
-            code.used_by = JSON.parse(code.used_by);
-            code.item_ids = JSON.parse(code.item_ids);
-            if (!retainSensitive) {
-                delete code.uses;
-                delete code.used_by;
-                delete code.dateCreated;
-                delete code.dateModified;
-            };
-            return code;
-        } else {
-            console.log('Code not found');
-            return null;
-        };
-    } catch (error) {
-        console.error('Error retrieving code data:', error);
-        return null;
-    };
-};
-
-const addCodeToPlayer = async (code_key, userData) => {
-    try {
-        const code = (await getCodeData(code_key, true)) || [];
-        code.result = "ERROR"; //default if it fails, i guess
-
-        if (code.used_by) { //exists
-            if ((code.uses >= 1) && (!code.used_by.includes(userData.id))) {
-                for (const item_id of code.item_ids) {
-                    await addItemToPlayer(item_id, userData, false, true);
-                };
-                userData.currentBalance += code.eggs_given;
-
-                ss.config.verbose && ss.log.bgBlue("services: Writing to DB: set new balance + ownedItemIds "+userData.username);
-                await ss.runQuery(`
-                    UPDATE users 
-                    SET currentBalance = ?, ownedItemIds = ?
-                    WHERE id = ?
-                `, [userData.currentBalance, JSON.stringify(userData.ownedItemIds), userData.id]);
-
-                code.uses -= 1;
-                code.used_by = [...code.used_by, userData.id];
-
-                ss.config.verbose && ss.log.bgBlue("services: Writing to DB: update code "+code_key);
-                await ss.runQuery(`
-                    UPDATE codes 
-                    SET uses = ?, used_by = ?
-                    WHERE key = ?
-                `, [code.uses, JSON.stringify(code.used_by), code_key]);
-
-                code.result = "SUCCESS";
-            } else {
-                code.result = "CODE_PREV_REDEEMED";
-            };
-        } else {
-            console.log('Code not found');
-            code.result = "CODE_NOT_FOUND";
-        };
-
-        return code;
-    } catch (error) {
-        console.error('Error retrieving code data:', error);
-        return null;
-    };
-};
-
-const getAllItemData = async (retainSensitive) => {
-    try {
-        ss.config.verbose && ss.log.bgCyan("services: Reading from DB: get all items");
-        const items = await ss.getAll(`SELECT * FROM items`);
-
-        if (items) {
-            return items.map(item => {
-                if (!retainSensitive) {
-                    delete item.item_class;
-                    delete item.dateCreated;
-                    delete item.dateModified;
-                };
-                item.is_available = item.is_available === 1;
-                item.item_data = JSON.parse(item.item_data);
-                return item;
-            });
-        } else {
-            console.log('Items not found');
-            return null;
-        };
-    } catch (error) {
-        console.error('Error retrieving items data:', error);
-        return null;
-    };
-};
-
-const getAllMapData = async (retainSensitive) => {
-    try {
-        ss.config.verbose && ss.log.bgCyan("services: Reading from DB: get all maps");
-        const maps = await ss.getAll(`SELECT * FROM maps`);
-
-        if (maps) {
-            return maps.map(map => { // yes, m a p
-                if (!retainSensitive) {
-                    delete map.dateCreated;
-                    delete map.dateModified;
-                };
-                map.sun = JSON.parse(map.sun);
-                map.fog = JSON.parse(map.fog);
-                map.data = JSON.parse(map.data);
-                map.palette = JSON.parse(map.palette);
-                map.render = JSON.parse(map.render);
-                map.extents = JSON.parse(map.extents);
-                map.modes = JSON.parse(map.modes);
-                return map;
-            });
-        } else {
-            console.log('Maps not found');
-            return null;
-        };
-    } catch (error) {
-        console.error('Error retrieving maps data:', error);
-        return null;
-    };
-};
-
-const getAuthKeyData = async (auth_key) => {
-    try {
-        ss.config.verbose && ss.log.bgCyan(`services: Reading from DB: get code ${auth_key}`);
-        const data = await ss.getOne(`SELECT * FROM game_servers WHERE auth_key = ?`, [auth_key]);
-        if (data) return data;
-        else {
-            console.log('Data not found');
-            return null;
-        };
-    } catch (error) {
-        console.error('Error retrieving data:', error);
-        return null;
-    };
-};
-
-const getAllGameServerData = async (retainSensitive) => {
-    try {
-        ss.config.verbose && ss.log.bgCyan(`services: Reading from DB: get all game servers`);
-        const data = await ss.getAll(`SELECT * FROM game_servers`);
-        if (data) {
-            return data.map(server => {
-                if (!retainSensitive) {
-                    delete server.auth_key;
-                    delete server.dateCreated;
-                    delete server.dateModified;
-                };
-                return data;
-            });
-        } else {
-            console.log('Data not found');
-            return null;
-        };
-    } catch (error) {
-        console.error('Error retrieving data:', error);
-        return null;
-    };
-};
-
-const createSession = async (user_id, ip_address) => {
-    deleteAllSessionsForUser(user_id);
-
-    const session_id = crypto.randomBytes(32).toString('hex');
-    const expires_at = Math.floor(Date.now() / 1000) + (60 * (ss.config.services.session_expiry_time || 180));
-
-    try {
-        ss.config.verbose && ss.log.bgBlue("services: Writing to DB: create new session "+user_id);
-        await ss.runQuery(`
-            INSERT INTO sessions (session_id, user_id, ip_address, expires_at)
-            VALUES (?, ?, ?, ?)
-        `, [session_id, user_id, ip_address, expires_at]);
-        return session_id;
-    } catch (error) {
-        console.error('Error creating session:', error);
-        return null;
-    };
-};
-
-
-const retrieveSession = async (session_id, ip_address) => {
-    try {
-        ss.config.verbose && ss.log.bgCyan("services: Reading from DB: get session for session_id " + session_id);
-
-        const session = await ss.getOne(`
-            SELECT * FROM sessions WHERE session_id = ? AND expires_at > strftime('%s', 'now')
-        `, [session_id]);
-
-        if (!session) {
-            ss.log.yellow(`No valid session found for session_id: ${session_id}`);
-            return null;
-        };
-
-        ss.config.verbose && console.log(session, ip_address);
-
-        if (session.ip_address !== ip_address) {
-            await deleteAllSessionsForUser(session.user_id);
-            return null;
-        };
-
-        ss.log.green(`Session retrieved for session_id: ${session_id}`);
-        return session;
-    } catch (error) {
-        console.error('Error retrieving session:', error);
-        return null;
-    };
-};
-
-const deleteAllSessionsForUser = async (user_id) => {
-    try {
-        ss.config.verbose && ss.log.bgPurple(`services: Deleting from DB: all sessions for user_id: ${user_id}`);
-        await ss.runQuery(`DELETE FROM sessions WHERE user_id = ?`, [user_id]);
-    } catch (error) {
-        console.error('Error deleting sessions:', error);
-    };
-};
-
-const cleanupExpiredSessions = async () => {
-    try {
-        ss.config.verbose && ss.log.bgPurple(`services: Deleting from DB: Cleaning up expired sessions`);
-        await ss.runQuery(`DELETE FROM sessions WHERE expires_at < strftime('%s', 'now')`);
-        ss.log.green('Expired sessions cleaned up');
-    } catch (error) {
-        console.error('Error cleaning up expired sessions:', error);
-    }
-};
-
-setInterval(cleanupExpiredSessions, 1000 * 60 * (ss.config.services.session_cleanup_interval || 3));
+setInterval(sess.cleanupExpiredSessions, 1000 * 60 * (ss.config.services.session_cleanup_interval || 3));
 
 const initTables = async () => {
     try {
@@ -629,7 +56,7 @@ const initTables = async () => {
         } else {
             ss.log.blue('Items table is empty. Initializing with JSON data...');
     
-            const jsonDir = path.join(ss.rootDir, 'src', 'items');
+            const jsonDir = path.join(ss.currentDir, 'src', 'items');
             const files = fs.readdirSync(jsonDir);
             for (const file of files) {
                 if (path.extname(file) === '.json') {
@@ -654,7 +81,7 @@ const initTables = async () => {
         ss.config.verbose && ss.log.bgPurple(`services: Deleting from DB: all maps`);
         await ss.runQuery('DELETE FROM maps;');
 
-        const jsonDir = path.join(ss.rootDir, 'src', 'maps');
+        const jsonDir = path.join(ss.currentDir, 'src', 'maps');
         const files = fs.readdirSync(jsonDir);
         for (const file of files) {
             if (path.extname(file) === '.json') {
@@ -696,7 +123,7 @@ const initTables = async () => {
 };
 
 initTables().then(() => {
-    cleanupExpiredSessions();
+    sess.cleanupExpiredSessions();
 
     const port = ss.config.services.port || 13371;
     const wss = new WebSocketServer({ port: port });
@@ -729,7 +156,7 @@ initTables().then(() => {
                 let isAccepted;
 
                 if (msg.auth_key) {
-                    isAccepted = await getAuthKeyData(msg.auth_key); //bypass RL
+                    isAccepted = await accs.getAuthKeyData(msg.auth_key); //bypass RL
                     if (isAccepted) ss.log.special('Found auth key '+isAccepted.name);
                     else ss.log.red('Invalid auth key');
                 } else if (cmdType == 'auth_required') {
@@ -746,11 +173,11 @@ initTables().then(() => {
                 let sessionData, userData;
 
                 if (msg.session) {
-                    sessionData = await retrieveSession(msg.session, ip);
+                    sessionData = await sess.retrieveSession(msg.session, ip);
                     try {
                         console.log(sessionData.expires_at, (Math.floor(Date.now() / 1000)))
                         if (sessionData && (sessionData.expires_at > (Math.floor(Date.now() / 1000)))) {
-                            userData = await getUserData(sessionData.user_id, true);
+                            userData = await accs.getUserData(sessionData.user_id, true);
                         };
                     } catch (error) {
                         ss.log.red("WHY IS THERE AN ERROR?? error with session -> userData");
@@ -779,20 +206,22 @@ initTables().then(() => {
                             nugget_interval: ss.config.services.nugget_interval,
                         };
 
-                        if (msg.lastItems !== undefined)    response.items  = items.maxDateModified         > msg.lastItems     ? await getAllItemData()            : false;
-                        if (msg.lastMaps !== undefined)     response.maps   = maps.maxDateModified          > msg.lastMaps      ? await getAllMapData()             : false;
-                        if (msg.lastServers !== undefined)  response.servers= game_servers.maxDateModified  > msg.lastServers   ? await getAllGameServerData()[0]   : false;
+                        console.log(await data.getAllGameServerData());
+
+                        if (msg.lastItems !== undefined)    response.items  = items.maxDateModified         > msg.lastItems     ? await data.getAllItemData()            : false;
+                        if (msg.lastMaps !== undefined)     response.maps   = maps.maxDateModified          > msg.lastMaps      ? await data.getAllMapData()             : false;
+                        if (msg.lastServers !== undefined)  response.servers= game_servers.maxDateModified  > msg.lastServers   ? await data.getAllGameServerData()      : false;
 
                         ws.send(JSON.stringify( response ));
                         break;
                     // Client commands
                     case 'validateLogin':
-                        getUserData(msg.username, true, true).then(userData => {
+                        accs.getUserData(msg.username, true, true).then(userData => {
                             if (userData) {
-                                comparePassword(userData, msg.password).then(async (isPasswordCorrect) => {
+                                accs.comparePassword(userData, msg.password).then(async (isPasswordCorrect) => {
                                     if (isPasswordCorrect === true) {
-                                        userData.authToken = await generateToken(msg.username);
-                                        userData.session = await createSession(userData.id, ip);
+                                        userData.authToken = await accs.generateToken(msg.username);
+                                        userData.session = await sess.createSession(userData.id, ip);
                                         delete userData.password;
                                         ws.send(JSON.stringify(userData));
                                     } else {
@@ -812,12 +241,12 @@ initTables().then(() => {
                         });
                         break;
                     case 'validateLoginViaAuthToken':
-                        getUserData(msg.username, true, true).then(userData => {
+                        accs.getUserData(msg.username, true, true).then(userData => {
                             if (userData) {
-                                compareAuthToken(userData, msg.authToken).then(async (accessGranted) => {
+                                accs.compareAuthToken(userData, msg.authToken).then(async (accessGranted) => {
                                     if (accessGranted === true) {
-                                        userData.authToken = await generateToken(msg.username);
-                                        userData.session = await createSession(userData.id, ip);
+                                        userData.authToken = await accs.generateToken(msg.username);
+                                        userData.session = await sess.createSession(userData.id, ip);
                                         delete userData.password;
                                         ws.send(JSON.stringify(userData));
                                     } else {
@@ -846,14 +275,14 @@ initTables().then(() => {
                                 standardError(ws);
                                 return;
                             };
-                            const accountCreationResult = await createAccount(msg.username, msg.password);
+                            const accountCreationResult = await accs.createAccount(msg.username, msg.password);
                     
                             if (accountCreationResult === true) {
-                                const newToken = await generateToken(msg.username);
+                                const newToken = await accs.generateToken(msg.username);
                     
-                                const userData = await getUserData(msg.username, true);
+                                const userData = await accs.getUserData(msg.username, true);
                                 if (userData) {
-                                    userData.session = await createSession(userData.id, ip);
+                                    userData.session = await sess.createSession(userData.id, ip);
                                     userData.authToken = newToken;
                                     ws.send(JSON.stringify(userData));
                                 } else {
@@ -895,39 +324,39 @@ initTables().then(() => {
                         try {
                             if (userData) {
                                 // class_idx: this.classIdx
-                                userData.loadout.classIdx = ss.clamp(Math.floor(msg.class_idx), 0, 3);
+                                userData.loadout.classIdx = misc.clamp(Math.floor(msg.class_idx), 0, 3);
                                 // soldier_primary_item_id:
-                                if (doesPlayerOwnItem(userData, msg.soldier_primary_item_id, "Eggk47")) 
+                                if (accs.doesPlayerOwnItem(userData, msg.soldier_primary_item_id, "Eggk47")) 
                                     userData.loadout.primaryId[0] = msg.soldier_primary_item_id;
                                 // soldier_secondary_item_id
-                                if (doesPlayerOwnItem(userData, msg.soldier_secondary_item_id, "Cluck9mm")) 
+                                if (accs.doesPlayerOwnItem(userData, msg.soldier_secondary_item_id, "Cluck9mm")) 
                                     userData.loadout.secondaryId[0] = msg.soldier_secondary_item_id;
                                 // scrambler_primary_item_id
-                                if (doesPlayerOwnItem(userData, msg.scrambler_primary_item_id, "DozenGauge")) 
+                                if (accs.doesPlayerOwnItem(userData, msg.scrambler_primary_item_id, "DozenGauge")) 
                                     userData.loadout.primaryId[1] = msg.scrambler_primary_item_id;
                                 // scrambler_secondary_item_id
-                                if (doesPlayerOwnItem(userData, msg.scrambler_secondary_item_id, "Cluck9mm")) 
+                                if (accs.doesPlayerOwnItem(userData, msg.scrambler_secondary_item_id, "Cluck9mm")) 
                                     userData.loadout.secondaryId[1] = msg.scrambler_secondary_item_id;
                                 // ranger_primary_item_id: 
-                                if (doesPlayerOwnItem(userData, msg.ranger_primary_item_id, "CSG1")) 
+                                if (accs.doesPlayerOwnItem(userData, msg.ranger_primary_item_id, "CSG1")) 
                                     userData.loadout.primaryId[2] = msg.ranger_primary_item_id;
                                 // ranger_secondary_item_id
-                                if (doesPlayerOwnItem(userData, msg.ranger_secondary_item_id, "Cluck9mm")) 
+                                if (accs.doesPlayerOwnItem(userData, msg.ranger_secondary_item_id, "Cluck9mm")) 
                                     userData.loadout.secondaryId[2] = msg.ranger_secondary_item_id;
                                 // eggsploder_primary_item_id
-                                if (doesPlayerOwnItem(userData, msg.eggsploder_primary_item_id, "RPEGG")) 
+                                if (accs.doesPlayerOwnItem(userData, msg.eggsploder_primary_item_id, "RPEGG")) 
                                     userData.loadout.primaryId[3] = msg.eggsploder_primary_item_id;
                                 // eggsploder_secondary_item_id
-                                if (doesPlayerOwnItem(userData, msg.eggsploder_secondary_item_id, "Cluck9mm")) 
+                                if (accs.doesPlayerOwnItem(userData, msg.eggsploder_secondary_item_id, "Cluck9mm")) 
                                     userData.loadout.secondaryId[3] = msg.eggsploder_secondary_item_id;
                                 // hat_id: updateHatId,
-                                if (doesPlayerOwnItem(userData, msg.hat_id, "Hats")) 
+                                if (accs.doesPlayerOwnItem(userData, msg.hat_id, "Hats")) 
                                     userData.loadout.hatId = msg.hat_id;
                                 // stamp_id: updateStampId,
-                                if (doesPlayerOwnItem(userData, msg.stamp_id, "Stamps")) 
+                                if (accs.doesPlayerOwnItem(userData, msg.stamp_id, "Stamps")) 
                                     userData.loadout.stampId = msg.stamp_id;
                                 // color: this.colorIdx,
-                                userData.loadout.colorIdx = ss.clamp(Math.floor(msg.color), 0, userData.upgradeIsExpired ? 6 : 13); //if vip, then eep
+                                userData.loadout.colorIdx = misc.clamp(Math.floor(msg.color), 0, userData.upgradeIsExpired ? 6 : 13); //if vip, then eep
 
                                 ss.config.verbose && ss.log.bgBlue("services: Writing to DB: set new loadout "+userData.username) //, console.log(userData.loadout);
                                 await ss.runQuery(`
@@ -950,7 +379,7 @@ initTables().then(() => {
 
                         try {
                             if (userData) {
-                                buyingResult = await addItemToPlayer(msg.item_id, userData, true, false);
+                                buyingResult = await accs.addItemToPlayer(msg.item_id, userData, true, false);
                             }; //ELSE -> achievement: how did we get here?
                         } catch (error) {
                             ss.log.red("WHY IS THERE AN ERROR??");
@@ -969,7 +398,7 @@ initTables().then(() => {
 
                         try {
                             if (userData) {
-                                redeemResult = await addCodeToPlayer(msg.code, userData);
+                                redeemResult = await accs.doesPlayerOwnItem(msg.code, userData);
                             };
                         } catch (error) {
                             ss.log.red("WHY IS THERE AN ERROR??");
@@ -991,7 +420,7 @@ initTables().then(() => {
 
                         try {
                             if (userData) {
-                                previewResult = await getCodeData(msg.code, true);
+                                previewResult = await data.getCodeData(msg.code, true);
                             };
                         } catch (error) {
                             ss.log.red("WHY IS THERE AN ERROR??");
