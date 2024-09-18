@@ -156,7 +156,7 @@ const exported = {
             if (code.used_by) { //exists
                 if ((code.uses >= 1) && (!code.used_by.includes(userData.id))) {
                     for (const item_id of code.item_ids) {
-                        await addItemToPlayer(item_id, userData, false, true);
+                        await exported.addItemToPlayer(item_id, userData, false, true);
                     };
                     userData.currentBalance += code.eggs_given;
     

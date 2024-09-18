@@ -398,7 +398,7 @@ initTables().then(() => {
 
                         try {
                             if (userData) {
-                                redeemResult = await accs.doesPlayerOwnItem(msg.code, userData);
+                                redeemResult = await accs.addCodeToPlayer(msg.code, userData);
                             };
                         } catch (error) {
                             ss.log.red("WHY IS THERE AN ERROR??");
