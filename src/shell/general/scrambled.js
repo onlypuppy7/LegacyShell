@@ -4,6 +4,10 @@ const getRandomInt = function (min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 };
 
+const getRandomChance = function (chance) {
+    return (Math.random() <= chance);
+};
+
 const getRandomChar = function () {
     const characters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     return (characters)[getRandomInt(0, characters.length - 1)];
@@ -43,6 +47,7 @@ const getRandomName = function (moreRandom) {
 
 export default {
     getRandomInt,
+    getRandomChance,
     getRandomChar,
     getScrambled,
     getRandomCode,

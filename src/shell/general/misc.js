@@ -4,6 +4,8 @@ import yaml from 'js-yaml';
 import path from 'node:path';
 //legacyshell: basic
 import log from './coloured-logging.js';
+//legacyshell: basic
+import WebSocket, { WebSocketServer } from 'ws';
 //
 
 let ss; //trollage. access it later.

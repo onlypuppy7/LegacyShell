@@ -1,3 +1,5 @@
+//"perpetual.js" by onlypuppy7: legacyshell version
+
 //basic
 import fs from 'node:fs';
 import path from 'node:path';
@@ -8,6 +10,7 @@ import misc from '../../src/shell/general/misc.js';
 import { spawn } from 'child_process';
 import fetch from 'node-fetch';
 import readline from 'readline';
+//
 
 // optional passing of args instead of the yaml (warning cancer do not use)
 
@@ -67,8 +70,8 @@ rl.on('line', (line) => {
 const getTimestamp = (noBrackets) => {
     const now = new Date();
     const day = now.getDate().toString().padStart(2, '0');
-    const month = (now.getMonth() + 1).toString().padStart(2, '0'); // Months are zero-indexed
-    const year = now.getFullYear().toString().slice(-2); // Get last two digits of the year
+    const month = (now.getMonth() + 1).toString().padStart(2, '0'); 
+    const year = now.getFullYear().toString().slice(-2);
     const hours = now.getHours().toString().padStart(2, '0');
     const minutes = now.getMinutes().toString().padStart(2, '0');
     const seconds = now.getSeconds().toString().padStart(2, '0');
@@ -172,7 +175,7 @@ const sendLogsToWebhook = () => {
             logNoSend(`Error sending logs to webhook: ${JSON.stringify(err.message)}`);
         });
     };
-    const randomDelay = (15 - Math.min(queuedChunks.length, 7) + Math.floor(Math.random() * 8) - 4) * 1000; // +/- 4 seconds randomization
+    const randomDelay = (15 - Math.min(queuedChunks.length, 7) + Math.floor(Math.random() * 8) - 4) * 1000; // +/- 4 seconds randomisation
     clearInterval(webhookInterval);
     webhookInterval = setInterval(sendLogsToWebhook, randomDelay);
 };
