@@ -3,12 +3,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import yaml from 'js-yaml';
 //legacyshell: basic
-import misc from '../src/shell/general/misc.js';
+import misc from '#misc';
 //legacyshell: getting configs
-import wsrequest from '../src/shell/general/wsrequest.js';
+import wsrequest from '#wsrequest';
 //legacyshell: game
 import WebSocket, { WebSocketServer } from 'ws';
-import { Comm, CloseCode, CommCode } from '../src/shell/comm.js';
+import { Comm, CloseCode, CommCode } from '#comm';
 import rm from './src/roomManager.js';
 //
 

@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import yaml from 'js-yaml';
 //legacyshell: basic
-import misc from '../../src/shell/general/misc.js';
+import misc from '#misc';
 //legacyshell: perpetual
 import { spawn } from 'child_process';
 import fetch from 'node-fetch';

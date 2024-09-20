@@ -37,9 +37,9 @@ const getRandomName = function (moreRandom) {
         num = getRandomInt(1, 99);
     } while (num == 69);
     if (getRandomInt(0, 2) == 0) {
-        name = n1[getRandomInt(0, n1.length - 1)] + (getRandomBool() && moreRandom ? "" : " ") + n2[getRandomInt(0, n2.length - 1)] + (getRandomBool() && moreRandom ? "" : " ") + (getRandomBool() && moreRandom ? "" : num);
+        name = n1[getRandomInt(0, n1.length - 1)] + (getRandomBool() && moreRandom ? " " : "") + n2[getRandomInt(0, n2.length - 1)] + (getRandomBool() && moreRandom ? " " : "") + (getRandomBool() && moreRandom ? " " : num);
     } else {
-        name = n2[getRandomInt(0, n2.length - 1)] + (getRandomBool() && moreRandom ? "" : " ") + n1[getRandomInt(0, n1.length - 1)] + (getRandomBool() && moreRandom ? "" : " ") + (getRandomBool() && moreRandom ? "" : num);
+        name = n2[getRandomInt(0, n2.length - 1)] + (getRandomBool() && moreRandom ? " " : "") + n1[getRandomInt(0, n1.length - 1)] + (getRandomBool() && moreRandom ? " " : "") + (getRandomBool() && moreRandom ? " " : num);
     };
     if (getRandomBool() && moreRandom) name = name.toLowerCase();
     return name;

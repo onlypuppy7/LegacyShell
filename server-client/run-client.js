@@ -3,12 +3,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import yaml from 'js-yaml';
 //legacyshell: basic
-import misc from '../src/shell/general/misc.js';
+import misc from '#misc';
 //legacyshell: getting configs
-import wsrequest from '../src/shell/general/wsrequest.js';
+import wsrequest from '#wsrequest';
 //legacyshell: web server
 import express from 'express';
-import prepareModified from './prepare-modified.js';
+import prepareModified from '#prepare-modified';
 //
 
 let ss = misc.instanciateSS(import.meta.dirname);

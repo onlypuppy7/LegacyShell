@@ -23,5 +23,23 @@
         "sqlite3": "^5.1.7",
         "uglify-js": "^3.19.2",
         "ws": "^8.18.0"
+    },
+    "imports": {
+        "#coloured-logging": "./src/shell/general/coloured-logging.js",
+        "#misc": "./src/shell/general/misc.js",
+        "#scrambled": "./src/shell/general/scrambled.js",
+        "#wsrequest": "./src/shell/general/wsrequest.js",
+
+        "#comm": "./src/shell/comm.js",
+
+        "#prepare-modified": "./server-client/src/prepare-modified.js",
+
+        "#client": "./server-game/src/client.js",
+        "#roomManager": "./server-game/src/roomManager.js",
+
+        "#accountManagement": "./server-services/src/data_management/accountManagement.js",
+        "#recordsManagement": "./server-services/src/data_management/recordsManagement.js",
+        "#sessionManagement": "./server-services/src/data_management/sessionManagement.js",
+        "#ratelimit": "./server-services/src/ratelimit.js"
     }
 }
