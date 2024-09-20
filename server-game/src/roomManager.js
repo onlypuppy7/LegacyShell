@@ -1,6 +1,6 @@
 //legacyshell: roomManager
-import ran from '../../src/shell/general/scrambled.js';
-import { Comm, CloseCode, CommCode } from '../../src/shell/comm.js';
+import ran from '#scrambled';
+import { Comm, CloseCode, CommCode } from '#comm';
 //
 
 const id_length = 3; //btw you cant just modify this without also adjusting the client's code. do you ever NEED to modify this? no. just have it static.

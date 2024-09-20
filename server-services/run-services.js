@@ -3,17 +3,17 @@ import fs from 'node:fs';
 import path from 'node:path';
 import yaml from 'js-yaml';
 //legacyshell: basic
-import misc from '../src/shell/general/misc.js';
+import misc from '#misc';
 //legacyshell: database
 import sqlite3 from 'sqlite3'; //db
 import util from 'node:util';
 import crypto from 'node:crypto'; //passwds
 //legacyshell: services
 import WebSocket, { WebSocketServer } from 'ws';
-import rl from './src/ratelimit.js';
-import accs from './src/data_management/accountManagement.js';
-import sess from './src/data_management/sessionManagement.js';
-import data from './src/data_management/dataManagement.js';
+import rl from '#ratelimit';
+import accs from '#accountManagement';
+import sess from '#sessionManagement';
+import recs from '#recordsManagement';
 //
 
 //init db (ooooh! sql! fancy! a REAL database! not a slow json!)
@@ -27,7 +27,7 @@ ss = {
     db,
     accs,
     sess,
-    data,
+    recs,
     //db stuff
     runQuery:   util.promisify(db.run.bind(db)),
     getOne:     util.promisify(db.get.bind(db)),
@@ -37,9 +37,9 @@ ss = {
 //yeah we're doing this. deal with it fuckface.
 accs.setSS(ss);
 sess.setSS(ss);
-data.setSS(ss);
+recs.setSS(ss);
 
-data.initDB();
+recs.initDB();
 
 ss.log.green('account DB set up! (if it didnt exist already i suppose)');
 
@@ -206,11 +206,11 @@ initTables().then(() => {
                             nugget_interval: ss.config.services.nugget_interval,
                         };
 
-                        console.log(await data.getAllGameServerData());
+                        console.log(await recs.getAllGameServerData());
 
-                        if (msg.lastItems !== undefined)    response.items  = items.maxDateModified         > msg.lastItems     ? await data.getAllItemData()            : false;
-                        if (msg.lastMaps !== undefined)     response.maps   = maps.maxDateModified          > msg.lastMaps      ? await data.getAllMapData()             : false;
-                        if (msg.lastServers !== undefined)  response.servers= game_servers.maxDateModified  > msg.lastServers   ? await data.getAllGameServerData()      : false;
+                        if (msg.lastItems !== undefined)    response.items  = items.maxDateModified         > msg.lastItems     ? await recs.getAllItemData()            : false;
+                        if (msg.lastMaps !== undefined)     response.maps   = maps.maxDateModified          > msg.lastMaps      ? await recs.getAllMapData()             : false;
+                        if (msg.lastServers !== undefined)  response.servers= game_servers.maxDateModified  > msg.lastServers   ? await recs.getAllGameServerData()      : false;
 
                         ws.send(JSON.stringify( response ));
                         break;
@@ -420,7 +420,7 @@ initTables().then(() => {
 
                         try {
                             if (userData) {
-                                previewResult = await data.getCodeData(msg.code, true);
+                                previewResult = await recs.getCodeData(msg.code, true);
                             };
                         } catch (error) {
                             ss.log.red("WHY IS THERE AN ERROR??");

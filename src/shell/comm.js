@@ -105,6 +105,70 @@ export class Comm {
     }
 }
 
+export class DynamicComm {
+    static output(size) {
+        const instance = new Comm();
+        instance.buffer = new Uint8Array(size);
+        instance.idx = 0;
+
+        instance.ensureBufferSize = function (additionalSize) {
+            if (this.idx + additionalSize > this.buffer.length) {
+                const newSize = Math.max(this.buffer.length * 2, this.idx + additionalSize);
+                const newBuffer = new Uint8Array(newSize);
+                newBuffer.set(this.buffer);
+                this.buffer = newBuffer;
+            }
+        };
+
+        instance.packInt8 = function (val) {
+            this.ensureBufferSize(1); // space for 1 byte
+            this.buffer[this.idx] = 255 & val;
+            this.idx++;
+        };
+
+        instance.packInt16 = function (val) {
+            this.ensureBufferSize(2); // space for 2 bytes
+            this.buffer[this.idx] = 255 & val;
+            this.buffer[this.idx + 1] = val >> 8 & 255;
+            this.idx += 2;
+        };
+
+        instance.packInt32 = function (val) {
+            this.ensureBufferSize(4); // space for 4 bytes
+            this.buffer[this.idx] = 255 & val;
+            this.buffer[this.idx + 1] = val >> 8 & 255;
+            this.buffer[this.idx + 2] = val >> 16 & 255;
+            this.buffer[this.idx + 3] = val >> 24 & 255;
+            this.idx += 4;
+        };
+
+        instance.packRadU = function (val) {
+            this.packInt16(1e4 * val);
+        };
+
+        instance.packRad = function (val) {
+            this.packInt16(1e4 * (val + Math.PI));
+        };
+
+        instance.packFloat = function (val) {
+            this.packInt16(300 * val);
+        };
+
+        instance.packDouble = function (val) {
+            this.packInt32(1e6 * val);
+        };
+
+        instance.packString = function (str) {
+            this.packInt8(str.length);
+            for (let i = 0; i < str.length; i++) {
+                this.packInt16(str.charCodeAt(i));
+            }
+        };
+
+        return instance;
+    }
+}
+
 export const CloseCode = {
     gameNotFound: 4000,
     gameFull: 4001,

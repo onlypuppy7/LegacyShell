@@ -28,7 +28,7 @@ function prepareModified(ss) {
         ss.log.italic("Inserting map jsons into shellshock.min.js...");
         sourceCode = sourceCode.replace(/LEGACYSHELLMINMAPS/g, ss.cache.maps); //akshually
         ss.log.italic("Inserting babylon into shellshock.min.js...");
-        sourceCode = sourceCode.replace(/LEGACYSHELLBABYLON/g, fs.readFileSync(path.join(ss.currentDir, 'src', 'babylon.js')));
+        sourceCode = sourceCode.replace(/LEGACYSHELLBABYLON/g, fs.readFileSync(path.join(ss.currentDir, 'src', 'data', 'babylon.js')));
 
         if (ss.config.client.minify) {
             ss.log.italic("Minifying/obfuscating shellshock.min.js...");
