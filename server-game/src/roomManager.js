@@ -1,5 +1,6 @@
 //legacyshell: roomManager
 import ran from '#scrambled';
+import RoomConstructor from '#rooms';
 import { Comm, CloseCode, CommCode } from '#comm';
 //
 
@@ -16,6 +17,7 @@ let ss;
 
 function setSS(newSS) {
     ss = newSS;
+    RoomConstructor.setSS(newSS);
 };
 
 class newRoomManager {
@@ -49,13 +51,14 @@ class newRoomManager {
                 roomSelection.forEach((room) => {
                     remainingMapIds = remainingMapIds.filter(mapId => mapId !== room.mapId);
                 });
-                if (remainingMapIds.length === 0) {
-                    let createNew = (roomSelection.length === 0) || ran.getRandomChance(0.3); //create new
-                    if (createNew) {
-
-                    }
+                let createNew = (roomSelection.length === 0) || (remainingMapIds.length === 0 && ran.getRandomChance(0.3)); //create new, if no rooms OR in the case where some maps are not taken
+                console.log("createNew", createNew);
+                if (createNew) {
+                    info.mapId = remainingMapIds[ran.getRandomFromList(remainingMapIds)];
+                    console.log("<3", info.mapId)
+                    return this.createRoom(info);
                 } else {
-
+                    return this.getRoom(roomSelection[ran.getRandomFromList(roomSelection)]);
                 };
             } else if (info.joinType === CommCode.joinPrivateGame) {
                 console.log("private game");
@@ -91,17 +94,23 @@ class newRoomManager {
         return ran.getRandomInt(1, highestRoomID); //not 0. pain in the ass. 0 == false type shit
     };
 
-    createRoom(id, roomData) {
-        if (this.rooms.has(id)) {
-            console.log(`Room with ID ${id} already exists.`);
-            return null;
-        } else {
-            //code here please!
-        };
+    createRoom(info) {
+        info.gameId = this.getUnusedID();
+        // info.gameKey = ran.getRandomInt(10, Math.pow(36, 2) - 10);
+        info.gameKey = 784;
+        const createdRoom = new RoomConstructor.newRoom(info);
+        this.rooms.set(info.gameId, createdRoom);
+        return createdRoom;
     };
 
     removeRoom(id) {
-        this.getRoom(id).destroy();
+        try {
+            const retrievedRoom = this.getRoom(id);
+            retrievedRoom.destroy();
+            return true;
+        } catch (error) {
+            return null;
+        };
     };
 
     getRoom(id) {

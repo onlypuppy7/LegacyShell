@@ -14,14 +14,19 @@ import rm from './src/roomManager.js';
 
 let ss = misc.instanciateSS(import.meta.dirname);
 
-rm.setSS(ss);
-
 const RoomManager = new rm.newRoomManager();
 
 ss = {
     ...ss,
     RoomManager,
+    mapAvailability: {
+        public: [],
+        private: [],
+        both: [],
+    },
 };
+
+rm.setSS(ss);
 
 function startServer() {
     const port = ss.config.game.websocket || 13372;
@@ -51,8 +56,8 @@ function startServer() {
                             msg.primary_item_id = input.unPackInt8(); //primary weapon skin (only accept if signed in btw)
                             msg.secondary_item_id = input.unPackInt8(); //secondary weapon skin (only accept if signed in)
                             msg.colorIdx = input.unPackInt8(); //selected colour (0-6, 8-13 if vip)
-                            msg.hatId = input.unPackInt8() + 999; //reject if not logged in
-                            msg.stampId = input.unPackInt8() + 1999; //reject if not logged in
+                            msg.hatId = input.unPackInt8(); //reject if not logged in (+999)
+                            msg.stampId = input.unPackInt8(); //reject if not logged in (+1999)
                             msg.nickname = input.unPackString(); //NOT the username!
                             //additional stuff provided they are signed in
                             msg.session = input.unPackString(); //technically this is all thats rlly needed tbh
@@ -60,7 +65,11 @@ function startServer() {
     
                             ss.config.verbose && console.log(msg, Comm.convertCode(msg.joinType), Comm.convertCode(msg.gameType));
     
-                            RoomManager.searchRooms(msg);
+                            let roomFound = RoomManager.searchRooms(msg);
+
+                            console.log("roomFound", !!roomFound);
+
+                            roomFound.joinPlayer(msg, ws);
                             break
                         case CommCode.ping:
                             var packet = Comm.output();
@@ -125,12 +134,6 @@ async function connectWebSocket(retryCount = 0) {
             load("servers", serversFilePath);
 
             ss.config.game = { ...ss.config.game, ...configInfo };
-
-            ss.mapAvailability = {
-                public: [],
-                private: [],
-                both: [],
-            };
 
             for (let i = 0; i < ss.maps.length; i++) {
                 let map = ss.maps[i];
