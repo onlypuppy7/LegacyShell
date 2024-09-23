@@ -16,6 +16,7 @@ let ss = misc.instanciateSS(import.meta.dirname);
 ss = {
     ...ss,
     cache: {},
+    misc,
 };
 
 function startServer() {

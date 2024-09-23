@@ -112,7 +112,7 @@ const exported = {
         try {
             if (userData.ownedItemIds.includes(item_id)) return "ALREADY_OWNED";
     
-            const item = await ss.data.getItemData(item_id);
+            const item = await ss.recs.getItemData(item_id);
     
             if ((!item) || (!(force || item.is_available))) return "ITEM_NOT_FOUND";
             if (isBuying) {
@@ -139,7 +139,7 @@ const exported = {
     doesPlayerOwnItem: async (userData, item_id, item_class) => {
         try {
             if (["Hats", "Stamps"].includes(item_class) && item_id === null) return true;
-            const item = await ss.data.getItemData(item_id, true);
+            const item = await ss.recs.getItemData(item_id, true);
             console.log(userData.ownedItemIds, item_id, item_class, userData.ownedItemIds.includes(item_id), item.item_class == item_class, userData.ownedItemIds.includes(item_id) && item.item_class == item_class);
             if (userData.ownedItemIds.includes(item_id) && item.item_class == item_class) return true;
             return false;
@@ -150,7 +150,7 @@ const exported = {
     },
     addCodeToPlayer: async (code_key, userData) => {
         try {
-            const code = (await ss.data.getCodeData(code_key, true)) || [];
+            const code = (await ss.recs.getCodeData(code_key, true)) || [];
             code.result = "ERROR"; //default if it fails, i guess
     
             if (code.used_by) { //exists

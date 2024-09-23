@@ -1,7 +1,7 @@
 //legacyshell: roomManager
 import ran from '#scrambled';
 import RoomConstructor from '#rooms';
-import { Comm, CloseCode, CommCode } from '#comm';
+import Comm from '#comm';
 //
 
 const id_length = 3; //btw you cant just modify this without also adjusting the client's code. do you ever NEED to modify this? no. just have it static.
@@ -42,15 +42,18 @@ class newRoomManager {
         if (info.gameId && info.gameId > 0) {
             return getRoom(info.gameId);
         } else {
-            if (info.joinType === CommCode.joinPublicGame) {
+            if (info.joinType === Comm.Code.joinPublicGame) {
                 console.log("public game");
                 //this is where it gets interesting
                 let roomSelection = this.getRoomsOfJoinType(info.joinType);
+                // console.log("joinType", info.joinType, roomSelection);
                 roomSelection = this.getRoomsOfGameType(info.gameType);
+                // console.log("gameType", info.gameType, roomSelection);
                 let remainingMapIds = [...ss.mapAvailability.public];
                 roomSelection.forEach((room) => {
                     remainingMapIds = remainingMapIds.filter(mapId => mapId !== room.mapId);
                 });
+                // console.log("remainingMapIds", remainingMapIds);
                 let createNew = (roomSelection.length === 0) || (remainingMapIds.length === 0 && ran.getRandomChance(0.3)); //create new, if no rooms OR in the case where some maps are not taken
                 console.log("createNew", createNew);
                 if (createNew) {
@@ -58,9 +61,9 @@ class newRoomManager {
                     console.log("<3", info.mapId)
                     return this.createRoom(info);
                 } else {
-                    return this.getRoom(roomSelection[ran.getRandomFromList(roomSelection)]);
+                    return ran.getRandomFromList(roomSelection);
                 };
-            } else if (info.joinType === CommCode.joinPrivateGame) {
+            } else if (info.joinType === Comm.Code.joinPrivateGame) {
                 console.log("private game");
                 this.createRoom(info);
             };

@@ -1,6 +1,6 @@
 //legacyshell: roomManager
 import ran from '#scrambled';
-import { Comm, DynamicComm, CloseCode, CommCode } from '#comm';
+import Comm from '#comm';
 //
 
 let ss;
@@ -15,6 +15,7 @@ class newRoom {
         this.joinType = info.joinType;
         this.gameType = info.gameType;
         this.mapId = info.mapId;
+        this.gameId = info.gameId;
         this.gameKey = info.gameKey;
 
         this.mapJson = ss.maps[this.mapId];
@@ -27,7 +28,9 @@ class newRoom {
     joinPlayer(info, ws) {
         // const client = new ClientConstructor(info, ws);
 
-        var output = Comm.output(3 + 4 + 3);
+        var output = new Comm.Out(11); //this is FIXED. it's technically a little faster. here it's easier just cause all of these are simple ints.
+
+        output.packInt8U(Comm.Code.gameJoined);
 
         output.packInt8U(0); //meId
         output.packInt8U(0); // myTeam
@@ -38,7 +41,7 @@ class newRoom {
         output.packInt8U(this.playerLimit); // playerLimit
         output.packInt8U(1); //bool // isGameOwner
 
-        console.log(output);
+        // console.log(Comm.Code.gameJoined, output.idx, output, output.buffer);
 
         ws.send(output.buffer);
     };

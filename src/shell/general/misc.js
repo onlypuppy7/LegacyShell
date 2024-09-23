@@ -10,7 +10,7 @@ import WebSocket, { WebSocketServer } from 'ws';
 
 let ss; //trollage. access it later.
 
-const exported = {
+const misc = {
     getLastSavedTimestamp: function (filePath) {
         try {
             const stats = fs.statSync(filePath);
@@ -46,6 +46,28 @@ const exported = {
         return ss;
     },
     clamp: (value, min, max) => { return Math.min(Math.max(value, min), max) },
+    hashtagToPath: function (hashtag) {
+        try {
+            if (!hashtag.startsWith("#")) hashtag = `#${hashtag}`;
+            let fromJson = ss.packageJson.imports[hashtag];
+            if (fromJson.startsWith(".")) fromJson = fromJson.replace(".", "");
+            return [path.join(ss.rootDir, fromJson), fromJson];
+        } catch (error) {
+            return null;
+        };
+    },
+    hashtagToString: function (hashtag) {
+        try {
+            const path = misc.hashtagToPath(hashtag);
+            let file = fs.readFileSync(path[0], 'utf8');
+            file = file.replaceAll("\nimport", "\n(ignore) //import");
+            file = file.replaceAll("\nexport ", "\n//(ignore) export ");
+            file = `// [LS] ${hashtag} imported from .${path[1]}\n${file}`;
+            return file;
+        } catch (error) {
+            return "//fucking failed! "+hashtag;
+        };
+    },
 };
 
-export default exported;
+export default misc;
