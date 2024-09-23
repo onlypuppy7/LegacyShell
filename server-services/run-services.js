@@ -4,6 +4,7 @@ import path from 'node:path';
 import yaml from 'js-yaml';
 //legacyshell: basic
 import misc from '#misc';
+import extendMath from '#math';
 //legacyshell: database
 import sqlite3 from 'sqlite3'; //db
 import util from 'node:util';
@@ -38,6 +39,7 @@ ss = {
 accs.setSS(ss);
 sess.setSS(ss);
 recs.setSS(ss);
+extendMath(Math);
 
 recs.initDB();
 
@@ -324,7 +326,7 @@ initTables().then(() => {
                         try {
                             if (userData) {
                                 // class_idx: this.classIdx
-                                userData.loadout.classIdx = misc.clamp(Math.floor(msg.class_idx), 0, 3);
+                                userData.loadout.classIdx = Math.clamp(Math.floor(msg.class_idx), 0, 3);
                                 // soldier_primary_item_id:
                                 if (accs.doesPlayerOwnItem(userData, msg.soldier_primary_item_id, "Eggk47")) 
                                     userData.loadout.primaryId[0] = msg.soldier_primary_item_id;
@@ -356,7 +358,7 @@ initTables().then(() => {
                                 if (accs.doesPlayerOwnItem(userData, msg.stamp_id, "Stamps")) 
                                     userData.loadout.stampId = msg.stamp_id;
                                 // color: this.colorIdx,
-                                userData.loadout.colorIdx = misc.clamp(Math.floor(msg.color), 0, userData.upgradeIsExpired ? 6 : 13); //if vip, then eep
+                                userData.loadout.colorIdx = Math.clamp(Math.floor(msg.color), 0, userData.upgradeIsExpired ? 6 : 13); //if vip, then eep
 
                                 ss.config.verbose && ss.log.bgBlue("services: Writing to DB: set new loadout "+userData.username) //, console.log(userData.loadout);
                                 await ss.runQuery(`

@@ -1,3 +1,11 @@
+//
+
+//(server-only-start)
+
+//put stuff here?
+
+//(server-only-end)
+
 function Player(data, scene) {
     this.id = data.id;
     this.uniqueId = data.uniqueId;
@@ -75,55 +83,107 @@ function Player(data, scene) {
     this.ready = false;
     this.chatLineCap = 3;
     this.respawnQueued = false;
-    this.actor = new PlayerActor(this);
+    if (isClient) this.actor = new PlayerActor(this);
     this.stateBuffer = [];
-    for (var i = 0; i < stateBufferSize; i++) this.stateBuffer.push({
-        delta: 0,
-        yaw: data.yaw,
-        pitch: data.pitch,
-        fire: false,
-        jumping: false,
-        climbing: false,
-        x: data.x,
-        y: data.y,
-        z: data.z,
-        dx: data.dx,
-        dy: data.dy,
-        dz: data.dz,
-        controlKeys: data.controlKeys
-    });
-    this.changeWeaponLoadout(this.primaryWeaponItem, this.secondaryWeaponItem)
+    for (var i = 0; i < stateBufferSize; i++) {
+        this.stateBuffer.push({
+            delta: 0,
+            yaw: data.yaw,
+            pitch: data.pitch,
+            fire: false,
+            jumping: false,
+            climbing: false,
+            x: data.x,
+            y: data.y,
+            z: data.z,
+            dx: data.dx,
+            dy: data.dy,
+            dz: data.dz,
+            controlKeys: data.controlKeys
+        });
+    };
+    this.changeWeaponLoadout(this.primaryWeaponItem, this.secondaryWeaponItem);
 };
 Player.prototype.changeWeaponLoadout = function (primaryWeaponItem, secondaryWeaponItem) {
-    this.actor && this.weapons && (this.weapons[0].actor.dispose(), this.weapons[1].actor.dispose());
+    if (this.actor && this.weapons) {
+        this.weapons[0].actor.dispose();
+        this.weapons[1].actor.dispose();
+    };
     this.primaryWeaponItem = primaryWeaponItem;
     this.secondaryWeaponItem = secondaryWeaponItem;
     this.weapons = [primaryWeaponItem.instantiateNew(this), secondaryWeaponItem.instantiateNew(this)];
     this.weapon = this.weapons[this.weaponIdx];
-    this.actor && this.weapon.actor.equip();
+    if (this.actor) {
+        this.weapon.actor.equip();
+    };
 };
 Player.prototype.update = function (delta, resim) {
-    var dx = 0,
-        dy = 0,
-        dz = 0;
-    if (!resim && this.actor && this.id == meId && (this.stateBuffer[this.stateIdx].controlKeys = this.controlKeys, this.stateBuffer[this.stateIdx].yaw = this.yaw, this.stateBuffer[this.stateIdx].pitch = this.pitch), !this.actor || this.id != meId) {
+    var dx = 0;
+    var dy = 0;
+    var dz = 0;
+
+    if (!resim && this.actor && this.id == meId) {
+        this.stateBuffer[this.stateIdx].controlKeys = this.controlKeys;
+        this.stateBuffer[this.stateIdx].yaw = this.yaw;
+        this.stateBuffer[this.stateIdx].pitch = this.pitch;
+    };
+    if (!this.actor || this.id != meId) {
         var idx = this.stateIdx;
-        this.actor && this.id != meId && (idx = Math.min(idx, FramesBetweenSyncs - 1)), this.controlKeys = this.stateBuffer[idx].controlKeys, this.yaw = this.stateBuffer[idx].yaw, this.pitch = this.stateBuffer[idx].pitch
-    }
-    if (this.controlKeys & CONTROL.left && (dx -= Math.cos(this.yaw), dz += Math.sin(this.yaw)), this.controlKeys & CONTROL.right && (dx += Math.cos(this.yaw), dz -= Math.sin(this.yaw)), this.controlKeys & CONTROL.up && (this.climbing ? dy += 1 : (dx += Math.sin(this.yaw), dz += Math.cos(this.yaw))), this.controlKeys & CONTROL.down && (this.climbing ? dy -= 1 : (dx -= Math.sin(this.yaw), dz -= Math.cos(this.yaw))), this.climbing) {
+        if (this.actor && this.id != meId) {
+            idx = Math.min(idx, FramesBetweenSyncs - 1);
+        };
+        this.controlKeys = this.stateBuffer[idx].controlKeys;
+        this.yaw = this.stateBuffer[idx].yaw;
+        this.pitch = this.stateBuffer[idx].pitch;
+    };
+    
+    if (this.controlKeys & CONTROL.left) {
+        dx -= Math.cos(this.yaw);
+        dz += Math.sin(this.yaw);
+    };
+    
+    if (this.controlKeys & CONTROL.right) {
+        dx += Math.cos(this.yaw);
+        dz -= Math.sin(this.yaw);
+    };
+    
+    if (this.controlKeys & CONTROL.up) {
+        if (this.climbing) {
+            dy += 1;
+        } else {
+            dx += Math.sin(this.yaw);
+            dz += Math.cos(this.yaw);
+        };
+    };
+    
+    if (this.controlKeys & CONTROL.down) {
+        if (this.climbing) {
+            dy -= 1;
+        } else {
+            dx -= Math.sin(this.yaw);
+            dz -= Math.cos(this.yaw);
+        };
+    };
+    
+    if (this.climbing) {
         this.setJumping(false);
         var pdy = this.dy;
-        this.corrections && (pdy += this.corrected.dy / 6, this.corrections--), this.dy += .014 * dy * delta;
+        if (this.corrections) {
+            pdy += this.corrected.dy / 6, this.corrections--
+        };
+        this.dy += .014 * dy * delta;
         var ndy = .5 * (this.dy + pdy) * delta;
         this.y += ndy, this.dy *= Math.pow(.5, delta);
-        var cx = Math.floor(this.climbingCell.x),
-            cy = Math.floor(this.y + 1e-4),
-            cz = Math.floor(this.climbingCell.z);
-        if (0 == this.climbingCell.ry || this.climbingCell.ry, cy >= map.height) this.climbing = false;
-        else {
+        var cx = Math.floor(this.climbingCell.x);
+        var cy = Math.floor(this.y + 1e-4);
+        var cz = Math.floor(this.climbingCell.z);
+
+        if (0 == this.climbingCell.ry || this.climbingCell.ry, cy >= map.height) {
+            this.climbing = false;
+        } else {
             var cell = map.data[cx][cy][cz];
-            cell.idx && "ladder" == mapMeshes[cell.idx].colliderType && cell.ry == this.climbingCell.ry || (this.y = Math.round(this.y), this.climbing = false)
-        }
+            cell.idx && "ladder" == mapMeshes[cell.idx].colliderType && cell.ry == this.climbingCell.ry || (this.y = Math.round(this.y), this.climbing = false);
+        };
         this.collidesWithMap() && (0 < ndy && .3 < this.y % 1 ? (this.y -= ndy, this.dy *= .5) : ndy < 0 && (this.y -= ndy, this.dy *= .5, this.climbing = false))
     } else {
         var deltaVector = new BABYLON.Vector3(dx, dy, dz).normalize(),
@@ -133,11 +193,23 @@ Player.prototype.update = function (delta, resim) {
         var ndx = .5 * (this.dx + pdx) * delta,
             ndz = (ndy = .5 * (this.dy + pdy) * delta, .5 * (this.dz + pdz) * delta);
         this.moveX(ndx, delta), this.moveZ(ndz, delta), this.moveY(ndy, delta)
-    }
+    };
     if (!resim) {
-        0 < this.shield && this.playing && (this.shield -= delta, (0 != dx || 0 != dy || this.shield <= 0) && this.disableShield());
+        if (0 < this.shield && this.playing) {
+            this.shield -= delta;
+            if (0 != dx || 0 != dy || this.shield <= 0) {
+                this.disableShield();
+            };
+        };        
         var speed = Math.length3(this.dx, this.dy, this.dz);
-        this.actor && this.id == meId && (speed *= .75), (this.climbing || this.jumping) && (speed *= 2), this.bobble = (this.bobble + 7 * speed) % Math.PI2, this.shotSpread += Math.floor(150 * speed * delta);
+        if (this.actor && this.id == meId) {
+            speed *= 0.75;
+        };
+        if (this.climbing || this.jumping) {
+            speed *= 2;
+        };
+        this.bobble = (this.bobble + 7 * speed) % Math.PI2;
+        this.shotSpread += Math.floor(150 * speed * delta);        
         var settleFactor = Math.pow(this.weapon.subClass.accuracySettleFactor, delta);
         this.shotSpread = Math.max(this.shotSpread * settleFactor - 4 * (1 - settleFactor), 0), this.weapon && this.weapon.update(delta), 0 < this.hp && (this.hp = Math.min(100, this.hp + .05 * delta)), 0 < this.swapWeaponCountdown && (this.shotSpread = this.weapon.subClass.shotSpreadIncrement, this.swapWeaponCountdown -= delta, this.swapWeaponCountdown <= 0 && (this.actor ? this.id == meId && reticle.show() : (this.swapWeaponCountdown = 0, this.weaponIdx = this.equipWeaponIdx, this.weapon = this.weapons[this.weaponIdx]))), 0 < this.reloadCountdown && (this.shotSpread = this.weapon.subClass.shotSpreadIncrement, this.reloadCountdown -= delta, this.reloadCountdown <= 0 && (this.reloadCountdown = 0, this.reloaded())), 0 < this.rofCountdown && (this.rofCountdown = Math.max(this.rofCountdown - delta, 0)), 0 < this.recoilCountdown && (this.recoilCountdown = Math.max(this.recoilCountdown - delta, 0)), 0 < this.grenadeCountdown && (this.grenadeCountdown -= delta, this.grenadeCountdown <= 0 && 0 < this.grenadesQueued && !this.actor && this.throwGrenade()), this.actor ? this.id == meId && this.triggerPulled && this.fire() : 0 < this.shotsQueued && (this.lastActivity = now, this.fire()), this.stateBuffer[this.stateIdx].x = this.x, this.stateBuffer[this.stateIdx].y = this.y, this.stateBuffer[this.stateIdx].z = this.z, this.stateBuffer[this.stateIdx].dx = this.dx, this.stateBuffer[this.stateIdx].dy = this.dy, this.stateBuffer[this.stateIdx].dz = this.dz, this.stateIdx = Math.mod(this.stateIdx + 1, stateBufferSize)
     }
@@ -146,29 +218,37 @@ Player.prototype.update = function (delta, resim) {
 };
 Player.prototype.disableShield = function () {
     this.shield = 0;
-    this.actor && (this.actor.bodyMesh.renderOverlay = false, this.actor.hands.renderOverlay = false)
+    if (this.actor) { // client/server differentiation stuff
+        this.actor.bodyMesh.renderOverlay = false;
+        this.actor.hands.renderOverlay = false;
+    };
 };
 Player.prototype.enableShield = function () {
     this.shield = 120;
-    this.actor && (this.actor.bodyMesh.renderOverlay = true, this.actor.hands.renderOverlay = true)
+    if (this.actor) { // client/server differentiation stuff
+        this.actor.bodyMesh.renderOverlay = true;
+        this.actor.hands.renderOverlay = true;
+    };
 };
 Player.prototype.resetStateBuffer = function () {
-    for (var i = 0; i < stateBufferSize; i++) this.stateBuffer[i] = {
-        delta: 0,
-        yaw: this.yaw,
-        pitch: this.pitch,
-        fire: false,
-        jump: false,
-        jumping: false,
-        climbing: false,
-        x: this.x,
-        y: this.y,
-        z: this.z,
-        dx: 0,
-        dy: 0,
-        dz: 0,
-        controlKeys: 0
-    }
+    for (var i = 0; i < stateBufferSize; i++) {
+        this.stateBuffer[i] = {
+            delta: 0,
+            yaw: this.yaw,
+            pitch: this.pitch,
+            fire: false,
+            jump: false,
+            jumping: false,
+            climbing: false,
+            x: this.x,
+            y: this.y,
+            z: this.z,
+            dx: 0,
+            dy: 0,
+            dz: 0,
+            controlKeys: 0
+        };
+    };
 };
 Player.prototype.moveX = function (ndx, delta) {
     var old_x = this.x;
