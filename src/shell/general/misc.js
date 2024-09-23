@@ -4,7 +4,7 @@ import yaml from 'js-yaml';
 import path from 'node:path';
 //legacyshell: basic
 import log from '#coloured-logging';
-//legacyshell: basic
+//legacyshell: config reqs
 import WebSocket, { WebSocketServer } from 'ws';
 //
 
@@ -60,8 +60,10 @@ const misc = {
         try {
             const path = misc.hashtagToPath(hashtag);
             let file = fs.readFileSync(path[0], 'utf8');
-            file = file.replaceAll("\nimport", "\n(ignore) //import");
+            file = file.replaceAll("\nimport ", "\n//(ignore) import ");
             file = file.replaceAll("\nexport ", "\n//(ignore) export ");
+            file = file.replaceAll("\n//(server-only-start)", "\n/*(server-only-start)");
+            file = file.replaceAll("\n//(server-only-end)", "\n(server-only-end)*/");
             file = `// [LS] ${hashtag} imported from .${path[1]}\n${file}`;
             return file;
         } catch (error) {

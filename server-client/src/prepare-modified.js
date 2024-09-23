@@ -49,6 +49,12 @@ function prepareModified(ss) {
         sourceCode = sourceCode.replace(/LEGACYSHELLPLAYERCONSTRUCTOR/g, ss.misc.hashtagToString("#player"));
         ss.log.italic("Inserting catalog.js into shellshock.min.js...");
         sourceCode = sourceCode.replace(/LEGACYSHELLCATALOG/g, ss.misc.hashtagToString("#catalog"));
+        ss.log.italic("Inserting constants.js into shellshock.min.js...");
+        sourceCode = sourceCode.replace(/LEGACYSHELLCONSTANTS/g, ss.misc.hashtagToString("#constants"));
+        ss.log.italic("Inserting collider.js into shellshock.min.js...");
+        sourceCode = sourceCode.replace(/LEGACYSHELLCOLLIDER/g, ss.misc.hashtagToString("#collider"));
+        ss.log.italic("Inserting math.js into shellshock.min.js...");
+        sourceCode = sourceCode.replace(/LEGACYSHELLMATHEXTENSIONS/g, ss.misc.hashtagToString("#math"));
 
         if (ss.config.client.minify) {
             ss.log.italic("Minifying/obfuscating shellshock.min.js...");
