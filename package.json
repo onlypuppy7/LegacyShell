@@ -31,6 +31,8 @@
         "#scrambled": "./src/shell/general/scrambled.js",
         "#wsrequest": "./src/shell/general/wsrequest.js",
         "#comm": "./src/shell/comm.js",
+        "#player": "./src/shell/player.js",
+        "#catalog": "./src/shell/catalog.js",
         "#prepare-modified": "./server-client/src/prepare-modified.js",
         "#client": "./server-game/src/client.js",
         "#roomManager": "./server-game/src/roomManager.js",

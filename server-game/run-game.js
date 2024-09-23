@@ -8,7 +8,7 @@ import misc from '#misc';
 import wsrequest from '#wsrequest';
 //legacyshell: game
 import WebSocket, { WebSocketServer } from 'ws';
-import { Comm, CloseCode, CommCode } from '#comm';
+import Comm from '#comm';
 import rm from './src/roomManager.js';
 //
 
@@ -38,17 +38,17 @@ function startServer() {
 
         ws.on('message', async (message) => {
             try {
-                var input = Comm.input(message);
+                var input = new Comm.In(message);
 
                 while (input.isMoreDataAvailable()) {
                     let msg = {};
                     msg.cmd = input.unPackInt8U();
-                    console.log(Comm.convertCode(msg.cmd));
+                    console.log(Comm.Convert(msg.cmd));
 
                     switch (msg.cmd) {
-                        case CommCode.joinGame:
-                            msg.joinType = input.unPackInt8(); //this is private/public //Comm.convertCode(input.unPackInt8())
-                            msg.gameType = input.unPackInt8(); //this is the gamemode //Comm.convertCode(input.unPackInt8())
+                        case Comm.Code.joinGame:
+                            msg.joinType = input.unPackInt8(); //this is private/public //Comm.Convert(input.unPackInt8())
+                            msg.gameType = input.unPackInt8(); //this is the gamemode //Comm.Convert(input.unPackInt8())
                             msg.mapId = input.unPackInt8(); //selected map
                             msg.gameId = input.unPackInt16(); //this is the ID of the room
                             msg.gameKey = input.unPackInt16(); //who knows what this does.
@@ -63,7 +63,7 @@ function startServer() {
                             msg.session = input.unPackString(); //technically this is all thats rlly needed tbh
                             msg.id = input.unPackString(); //yeh this isnt even necessary
     
-                            ss.config.verbose && console.log(msg, Comm.convertCode(msg.joinType), Comm.convertCode(msg.gameType));
+                            ss.config.verbose && console.log(msg, Comm.Convert(msg.joinType), Comm.Convert(msg.gameType));
     
                             let roomFound = RoomManager.searchRooms(msg);
 
@@ -71,9 +71,9 @@ function startServer() {
 
                             roomFound.joinPlayer(msg, ws);
                             break
-                        case CommCode.ping:
-                            var packet = Comm.output();
-                            packet.packInt8(Comm.ping);
+                        case Comm.Code.ping:
+                            var packet = new Comm.Out();
+                            packet.packInt8(Comm.Code.ping);
                             ws.send(packet.buffer);
                             break;
                     }

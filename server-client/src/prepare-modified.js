@@ -1,7 +1,16 @@
+//basic
 import fs from 'node:fs';
 import path from 'node:path';
+//legacyshell: preparing modified
 import crypto from 'node:crypto';
 import UglifyJS from 'uglify-js';
+//
+
+let ss;
+
+function setSS(newSS) {
+    ss = newSS;
+};
 
 function prepareModified(ss) {
     const sourceShellJsPath = path.join(ss.currentDir, 'src', 'client-static', 'src', 'shellshock.min.js');
@@ -23,12 +32,23 @@ function prepareModified(ss) {
     try {
         let sourceCode = fs.readFileSync(sourceShellJsPath, 'utf8');
 
+        ss.log.italic("Inserting version into shellshock.min.js...");
+        sourceCode = sourceCode.replace(/LEGACYSHELLVERSION/g, ss.packageJson.version);
         ss.log.italic("Inserting item jsons into shellshock.min.js...");
         sourceCode = sourceCode.replace(/LEGACYSHELLITEMS/g, ss.cache.items); //akshually
         ss.log.italic("Inserting map jsons into shellshock.min.js...");
         sourceCode = sourceCode.replace(/LEGACYSHELLMINMAPS/g, ss.cache.maps); //akshually
         ss.log.italic("Inserting babylon into shellshock.min.js...");
         sourceCode = sourceCode.replace(/LEGACYSHELLBABYLON/g, fs.readFileSync(path.join(ss.currentDir, 'src', 'data', 'babylon.js')));
+        ss.log.italic("Inserting devmode into shellshock.min.js...");
+        sourceCode = sourceCode.replace(/LEGACYSHELLDEVMODE/g, "true"); //drop in later
+
+        ss.log.italic("Inserting comm.js into shellshock.min.js...");
+        sourceCode = sourceCode.replace(/LEGACYSHELLCOMM/g, ss.misc.hashtagToString("#comm"));
+        ss.log.italic("Inserting player.js into shellshock.min.js...");
+        sourceCode = sourceCode.replace(/LEGACYSHELLPLAYERCONSTRUCTOR/g, ss.misc.hashtagToString("#player"));
+        ss.log.italic("Inserting catalog.js into shellshock.min.js...");
+        sourceCode = sourceCode.replace(/LEGACYSHELLCATALOG/g, ss.misc.hashtagToString("#catalog"));
 
         if (ss.config.client.minify) {
             ss.log.italic("Minifying/obfuscating shellshock.min.js...");
