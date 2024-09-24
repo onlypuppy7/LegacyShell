@@ -77,7 +77,7 @@ function startServer() {
                             break
                         case Comm.Code.ping:
                             var packet = new Comm.Out();
-                            packet.packInt8(Comm.Code.ping);
+                            packet.packInt8(Comm.Code.pong);
                             ws.send(packet.buffer);
                             break;
                     }
