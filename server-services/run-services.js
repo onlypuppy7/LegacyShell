@@ -223,7 +223,7 @@ initTables().then(() => {
                                 accs.comparePassword(userData, msg.password).then(async (isPasswordCorrect) => {
                                     if (isPasswordCorrect === true) {
                                         userData.authToken = await accs.generateToken(msg.username);
-                                        userData.session = await sess.createSession(userData.id, ip);
+                                        userData.session = await sess.createSession(userData.account_id, ip);
                                         delete userData.password;
                                         ws.send(JSON.stringify(userData));
                                     } else {
@@ -248,7 +248,7 @@ initTables().then(() => {
                                 accs.compareAuthToken(userData, msg.authToken).then(async (accessGranted) => {
                                     if (accessGranted === true) {
                                         userData.authToken = await accs.generateToken(msg.username);
-                                        userData.session = await sess.createSession(userData.id, ip);
+                                        userData.session = await sess.createSession(userData.account_id, ip);
                                         delete userData.password;
                                         ws.send(JSON.stringify(userData));
                                     } else {
@@ -284,7 +284,7 @@ initTables().then(() => {
                     
                                 const userData = await accs.getUserData(msg.username, true);
                                 if (userData) {
-                                    userData.session = await sess.createSession(userData.id, ip);
+                                    userData.session = await sess.createSession(userData.account_id, ip);
                                     userData.authToken = newToken;
                                     ws.send(JSON.stringify(userData));
                                 } else {
@@ -364,8 +364,8 @@ initTables().then(() => {
                                 await ss.runQuery(`
                                     UPDATE users 
                                     SET loadout = ?
-                                    WHERE id = ?
-                                `, [JSON.stringify(userData.loadout), userData.id]);
+                                    WHERE account_id = ?
+                                `, [JSON.stringify(userData.loadout), userData.account_id]);
 
                                 ws.send(JSON.stringify({ 
                                     result: "success",
@@ -492,8 +492,8 @@ initTables().then(() => {
                                             upgradeAdFree = ?,
                                             upgradeMultiplier = ?,
                                             upgradeProductId = ?
-                                        WHERE id = ?
-                                    `, [userData.upgradeExpiryDate, userData.upgradeAdFree, userData.upgradeMultiplier, userData.upgradeProductId, userData.id]);
+                                        WHERE account_id = ?
+                                    `, [userData.upgradeExpiryDate, userData.upgradeAdFree, userData.upgradeMultiplier, userData.upgradeProductId, userData.account_id]);
     
                                     ws.send(JSON.stringify({
                                         token: 1, //sure. go with it.

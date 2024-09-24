@@ -56,20 +56,24 @@ function startServer() {
                             msg.primary_item_id = input.unPackInt8(); //primary weapon skin (only accept if signed in btw)
                             msg.secondary_item_id = input.unPackInt8(); //secondary weapon skin (only accept if signed in)
                             msg.colorIdx = input.unPackInt8(); //selected colour (0-6, 8-13 if vip)
-                            msg.hatId = input.unPackInt8(); //reject if not logged in (+999)
-                            msg.stampId = input.unPackInt8(); //reject if not logged in (+1999)
+                            msg.hatId = input.unPackInt8(); //ignore if not logged in (+999)
+                            msg.stampId = input.unPackInt8(); //ignore if not logged in (+1999)
                             msg.nickname = input.unPackString(); //NOT the username!
                             //additional stuff provided they are signed in
                             msg.session = input.unPackString(); //technically this is all thats rlly needed tbh
-                            msg.id = input.unPackString(); //yeh this isnt even necessary
+                            msg.uniqueId = input.unPackString(); //yeh this isnt even necessary
     
                             ss.config.verbose && console.log(msg, Comm.Convert(msg.joinType), Comm.Convert(msg.gameType));
     
                             let roomFound = RoomManager.searchRooms(msg);
-
                             console.log("roomFound", !!roomFound);
 
-                            roomFound.joinPlayer(msg, ws);
+                            if (roomFound) {
+                                roomFound.joinPlayer(msg, ws);
+                            } else {
+                                console.log(Comm.Close.gameNotFound);
+                                ws.close(Comm.Close.gameNotFound);
+                            };
                             break
                         case Comm.Code.ping:
                             var packet = new Comm.Out();
