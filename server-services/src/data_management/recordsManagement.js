@@ -15,7 +15,7 @@ const exported = {
             //USERS
             ss.db.run(`
                 CREATE TABLE IF NOT EXISTS users (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    account_id INTEGER PRIMARY KEY AUTOINCREMENT,
                     username TEXT UNIQUE,
                     password TEXT,
                     authToken TEXT,
@@ -53,7 +53,7 @@ const exported = {
                 AFTER UPDATE ON users
                 FOR EACH ROW
                 BEGIN
-                    UPDATE users SET dateModified = strftime('%s', 'now') WHERE id = OLD.id;
+                    UPDATE users SET dateModified = strftime('%s', 'now') WHERE account_id = OLD.account_id;
                 END;
             `);
         

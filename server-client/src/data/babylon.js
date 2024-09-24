@@ -37793,7 +37793,7 @@
     function ensurePrecisionSpecifier(shadersStore) {
         const precisionDeclaration = 'precision highp sampler2DShadow;';
 
-        console.log(shadersStore);
+        // console.log(shadersStore);
 
         for (const shader in shadersStore) {
             if (shadersStore.hasOwnProperty(shader)) {

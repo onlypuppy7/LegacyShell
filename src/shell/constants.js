@@ -212,7 +212,7 @@ var Ease = {
 
 //(server-only-start)
 
-export default {
+export default { //why is this like this? because we need to define all these as vars in the client. kek. putting it all in one object kinda ugh ngl.
     item_classes,
     Slot,
     ItemType,

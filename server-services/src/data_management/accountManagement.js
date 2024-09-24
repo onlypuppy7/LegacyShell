@@ -76,7 +76,7 @@ const exported = {
                 user = await ss.getOne(`SELECT * FROM users WHERE username = ?`, [identifier]);
             } else if (Number.isInteger(identifier)) {
                 ss.config.verbose && ss.log.bgCyan("services: Reading from DB: get user via ID "+identifier);
-                user = await ss.getOne(`SELECT * FROM users WHERE id = ?`, [identifier]);
+                user = await ss.getOne(`SELECT * FROM users WHERE account_id = ?`, [identifier]);
             } else {
                 ss.log.red('Invalid identifier type '+identifier);
                 return null;
@@ -128,8 +128,8 @@ const exported = {
             await ss.runQuery(`
                 UPDATE users 
                 SET currentBalance = ?, ownedItemIds = ?
-                WHERE id = ?
-            `, [userData.currentBalance, JSON.stringify(userData.ownedItemIds), userData.id]);
+                WHERE account_id = ?
+            `, [userData.currentBalance, JSON.stringify(userData.ownedItemIds), userData.account_id]);
             return "SUCCESS"; //god, i hope
         } catch (error) {
             console.error('Error retrieving item data:', error);
@@ -154,7 +154,7 @@ const exported = {
             code.result = "ERROR"; //default if it fails, i guess
     
             if (code.used_by) { //exists
-                if ((code.uses >= 1) && (!code.used_by.includes(userData.id))) {
+                if ((code.uses >= 1) && (!code.used_by.includes(userData.account_id))) {
                     for (const item_id of code.item_ids) {
                         await exported.addItemToPlayer(item_id, userData, false, true);
                     };
@@ -164,11 +164,11 @@ const exported = {
                     await ss.runQuery(`
                         UPDATE users 
                         SET currentBalance = ?, ownedItemIds = ?
-                        WHERE id = ?
-                    `, [userData.currentBalance, JSON.stringify(userData.ownedItemIds), userData.id]);
+                        WHERE account_id = ?
+                    `, [userData.currentBalance, JSON.stringify(userData.ownedItemIds), userData.account_id]);
     
                     code.uses -= 1;
-                    code.used_by = [...code.used_by, userData.id];
+                    code.used_by = [...code.used_by, userData.account_id];
     
                     ss.config.verbose && ss.log.bgBlue("services: Writing to DB: update code "+code_key);
                     await ss.runQuery(`

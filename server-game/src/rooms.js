@@ -1,5 +1,6 @@
-//legacyshell: roomManager
+//legacyshell: room
 import ran from '#scrambled';
+import ClientConstructor from '#client';
 import Comm from '#comm';
 //
 
@@ -7,6 +8,7 @@ let ss;
 
 function setSS(newSS) {
     ss = newSS;
+    ClientConstructor.setSS(ss);
 };
 
 class newRoom {
@@ -19,6 +21,7 @@ class newRoom {
         this.gameKey = info.gameKey;
 
         this.mapJson = ss.maps[this.mapId];
+        console.log(this.mapId, this.mapJson);
         this.playerLimit = this.mapJson.playerLimit || 18;
 
         this.players = new Map();
@@ -26,14 +29,14 @@ class newRoom {
     };
 
     joinPlayer(info, ws) {
-        // const client = new ClientConstructor(info, ws);
+        const client = new ClientConstructor.newClient(info, ws);
 
         var output = new Comm.Out(11); //this is FIXED. it's technically a little faster. here it's easier just cause all of these are simple ints.
 
         output.packInt8U(Comm.Code.gameJoined);
 
-        output.packInt8U(0); //meId
-        output.packInt8U(0); // myTeam
+        output.packInt8U(0); //meId (0-17 for 18 slots)
+        output.packInt8U(0); // myTeam (0 for ffa, 1-2 for teams)
         output.packInt8U(this.gameType); // gameType
         output.packInt16U(this.gameId); // gameId
         output.packInt16U(this.gameKey); // gameKey

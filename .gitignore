@@ -11,3 +11,6 @@ package-lock.json
 
 # my crap
 /assets/0.18.2
+
+#other
+/.vscode
