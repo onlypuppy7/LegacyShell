@@ -281,9 +281,17 @@ const Comm = {
      * @enum {number}
      */
     Code: {
-        /** @constant {number} - Code for when a game is joined. */
+        /** SERVER: in response to one of the three join/create types
+        * @constant {number}
+        */
         gameJoined: 0,
+        /** SERVER: sends all the details of a player
+        * @constant {number}
+        */
         addPlayer: 1,
+        /** SERVER: delete a player
+        * @constant {number}
+        */
         removePlayer: 2,
         chat: 3,
         controlKeys: 4,
@@ -297,35 +305,80 @@ const Comm = {
         spawnItem: 12,
         respawn: 13,
         swapWeapon: 14,
-        /** @constant {number} - CLIENT: request for a game search */
+        /** CLIENT: request for a game search
+        * @constant {number}
+        */
         joinGame: 15,
+        /** CLIENT: used for both getting ping on home screen and also ensuring connection to the server during a game. */
         ping: 16,
+        /** SERVER: i guess you could return this in response to ping. no harm.
+        * @constant {number}
+        */
         pong: 17,
+        /** SERVER: sent after all players have been initially added. if wanted, it also can send the time and stuff for the unused rounds feature. 
+        * @constant {number}
+        */
         clientReady: 18,
         requestRespawn: 19,
         throwGrenade: 20,
+        /** CLIENT: request search for a public room and join it 
+        * @constant {number}
+        */
         joinPublicGame: 21,
+        /** CLIENT: identify specific room and join it 
+        * @constant {number}
+        */
         joinPrivateGame: 22,
+        /** CLIENT: create a room 
+        * @constant {number}
+        */
         createPrivateGame: 23,
+        /** SERVER: for the unused rounds feature. 
+        * @constant {number}
+        */
         roundStart: 24,
         switchTeam: 25,
+        /** SERVER: display a notification on the person's game for any reason. 
+        * @constant {number}
+        */
         notification: 26,
         changeCharacter: 27,
         playerCount: 28,
+        /** SERVER: for the unused rounds feature. 
+        * @constant {number}
+        */
         roundEnd: 29,
         pause: 30,
+        /** SERVER: no logic associated with this. 
+        * @constant {number}
+        */
         announcement: 31,
         updateBalance: 32,
         reload: 33,
         refreshGameState: 34,
         switchTeamFail: 35,
         expireUpgrade: 36,
+        /** CLIENT: send a req to boot someone (requires gameOwner) 
+        * @constant {number}
+        */
         bootPlayer: 37,
+        /** SERVER: unused/unknown
+        * @constant {number}
+        */
         loginRequired: 38,
+        /** SERVER: have been booted from a game. 
+        * @constant {number}
+        */
         banned: 39,
+        /** SERVER: room has been locked from the public. doesnt seem to have kicked them. 
+        * @constant {number}
+        */
         gameLocked: 40,
         startReload: 48,
         fire: 49,
+        /** CLIENT: used by bwd admins to look at ips and stuff (scary). 
+        * @constant {number}
+        */
         info: 255
     },
 
