@@ -23,7 +23,6 @@ class newRoom {
         this.gameKey = info.gameKey;
 
         this.mapJson = ss.maps[this.mapId];
-        console.log(this.mapId, this.mapJson);
         this.playerLimit = this.mapJson.playerLimit || 18;
 
         this.players = [];

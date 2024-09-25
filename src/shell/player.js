@@ -80,7 +80,7 @@ function Player(data, scene) {
     this.ready = false;
     this.chatLineCap = 3;
     this.respawnQueued = false;
-    if (isClient) this.actor = new PlayerActor(this);
+    this.actor = new PlayerActor(this); //if (isClient) 
     this.stateBuffer = [];
     for (var i = 0; i < stateBufferSize; i++) {
         this.stateBuffer.push({

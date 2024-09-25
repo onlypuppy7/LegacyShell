@@ -1,7 +1,7 @@
 //legacyshell: client
 import ran from '#scrambled';
 import Comm from '#comm';
-import { ItemType, CharClass } from '#constants';
+import { ItemType, itemIdOffsets } from '#constants';
 import Player from '#player';
 import CatalogConstructor from '#catalog';
 import extendMath from '#math';
@@ -71,7 +71,7 @@ class newClient {
             controlKeys: 0,
             randomSeed: 0,
 
-            upgradeProductId: input.unPackInt8U()
+            upgradeProductId: this.userData.upgradeProductId
         }, this.room.scene);
         // console.log("kek", info, room);
     };
@@ -82,10 +82,12 @@ class newClient {
         if (
             this.userData // player has an account
             && (item.exclusive_for_class === classIdx) && (item.item_type_id === itemType) // item is valid
-            && this.userData.inventory.includes(item.id) // item is owned
+            && this.userData.ownedItemIds.includes(item.id) // item is owned
         ) { 
+            console.log("custom");
             itemId = item.id;
         } else { // no account, no skins! go screw yourself.
+            console.log("default");
             switch (itemType) {
                 case ItemType.Hat:
                     itemId = null;
