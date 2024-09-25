@@ -1,6 +1,6 @@
 function extendMath (Math) {
     Math.PI2 = 2 * Math.PI, Math.PI90 = Math.PI / 2;
-    Math.seed = 100;
+    if (!Math.seed) Math.seed = 100;
     Math.mod = function (n, m) {
         var remain = n % m;
         return 0 <= remain ? remain : remain + m
