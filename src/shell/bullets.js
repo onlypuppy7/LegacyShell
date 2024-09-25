@@ -2,6 +2,10 @@
 import BABYLON from "babylonjs";
 //
 
+//(server-only-start)
+var isClient = false;
+//(server-only-end)
+
 // [LS] Bullet CONSTRUCTOR
 function Bullet(scene) {
     this.scene = scene;

@@ -2,6 +2,10 @@
 import BABYLON from "babylonjs";
 //
 
+//(server-only-start)
+var isClient = false;
+//(server-only-end)
+
 // [LS] Gun CONSTRUCTOR
 export function Gun(player, subClass) {
     this.player = player, this.scene = this.player.scene, this.subClass = subClass, this.highPrecision = false, this.equipTime = 25, this.stowWeaponTime = 25
@@ -44,7 +48,8 @@ export function Eggk47(player, meshName) {
         storeMax: 240,
         pickup: 30
     };
-    this.longReloadTime = 210, this.shortReloadTime = 180, this.actor = new Eggk47Actor(this, meshName)
+    this.longReloadTime = 210, this.shortReloadTime = 180;
+    if (player.actor) this.actor = new Eggk47Actor(this, meshName);
 };
 (Eggk47.prototype = Object.create(Gun.prototype)).constructor = Gun;
 Eggk47.weaponName = "EggK-47";
@@ -72,7 +77,8 @@ export function DozenGauge(player, meshName) {
         store: 24,
         storeMax: 24,
         pickup: 8
-    }, this.longReloadTime = 155, this.shortReloadTime = 155, this.v1 = new BABYLON.Vector3, this.actor = new DozenGaugeActor(this, meshName)
+    }, this.longReloadTime = 155, this.shortReloadTime = 155, this.v1 = new BABYLON.Vector3;
+    if (player.actor) this.actor = new DozenGaugeActor(this, meshName)
 };
 (DozenGauge.prototype = Object.create(Gun.prototype)).constructor = Gun;
 DozenGauge.weaponName = "Dozen Gauge";
@@ -100,7 +106,8 @@ export function CSG1(player, meshName) {
         store: 15,
         storeMax: 15,
         pickup: 5
-    }, this.hasScope = true, this.longReloadTime = 240, this.shortReloadTime = 150, this.highPrecision = true, this.actor = new CSG1Actor(this, meshName)
+    }, this.hasScope = true, this.longReloadTime = 240, this.shortReloadTime = 150, this.highPrecision = true;
+    if (player.actor) this.actor = new CSG1Actor(this, meshName)
 };
 (CSG1.prototype = Object.create(Gun.prototype)).constructor = Gun;
 CSG1.weaponName = "CSG-1";
@@ -128,7 +135,8 @@ export function Cluck9mm(player, meshName) {
         store: 60,
         storeMax: 60,
         pickup: 15
-    }, this.longReloadTime = 195, this.shortReloadTime = 160, this.actor = new Cluck9mmActor(this, meshName)
+    }, this.longReloadTime = 195, this.shortReloadTime = 160;
+    if (player.actor) this.actor = new Cluck9mmActor(this, meshName)
 };
 (Cluck9mm.prototype = Object.create(Gun.prototype)).constructor = Gun;
 Cluck9mm.weaponName = "Cluck 9mm";
@@ -156,7 +164,8 @@ export function RPEGG(player, meshName) {
         store: 3,
         storeMax: 3,
         pickup: 1
-    }, this.hasScope = true, this.longReloadTime = 170, this.shortReloadTime = 170, this.actor = new RPEGGActor(this, meshName)
+    }, this.hasScope = true, this.longReloadTime = 170, this.shortReloadTime = 170;
+    if (player.actor) this.actor = new RPEGGActor(this, meshName)
 };
 (RPEGG.prototype = Object.create(Gun.prototype)).constructor = Gun;
 RPEGG.weaponName = "RPEGG";

@@ -1,6 +1,10 @@
 //legacyshell: catalog
-import { ItemType, CharClass, Slot, itemIdOffsets } from '#constants';
+import { ItemType, CharClass, Slot, itemIdOffsets, item_classes } from '#constants';
 //
+
+//(server-only-start)
+var isClient = false;
+//(server-only-end)
 
 // [LS] Catalog CONSTRUCTOR
 const CatalogConstructor = function (importedItems) {

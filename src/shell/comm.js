@@ -1,4 +1,10 @@
+//
+
 // FYI: This file is designed to be imported into the shell JS too. What does this mean? IDK. I cba to explain.
+
+//(server-only-start)
+var isClient = false;
+//(server-only-end)
 
 const Comm = {
     /**
@@ -37,7 +43,7 @@ const Comm = {
             if (this.fixedSize && requiredSize > this.buffer.length) {
                 throw new Error('Buffer overflow: Cannot write beyond fixed size');
             } else if (!this.fixedSize && requiredSize > this.buffer.length) {
-                this._resizeBuffer(Math.max(this.buffer.length * 2, requiredSize));
+                this._resizeBuffer(requiredSize);
             }
         }
 
@@ -338,7 +344,7 @@ const Comm = {
         * @constant {number}
         */
         ping: 16,
-        /** SERVER: i guess you could return this in response to ping. no harm.
+        /** SERVER: actually you cant return this. the game does not recognise this and its useless.
         * @constant {number}
         */
         pong: 17,

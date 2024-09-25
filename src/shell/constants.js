@@ -3,6 +3,10 @@ import BABYLON from "babylonjs";
 import { Eggk47, DozenGauge, CSG1, RPEGG, Cluck9mm } from "#guns";
 //
 
+//(server-only-start)
+var isClient = false;
+//(server-only-end)
+
 //all of these cryptic classes are hell.
 
 /**

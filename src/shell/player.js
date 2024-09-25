@@ -1,6 +1,11 @@
 //legacyshell: player
 import BABYLON from "babylonjs";
+import { stateBufferSize } from '#constants';
 //
+
+//(server-only-start)
+var isClient = false;
+//(server-only-end)
 
 // [LS] Player CONSTRUCTOR
 function Player(data, scene) {
@@ -80,7 +85,7 @@ function Player(data, scene) {
     this.ready = false;
     this.chatLineCap = 3;
     this.respawnQueued = false;
-    this.actor = new PlayerActor(this); //if (isClient) 
+    if (isClient) this.actor = new PlayerActor(this);
     this.stateBuffer = [];
     for (var i = 0; i < stateBufferSize; i++) {
         this.stateBuffer.push({

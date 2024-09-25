@@ -2,6 +2,10 @@
 import BABYLON from "babylonjs";
 //
 
+//(server-only-start)
+var isClient = false;
+//(server-only-end)
+
 class ColliderConstructor {
     constructor(scene) {
         this.playerCollisionMesh = BABYLON.MeshBuilder.CreateBox("pc", {
