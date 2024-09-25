@@ -3,7 +3,14 @@ import BABYLON from "babylonjs";
 import { Eggk47, DozenGauge, CSG1, RPEGG, Cluck9mm } from "#guns";
 //
 
-export var item_classes = { //to make the items json-able
+//all of these cryptic classes are hell.
+
+/**
+ * legacyshell added
+ * 
+ * to make the items json-able (couldve just used classIdx tbh but thats actually more work because cluck9mm isnt a primary weapon)
+ */
+export var item_classes = {
     "Cluck9mm": Cluck9mm,
     "CSG1": CSG1,
     "DozenGauge": DozenGauge,
@@ -11,6 +18,9 @@ export var item_classes = { //to make the items json-able
     "Eggk47": Eggk47,
 };
 
+/**
+ * this is used for when you need to use classIdx as a param (because its an int)
+ */
 export var classes = [
     {
         name: "Soldier",
@@ -27,11 +37,22 @@ export var classes = [
     }
 ];
 
+/**
+ * used in-game, e.g., `me.weaponIdx`.
+ * this may as well be a boolean.
+ * 
+ * @enum {number}
+ */
 export var Slot = {
     Primary: 0,
     Secondary: 1
 };
 
+/**
+ * used for items, idk how to describe this
+ * 
+ * @enum {number}
+ */
 export var ItemType = {
     Hat: 1,
     Stamp: 2,
@@ -39,6 +60,11 @@ export var ItemType = {
     Secondary: 4
 };
 
+/**
+ * used for items but also for classIdx (its really confusing and inconsistent)
+ * 
+ * @enum {number}
+ */
 export var CharClass = {
     Soldier: 0,
     Scrambler: 1,
@@ -47,6 +73,26 @@ export var CharClass = {
 };
 
 CharClass.length = Object.keys(CharClass).length;
+
+/**
+ * legacyshell added
+ * 
+ * (these constants shouldve been like this to begin with)
+ * 
+ * @enum {number}
+ */
+export var itemIdOffsets = {
+    [ItemType.Hat]: 999,
+    [ItemType.Stamp]: 1999,
+    [ItemType.Primary]: {
+        base: 3000,
+        [CharClass.Soldier]: 100,
+        [CharClass.Scrambler]: 600,
+        [CharClass.Ranger]: 400,
+        [CharClass.Eggsploder]: 800
+    },
+    [ItemType.Secondary]: 3000
+};
 
 export var Team = {
     blue: 1,

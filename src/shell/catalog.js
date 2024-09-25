@@ -1,5 +1,5 @@
 //legacyshell: catalog
-import { ItemType, CharClass } from '#constants';
+import { ItemType, CharClass, Slot, itemIdOffsets } from '#constants';
 //
 
 // [LS] Catalog CONSTRUCTOR
@@ -25,63 +25,60 @@ const CatalogConstructor = function (importedItems) {
         return this.findItemInListById(itemId, this.Items)
     };
     this.findItemBy8BitItemId = function (itemType, classIdx, itemId8Bit) {
-        if (false === this.isSetup && this.setupCatalog(), void 0 === classIdx || classIdx >= CharClass.length) return null;
+        if (!this.isSetup) {
+            this.setupCatalog();
+        };
+        if (classIdx === undefined || classIdx >= CharClass.length) {
+            return null;
+        };
         var realItemId = itemId8Bit;
         switch (itemType) {
             case ItemType.Hat:
-                return 0 === itemId8Bit ? null : (realItemId += 999, this.findItemInListById(realItemId, this.hats));
+                if (itemId8Bit === 0) return null;
+                realItemId += itemIdOffsets[itemType];
+                return this.findItemInListById(realItemId, this.hats);
             case ItemType.Stamp:
-                return 0 === itemId8Bit ? null : (realItemId += 1999, this.findItemInListById(realItemId, this.stamps));
+                if (itemId8Bit === 0) return null;
+                realItemId += itemIdOffsets[itemType];
+                return this.findItemInListById(realItemId, this.stamps);
             case ItemType.Primary:
-                switch (realItemId += 3000, classIdx) {
-                    case CharClass.Soldier:
-                        realItemId += 100;
-                        break;
-                    case CharClass.Scrambler:
-                        realItemId += 600;
-                        break;
-                    case CharClass.Ranger:
-                        realItemId += 400;
-                        break;
-                    case CharClass.Eggsploder:
-                        realItemId += 800
-                }
+                realItemId += itemIdOffsets[itemType].base;
+                realItemId += itemIdOffsets[itemType][classIdx];
                 return this.findItemInListById(realItemId, this.forClass[classIdx].forWeaponSlot[Slot.Primary]);
             case ItemType.Secondary:
-                return realItemId += 3e3, this.findItemInListById(realItemId, this.forClass[classIdx].forWeaponSlot[Slot.Secondary])
+                realItemId += itemIdOffsets[itemType];
+                return this.findItemInListById(realItemId, this.forClass[classIdx].forWeaponSlot[Slot.Secondary])
         }
     };
     this.get8BitItemId = function (item, classIdx) {
-        if (null === item) return 0;
-        false === this.isSetup && this.setupCatalog();
+        if (item === null) return 0;
+        if (!this.isSetup) {
+            this.setupCatalog();
+        };
+        
+        if (classIdx === undefined || classIdx >= CharClass.length) {
+            return null;
+        };
         var itemId8Bit = item.id;
         switch (item.item_type_id) {
             case ItemType.Hat:
-                itemId8Bit -= 999;
+                if (itemId8Bit === 0) return null;
+                itemId8Bit -= itemIdOffsets[ItemType.Hat];
                 break;
             case ItemType.Stamp:
-                itemId8Bit -= 1999;
+                if (itemId8Bit === 0) return null;
+                itemId8Bit -= itemIdOffsets[ItemType.Stamp];
                 break;
             case ItemType.Primary:
-                switch (itemId8Bit -= 3e3, classIdx) {
-                    case CharClass.Soldier:
-                        itemId8Bit -= 100;
-                        break;
-                    case CharClass.Scrambler:
-                        itemId8Bit -= 600;
-                        break;
-                    case CharClass.Ranger:
-                        itemId8Bit -= 400;
-                        break;
-                    case CharClass.Eggsploder:
-                        itemId8Bit -= 800
-                }
+                itemId8Bit -= itemIdOffsets[ItemType.Primary].base;
+                itemId8Bit -= itemIdOffsets[ItemType.Primary][classIdx];
                 break;
             case ItemType.Secondary:
-                itemId8Bit -= 3e3
+                itemId8Bit -= itemIdOffsets[ItemType.Secondary];
+                break;
         };
-        return itemId8Bit
-    };
+        return itemId8Bit;
+    };    
     this.addWeaponFunctions = function (weaponItem) {
         weaponItem.instantiateNew = function (avatar) {
             const ItemClass = item_classes[this.item_data.class];
