@@ -145,10 +145,11 @@ initTables().then(() => {
                 const msg = JSON.parse(jsonString);
                 let cmdType = 'regular';
                 ss.config.services.ratelimit.sensitive.cmds.includes(msg.cmd) && (cmdType = 'sensitive');
-                ([
+                const auth_commands = [
                     "getUser", //modify this i guess
-                    "addEggs",
-                ]).includes(msg.cmd) && (cmdType = 'auth_required');
+                    "addKill",
+                ];
+                auth_commands.includes(msg.cmd) && (cmdType = 'auth_required');
                 
                 ss.config.verbose && ss.log.dim("Received cmd: "+msg.cmd+"; type: "+cmdType), console.log(msg);
 
@@ -188,6 +189,12 @@ initTables().then(() => {
                 };
     
                 switch (msg.cmd) {
+                    // Game server commands
+                    case 'getUser':
+                        ws.send(JSON.stringify({
+                            sessionData,
+                            userData
+                        }));
                     // Sync commands
                     case 'requestConfig':
                         ss.config.verbose && ss.log.bgCyan("services: Reading from DB: get max modified of items");

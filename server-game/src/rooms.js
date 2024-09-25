@@ -2,6 +2,8 @@
 import ran from '#scrambled';
 import ClientConstructor from '#client';
 import Comm from '#comm';
+//legacyshell: getting user data
+import wsrequest from '#wsrequest';
 //
 
 let ss;
@@ -24,14 +26,31 @@ class newRoom {
         console.log(this.mapId, this.mapJson);
         this.playerLimit = this.mapJson.playerLimit || 18;
 
-        this.players = new Map();
-        this.clients = new Map();
+        this.players = [];
+        this.clients = [];
     };
 
-    joinPlayer(info, ws) {
-        const client = new ClientConstructor.newClient(info, ws);
+    async joinPlayer(info, ws) {
+        if (info.session && info.session.length > 0) {
+            const response = await wsrequest({
+                cmd: "getUser",
+                session: info.session,
+            }, ss.config.game.services_server, ss.config.game.auth_key);
 
-        var output = new Comm.Out(11); //this is FIXED. it's technically a little faster. here it's easier just cause all of these are simple ints.
+            info.userData = response.userData;
+            info.sessionData = response.sessionData;
+
+            console.log(info.sessionData);
+        };
+
+        info.id = this.getUnusedPlayerId();
+
+        console.log(info.id);
+
+        const client = new ClientConstructor.newClient(this, info, ws);
+        const player = client.player;
+
+        var output = new Comm.Out(11); //this is FIXED. it's technically a little faster. here it's easier just cause all of these are "simple" ints.
 
         output.packInt8U(Comm.Code.gameJoined);
 
@@ -42,11 +61,20 @@ class newRoom {
         output.packInt16U(this.gameKey); // gameKey
         output.packInt8U(this.mapId); // mapIdx
         output.packInt8U(this.playerLimit); // playerLimit
-        output.packInt8U(1); //bool // isGameOwner
+        output.packInt8U(0); //bool // isGameOwner
 
         // console.log(Comm.Code.gameJoined, output.idx, output, output.buffer);
 
         ws.send(output.buffer);
+    };
+
+    getUnusedPlayerId() {
+        for (let i = 0; i < this.playerLimit; i++) {
+            var client = this.clients[i];
+            var player = this.players[i];
+            if (!(client || player)) return i;
+        };
+        return null;
     };
 };
 

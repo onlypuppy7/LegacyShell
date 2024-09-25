@@ -39,33 +39,33 @@ class newRoomManager {
     };
 
     searchRooms(info) {
-        if (info.gameId && info.gameId > 0) {
-            return getRoom(info.gameId);
-        } else {
-            if (info.joinType === Comm.Code.joinPublicGame) {
-                console.log("public game");
-                //this is where it gets interesting
-                let roomSelection = this.getRoomsOfJoinType(info.joinType);
-                // console.log("joinType", info.joinType, roomSelection);
-                roomSelection = this.getRoomsOfGameType(info.gameType);
-                // console.log("gameType", info.gameType, roomSelection);
-                let remainingMapIds = [...ss.mapAvailability.public];
-                roomSelection.forEach((room) => {
-                    remainingMapIds = remainingMapIds.filter(mapId => mapId !== room.mapId);
-                });
-                // console.log("remainingMapIds", remainingMapIds);
-                let createNew = (roomSelection.length === 0) || (remainingMapIds.length === 0 && ran.getRandomChance(0.3)); //create new, if no rooms OR in the case where some maps are not taken
-                console.log("createNew", createNew);
-                if (createNew) {
-                    info.mapId = remainingMapIds[ran.getRandomFromList(remainingMapIds)];
-                    console.log("<3", info.mapId)
-                    return this.createRoom(info);
-                } else {
-                    return ran.getRandomFromList(roomSelection);
-                };
-            } else if (info.joinType === Comm.Code.joinPrivateGame) {
-                console.log("private game");
-                this.createRoom(info);
+        if (info.joinType === Comm.Code.createPrivateGame) {
+            console.log("create game?");
+            this.createRoom(info);
+        } else if (info.joinType === Comm.Code.joinPrivateGame) {
+            if (info.gameId && info.gameId > 0) {
+                return this.getRoom(info.gameId);
+            };
+        } else if (info.joinType === Comm.Code.joinPublicGame) {
+            console.log("public game");
+            //this is where it gets interesting
+            let roomSelection = this.getRoomsOfJoinType(info.joinType);
+            // console.log("joinType", info.joinType, roomSelection);
+            roomSelection = this.getRoomsOfGameType(info.gameType);
+            // console.log("gameType", info.gameType, roomSelection);
+            let remainingMapIds = [...ss.mapAvailability.public];
+            roomSelection.forEach((room) => {
+                remainingMapIds = remainingMapIds.filter(mapId => mapId !== room.mapId);
+            });
+            // console.log("remainingMapIds", remainingMapIds);
+            let createNew = (roomSelection.length === 0) || (remainingMapIds.length === 0 && ran.getRandomChance(0.3)); //create new, if no rooms OR in the case where some maps are not taken
+            console.log("createNew", createNew);
+            if (createNew) {
+                info.mapId = remainingMapIds[ran.getRandomFromList(remainingMapIds)];
+                console.log("<3", info.mapId)
+                return this.createRoom(info);
+            } else {
+                return ran.getRandomFromList(roomSelection);
             };
         };
         return null;

@@ -1,49 +1,45 @@
-//legacyshell: colours
+//legacyshell: constants
 import BABYLON from "babylonjs";
+import { Eggk47, DozenGauge, CSG1, RPEGG, Cluck9mm } from "#guns";
 //
 
-var item_classes;
-var classes;
-
-if (isClient) {
-    item_classes = { //to make the items json-able
-        "Cluck9mm": Cluck9mm,
-        "CSG1": CSG1,
-        "DozenGauge": DozenGauge,
-        "RPEGG": RPEGG,
-        "Eggk47": Eggk47,
-    };
-
-    classes = [
-        {
-            name: "Soldier",
-            weapon: Eggk47
-        }, {
-            name: "Scrambler",
-            weapon: DozenGauge
-        }, {
-            name: "Free Ranger",
-            weapon: CSG1
-        }, {
-            name: "Eggsploder",
-            weapon: RPEGG
-        }
-    ];
+export var item_classes = { //to make the items json-able
+    "Cluck9mm": Cluck9mm,
+    "CSG1": CSG1,
+    "DozenGauge": DozenGauge,
+    "RPEGG": RPEGG,
+    "Eggk47": Eggk47,
 };
 
-var Slot = {
+export var classes = [
+    {
+        name: "Soldier",
+        weapon: Eggk47
+    }, {
+        name: "Scrambler",
+        weapon: DozenGauge
+    }, {
+        name: "Free Ranger",
+        weapon: CSG1
+    }, {
+        name: "Eggsploder",
+        weapon: RPEGG
+    }
+];
+
+export var Slot = {
     Primary: 0,
     Secondary: 1
 };
 
-var ItemType = {
+export var ItemType = {
     Hat: 1,
     Stamp: 2,
     Primary: 3,
     Secondary: 4
 };
 
-var CharClass = {
+export var CharClass = {
     Soldier: 0,
     Scrambler: 1,
     Ranger: 2,
@@ -52,12 +48,12 @@ var CharClass = {
 
 CharClass.length = Object.keys(CharClass).length;
 
-var Team = {
+export var Team = {
     blue: 1,
     red: 2
 };
 
-var teamColors = {
+export var teamColors = {
     text: ["rgba(255, 255, 255, 1)", "rgba(64, 224, 255, 1)", "rgba(255, 192, 160, 1)"],
     meBackground: ["rgba(255, 192, 64, 0.75)", "rgba(0, 192, 255, 0.8)", "rgba(192, 64, 32, 0.8)"],
     themBackground: ["rgba(0, 0, 0, 0.25)", "rgba(0, 64, 192, 0.3)", "rgba(192, 64, 32, 0.3)"],
@@ -65,12 +61,12 @@ var teamColors = {
     outline: [new BABYLON.Color4(1, 1, 1, 1), new BABYLON.Color4(0, .75, 1, 1), new BABYLON.Color4(1, .25, .25, 1)]
 };
 
-var GameType = {
+export var GameType = {
     ffa: 0,
     teams: 1
 };
 
-var GameTypes = [
+export var GameTypes = [
     {
         shortName: "FFA",
         longName: "Free For All"
@@ -80,7 +76,7 @@ var GameTypes = [
     }
 ];
 
-var CONTROL = {
+export var CONTROL = {
     up: 1,
     down: 2,
     left: 4,
@@ -89,11 +85,11 @@ var CONTROL = {
     fire: 32
 };
 
-var FramesBetweenSyncs = Math.ceil(6);
+export var FramesBetweenSyncs = Math.ceil(6);
 
-var stateBufferSize = 256;
+export var stateBufferSize = 256;
 
-var weaponStats = {
+export var weaponStats = {
     totalDamage: {
         name: "damage",
         max: -1e3,
@@ -120,11 +116,11 @@ var weaponStats = {
     }
 };
 
-var shellColors = ["#ffffff", "#c4e3e8", "#e2bc8b", "#d48e52", "#cb6d4b", "#8d3213", "#5e260f", "#e70a0a", "#aa24ce", "#f17ff9", "#FFD700", "#33a4ea", "#3e7753", "#66dd33"];
+export var shellColors = ["#ffffff", "#c4e3e8", "#e2bc8b", "#d48e52", "#cb6d4b", "#8d3213", "#5e260f", "#e70a0a", "#aa24ce", "#f17ff9", "#FFD700", "#33a4ea", "#3e7753", "#66dd33"];
 
-var flashColors = [new BABYLON.Color3(1, 1, 0), new BABYLON.Color3(0, .5, 1), new BABYLON.Color3(1, 0, 0)];
+export var flashColors = [new BABYLON.Color3(1, 1, 0), new BABYLON.Color3(0, .5, 1), new BABYLON.Color3(1, 0, 0)];
 
-var fireColors = [
+export var fireColors = [
     {
         pos: 0,
         color: new BABYLON.Color4(1, .9, .8, 1)
@@ -143,7 +139,7 @@ var fireColors = [
     }
 ];
 
-var smokeColors = [
+export var smokeColors = [
     {
         pos: 0,
         color: new BABYLON.Color4(.3, .3, .3, 1)
@@ -153,7 +149,7 @@ var smokeColors = [
     }
 ];
 
-var bulletHitColors = [
+export var bulletHitColors = [
     {
         pos: 0,
         color: new BABYLON.Color4(1, 1, 1, 1)
@@ -166,9 +162,9 @@ var bulletHitColors = [
     }
 ];
 
-var color4White = new BABYLON.Color4(1, 1, 1, 1);
+export var color4White = new BABYLON.Color4(1, 1, 1, 1);
 
-var Ease = {
+export var Ease = {
     linear: function (t) {
         return t
     },
@@ -212,27 +208,27 @@ var Ease = {
 
 //(server-only-start)
 
-export default { //why is this like this? because we need to define all these as vars in the client. kek. putting it all in one object kinda ugh ngl.
-    item_classes,
-    Slot,
-    ItemType,
-    CharClass,
-    Team,
-    teamColors,
-    GameType,
-    GameTypes,
-    CONTROL,
-    classes,
-    FramesBetweenSyncs,
-    stateBufferSize,
-    weaponStats,
-    shellColors,
-    flashColors,
-    fireColors,
-    smokeColors,
-    bulletHitColors,
-    color4White,
-    Ease
-};
+// export default { //why is this like this? because we need to define all these as vars in the client. kek. putting it all in one object kinda ugh ngl.
+//     item_classes,
+//     Slot,
+//     ItemType,
+//     CharClass,
+//     Team,
+//     teamColors,
+//     GameType,
+//     GameTypes,
+//     CONTROL,
+//     classes,
+//     FramesBetweenSyncs,
+//     stateBufferSize,
+//     weaponStats,
+//     shellColors,
+//     flashColors,
+//     fireColors,
+//     smokeColors,
+//     bulletHitColors,
+//     color4White,
+//     Ease
+// };
 
 //(server-only-end)

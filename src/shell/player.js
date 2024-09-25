@@ -1,16 +1,13 @@
+//legacyshell: player
+import BABYLON from "babylonjs";
 //
 
-//(server-only-start)
-
-//put stuff here?
-
-//(server-only-end)
-
+// [LS] Player CONSTRUCTOR
 function Player(data, scene) {
     this.id = data.id;
     this.uniqueId = data.uniqueId;
     this.name = data.name;
-    this.charClass = data.charClass;
+    this.classIdx = data.classIdx
     this.team = data.team;
     this.primaryWeaponItem = data.primaryWeaponItem;
     this.secondaryWeaponItem = data.secondaryWeaponItem;
@@ -283,16 +280,16 @@ Player.prototype.jump = function () {
 Player.prototype.setJumping = function (jumping) {
     this.jumping = jumping, this.stateBuffer[this.stateIdx].jumping = jumping
 };
-Player.prototype.changeCharacter = function (classIdx, primaryWeaponItem, secondaryWeaponItem, shellColor, hatItem, stampItem) {
+Player.prototype.changeCharacter = function (newClassIdx, primaryWeaponItem, secondaryWeaponItem, shellColor, hatItem, stampItem) {
     var itemChanged = function (oldItem, newItem) {
         return oldItem && !newItem || !oldItem && newItem || null !== oldItem && null !== newItem && oldItem.id !== newItem.id
     };
-    if (classIdx !== this.charClass || primaryWeaponItem.id !== this.primaryWeaponItem.id || secondaryWeaponItem.id !== this.secondaryWeaponItem.id || shellColor !== this.shellColor || itemChanged(hatItem) || itemChanged(stampItem)) {
+    if (newClassIdx !== this.classIdx || primaryWeaponItem.id !== this.primaryWeaponItem.id || secondaryWeaponItem.id !== this.secondaryWeaponItem.id || shellColor !== this.shellColor || itemChanged(hatItem) || itemChanged(stampItem)) {
         var output;
-        if (this.charClass = classIdx, this.primaryWeaponItem = primaryWeaponItem, this.secondaryWeaponItem = secondaryWeaponItem, this.shellColor = shellColor, this.hatItem = hatItem, this.stampItem = stampItem, this.actor)
-            if (this.actor.setShellColor(shellColor), this.id == meId) (output = new Comm.Out(7)).packInt8(Comm.Code.changeCharacter), output.packInt8(classIdx), output.packInt8(catalog.get8BitItemId(primaryWeaponItem, classIdx)), output.packInt8(catalog.get8BitItemId(secondaryWeaponItem, classIdx)), output.packInt8(shellColor), output.packInt8(catalog.get8BitItemId(hatItem, classIdx)), output.packInt8(catalog.get8BitItemId(stampItem, classIdx)), ws.send(output.buffer);
+        if (this.classIdx = newClassIdx, this.primaryWeaponItem = primaryWeaponItem, this.secondaryWeaponItem = secondaryWeaponItem, this.shellColor = shellColor, this.hatItem = hatItem, this.stampItem = stampItem, this.actor)
+            if (this.actor.setShellColor(shellColor), this.id == meId) (output = new Comm.Out(7)).packInt8(Comm.Code.changeCharacter), output.packInt8(newClassIdx), output.packInt8(catalog.get8BitItemId(primaryWeaponItem, newClassIdx)), output.packInt8(catalog.get8BitItemId(secondaryWeaponItem, newClassIdx)), output.packInt8(shellColor), output.packInt8(catalog.get8BitItemId(hatItem, newClassIdx)), output.packInt8(catalog.get8BitItemId(stampItem, newClassIdx)), ws.send(output.buffer);
             else this.actor.wearHat(this.hatItem), this.actor.applyStamp(this.stampItem);
-        else (output = new Comm.Out(8, true)).packInt8(Comm.Code.changeCharacter), output.packInt8(this.id), output.packInt8(classIdx), output.packInt8(catalog.get8BitItemId(primaryWeaponItem, classIdx)), output.packInt8(catalog.get8BitItemId(secondaryWeaponItem, classIdx)), output.packInt8(shellColor), output.packInt8(catalog.get8BitItemId(hatItem, classIdx)), output.packInt8(catalog.get8BitItemId(stampItem, classIdx)), sendToOthers(output.buffer, this.id);
+        else (output = new Comm.Out(8, true)).packInt8(Comm.Code.changeCharacter), output.packInt8(this.id), output.packInt8(newClassIdx), output.packInt8(catalog.get8BitItemId(primaryWeaponItem, newClassIdx)), output.packInt8(catalog.get8BitItemId(secondaryWeaponItem, newClassIdx)), output.packInt8(shellColor), output.packInt8(catalog.get8BitItemId(hatItem, newClassIdx)), output.packInt8(catalog.get8BitItemId(stampItem, newClassIdx)), sendToOthers(output.buffer, this.id);
         this.changeWeaponLoadout(primaryWeaponItem, secondaryWeaponItem)
     }
 };

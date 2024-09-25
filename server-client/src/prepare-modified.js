@@ -55,6 +55,12 @@ function prepareModified(ss) {
         sourceCode = sourceCode.replace(/LEGACYSHELLCOLLIDER/g, ss.misc.hashtagToString("#collider"));
         ss.log.italic("Inserting math.js into shellshock.min.js...");
         sourceCode = sourceCode.replace(/LEGACYSHELLMATHEXTENSIONS/g, ss.misc.hashtagToString("#math"));
+        ss.log.italic("Inserting bullets.js into shellshock.min.js...");
+        sourceCode = sourceCode.replace(/LEGACYSHELLBULLETS/g, ss.misc.hashtagToString("#bullets"));
+        ss.log.italic("Inserting grenade.js into shellshock.min.js...");
+        sourceCode = sourceCode.replace(/LEGACYSHELLGRENADE/g, ss.misc.hashtagToString("#grenade"));
+        ss.log.italic("Inserting guns.js into shellshock.min.js...");
+        sourceCode = sourceCode.replace(/LEGACYSHELLGUNS/g, ss.misc.hashtagToString("#guns"));
 
         if (ss.config.client.minify) {
             ss.log.italic("Minifying/obfuscating shellshock.min.js...");

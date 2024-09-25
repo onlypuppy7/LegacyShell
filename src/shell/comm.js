@@ -294,22 +294,49 @@ const Comm = {
         */
         removePlayer: 2,
         chat: 3,
+        /** ???: no known functionality 
+        * @constant {number}
+        */
         controlKeys: 4,
+        /** ???: no known functionality 
+        * @constant {number}
+        */
         keyUp: 5,
         sync: 6,
+        /** CLIENT: attempt to make me player jump
+        * 
+        * SERVER: attempt to make another player jump
+        * @constant {number}
+        */
         jump: 7,
         die: 8,
         hitThem: 9,
         hitMe: 10,
+        /** SERVER: tells the client they picked up an item
+        * @constant {number}
+        */
         collectItem: 11,
+        /** SERVER: tells the client there's a new item (usually right after one has been collected)
+        * @constant {number}
+        */
         spawnItem: 12,
+        /** SERVER: informs that ANY player has respawned
+        * @constant {number}
+        */
         respawn: 13,
+        /** CLIENT: attempt to swap weapons
+        * 
+        * SERVER: informs that someone's weapon has changed
+        * @constant {number}
+        */
         swapWeapon: 14,
         /** CLIENT: request for a game search
         * @constant {number}
         */
         joinGame: 15,
-        /** CLIENT: used for both getting ping on home screen and also ensuring connection to the server during a game. */
+        /** CLIENT: used for both getting ping on home screen and also ensuring connection to the server during a game. 
+        * @constant {number}
+        */
         ping: 16,
         /** SERVER: i guess you could return this in response to ping. no harm.
         * @constant {number}
@@ -342,7 +369,15 @@ const Comm = {
         * @constant {number}
         */
         notification: 26,
+        /** CLIENT: attempt to change skins and stuff
+        * 
+        * SERVER: informs that someone's skins and stuff has changed
+        * @constant {number}
+        */
         changeCharacter: 27,
+        /** SERVER: unused/unknown
+        * @constant {number}
+        */
         playerCount: 28,
         /** SERVER: for the unused rounds feature. 
         * @constant {number}

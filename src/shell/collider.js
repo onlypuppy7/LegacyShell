@@ -1,3 +1,7 @@
+//legacyshell: collider
+import BABYLON from "babylonjs";
+//
+
 class ColliderConstructor {
     constructor(scene) {
         this.playerCollisionMesh = BABYLON.MeshBuilder.CreateBox("pc", {

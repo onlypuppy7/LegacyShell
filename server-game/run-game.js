@@ -14,11 +14,10 @@ import rm from './src/roomManager.js';
 
 let ss = misc.instanciateSS(import.meta.dirname);
 
-const RoomManager = new rm.newRoomManager();
+var RoomManager;
 
 ss = {
     ...ss,
-    RoomManager,
     mapAvailability: {
         public: [],
         private: [],
@@ -26,9 +25,11 @@ ss = {
     },
 };
 
-rm.setSS(ss);
-
 function startServer() {
+    const RoomManager = new rm.newRoomManager();
+    ss.RoomManager = RoomManager;
+    rm.setSS(ss);
+
     const port = ss.config.game.websocket || 13372;
     const wss = new WebSocketServer({ port: port });
 
@@ -61,7 +62,7 @@ function startServer() {
                             msg.nickname = input.unPackString(); //NOT the username!
                             //additional stuff provided they are signed in
                             msg.session = input.unPackString(); //technically this is all thats rlly needed tbh
-                            msg.uniqueId = input.unPackString(); //yeh this isnt even necessary
+                            msg.account_id = input.unPackString(); //yeh this isnt even necessary
     
                             ss.config.verbose && console.log(msg, Comm.Convert(msg.joinType), Comm.Convert(msg.gameType));
     
@@ -102,31 +103,32 @@ let retrieved = false;
 
 let mapsFilePath =      path.join(ss.currentDir, 'store', 'maps.json');
 let serversFilePath =   path.join(ss.currentDir, 'store', 'servers.json');
+let itemsFilePath =     path.join(ss.currentDir, 'store', 'items.json');
 
 async function connectWebSocket(retryCount = 0) {
     try {
         ss.log.blue('WebSocket connection opening. Requesting config information...');
-        const data = await wsrequest({
+        const configInfo = await wsrequest({
             cmd: "requestConfig",
             lastMaps: Math.floor(misc.getLastSavedTimestamp(mapsFilePath)/1000),
             lastServers: Math.floor(misc.getLastSavedTimestamp(serversFilePath)/1000),
+            lastItems: Math.floor(misc.getLastSavedTimestamp(itemsFilePath)/1000),
         }, ss.config.game.services_server, ss.config.game.auth_key);
 
-        if (data) {
+        if (configInfo) {
             ss.log.green('Received config information from sync server.');
-            const configInfo = JSON.parse(data);
 
             const load = function(thing, filePath) {
                 if (configInfo[thing]) {
-                    ss.log.blue(`[${thing}] loaded from newly retrieved json.`)
-                    configInfo[thing] = JSON.stringify(configInfo[thing]);
-                    fs.writeFileSync(filePath, configInfo[thing]); //dont convert the json. there is no need.
+                    ss.log.blue(`[${thing}] loaded from newly retrieved json.`);
+                    fs.writeFileSync(filePath, JSON.stringify(configInfo[thing]));
                     ss[thing] = configInfo[thing];
                     delete configInfo[thing];
+                    console.log(5, ss[thing]);
                 } else {
-                    ss.log.italic(`[${thing}] loaded from previously saved json.`);
                     delete configInfo[thing]; //still delete the false, derp
                     if (fs.existsSync(filePath)) {
+                        ss.log.italic(`[${thing}] loaded from previously saved json.`);
                         ss[thing] = JSON.parse(fs.readFileSync(filePath, 'utf8'));
                     } else {
                         ss.log.red(`Shit. We're fucked. We didn't receive an [${thing}] json nor do we have one stored. FUUUU-`);
@@ -136,6 +138,7 @@ async function connectWebSocket(retryCount = 0) {
 
             load("maps", mapsFilePath);
             load("servers", serversFilePath);
+            load("items", itemsFilePath);
 
             ss.config.game = { ...ss.config.game, ...configInfo };
 
@@ -144,15 +147,15 @@ async function connectWebSocket(retryCount = 0) {
                 switch (map.availability) {
                     case "public":
                         ss.mapAvailability.public.push(i);
-                        break
+                        break;
                     case "private":
                         ss.mapAvailability.private.push(i);
-                        break
+                        break;
                     case "both":
                         ss.mapAvailability.public.push(i);
                         ss.mapAvailability.private.push(i);
                         ss.mapAvailability.both.push(i);
-                        break
+                        break;
                 };
             };
 
