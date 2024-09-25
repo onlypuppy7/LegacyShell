@@ -51,16 +51,15 @@ let serversFilePath = path.join(ss.currentDir, 'store', 'servers.json');
 async function connectWebSocket(retryCount = 0) {
     try {
         ss.log.blue('WebSocket connection opening. Requesting config information...');
-        const data = await wsrequest({
+        const configInfo = await wsrequest({
             cmd: "requestConfig",
                 lastItems: Math.floor(misc.getLastSavedTimestamp(itemsFilePath)/1000), //well in theory, if its not in existence this returns 0 and we should get it :D
                 lastMaps: Math.floor(misc.getLastSavedTimestamp(mapsFilePath)/1000),
                 lastServers: Math.floor(misc.getLastSavedTimestamp(serversFilePath)/1000),
         }, ss.config.client.sync_server);
 
-        if (data) {
+        if (configInfo) {
             ss.log.green('Received config information from sync server.');
-            const configInfo = JSON.parse(data);
     
             const load = function(thing, filePath) {
                 if (configInfo[thing]) {
@@ -70,9 +69,9 @@ async function connectWebSocket(retryCount = 0) {
                     ss.cache[thing] = configInfo[thing];
                     delete configInfo[thing];
                 } else {
-                    ss.log.italic(`[${thing}] loaded from previously saved json.`);
                     delete configInfo[thing]; //still delete the false, derp
                     if (fs.existsSync(filePath)) {
+                        ss.log.italic(`[${thing}] loaded from previously saved json.`);
                         ss.cache[thing] = fs.readFileSync(filePath, 'utf8');
                     } else {
                         ss.log.red(`Shit. We're fucked. We didn't receive an [${thing}] json nor do we have one stored. FUUUU-`);

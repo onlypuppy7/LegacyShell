@@ -1,3 +1,8 @@
+//legacyshell: catalog
+import { ItemType, CharClass } from '#constants';
+//
+
+// [LS] Catalog CONSTRUCTOR
 const CatalogConstructor = function (importedItems) {
     if (null == importedItems) throw "Items is undefined or null, cannot create Catalog";
     this.isSetup = false;

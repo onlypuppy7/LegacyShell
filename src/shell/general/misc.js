@@ -45,7 +45,6 @@ const misc = {
 
         return ss;
     },
-    clamp: (value, min, max) => { return Math.min(Math.max(value, min), max) },
     hashtagToPath: function (hashtag) {
         try {
             if (!hashtag.startsWith("#")) hashtag = `#${hashtag}`;
@@ -61,7 +60,8 @@ const misc = {
             const path = misc.hashtagToPath(hashtag);
             let file = fs.readFileSync(path[0], 'utf8');
             file = file.replaceAll("\nimport ", "\n//(ignore) import ");
-            file = file.replaceAll("\nexport ", "\n//(ignore) export ");
+            file = file.replaceAll("\nexport default ", "\n//(ignore) export default ");
+            file = file.replaceAll("\nexport ", "\n/*(ignore) export*/ ");
             file = file.replaceAll("\n//(server-only-start)", "\n/*(server-only-start)");
             file = file.replaceAll("\n//(server-only-end)", "\n(server-only-end)*/");
             file = `// [LS] ${hashtag} imported from .${path[1]}\n${file}`;

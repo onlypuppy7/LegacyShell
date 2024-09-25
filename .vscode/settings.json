@@ -11,6 +11,5 @@
     "prettier.singleQuote": false, // Use single quotes instead of double quotes
     "prettier.trailingComma": "es5", // Print trailing commas wherever possible in ES5 (objects, arrays, etc.)
     "prettier.bracketSpacing": true, // Print spaces between brackets in object literals
-    "prettier.bracketSameLine": false,
-    "vscord.app.privacyMode.enable": false // Put the `>` of a multi-line JSX element at the end of the last line
+    "prettier.bracketSameLine": false // Put the `>` of a multi-line JSX element at the end of the last line
 }
