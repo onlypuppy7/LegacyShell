@@ -1,3 +1,9 @@
+//
+
+//(server-only-start)
+var isClient = false;
+//(server-only-end)
+
 function extendMath (Math) {
     Math.PI2 = 2 * Math.PI, Math.PI90 = Math.PI / 2;
     if (!Math.seed) Math.seed = 100;

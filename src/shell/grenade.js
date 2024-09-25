@@ -2,6 +2,10 @@
 import BABYLON from "babylonjs";
 //
 
+//(server-only-start)
+var isClient = false;
+//(server-only-end)
+
 // [LS] Grenade CONSTRUCTOR
 function Grenade(scene) {
     this.scene = scene, this.x = 0, this.y = 0, this.z = 0, this.dx = 0, this.dy = 0, this.dz = 0, this.ttl = 0, this.active = false, this.player = null, this.actor = new GrenadeActor(this)

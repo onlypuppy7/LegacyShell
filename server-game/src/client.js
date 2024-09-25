@@ -17,30 +17,132 @@ function setSS(newSS) {
 
 class newClient {
     constructor(room, info, ws) {
+        //
+        this.clientReady = false;
         this.room = room;
         this.ws = ws;
         this.userData = info.userData;
         this.sessionData = info.sessionData;
-
+        this.loggedIn = info.userData && info.sessionData;
+        //
+        this.account_id = this.loggedIn ? this.userData.account_id : null; //reminder this is the ID of the actual account
+        this.nickname = info.nickname; //todo check this is legal length and stuff
+        this.id = info.id; //place in list
+        this.classIdx = info.classIdx;
+        //
         this.loadout = {};
+        this.colorIdx = 0;
+        //
+
         //gun skins
         this.setEquippedItem(ItemType.Primary, info.classIdx, catalog.findItemBy8BitItemId(ItemType.Primary, info.classIdx, info.primary_item_id));
         this.setEquippedItem(ItemType.Secondary, info.classIdx, catalog.findItemBy8BitItemId(ItemType.Secondary, info.classIdx, info.secondary_item_id));
         //cosmetics
         this.setEquippedItem(ItemType.Hat, info.classIdx, catalog.findItemBy8BitItemId(ItemType.Hat, info.classIdx, info.hatId));
         this.setEquippedItem(ItemType.Stamp, info.classIdx, catalog.findItemBy8BitItemId(ItemType.Stamp, info.classIdx, info.stampId));
+        this.setColorIdx(info.colorIdx);
 
-        //wip
+        this.instantiatePlayer();
+
+        // console.log("kek", info, room);
+        
+        var output = new Comm.Out(11); //if fixed for gameJoined, use 11
+        this.packGameJoined(output);
+        this.sendBuffer(output, "packGameJoined");
+
+        ws.removeAllListeners('message');
+        ws.on('message', this.onmessage.bind(this));
+
+        console.log(!!this.room.packAllPlayers);
+    };
+
+    async onmessage(message) {
+        try {
+            var input = new Comm.In(message);
+
+            while (input.isMoreDataAvailable()) {
+                let msg = {};
+                msg.cmd = input.unPackInt8U();
+                console.log(Comm.Convert(msg.cmd));
+
+                switch (msg.cmd) {
+                    case Comm.Code.clientReady:
+                        this.clientReady = true;
+
+                        var output = new Comm.Out();
+                        this.room.packAllPlayers(output);
+                        this.sendBuffer(output, "packAllPlayers");
+                
+                        this.room.registerPlayerClient(this);
+                
+                        var output = new Comm.Out();
+                        this.packPlayer(output);
+                        this.room.sendToAll(output);
+                
+                        var output = new Comm.Out(1);
+                        output.packInt8U(Comm.Code.clientReady);
+                        this.sendBuffer(output, "clientReady");
+                        break
+                    case Comm.Code.ping:
+                        var output = new Comm.Out();
+                        output.packInt8(Comm.Code.ping);
+                        this.sendBuffer(output);
+                        break;
+                }
+            }
+
+        } catch (error) {
+            console.error('Error processing message:', error);
+            ws.send(JSON.stringify({ error: 'Internal server error' }));
+        }
+    };
+
+    setEquippedItem(itemType, classIdx, item) { //itemType: stamp/hat/prim/sec, classIdx: eggk/shotgun etc
+        let itemId = 0;
+        if (
+            this.userData // player has an account
+            && (item.exclusive_for_class === classIdx) && (item.item_type_id === itemType) // item is valid
+            && this.userData.ownedItemIds.includes(item.id) // item is owned
+        ) { 
+            itemId = item.id;
+        } else { // no account, no skins! go screw yourself.
+            switch (itemType) {
+                case ItemType.Hat:
+                    itemId = null;
+                    break;
+                case ItemType.Stamp:
+                    itemId = null;
+                    break;
+                case ItemType.Primary:
+                    itemId += itemIdOffsets[ItemType.Primary].base;
+                    itemId += itemIdOffsets[ItemType.Primary][classIdx];
+                    break;
+                case ItemType.Secondary:
+                    itemId += itemIdOffsets[ItemType.Secondary];
+                    break;
+            };
+        };
+        this.loadout[itemType] = catalog.findItemById(itemId);
+    };
+
+    setColorIdx(colorIdx) {
+        let range = 6;
+        if (this.loggedIn && !this.userData.upgradeIsExpired) range = 13;
+        this.colorIdx = Math.clamp(Math.floor(colorIdx), 0, range);
+    };
+
+    instantiatePlayer() {
         this.player = new Player({
-            id: info.id,
-            uniqueId: info.account_id,
-            nickname: info.nickname,
-            classIdx: info.classIdx, // weapon class
+            id: this.id,
+            uniqueId: this.account_id,
+            nickname: this.nickname,
+            classIdx: this.classIdx, // weapon class
+
             team: 0, //info.team,
 
             primaryWeaponItem: this.loadout[ItemType.Primary],
             secondaryWeaponItem: this.loadout[ItemType.Secondary],
-            shellColor: Math.clamp(Math.floor(info.colorIdx), 0, 7),
+            shellColor: this.colorIdx,
             hatItem: this.loadout[ItemType.Hat],
             stampItem: this.loadout[ItemType.Stamp],
 
@@ -71,41 +173,70 @@ class newClient {
             controlKeys: 0,
             randomSeed: 0,
 
-            upgradeProductId: this.userData.upgradeProductId
+            upgradeProductId: this.loggedIn ? this.userData.upgradeProductId : 0,
         }, this.room.scene);
-        // console.log("kek", info, room);
     };
 
-    setEquippedItem(itemType, classIdx, item) { //itemType: stamp/hat/prim/sec, classIdx: eggk/shotgun etc
-        console.log(itemType, classIdx, item);
-        let itemId = 0;
-        if (
-            this.userData // player has an account
-            && (item.exclusive_for_class === classIdx) && (item.item_type_id === itemType) // item is valid
-            && this.userData.ownedItemIds.includes(item.id) // item is owned
-        ) { 
-            console.log("custom");
-            itemId = item.id;
-        } else { // no account, no skins! go screw yourself.
-            console.log("default");
-            switch (itemType) {
-                case ItemType.Hat:
-                    itemId = null;
-                    break;
-                case ItemType.Stamp:
-                    itemId = null;
-                    break;
-                case ItemType.Primary:
-                    itemId += itemIdOffsets[ItemType.Primary].base;
-                    itemId += itemIdOffsets[ItemType.Primary][classIdx];
-                    break;
-                case ItemType.Secondary:
-                    itemId += itemIdOffsets[ItemType.Secondary];
-                    break;
-            };
-        };
-        this.loadout[itemType] = itemId;
-        console.log(this.loadout[itemType])
+    packPlayer(output) {
+        output.packInt8U(Comm.Code.addPlayer);
+
+        output.packInt8U(this.id);
+        output.packInt32U(this.account_id);
+        output.packString(this.nickname);
+        output.packInt8U(this.classIdx);
+
+        output.packInt8U(this.player.team);
+
+        output.packInt8U(catalog.get8BitItemId(this.loadout[ItemType.Primary], this.classIdx));
+        output.packInt8U(catalog.get8BitItemId(this.loadout[ItemType.Secondary], this.classIdx));
+        output.packInt8U(this.colorIdx);
+        output.packInt8U(catalog.get8BitItemId(this.loadout[ItemType.Hat], this.classIdx));
+        output.packInt8U(catalog.get8BitItemId(this.loadout[ItemType.Stamp], this.classIdx));
+
+        output.packFloat(this.player.x);
+        output.packFloat(this.player.y);
+        output.packFloat(this.player.z);
+        output.packFloat(this.player.dx);
+        output.packFloat(this.player.dy);
+        output.packFloat(this.player.dz);
+        output.packRadU(this.player.yaw);
+        output.packRad(this.player.pitch);
+
+        output.packInt32U(this.player.score);
+        output.packInt16U(this.player.kills);
+        output.packInt16U(this.player.deaths);
+        output.packInt16U(this.player.streak);
+        output.packInt32U(this.player.totalKills);
+        output.packInt32U(this.player.totalDeaths);
+        output.packInt16U(this.player.bestGameStreak);
+        output.packInt16U(this.player.bestOverallStreak);
+
+        output.packInt8U(this.player.shield);
+        output.packInt8U(this.player.hp);
+        output.packInt8U(this.player.playing ? 1 : 0);
+        output.packInt8U(0); //weaponIdx
+        output.packInt8U(0); //controlKeys
+        output.packInt16U(0); //randomSeed
+        output.packInt8U(this.loggedIn ? this.userData.upgradeProductId : 0); //upgradeProductId
+    };
+
+
+    packGameJoined(output) {
+        output.packInt8U(Comm.Code.gameJoined);
+
+        output.packInt8U(this.id); //meId (0-17 for 18 slots)
+        output.packInt8U(0); // myTeam (0 for ffa, 1-2 for teams)
+        output.packInt8U(this.room.gameType); // gameType
+        output.packInt16U(this.room.gameId); // gameId
+        output.packInt16U(this.room.gameKey); // gameKey
+        output.packInt8U(this.room.mapId); // mapIdx
+        output.packInt8U(this.room.playerLimit); // playerLimit
+        output.packInt8U(0); //bool // isGameOwner
+    };
+
+    sendBuffer(output, debug) { // more direct operation, prefer this.room.sendToOne
+        console.log(output, debug)
+        this.ws.send(output.buffer);
     };
 };
 
