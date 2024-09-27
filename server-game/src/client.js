@@ -1,7 +1,7 @@
 //legacyshell: client
 import ran from '#scrambled';
 import Comm from '#comm';
-import { ItemType, itemIdOffsets } from '#constants';
+import { ItemType, itemIdOffsets, FramesBetweenSyncs, stateBufferSize } from '#constants';
 import Player from '#player';
 import CatalogConstructor from '#catalog';
 import extendMath from '#math';
@@ -27,6 +27,7 @@ class newClient {
         //
         this.account_id = this.loggedIn ? this.userData.account_id : null; //reminder this is the ID of the actual account
         this.nickname = info.nickname; //todo check this is legal length and stuff
+        this.username = this.loggedIn ? this.userData.username : "";
         this.id = info.id; //place in list
         this.classIdx = info.classIdx;
         //
@@ -67,21 +68,37 @@ class newClient {
 
                 switch (msg.cmd) {
                     case Comm.Code.clientReady:
-                        this.clientReady = true;
+                        if (!this.clientReady) {
+                            this.clientReady = true;
+    
+                            var output = new Comm.Out();
+                            this.room.packAllPlayers(output);
+                            this.sendBuffer(output, "packAllPlayers");
+                    
+                            this.room.registerPlayerClient(this);
+                    
+                            var output = new Comm.Out();
+                            this.packPlayer(output);
+                            this.room.sendToAll(output);
+                    
+                            var output = new Comm.Out(1);
+                            output.packInt8U(Comm.Code.clientReady);
+                            this.sendBuffer(output, "clientReady");
+                        };
+                        break
+                    case Comm.Code.sync:
+                        this.player.stateIdx = input.unPackInt8();
+                        this.player.shotsQueued = input.unPackInt8();
 
-                        var output = new Comm.Out();
-                        this.room.packAllPlayers(output);
-                        this.sendBuffer(output, "packAllPlayers");
-                
-                        this.room.registerPlayerClient(this);
-                
-                        var output = new Comm.Out();
-                        this.packPlayer(output);
-                        this.room.sendToAll(output);
-                
-                        var output = new Comm.Out(1);
-                        output.packInt8U(Comm.Code.clientReady);
-                        this.sendBuffer(output, "clientReady");
+                        var startIdx = Math.mod(this.player.stateIdx - FramesBetweenSyncs, stateBufferSize)
+                        var i;
+                        for (startIdx, i = 0; i < FramesBetweenSyncs; i++) {
+                            var idx = Math.mod(startIdx + i, stateBufferSize);
+                            this.player.stateBuffer[idx].controlKeys = input.unPackInt8();
+                            this.player.stateBuffer[idx].yaw = input.unPackRadU();
+                            this.player.stateBuffer[idx].pitch = input.unPackRad();
+                        };
+
                         break
                     case Comm.Code.ping:
                         var output = new Comm.Out();
@@ -100,7 +117,8 @@ class newClient {
     setEquippedItem(itemType, classIdx, item) { //itemType: stamp/hat/prim/sec, classIdx: eggk/shotgun etc
         let itemId = 0;
         if (
-            this.userData // player has an account
+            item
+            && this.userData // player has an account
             && (item.exclusive_for_class === classIdx) && (item.item_type_id === itemType) // item is valid
             && this.userData.ownedItemIds.includes(item.id) // item is owned
         ) { 
@@ -137,6 +155,7 @@ class newClient {
             uniqueId: this.account_id,
             nickname: this.nickname,
             classIdx: this.classIdx, // weapon class
+            username: this.username,
 
             team: 0, //info.team,
 
@@ -184,6 +203,7 @@ class newClient {
         output.packInt32U(this.account_id);
         output.packString(this.nickname);
         output.packInt8U(this.classIdx);
+        output.packString(this.username);
 
         output.packInt8U(this.player.team);
 
