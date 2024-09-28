@@ -308,6 +308,11 @@ const Comm = {
         * @constant {number}
         */
         keyUp: 5,
+        /** CLIENT: sends stateIdx, shotsQueued, FramesBetweenSyncs lots of statebuffer (yaw, pitch, controlKeys)
+        * 
+        * SERVER: directly sets stateIdx, xyz, climbing, and other stuff i dont understand yet
+        * @constant {number}
+        */
         sync: 6,
         /** CLIENT: attempt to make me player jump
         * 
