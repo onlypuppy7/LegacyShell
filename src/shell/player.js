@@ -360,7 +360,7 @@ class Player {
             };
         };
     };
-    moveZ (ndz, delta) {
+    moveZ (ndz, delta) { //fuck this function
         var old_z = this.z;
         this.z += ndz;
         var collide = this.collidesWithMap();
@@ -373,8 +373,8 @@ class Player {
                 this.y = old_y;
             } else {
                 this.dz *= .92;
-                this.lookForLadder(collide);
             };
+            this.lookForLadder(collide); //oh yeah its just sooo simple right so easy
         }
     };
     moveY (ndy, delta) {
@@ -515,17 +515,7 @@ class Player {
         return !(!(this.playing && this.weapon && this.reloadCountdown <= 0 && this.swapWeaponCountdown <= 0 && this.grenadeCountdown <= 0) || this.actor && 0 != grenadePowerUp);
     };
     canSwapOrReload () {
-        const isActive = this.playing && 
-                         this.weapon && 
-                         this.recoilCountdown <= 0 && 
-                         this.reloadCountdown <= 0 && 
-                         this.swapWeaponCountdown <= 0 && 
-                         this.grenadeCountdown <= 0 && 
-                         this.shotsQueued <= 0;
-        
-        const hasPowerUp = this.actor && grenadePowerUp !== 0;
-    
-        return isActive && !hasPowerUp;
+        return !(!(this.playing && this.weapon && this.recoilCountdown <= 0 && this.reloadCountdown <= 0 && this.swapWeaponCountdown <= 0 && this.grenadeCountdown <= 0 && this.shotsQueued <= 0) || this.actor && 0 != grenadePowerUp)
     };
     fire () {
         if (0 < this.shield) {
@@ -710,9 +700,10 @@ class Player {
         this.respawnQueued = false;
         this.playing = true;
         if (this.hp <= 0) {
-            this.hp = 100, this.resetWeaponState()
+            this.hp = 100;
+            this.resetWeaponState();
         } else {
-            this.resetWeaponState(true)
+            this.resetWeaponState(true);
         };
         this.resetStateBuffer();
         if (this.actor) {
