@@ -87,7 +87,7 @@ class newClient {
                         };
                         break
                     case Comm.Code.sync:
-                        this.player.stateIdx = input.unPackInt8();
+                        this.player.stateIdx = input.unPackInt8(); //be suspicious of this
                         this.player.shotsQueued = input.unPackInt8();
 
                         var startIdx = Math.mod(this.player.stateIdx - FramesBetweenSyncs, stateBufferSize)
