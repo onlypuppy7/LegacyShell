@@ -4,6 +4,7 @@ import ClientConstructor from '#client';
 import Comm from '#comm';
 //legacyshell: getting user data
 import wsrequest from '#wsrequest';
+import BABYLON from "babylonjs";
 //
 
 let ss;
@@ -16,6 +17,11 @@ function setSS(newSS) {
 class newRoom {
     constructor(info) {
         console.log("creating room", info.gameId);
+
+        //scene init
+        this.engine = new BABYLON.NullEngine();
+        this.scene = new BABYLON.Scene(this.engine);
+
         this.joinType = info.joinType;
         this.gameType = info.gameType;
         this.mapId = info.mapId;
