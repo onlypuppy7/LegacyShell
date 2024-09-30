@@ -90,7 +90,7 @@ class newClient {
                         this.player.stateIdx = input.unPackInt8(); //be suspicious of this
                         this.player.shotsQueued = input.unPackInt8();
 
-                        var startIdx = Math.mod(this.player.stateIdx - FramesBetweenSyncs, stateBufferSize)
+                        var startIdx = Math.mod(this.player.stateIdx - FramesBetweenSyncs, stateBufferSize);
                         var i;
                         for (startIdx, i = 0; i < FramesBetweenSyncs; i++) {
                             var idx = Math.mod(startIdx + i, stateBufferSize);
