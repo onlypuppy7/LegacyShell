@@ -4,16 +4,16 @@
   - [hyperlink](https://example.com/): archive of the site
 - Date
   - [hyperlink](https://example.com/): evidence of the date
-  - ranges mean the known range of dates of occurance (wayback machine/)
+  - ranges mean the known range of dates of occurance (wayback machine/archive.today)
 - Video links:
   - **bold = shows ui**
   - *italics = streamed*
   - ~~striked = version unconfirmed~~ this means that I don't know for sure, and just the date matches up.
 - - late upload indicates that the version shown in the video doesn't match up with the upload date
 
-> **FYI: Dates are NOT accurate to the date (unless they are linked, in which case the link goes to evidence), but are general guides of timescale.**
+> **FYI: Dates are NOT accurate to the exact time of release (unless they are linked, in which case the link goes to evidence), but are general guides of timescale.**
 
-### Shell Shockers first releases: [1 Sept 2017](https://www.facebook.com/ShellShockersGame/posts/pfbid02JUuPT6ou8bPt89FnNVofDKn5ZtTGMtTqtPvcL82wQX7QpopsSfrN1PZtG51KCc78l)
+### Shell Shockers first releases on: [1 Sept 2017](https://www.facebook.com/ShellShockersGame/posts/pfbid02JUuPT6ou8bPt89FnNVofDKn5ZtTGMtTqtPvcL82wQX7QpopsSfrN1PZtG51KCc78l)
 
 ## Super Pre-Alpha 0.0.4 | 5 Sept 2017
 
@@ -62,7 +62,7 @@
 
 ### Prior to this point, all maps were [randomly generated](https://www.facebook.com/ShellShockersGame/posts/pfbid0MveedmUki6MLMo73t6LZ9yxAZiAxRjdky6K2EeymVy8V9KXKH9kEc1qZC9iwjYTPl). Unfortunately as of now these maps are lost (but can be reconstructed).
 
-## 0.2.0 | 23 Sept 2017
+## 0.2.0 | ?? Sept 2017
 
 > **What's New**
 > - First round of major revisions to networking for compactness
@@ -72,6 +72,8 @@
 **https://www.youtube.com/watch?v=jWOLQNVGu3I** (spanish, 1080p, 1 min, bgm)
 
 ~~https://www.youtube.com/watch?v=crw7PW-ZaMQ~~ (spanish, 1080p, 16 minutes)
+
+**~~https://www.youtube.com/watch?v=xgbEjZijSfQ~~**
 
 ## 0.4.0 | 22 Sept 2017
 
@@ -141,8 +143,6 @@
 **https://www.youtube.com/watch?v=hu8rr2VlhzM**
 
 ~~https://www.youtube.com/watch?v=FnaKFU-yt1c~~
-
-**https://www.youtube.com/watch?v=hu8rr2VlhzM**
 
 ## [0.8.1](https://web.archive.org/web/20171125081142/http://www.shellshock.io/)  | [15 Nov](https://www.facebook.com/ShellShockersGame/posts/pfbid02XzGTSNF6eSc6nLgSssvsMdEgPuH1muHoCwZbj99hb29U29nmhQsDCs5XrpNqCb2fl) - 1 Dec 2017
 
@@ -828,6 +828,8 @@ https://shellshock.io/
 https://iogames.space/shell-shockers
 
 https://www.crazygames.com/game/shellshockersio
+
+https://titotu.ru/shell-shockers
 
 # Credits
 

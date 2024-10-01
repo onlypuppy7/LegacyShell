@@ -214,6 +214,22 @@ export var bulletHitColors = [
 
 export var color4White = new BABYLON.Color4(1, 1, 1, 1);
 
+export var inputToControlMap = {
+    W: "up",
+    S: "down",
+    A: "left",
+    D: "right",
+    SPACE: "jump",
+    "MOUSE 0": "fire",
+    SHIFT: "scope",
+    R: "reload",
+    E: "weapon",
+    Q: "grenade"
+};
+
+export var name1stHalf = ["Captain", "Lord", "Supreme", "Master", "Pro", "Noob"];
+export var name2ndHalf = ["Egg", "Yolk", "Shell", "Cluck", "Chick", "Bird"];
+
 export var Ease = {
     linear: function (t) {
         return t
