@@ -43,24 +43,26 @@ function prepareModified(ss) {
         ss.log.italic("Inserting devmode into shellshock.min.js...");
         sourceCode = sourceCode.replace(/LEGACYSHELLDEVMODE/g, "true"); //drop in later
 
-        ss.log.italic("Inserting comm.js into shellshock.min.js...");
-        sourceCode = sourceCode.replace(/LEGACYSHELLCOMM/g, ss.misc.hashtagToString("#comm"));
-        ss.log.italic("Inserting player.js into shellshock.min.js...");
-        sourceCode = sourceCode.replace(/LEGACYSHELLPLAYERCONSTRUCTOR/g, ss.misc.hashtagToString("#player"));
-        ss.log.italic("Inserting catalog.js into shellshock.min.js...");
-        sourceCode = sourceCode.replace(/LEGACYSHELLCATALOG/g, ss.misc.hashtagToString("#catalog"));
-        ss.log.italic("Inserting constants.js into shellshock.min.js...");
-        sourceCode = sourceCode.replace(/LEGACYSHELLCONSTANTS/g, ss.misc.hashtagToString("#constants"));
-        ss.log.italic("Inserting collider.js into shellshock.min.js...");
-        sourceCode = sourceCode.replace(/LEGACYSHELLCOLLIDER/g, ss.misc.hashtagToString("#collider"));
-        ss.log.italic("Inserting math.js into shellshock.min.js...");
-        sourceCode = sourceCode.replace(/LEGACYSHELLMATHEXTENSIONS/g, ss.misc.hashtagToString("#math"));
-        ss.log.italic("Inserting bullets.js into shellshock.min.js...");
-        sourceCode = sourceCode.replace(/LEGACYSHELLBULLETS/g, ss.misc.hashtagToString("#bullets"));
-        ss.log.italic("Inserting grenade.js into shellshock.min.js...");
-        sourceCode = sourceCode.replace(/LEGACYSHELLGRENADE/g, ss.misc.hashtagToString("#grenade"));
-        ss.log.italic("Inserting guns.js into shellshock.min.js...");
-        sourceCode = sourceCode.replace(/LEGACYSHELLGUNS/g, ss.misc.hashtagToString("#guns"));
+        const replacements = [
+            { pattern: /LEGACYSHELLCOMM/g, file: "#comm" },
+            { pattern: /LEGACYSHELLPLAYERCONSTRUCTOR/g, file: "#player" },
+            { pattern: /LEGACYSHELLCATALOG/g, file: "#catalog" },
+            { pattern: /LEGACYSHELLCONSTANTS/g, file: "#constants" },
+            { pattern: /LEGACYSHELLCOLLIDER/g, file: "#collider" },
+            { pattern: /LEGACYSHELLMATHEXTENSIONS/g, file: "#math" },
+            { pattern: /LEGACYSHELLBULLETS/g, file: "#bullets" },
+            { pattern: /LEGACYSHELLGRENADE/g, file: "#grenade" },
+            { pattern: /LEGACYSHELLGUNS/g, file: "#guns" }
+        ];
+        
+        replacements.forEach(replacement => {
+            ss.log.italic(`Inserting ${replacement.file.replace("#", "")}.js into shellshock.min.js...`);
+            sourceCode = sourceCode.replace(replacement.pattern, ss.misc.hashtagToString(replacement.file));
+        });
+
+        if (false) { // unexposes variables to the client. see: console cracker
+            sourceCode = `(()=>{\n${sourceCode}\n})();`
+        };
 
         if (ss.config.client.minify) {
             ss.log.italic("Minifying/obfuscating shellshock.min.js...");
