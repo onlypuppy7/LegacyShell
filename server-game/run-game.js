@@ -128,7 +128,6 @@ async function connectWebSocket(retryCount = 0) {
                     fs.writeFileSync(filePath, JSON.stringify(configInfo[thing]));
                     ss[thing] = configInfo[thing];
                     delete configInfo[thing];
-                    console.log(5, ss[thing]);
                 } else {
                     delete configInfo[thing]; //still delete the false, derp
                     if (fs.existsSync(filePath)) {

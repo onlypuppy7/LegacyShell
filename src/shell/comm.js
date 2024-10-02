@@ -1,9 +1,10 @@
+//legacyshell: basic
+import { isClient } from '#constants';
 //
 
 // FYI: This file is designed to be imported into the shell JS too. What does this mean? IDK. I cba to explain.
 
 //(server-only-start)
-var isClient = false;
 //(server-only-end)
 
 const Comm = {
@@ -19,7 +20,7 @@ const Comm = {
             this.fixedSize = size !== undefined;
             this.buffer = this.fixedSize ? new Uint8Array(size) : [];
             this.idx = 0;
-        }
+        };
 
         /**
          * Resize buffer if dynamically allocated.
@@ -30,8 +31,8 @@ const Comm = {
                 const newBuffer = new Uint8Array(newSize);
                 newBuffer.set(this.buffer); // Copy existing data into the new buffer
                 this.buffer = newBuffer;
-            }
-        }
+            };
+        };
 
         /** 
          * Ensure buffer has enough space for additional bytes.

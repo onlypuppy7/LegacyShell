@@ -2,6 +2,8 @@
 import ran from '#scrambled';
 import ClientConstructor from '#client';
 import Comm from '#comm';
+import ColliderConstructor from '#collider';
+import { setSSforLoader, loadMapMeshes, buildMapData } from '#loading';
 //legacyshell: getting user data
 import wsrequest from '#wsrequest';
 import BABYLON from "babylonjs";
@@ -18,10 +20,6 @@ class newRoom {
     constructor(info) {
         console.log("creating room", info.gameId);
 
-        //scene init
-        this.engine = new BABYLON.NullEngine();
-        this.scene = new BABYLON.Scene(this.engine);
-
         this.joinType = info.joinType;
         this.gameType = info.gameType;
         this.mapId = info.mapId;
@@ -29,10 +27,32 @@ class newRoom {
         this.gameKey = info.gameKey;
 
         this.mapJson = ss.maps[this.mapId];
-        this.playerLimit = this.mapJson.playerLimit || 18;
+        this.playerLimit = this.mapJson.playerLimit || 18;        
 
         this.players = [];
         this.clients = [];
+
+        //scene init
+        this.engine = new BABYLON.NullEngine();
+        this.scene = new BABYLON.Scene(this.engine);
+        this.map = null;
+
+        this.Collider = new ColliderConstructor(this.scene);
+
+        //map init
+        setSSforLoader(ss, this.mapJson, this.Collider);
+        // this.validItemSpawns = [];
+
+        loadMapMeshes(this.scene, () => {
+            ss.config.verbose && console.log("done loadMapMeshes");
+            const { map, spawnPoints, mapMeshes } = buildMapData(function (str) { ss.log.error("The following map meshes were not found:\n\n" + str + "\nTry clearing your cache and reload the page!") });
+        
+            this.map = map;
+            this.spawnPoints = spawnPoints; //this is a [] from 0-2; conveniently lining up with ffa, team1, team2 (i think)
+            this.mapMeshes = mapMeshes;
+
+            this.Collider.init(ss, map, mapMeshes, this.playerLimit, this.players);
+        });
     };
 
     async joinPlayer(info, ws) {
@@ -85,7 +105,7 @@ class newRoom {
         });
     };
     
-    //semi stolen from RTW :p (is good code)
+    //semi stolen from rtw (is good code)
     sendToOne(output, id) {
         // const client = this.clients[id];
         // if (client && client.clientReady) client.sendBuffer(output);

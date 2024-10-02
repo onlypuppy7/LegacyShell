@@ -52,7 +52,8 @@ function prepareModified(ss) {
             { pattern: /LEGACYSHELLMATHEXTENSIONS/g, file: "#math" },
             { pattern: /LEGACYSHELLBULLETS/g, file: "#bullets" },
             { pattern: /LEGACYSHELLGRENADE/g, file: "#grenade" },
-            { pattern: /LEGACYSHELLGUNS/g, file: "#guns" }
+            { pattern: /LEGACYSHELLGUNS/g, file: "#guns" },
+            { pattern: /LEGACYSHELLLOADING/g, file: "#loading" },
         ];
         
         replacements.forEach(replacement => {
