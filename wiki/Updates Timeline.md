@@ -735,13 +735,13 @@ https://www.youtube.com/watch?v=5qnfb6mgf08
 
 ~~https://www.youtube.com/watch?v=CZC9roBhinE~~
 
-## [0.15.3](https://web.archive.org/web/20181107222925/https://shellshock.io/) | 20 Nov 2018
+## [0.15.3](https://web.archive.org/web/20181120040746/https://shellshock.io/) | 20 Nov 2018
 
 ~~https://www.youtube.com/watch?v=ha_EW-Fi2Eo~~
 
-## [0.15.4a](https://www.youtube.com/watch?v=YSDzwIz_y2Y) | 27 - 30 Nov 2018
+## [0.15.4a](https://web.archive.org/web/20181128155828/https://shellshock.io/) | 27 - 30 Nov 2018
 
-## [0.15.4d](https://web.archive.org/web/20181107222925/https://shellshock.io/) | 6 - 14 Dec 2018
+## [0.15.4d](https://web.archive.org/web/20181206030710/https://shellshock.io/) | 6 - 14 Dec 2018
 
 **https://www.youtube.com/watch?v=3cVYEGFMrao**
 
@@ -834,3 +834,220 @@ https://titotu.ru/shell-shockers
 # Credits
 
 Document created and researched by francio for the LegacyShell project.
+
+# Granular Data
+
+Collected with a custom extension (incomplete).
+
+```
+{
+    "0.14.4a": {
+        "October 1, 2018": [
+            "https://web.archive.org/web/20181001212027/https://shellshock.io/"
+        ]
+    },
+    "0.14.5": {
+        "October 4, 2018": [
+            "https://web.archive.org/web/20181004214632/https://shellshock.io/"
+        ],
+        "October 9, 2018": [
+            "https://web.archive.org/web/20181009214558/https://shellshock.io/"
+        ]
+    },
+    "0.14.6": {
+        "October 18, 2018": [
+            "https://web.archive.org/web/20181018111942/https://shellshock.io/",
+            "https://web.archive.org/web/20181018212440/https://shellshock.io/"
+        ]
+    },
+    "0.14.7": {
+        "October 24, 2018": [
+            "https://web.archive.org/web/20181024215542/https://shellshock.io/"
+        ],
+        "October 25, 2018": [
+            "https://web.archive.org/web/20181025231601/https://shellshock.io/"
+        ],
+        "October 31, 2018": [
+            "https://web.archive.org/web/20181031221551/https://shellshock.io/"
+        ]
+    },
+    "0.15.1": {
+        "November 6, 2018": [
+            "https://web.archive.org/web/20181106222109/https://shellshock.io/"
+        ]
+    },
+    "0.15.2": {
+        "November 11, 2018": [
+            "https://web.archive.org/web/20181111143955/https://shellshock.io/"
+        ],
+        "November 15, 2018": [
+            "https://web.archive.org/web/20181115213101/https://shellshock.io/"
+        ],
+        "November 7, 2018": [
+            "https://web.archive.org/web/20181107222925/https://shellshock.io/"
+        ]
+    },
+    "0.15.4a": {
+        "November 30, 2018": [
+            "https://web.archive.org/web/20181130213044/https://shellshock.io/"
+        ],
+        "November 27, 2018": [
+            "https://web.archive.org/web/20181127144903/https://shellshock.io/"
+        ]
+    },
+    "0.15.4d": {
+        "December 14, 2018": [
+            "https://web.archive.org/web/20181214214956/http://shellshock.io/"
+        ],
+        "December 11, 2018": [
+            "https://web.archive.org/web/20181211135450/https://shellshock.io/"
+        ],
+        "December 6, 2018": [
+            "https://web.archive.org/web/20181206030710/https://shellshock.io/"
+        ]
+    },
+    "0.15.6": {
+        "January 10, 2019": [
+            "https://web.archive.org/web/20190110174724/https://shellshock.io/"
+        ]
+    },
+    "0.15.7": {
+        "January 17, 2019": [
+            "https://web.archive.org/web/20190117221903/https://shellshock.io/"
+        ]
+    },
+    "0.18.2": {
+        "February 20, 2019": [
+            "https://web.archive.org/web/20190220150644/https://shellshock.io/"
+        ],
+        "March 8, 2019": [
+            "https://web.archive.org/web/20190308152848/https://shellshock.io/"
+        ],
+        "March 31, 2019": [
+            "https://web.archive.org/web/20190331200351/https://shellshock.io/"
+        ],
+        "March 11, 2019": [
+            "https://web.archive.org/web/20190311201359/https://shellshock.io/"
+        ],
+        "April 3, 2019": [
+            "https://web.archive.org/web/20190403173739/https://shellshock.io/"
+        ],
+        "April 4, 2019": [
+            "https://web.archive.org/web/20190404140707/https://shellshock.io/"
+        ],
+        "April 11, 2019": [
+            "https://web.archive.org/web/20190411183255/https://shellshock.io/"
+        ],
+        "April 18, 2019": [
+            "https://web.archive.org/web/20190418141507/https://shellshock.io/"
+        ],
+        "May 1, 2019": [
+            "https://web.archive.org/web/20190501165407/http://shellshock.io/"
+        ],
+        "May 3, 2019": [
+            "https://web.archive.org/web/20190503191411/https://shellshock.io/"
+        ]
+    },
+    "0.21.1": {
+        "June 8, 2019": [
+            "https://web.archive.org/web/20190608070414/https://shellshock.io/"
+        ]
+    },
+    "0.20.2a": {
+        "May 28, 2019": [
+            "https://web.archive.org/web/20190528232516/https://shellshock.io/"
+        ],
+        "May 30, 2019": [
+            "https://web.archive.org/web/20190530143244/https://shellshock.io/"
+        ]
+    },
+    "0.8.1": {
+        "December 1, 2017": [
+            "https://web.archive.org/web/20171201014556/http://shellshock.io/"
+        ],
+        "November 25, 2017": [
+            "https://web.archive.org/web/20171125081142if_/http://www.shellshock.io/",
+            "https://web.archive.org/web/20171125081142if_/http://www.shellshock.io/",
+            "https://web.archive.org/web/20171125081142/http://www.shellshock.io/"
+        ]
+    },
+    "0.9.0": {
+        "December 2, 2017": [
+            "https://web.archive.org/web/20171202205033/http://shellshock.io:80/"
+        ],
+        "December 4, 2017": [
+            "https://web.archive.org/web/20171204143236/http://shellshock.io:80/"
+        ]
+    },
+    "0.9.2": {
+        "December 6, 2017": [
+            "https://web.archive.org/web/20171206140644/http://shellshock.io:80/"
+        ]
+    },
+    "0.9.1": {
+        "December 5, 2017": [
+            "https://web.archive.org/web/20171205050217/http://shellshock.io:80/"
+        ]
+    },
+    "0.11.7": {
+        "February 20, 2018": [
+            "https://web.archive.org/web/20180220150104/https://shellshock.io/"
+        ]
+    },
+    "0.12.0": {
+        "February 24, 2018": [
+            "https://web.archive.org/web/20180224053238/https://www.shellshock.io/"
+        ]
+    },
+    "0.12.1": {
+        "February 25, 2018": [
+            "https://web.archive.org/web/20180225195314/https://shellshock.io/"
+        ]
+    },
+    "0.12.2": {
+        "March 17, 2018": [
+            "https://web.archive.org/web/20180317215316/https://shellshock.io/"
+        ]
+    },
+    "0.12.3": {
+        "April 9, 2018": [
+            "https://web.archive.org/web/20180409011054/https://shellshock.io/"
+        ]
+    },
+    "0.12.4": {
+        "May 6, 2018": [
+            "https://web.archive.org/web/20180506081921/https://shellshock.io/"
+        ]
+    },
+    "0.13.3": {
+        "May 11, 2018": [
+            "https://web.archive.org/web/20180511182718/https://shellshock.io/"
+        ]
+    },
+    "0.13.4": {
+        "May 14, 2018": [
+            "https://web.archive.org/web/20180514032830/https://shellshock.io/"
+        ],
+        "June 12, 2018": [
+            "https://web.archive.org/web/20180612013141/https://shellshock.io/"
+        ]
+    },
+    "0.13.5": {
+        "July 16, 2018": [
+            "https://web.archive.org/web/20180716191908/https://shellshock.io/",
+            "https://web.archive.org/web/20180716191908/https://shellshock.io/",
+            "https://web.archive.org/web/20180716191908/https://shellshock.io/"
+        ]
+    },
+    "0.14.32": {
+        "September 10, 2018": [
+            "https://web.archive.org/web/20180910212010/https://shellshock.io/"
+        ]
+    },
+    "0.7.1": {
+        "November 1, 2017": [
+            "https://web.archive.org/web/20171101110804if_/http://shellshock.io/"
+        ]
+    }
+}
+```
