@@ -1,13 +1,11 @@
 //legacyshell: player
 import BABYLON from "babylonjs";
-import { stateBufferSize } from '#constants';
+import { stateBufferSize, isClient, isServer } from '#constants';
 //
 
 //(server-only-start)
-var isClient = false;
-
 const wsSend = function (output, CommCode) {
-    console.log("wtf?", CommCode);
+    console.log("wtf?", CommCode); //case that shouldnt exist
 };
 //(server-only-end)
 
@@ -356,8 +354,8 @@ class Player {
                 this.y = old_y;
             } else {
                 this.dx *= .92;
-                this.lookForLadder(collide);
             };
+            this.lookForLadder(collide);
         };
     };
     moveZ (ndz, delta) { //fuck this function

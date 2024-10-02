@@ -1,7 +1,8 @@
+//legacyshell: basic
+import { isClient } from '#constants';
 //
 
 //(server-only-start)
-var isClient = false;
 //(server-only-end)
 
 function extendMath (Math) {

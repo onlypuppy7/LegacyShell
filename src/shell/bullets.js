@@ -1,9 +1,9 @@
 //legacyshell: bullets
 import BABYLON from "babylonjs";
+import { isClient } from '#constants';
 //
 
 //(server-only-start)
-var isClient = false;
 //(server-only-end)
 
 // [LS] Bullet CONSTRUCTOR

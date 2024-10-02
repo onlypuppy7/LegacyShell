@@ -38,6 +38,7 @@
         "#constants": "./src/shell/constants.js",
         "#grenade": "./src/shell/grenade.js",
         "#guns": "./src/shell/guns.js",
+        "#loading": "./src/shell/loading.js",
         "#math": "./src/shell/math.js",
         "#player": "./src/shell/player.js",
         "#prepare-modified": "./server-client/src/prepare-modified.js",

@@ -1,17 +1,22 @@
 //legacyshell: guns
 import BABYLON from "babylonjs";
+import { isClient } from '#constants';
 //
 
 //(server-only-start)
-var isClient = false;
 //(server-only-end)
 
 // [LS] Gun CONSTRUCTOR
 export function Gun(player, subClass) {
-    this.player = player, this.scene = this.player.scene, this.subClass = subClass, this.highPrecision = false, this.equipTime = 25, this.stowWeaponTime = 25
+    this.player = player;
+    this.scene = this.player.scene;
+    this.subClass = subClass;
+    this.highPrecision = false;
+    this.equipTime = 25;
+    this.stowWeaponTime = 25;
 };
 Gun.prototype.update = function (delta) {
-    this.actor && this.actor.update(delta)
+    this.actor && this.actor.update(delta);
 };
 Gun.prototype.collectAmmo = function () {
     return this.actor ? (this.ammo.store = Math.min(this.ammo.storeMax, this.ammo.store + this.ammo.pickup), true) : this.ammo.store < this.ammo.storeMax && (this.ammo.store = Math.min(this.ammo.storeMax, this.ammo.store + this.ammo.pickup), true)

@@ -1,9 +1,8 @@
 //legacyshell: catalog
-import { ItemType, CharClass, Slot, itemIdOffsets, item_classes } from '#constants';
+import { isClient, ItemType, CharClass, Slot, itemIdOffsets, item_classes } from '#constants';
 //
 
 //(server-only-start)
-var isClient = false;
 //(server-only-end)
 
 // [LS] Catalog CONSTRUCTOR

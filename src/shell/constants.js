@@ -4,8 +4,10 @@ import { Eggk47, DozenGauge, CSG1, RPEGG, Cluck9mm } from "#guns";
 //
 
 //(server-only-start)
-var isClient = false;
 //(server-only-end)
+
+export const isClient = typeof (window) !== 'undefined'; //best to define once, or something
+export const isServer = typeof (window) === 'undefined'; //clearer in code
 
 //all of these cryptic classes are hell.
 

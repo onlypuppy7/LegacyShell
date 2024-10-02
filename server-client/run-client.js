@@ -33,6 +33,7 @@ function startServer() {
     const port = ss.config.client.port || 13370;
 
     app.use(express.static(path.join(ss.currentDir, 'store', 'client-modified'))); // server-client\store\client-modified
+    app.use(express.static(path.join(ss.rootDir, 'src', 'shared-static'))); // src\shared-static
     app.use(express.static(path.join(ss.currentDir, 'src', 'client-static'))); // server-client\src\client-static
 
     app.listen(port, () => {

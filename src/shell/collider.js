@@ -1,9 +1,14 @@
 //legacyshell: collider
 import BABYLON from "babylonjs";
+import { isClient } from '#constants';
 //
 
 //(server-only-start)
-var isClient = false;
+var ss;
+var map;
+var mapMeshes;
+var playerLimit;
+var players;
 //(server-only-end)
 
 class ColliderConstructor {
@@ -50,7 +55,15 @@ class ColliderConstructor {
         this.v4 = new BABYLON.Vector3();
         this.ray = new BABYLON.Ray(BABYLON.Vector3.Zero(), BABYLON.Vector3.Zero(), 1);
         this.matrix = new BABYLON.Matrix();
-    }
+    };
+
+    setSS(ssP, mapP, mapMeshesP, playerLimitP, playersP) {
+        ss = ssP
+        map = mapP;
+        mapMeshes = mapMeshesP;
+        playerLimit = playerLimitP;
+        players = playersP;
+    };
 
     pointCollidesWithMap(point, ignoreSoft) {
         if (isNaN(point.x) || isNaN(point.y) || isNaN(point.z)) return false;
