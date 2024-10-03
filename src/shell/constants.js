@@ -139,6 +139,8 @@ export var CONTROL = {
 
 export var FramesBetweenSyncs = Math.ceil(6);
 
+export var TickStep = 1000 / 30;
+
 export var stateBufferSize = 256;
 
 export var weaponStats = {

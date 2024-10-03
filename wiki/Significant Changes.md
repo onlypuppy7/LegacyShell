@@ -13,3 +13,8 @@ between [18 Oct 2022 (0.43.0)](https://www.youtube.com/watch?v=Z3RgGox7cW8) and 
 between [7 Jan 2019 (0.15.6)](https://www.youtube.com/watch?v=b_WR0BORyTQ) and [17 Jan 2019 (0.15.7)](https://www.youtube.com/watch?v=2Ui_D7fE-1E) the health bar changed, and the background gradient also changed to a darker blue
 ## Lighting
 between [10 Sep 2020 (0.28.4)](https://www.youtube.com/watch?v=SmpvKkgdToU) and [24 Sep 2020 (0.28.6)](https://www.youtube.com/watch?v=6PNunaxZLk8) the lighting changed dramatically (less dark)
+
+# Maps:
+the earliest maps:
+
+[stone castle, boxes, ramps](https://www.youtube.com/watch?v=hu8rr2VlhzM)

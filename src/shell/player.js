@@ -1,17 +1,27 @@
 //legacyshell: player
 import BABYLON from "babylonjs";
-import { stateBufferSize, isClient, isServer } from '#constants';
+import { stateBufferSize, isClient, isServer, CONTROL } from '#constants';
 //
 
 //(server-only-start)
 const wsSend = function (output, CommCode) {
     console.log("wtf?", CommCode); //case that shouldnt exist
 };
+
+let Collider;
+let mapMeshes;
+let meId = -100;
 //(server-only-end)
 
 // [LS] Player CONSTRUCTOR
 class Player {
-    constructor (data, scene) {
+    constructor (data, scene, client) {
+        if (client) {
+            this.client = client;
+            Collider = this.client.room.Collider;
+            mapMeshes = this.client.room.mapMeshes;
+        };
+
         this.id = data.id;
         this.uniqueId = data.uniqueId;
         this.name = data.name;
@@ -129,6 +139,8 @@ class Player {
         var dx = 0;
         var dy = 0;
         var dz = 0;
+
+        console.log(this.stateIdx, this.controlKeys, this.x.toFixed(2), this.y.toFixed(2), this.z.toFixed(2), this.dx.toFixed(2), this.dy.toFixed(2), this.dz.toFixed(2), this.yaw.toFixed(2), this.pitch.toFixed(2));
     
         if (!resim && this.actor && this.id == meId) {
             this.stateBuffer[this.stateIdx].controlKeys = this.controlKeys;
@@ -214,6 +226,8 @@ class Player {
                 this.jumping || (pdy += this.corrected.dy / 6);
                 pdz += this.corrected.dz / 6, this.corrections--;
             };
+
+            // console.log(dx, dy, dz, deltaVector, delta);
     
             this.dx += .007 * deltaVector.x * delta;
             this.dz += .007 * deltaVector.z * delta;
@@ -696,10 +710,13 @@ class Player {
         this.playing = false;
         this.removeFromPlay()
     };
-    respawn (x, y, z) {
-        this.x = x;
-        this.y = y;
-        this.z = z;
+    respawn (newPos) {
+        this.x = newPos.x;
+        this.y = newPos.y;
+        this.z = newPos.z;
+        this.yaw = newPos.yaw || this.yaw;
+        this.pitch = newPos.pitch || this.pitch;
+
         this.respawnQueued = false;
         this.playing = true;
         if (this.hp <= 0) {
@@ -713,9 +730,9 @@ class Player {
             if (this.id == meId) {
                 viewingPlayerId = meId;
             };
-            this.actor.mesh.position.x = x;
-            this.actor.mesh.position.y = y;
-            this.actor.mesh.position.z = z;
+            this.actor.mesh.position.x = newPos.x;
+            this.actor.mesh.position.y = newPos.y;
+            this.actor.mesh.position.z = newPos.z;
             this.actor.restoreToPlay();
             this.weapon.equip();
             if (this.id == viewingPlayerId) {
