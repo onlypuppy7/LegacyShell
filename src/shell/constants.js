@@ -274,6 +274,38 @@ export var Ease = {
     }
 };
 
+const thingForTheThing = isClient ? window : null;
+
+export var interval = {
+    intervals: {},
+    set: function (func, delay) {
+        var newInterval = setInterval.apply(thingForTheThing, [func, delay].concat([].slice.call(arguments, 2)));
+        return interval.intervals[newInterval] = true, newInterval
+    },
+    clear: function (handle) {
+        return delete interval.intervals[handle], clearInterval(handle)
+    },
+    clearAll: function () {
+        for (var all = Object.keys(interval.intervals), len = all.length; 0 < len--;) clearInterval(all.shift());
+        interval.intervals = {}
+    }
+};
+
+export var timeout = {
+    timeouts: {},
+    set: function (func, delay) {
+        var newTimeout = setTimeout.apply(thingForTheThing, [func, delay].concat([].slice.call(arguments, 2)));
+        return timeout.timeouts[newTimeout] = true, newTimeout
+    },
+    clear: function (handle) {
+        return delete timeout.timeouts[handle], clearTimeout(handle)
+    },
+    clearAll: function () {
+        for (var all = Object.keys(timeout.timeouts), len = all.length; 0 < len--;) clearTimeout(all.shift());
+        timeout.timeouts = {}
+    }
+};
+
 //(server-only-start)
 
 // export default { //why is this like this? because we need to define all these as vars in the client. kek. putting it all in one object kinda ugh ngl.

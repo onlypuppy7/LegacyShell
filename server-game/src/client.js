@@ -1,7 +1,7 @@
 //legacyshell: client
 import ran from '#scrambled';
 import Comm from '#comm';
-import { ItemType, itemIdOffsets, FramesBetweenSyncs, stateBufferSize } from '#constants';
+import { ItemType, itemIdOffsets, FramesBetweenSyncs, stateBufferSize, timeout } from '#constants';
 import Player from '#player';
 import CatalogConstructor from '#catalog';
 import extendMath from '#math';
@@ -64,7 +64,8 @@ class newClient {
             while (input.isMoreDataAvailable()) {
                 let msg = {};
                 msg.cmd = input.unPackInt8U();
-                console.log(Comm.Convert(msg.cmd));
+
+                if (msg.cmd !== Comm.Code.sync) console.log(Comm.Convert(msg.cmd));
 
                 switch (msg.cmd) {
                     case Comm.Code.clientReady:
@@ -85,7 +86,7 @@ class newClient {
                             output.packInt8U(Comm.Code.clientReady);
                             this.sendBuffer(output, "clientReady");
                         };
-                        break
+                        break;
                     case Comm.Code.sync:
                         this.player.stateIdx = input.unPackInt8(); //be suspicious of this
                         this.player.shotsQueued = input.unPackInt8();
@@ -99,7 +100,33 @@ class newClient {
                             this.player.stateBuffer[idx].pitch = input.unPackRad();
                         };
 
-                        break
+                        break;
+                    case Comm.Code.pause:
+                        this.player.resetDespawn();
+
+                        timeout.set(() => {
+                            this.player.removeFromPlay();
+
+                            //remove for others
+                        }, 3e3);
+                        break;
+                    case Comm.Code.requestRespawn:
+                        if (Date.now() >= (this.player.lastDespawn + 5000) && !this.player.playing) {
+                            const spawnPoint = this.room.getRandomSpawn(this.player);
+
+                            this.player.yaw = spawnPoint.yaw;
+                            this.player.pitch = spawnPoint.pitch;
+                            this.player.respawn(spawnPoint.x, spawnPoint.y, spawnPoint.z);
+
+                            var output = new Comm.Out(8);
+                            output.packInt8U(Comm.Code.respawn);
+                            output.packInt8U(this.id);
+                            output.packFloat(this.player.x);
+                            output.packFloat(this.player.y);
+                            output.packFloat(this.player.z);
+                            this.room.sendToAll(output);
+                        };
+                        break;
                     case Comm.Code.ping:
                         var output = new Comm.Out();
                         output.packInt8(Comm.Code.ping);
@@ -110,8 +137,8 @@ class newClient {
 
         } catch (error) {
             console.error('Error processing message:', error);
-            ws.send(JSON.stringify({ error: 'Internal server error' }));
-        }
+            // ws.send(JSON.stringify({ error: 'Internal server error' }));
+        };
     };
 
     setEquippedItem(itemType, classIdx, item) { //itemType: stamp/hat/prim/sec, classIdx: eggk/shotgun etc

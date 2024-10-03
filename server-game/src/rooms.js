@@ -81,6 +81,19 @@ class newRoom {
         this.players[client.id] = client.player;
     };
 
+    getRandomSpawn(player) {
+        const list = this.spawnPoints[player.team];
+        const pos = ran.getRandomFromList(list);
+
+        return {
+            x: pos.x + 0.5,
+            y: pos.y,
+            z: pos.z + 0.5,
+            yaw: Math.random() * Math.PI2,
+            pitch: 0,
+        };
+    };
+
     getUnusedPlayerId() {
         for (let i = 0; i < this.playerLimit; i++) {
             var client = this.clients[i];

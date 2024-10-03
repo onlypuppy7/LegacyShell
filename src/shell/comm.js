@@ -358,6 +358,9 @@ const Comm = {
         * @constant {number}
         */
         clientReady: 18,
+        /** CLIENT: try to respawn. if rejected for some reason ur screwed (i think)
+        * @constant {number}
+        */
         requestRespawn: 19,
         throwGrenade: 20,
         /** CLIENT: request search for a public room and join it 
