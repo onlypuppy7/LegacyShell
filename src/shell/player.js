@@ -109,6 +109,8 @@ class Player {
             });
         };
         this.changeWeaponLoadout(this.primaryWeaponItem, this.secondaryWeaponItem);
+
+        this.resetDespawn(-5000);
     };
     changeWeaponLoadout (primaryWeaponItem, secondaryWeaponItem) {
         if (this.actor && this.weapons) {
@@ -656,6 +658,9 @@ class Player {
             sendToAll(output.buffer);
             munitionsManager.throwGrenade(this, pos, vec);
         };
+    };
+    resetDespawn (offset = 0) {
+        this.lastDespawn = Date.now() + offset;
     };
     removeFromPlay () {
         this.playing = false;

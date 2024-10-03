@@ -85,8 +85,12 @@ function startServer() {
                     };
     
                 } catch (error) {
-                    console.error('Error processing message:', error);
-                    ws.send(JSON.stringify({ error: 'Internal server error' }));
+                    try {
+                        console.error('Error processing message:', error);
+                        // ws.send(JSON.stringify({ error: 'Internal server error' })); //ironically this causes the entire fucking thing to crash. so erm, dont.
+                    } catch (error) {
+                        //christ.
+                    };
                 }
             });
     
