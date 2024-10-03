@@ -88,16 +88,18 @@ class newClient {
                         };
                         break;
                     case Comm.Code.sync:
-                        this.player.stateIdx = input.unPackInt8(); //be suspicious of this
+                        this.player.stateIdx = input.unPackInt8U(); //be suspicious of this
                         this.player.shotsQueued = input.unPackInt8();
 
                         var startIdx = Math.mod(this.player.stateIdx - FramesBetweenSyncs, stateBufferSize);
                         var i;
                         for (startIdx, i = 0; i < FramesBetweenSyncs; i++) {
                             var idx = Math.mod(startIdx + i, stateBufferSize);
-                            this.player.stateBuffer[idx].controlKeys = input.unPackInt8();
+                            this.player.stateBuffer[idx].controlKeys = input.unPackInt8U();
                             this.player.stateBuffer[idx].yaw = input.unPackRadU();
                             this.player.stateBuffer[idx].pitch = input.unPackRad();
+
+                            // console.log("sync:", idx, this.player.stateIdx);
                         };
 
                         break;
@@ -114,16 +116,16 @@ class newClient {
                         if (Date.now() >= (this.player.lastDespawn + 5000) && !this.player.playing) {
                             const spawnPoint = this.room.getRandomSpawn(this.player);
 
-                            this.player.yaw = spawnPoint.yaw;
-                            this.player.pitch = spawnPoint.pitch;
-                            this.player.respawn(spawnPoint.x, spawnPoint.y, spawnPoint.z);
+                            this.player.respawn(spawnPoint);
 
-                            var output = new Comm.Out(8);
+                            var output = new Comm.Out(12);
                             output.packInt8U(Comm.Code.respawn);
                             output.packInt8U(this.id);
                             output.packFloat(this.player.x);
                             output.packFloat(this.player.y);
                             output.packFloat(this.player.z);
+                            output.packRadU(this.player.yaw);
+                            output.packRad(this.player.pitch);
                             this.room.sendToAll(output);
                         };
                         break;
@@ -220,7 +222,7 @@ class newClient {
             randomSeed: 0,
 
             upgradeProductId: this.loggedIn ? this.userData.upgradeProductId : 0,
-        }, this.room.scene);
+        }, this.room.scene, this);
     };
 
     packPlayer(output) {
@@ -266,7 +268,6 @@ class newClient {
         output.packInt16U(0); //randomSeed
         output.packInt8U(this.loggedIn ? this.userData.upgradeProductId : 0); //upgradeProductId
     };
-
 
     packGameJoined(output) {
         output.packInt8U(Comm.Code.gameJoined);

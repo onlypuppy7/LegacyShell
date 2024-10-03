@@ -13,6 +13,8 @@
 
 > **FYI: Dates are NOT accurate to the exact time of release (unless they are linked, in which case the link goes to evidence), but are general guides of timescale.**
 
+### Development of Shell Shockers dates back as far as [8 June 2017](https://www.html5gamedevs.com/topic/30939-positional-audio-with-camera-attached-to-parent-mesh/).
+
 ### Shell Shockers first releases on: [1 Sept 2017](https://www.facebook.com/ShellShockersGame/posts/pfbid02JUuPT6ou8bPt89FnNVofDKn5ZtTGMtTqtPvcL82wQX7QpopsSfrN1PZtG51KCc78l)
 
 ## Super Pre-Alpha 0.0.4 | 5 Sept 2017

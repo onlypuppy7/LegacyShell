@@ -28,6 +28,7 @@
     },
     "imports": {
         "#coloured-logging": "./src/shell/general/coloured-logging.js",
+        "#looper": "./src/shell/general/looper.js",
         "#misc": "./src/shell/general/misc.js",
         "#scrambled": "./src/shell/general/scrambled.js",
         "#wsrequest": "./src/shell/general/wsrequest.js",

@@ -3,22 +3,28 @@ import ran from '#scrambled';
 import ClientConstructor from '#client';
 import Comm from '#comm';
 import ColliderConstructor from '#collider';
+import createLoop from '#looper';
+import extendMath from '#math';
 import { setSSforLoader, loadMapMeshes, buildMapData } from '#loading';
+import { TickStep, stateBufferSize } from '#constants';
 //legacyshell: getting user data
 import wsrequest from '#wsrequest';
 import BABYLON from "babylonjs";
 //
 
 let ss;
+var lastTimeStamp = Date.now();
 
 function setSS(newSS) {
     ss = newSS;
     ClientConstructor.setSS(ss);
+    extendMath(Math);
 };
 
 class newRoom {
     constructor(info) {
         console.log("creating room", info.gameId);
+        this.serverStateIdx = 0;
 
         this.joinType = info.joinType;
         this.gameType = info.gameType;
@@ -51,8 +57,34 @@ class newRoom {
             this.spawnPoints = spawnPoints; //this is a [] from 0-2; conveniently lining up with ffa, team1, team2 (i think)
             this.mapMeshes = mapMeshes;
 
-            this.Collider.init(ss, map, mapMeshes, this.playerLimit, this.players);
+            this.Collider.setSS(ss, this.map, this.mapMeshes, this.playerLimit, this.players);
+
+            createLoop(this.updateLoop.bind(this), TickStep);
         });
+    };
+
+    updateLoop () {
+        var currentTimeStamp = Date.now();
+    
+        while (lastTimeStamp < currentTimeStamp) {
+            lastTimeStamp += TickStep;
+    
+            // this.munitionsManager.updateLogic();
+    
+            //i dont understand their netcode wtf
+            this.players.forEach(player => {
+                while (player.stateIdx !== this.serverStateIdx) {
+                    player.update(1);
+                    // console.log(player.x, player.y, player.z, player.controlKeys, player.stateIdx, this.serverStateIdx);
+                };
+            });
+    
+            this.serverStateIdx = Math.mod(this.serverStateIdx + 1, stateBufferSize);
+    
+            // if (this.serverStateIdx % FramesBetweenSyncs === 0) {
+            //     this.sync();
+            // };
+        };
     };
 
     async joinPlayer(info, ws) {
