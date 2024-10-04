@@ -10,6 +10,7 @@ const wsSend = function (output, CommCode) {
 
 let Collider;
 let mapMeshes;
+let map;
 let meId = -100;
 //(server-only-end)
 
@@ -20,6 +21,7 @@ class Player {
             this.client = client;
             Collider = this.client.room.Collider;
             mapMeshes = this.client.room.mapMeshes;
+            map = this.client.room.map;
         };
 
         this.id = data.id;

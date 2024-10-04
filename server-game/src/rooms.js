@@ -6,7 +6,7 @@ import ColliderConstructor from '#collider';
 import createLoop from '#looper';
 import extendMath from '#math';
 import { setSSforLoader, loadMapMeshes, buildMapData } from '#loading';
-import { TickStep, stateBufferSize } from '#constants';
+import { TickStep, stateBufferSize, FramesBetweenSyncs } from '#constants';
 //legacyshell: getting user data
 import wsrequest from '#wsrequest';
 import BABYLON from "babylonjs";
@@ -73,18 +73,29 @@ class newRoom {
     
             //i dont understand their netcode wtf
             this.players.forEach(player => {
-                while (player.stateIdx !== this.serverStateIdx) {
+                while (player.stateIdx !== player.syncStateIdx) {
                     player.update(1);
                     // console.log(player.x, player.y, player.z, player.controlKeys, player.stateIdx, this.serverStateIdx);
                 };
             });
     
             this.serverStateIdx = Math.mod(this.serverStateIdx + 1, stateBufferSize);
+
+            console.log(this.serverStateIdx, FramesBetweenSyncs, this.serverStateIdx % FramesBetweenSyncs === 0)
     
-            // if (this.serverStateIdx % FramesBetweenSyncs === 0) {
-            //     this.sync();
-            // };
+            if (this.serverStateIdx % FramesBetweenSyncs === 0) {
+                this.sync();
+            };
         };
+    };
+
+    sync() {
+        console.log("MASS-SYNCING");
+        var output = new Comm.Out();
+        this.clients.forEach(client => {
+            client.packSync(output);
+        });
+        this.sendToAll(output);
     };
 
     async joinPlayer(info, ws) {

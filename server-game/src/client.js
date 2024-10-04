@@ -88,10 +88,10 @@ class newClient {
                         };
                         break;
                     case Comm.Code.sync:
-                        this.player.stateIdx = input.unPackInt8U(); //be suspicious of this
+                        let stateIdx = input.unPackInt8U(); //be suspicious of this
                         this.player.shotsQueued = input.unPackInt8();
 
-                        var startIdx = Math.mod(this.player.stateIdx - FramesBetweenSyncs, stateBufferSize);
+                        var startIdx = Math.mod(this.player.syncStateIdx - FramesBetweenSyncs, stateBufferSize);
                         var i;
                         for (startIdx, i = 0; i < FramesBetweenSyncs; i++) {
                             var idx = Math.mod(startIdx + i, stateBufferSize);
@@ -101,6 +101,8 @@ class newClient {
 
                             // console.log("sync:", idx, this.player.stateIdx);
                         };
+
+                        this.player.syncStateIdx = Math.mod(stateIdx + FramesBetweenSyncs, stateBufferSize);
 
                         break;
                     case Comm.Code.pause:
@@ -267,6 +269,26 @@ class newClient {
         output.packInt8U(0); //controlKeys
         output.packInt16U(0); //randomSeed
         output.packInt8U(this.loggedIn ? this.userData.upgradeProductId : 0); //upgradeProductId
+    };
+
+    packSync(output) {
+        output.packInt8U(Comm.Code.sync);
+
+        output.packInt8U(this.id);
+        output.packInt8U(this.player.stateIdx);
+        output.packFloat(this.player.x);
+        output.packFloat(this.player.y);
+        output.packFloat(this.player.z);
+        output.packInt8U(this.player.climbing ? 1 : 0);
+
+        for (var i = 0; i < FramesBetweenSyncs; i++) {
+            var idx = Math.mod(this.player.stateIdx + i, stateBufferSize);
+            let state = this.player.stateBuffer[idx];
+
+            output.packInt8U(state.controlKeys);
+            output.packInt8U(state.yaw);
+            output.packInt8U(state.pitch);
+        };
     };
 
     packGameJoined(output) {
