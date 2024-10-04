@@ -297,7 +297,7 @@ class newClient {
         output.packInt8U(this.player.climbing ? 1 : 0);
 
         for (var i = 0; i < FramesBetweenSyncs; i++) {
-            var idx = Math.mod(this.player.stateIdx + i, stateBufferSize);
+            var idx = Math.mod(this.player.stateIdx + i - FramesBetweenSyncs, stateBufferSize);
             let state = this.player.stateBuffer[idx];
 
             output.packInt8U(state.controlKeys);

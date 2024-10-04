@@ -187,9 +187,9 @@ class Player {
             };
         };
         
-        if (this.controlKeys & CONTROL.jump) {
-            this.jump();
-        };
+        // if (this.controlKeys & CONTROL.jump) {
+        //     this.jump();
+        // };
         
         if (this.climbing) {
             this.setJumping(false);
