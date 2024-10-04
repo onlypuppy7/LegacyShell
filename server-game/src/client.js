@@ -284,7 +284,7 @@ class newClient {
     packSync(output) {
         output.packInt8U(Comm.Code.sync);
 
-        let adjustedStateIdx = Math.mod(this.player.stateIdx + this.adjustment, stateBufferSize);
+        let adjustedStateIdx = Math.mod(this.player.stateIdx + this.adjustment - FramesBetweenSyncs, stateBufferSize);
 
         console.log("packsync", adjustedStateIdx, this.player.stateIdx, this.adjustment);
 

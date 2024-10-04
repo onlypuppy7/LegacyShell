@@ -142,7 +142,7 @@ class Player {
         var dy = 0;
         var dz = 0;
 
-        devlog(this.stateIdx, this.controlKeys, this.x.toFixed(2), this.y.toFixed(2), this.z.toFixed(2), this.dx.toFixed(2), this.dy.toFixed(2), this.dz.toFixed(2), this.yaw.toFixed(2), this.pitch.toFixed(2));
+        // devlog(this.stateIdx, this.controlKeys, this.x.toFixed(2), this.y.toFixed(2), this.z.toFixed(2), this.dx.toFixed(2), this.dy.toFixed(2), this.dz.toFixed(2), this.yaw.toFixed(2), this.pitch.toFixed(2));
     
         if (!resim && this.actor && this.id == meId) {
             this.stateBuffer[this.stateIdx].controlKeys = this.controlKeys;
@@ -187,9 +187,9 @@ class Player {
             };
         };
         
-        // if (this.controlKeys & CONTROL.jump) {
-        //     this.jump();
-        // };
+        if ((this.controlKeys & CONTROL.jump) && (0 < this.lastTouchedGround && Date.now() > this.lastTouchedGround + 100)) {
+            this.jump();
+        };
         
         if (this.climbing) {
             this.setJumping(false);
@@ -402,7 +402,10 @@ class Player {
         this.y += ndy;
         if (this.collidesWithMap()) {
             if (ndy < 0) {
-                this.actor && this.id == meId && 0 == this.lastTouchedGround && (this.lastTouchedGround = Date.now()), this.setJumping(false);
+                if (this.actor && this.id == meId && 0 == this.lastTouchedGround) {
+                    this.lastTouchedGround = Date.now();
+                };
+                this.setJumping(false);
             };
             this.y = old_y, this.dy *= .5;
         } else {
@@ -410,9 +413,14 @@ class Player {
         };
     };
     canJump () {
-        if (this.actor && this.id != meId) return true;
+        // if (this.actor && this.id != meId) return true;
         var canJump = !this.jumping | this.climbing;
-        return canJump || (this.y -= .2, this.collidesWithMap() && (canJump = true), this.y += .2), canJump
+        if (!canJump) {
+            this.y -= .2;
+            this.collidesWithMap() && (canJump = true);
+            this.y += .2;
+        };
+        return canJump;
     };
     jump () {
         if (this.climbing) {
@@ -423,6 +431,7 @@ class Player {
         };
         
         if (this.canJump()) {
+            devlog("JUMPIGN!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
             this.dy = 0.06;
             this.setJumping(true);
             return !(this.lastTouchedGround === 0);
