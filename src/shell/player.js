@@ -1,6 +1,6 @@
 //legacyshell: player
 import BABYLON from "babylonjs";
-import { stateBufferSize, isClient, isServer, CONTROL } from '#constants';
+import { stateBufferSize, isClient, isServer, CONTROL, devlog } from '#constants';
 //
 
 //(server-only-start)
@@ -142,7 +142,7 @@ class Player {
         var dy = 0;
         var dz = 0;
 
-        console.log(this.stateIdx, this.controlKeys, this.x.toFixed(2), this.y.toFixed(2), this.z.toFixed(2), this.dx.toFixed(2), this.dy.toFixed(2), this.dz.toFixed(2), this.yaw.toFixed(2), this.pitch.toFixed(2));
+        devlog(this.stateIdx, this.controlKeys, this.x.toFixed(2), this.y.toFixed(2), this.z.toFixed(2), this.dx.toFixed(2), this.dy.toFixed(2), this.dz.toFixed(2), this.yaw.toFixed(2), this.pitch.toFixed(2));
     
         if (!resim && this.actor && this.id == meId) {
             this.stateBuffer[this.stateIdx].controlKeys = this.controlKeys;
@@ -185,6 +185,10 @@ class Player {
                 dx -= Math.sin(this.yaw);
                 dz -= Math.cos(this.yaw);
             };
+        };
+        
+        if (this.controlKeys & CONTROL.jump) {
+            this.jump();
         };
         
         if (this.climbing) {

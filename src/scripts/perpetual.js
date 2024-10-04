@@ -6,6 +6,7 @@ import path from 'node:path';
 import yaml from 'js-yaml';
 //legacyshell: basic
 import misc from '#misc';
+import { getTimestamp } from '#constants';
 //legacyshell: perpetual
 import { spawn } from 'child_process';
 import fetch from 'node-fetch';
@@ -66,18 +67,6 @@ rl.on('line', (line) => {
 });
 
 // console.log(process.argv, passed);
-
-const getTimestamp = (noBrackets) => {
-    const now = new Date();
-    const day = now.getDate().toString().padStart(2, '0');
-    const month = (now.getMonth() + 1).toString().padStart(2, '0'); 
-    const year = now.getFullYear().toString().slice(-2);
-    const hours = now.getHours().toString().padStart(2, '0');
-    const minutes = now.getMinutes().toString().padStart(2, '0');
-    const seconds = now.getSeconds().toString().padStart(2, '0');
-    
-    return noBrackets ? `${day}-${month}-${year}_${hours}-${minutes}-${seconds}` : `[${day}-${month}-${year} ${hours}:${minutes}:${seconds}]`;
-};
 
 const stripAnsi = (str) => {
     return str.replace(/\x1B[[(?);]{0,2}(;?\d)*./g, '');

@@ -88,10 +88,20 @@ class newClient {
                         };
                         break;
                     case Comm.Code.sync:
+                        //reported by client
                         let stateIdx = input.unPackInt8U(); //be suspicious of this
+
+                        this.adjustment = Math.diff(this.player.stateIdx, stateIdx, stateBufferSize);
+                        
+                        let adjustedStateIdx = Math.mod(stateIdx - this.adjustment, stateBufferSize);
+
+                        console.log(stateIdx, this.player.stateIdx, this.adjustment, adjustedStateIdx);
+
                         this.player.shotsQueued = input.unPackInt8();
 
-                        var startIdx = Math.mod(this.player.syncStateIdx - FramesBetweenSyncs, stateBufferSize);
+                        stateIdx = adjustedStateIdx;
+
+                        var startIdx = Math.mod(adjustedStateIdx, stateBufferSize);
                         var i;
                         for (startIdx, i = 0; i < FramesBetweenSyncs; i++) {
                             var idx = Math.mod(startIdx + i, stateBufferSize);
@@ -111,7 +121,7 @@ class newClient {
                         timeout.set(() => {
                             this.player.removeFromPlay();
 
-                            //remove for others
+                            //todo remove for others
                         }, 3e3);
                         break;
                     case Comm.Code.requestRespawn:
@@ -274,8 +284,13 @@ class newClient {
     packSync(output) {
         output.packInt8U(Comm.Code.sync);
 
+        let adjustedStateIdx = Math.mod(this.player.stateIdx + this.adjustment, stateBufferSize);
+
+        console.log("packsync", adjustedStateIdx, this.player.stateIdx, this.adjustment);
+
         output.packInt8U(this.id);
-        output.packInt8U(this.player.stateIdx);
+        output.packInt8U(adjustedStateIdx);
+        // output.packInt8U(this.room.serverStateIdx);
         output.packFloat(this.player.x);
         output.packFloat(this.player.y);
         output.packFloat(this.player.z);
@@ -305,7 +320,7 @@ class newClient {
     };
 
     sendBuffer(output, debug) { // more direct operation, prefer this.room.sendToOne
-        console.log(output, debug)
+        // console.log(output, debug);
         this.ws.send(output.buffer);
     };
 };

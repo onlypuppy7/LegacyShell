@@ -81,7 +81,7 @@ class newRoom {
     
             this.serverStateIdx = Math.mod(this.serverStateIdx + 1, stateBufferSize);
 
-            console.log(this.serverStateIdx, FramesBetweenSyncs, this.serverStateIdx % FramesBetweenSyncs === 0)
+            // console.log(this.serverStateIdx, FramesBetweenSyncs, this.serverStateIdx % FramesBetweenSyncs === 0)
     
             if (this.serverStateIdx % FramesBetweenSyncs === 0) {
                 this.sync();
@@ -90,7 +90,6 @@ class newRoom {
     };
 
     sync() {
-        console.log("MASS-SYNCING");
         var output = new Comm.Out();
         this.clients.forEach(client => {
             client.packSync(output);
