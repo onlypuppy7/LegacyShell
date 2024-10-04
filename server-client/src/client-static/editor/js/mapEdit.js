@@ -89270,6 +89270,8 @@ var extern = (() => {
       var idx = Number(e.code.substr(5)) - 1;
       if (idx == -1)
         idx = 9;
+      if(idx == paletteIdx) 
+        toggleObjectMenu();
       selectPaletteSlot(idx);
       if (e.shiftKey)
         toggleObjectMenu();
