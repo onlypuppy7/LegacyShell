@@ -286,8 +286,8 @@ class newClient {
             let state = this.player.stateBuffer[idx];
 
             output.packInt8U(state.controlKeys);
-            output.packInt8U(state.yaw);
-            output.packInt8U(state.pitch);
+            output.packRadU(state.yaw);
+            output.packRad(state.pitch);
         };
     };
 
