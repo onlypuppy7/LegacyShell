@@ -21,6 +21,7 @@ class newClient {
         this.clientReady = false;
         this.room = room;
         this.ws = ws;
+        this.lastSeen = Date.now();
         this.userData = info.userData;
         this.sessionData = info.sessionData;
         this.loggedIn = info.userData && info.sessionData;
@@ -60,6 +61,8 @@ class newClient {
     async onmessage(message) {
         try {
             var input = new Comm.In(message);
+
+            this.lastSeen = Date.now(); //u can change/add to this later to exclude pings (ie idle for 5 mins)
 
             while (input.isMoreDataAvailable()) {
                 let msg = {};
@@ -120,8 +123,7 @@ class newClient {
 
                         timeout.set(() => {
                             this.player.removeFromPlay();
-
-                            //todo remove for others
+                            this.room.sendToAll(this.packPaused());
                         }, 3e3);
                         break;
                     case Comm.Code.requestRespawn:
@@ -304,6 +306,13 @@ class newClient {
             output.packRadU(state.yaw);
             output.packRad(state.pitch);
         };
+    };
+
+    packPaused() {
+        var output = new Comm.Out(2);
+        output.packInt8U(Comm.Code.pause);
+        output.packInt8U(this.id);
+        return output;
     };
 
     packGameJoined(output) {

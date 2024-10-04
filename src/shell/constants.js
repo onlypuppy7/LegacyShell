@@ -52,6 +52,9 @@ export var stateBufferSize = 256;
 export var minimumForCorrection = 0.05;
 
 
+
+
+
 //all of these cryptic classes are hell.
 
 /**
