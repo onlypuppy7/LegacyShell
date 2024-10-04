@@ -9,6 +9,49 @@ import { Eggk47, DozenGauge, CSG1, RPEGG, Cluck9mm } from "#guns";
 export const isClient = typeof (window) !== 'undefined'; //best to define once, or something
 export const isServer = typeof (window) === 'undefined'; //clearer in code
 
+//these are pretty damn important:
+
+/**
+* do not change! this is basically how many updates per second. change this and you will change the speed of the game!
+ */
+const fps = 60;
+
+/**
+* you can change this, it will affect the next variable (which is actually used)
+*
+* (fyi: never directly used)
+ */
+const syncsPerSecond = 10;
+
+/**
+* how many statebuffers to pack at once. in theory, it will be less smoother the higher it is, but demands better latency.
+ */
+export var FramesBetweenSyncs = Math.ceil(fps / syncsPerSecond);
+
+/**
+* the interval at which the game should process it's logic. don't change this value (unless u like things being screwed up, i guess)
+ */
+export var TickStep = 1000 / fps;
+
+/**
+ * how many states should be stored. to calc how long it will last for: TickStep * stateBufferSize.
+ * 
+ * with defaults, it is ~4.3 seconds
+ * 
+ * that is sufficient realistically, and arguably quite big. but im sure the ram usage wont skyrocket that much.
+ */
+export var stateBufferSize = 256;
+
+/**
+ * how far xyz values should be before snapping them.
+ * 
+ * make this too large, and when the desync is big enough the snap will be greater (probably)
+ * 
+ * but it fakes-ish smoothness.
+ */
+export var minimumForCorrection = 0.05;
+
+
 //all of these cryptic classes are hell.
 
 /**
@@ -136,12 +179,6 @@ export var CONTROL = {
     jump: 16,
     fire: 32
 };
-
-export var FramesBetweenSyncs = Math.ceil(6);
-
-export var TickStep = 1000 / 30;
-
-export var stateBufferSize = 256;
 
 export var weaponStats = {
     totalDamage: {

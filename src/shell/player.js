@@ -141,8 +141,6 @@ class Player {
         var dx = 0;
         var dy = 0;
         var dz = 0;
-
-        // devlog(this.stateIdx, this.controlKeys, this.x.toFixed(2), this.y.toFixed(2), this.z.toFixed(2), this.dx.toFixed(2), this.dy.toFixed(2), this.dz.toFixed(2), this.yaw.toFixed(2), this.pitch.toFixed(2));
     
         if (!resim && this.actor && this.id == meId) {
             this.stateBuffer[this.stateIdx].controlKeys = this.controlKeys;
@@ -158,6 +156,8 @@ class Player {
             this.yaw = this.stateBuffer[idx].yaw;
             this.pitch = this.stateBuffer[idx].pitch;
         };
+
+        // devlog(this.name, this.stateIdx, this.controlKeys, this.x.toFixed(2), this.y.toFixed(2), this.z.toFixed(2), this.dx.toFixed(2), this.dy.toFixed(2), this.dz.toFixed(2), this.yaw.toFixed(2), this.pitch.toFixed(2));
         
         if (this.controlKeys & CONTROL.left) {
             dx -= Math.cos(this.yaw);
@@ -307,8 +307,8 @@ class Player {
             if (this.actor) {
                 this.id == meId && this.triggerPulled && this.fire()
             } else if (0 < this.shotsQueued) {
-                this.lastActivity = now;
-                this.fire();
+                this.lastActivity = isClient ? now : Date.now();
+                // this.fire(); //TODO! firing...
             };
             this.stateBuffer[this.stateIdx].x = this.x;
             this.stateBuffer[this.stateIdx].y = this.y;
