@@ -114,8 +114,10 @@ class newRoom {
 
         console.log(info.id);
 
-        const client = new ClientConstructor.newClient(this, info, ws);
-        const player = client.player;
+        new ClientConstructor.newClient(this, info, ws);
+
+        // const client = new ClientConstructor.newClient(this, info, ws);
+        // const player = client.player;
     };
 
     registerPlayerClient(client) {
