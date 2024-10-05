@@ -41,7 +41,7 @@ class newRoomManager {
     searchRooms(info) {
         if (info.joinType === Comm.Code.createPrivateGame) {
             console.log("create game?");
-            this.createRoom(info);
+            return this.createRoom(info);
         } else if (info.joinType === Comm.Code.joinPrivateGame) {
             if (info.gameId && info.gameId > 0) {
                 return this.getRoom(info.gameId);
@@ -68,6 +68,7 @@ class newRoomManager {
                 return ran.getRandomFromList(roomSelection);
             };
         };
+        console.log("fail?");
         return null;
     };
 
