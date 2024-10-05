@@ -58,8 +58,8 @@ class newRoomManager {
                 remainingMapIds = remainingMapIds.filter(mapId => mapId !== room.mapId);
             });
             // console.log("remainingMapIds", remainingMapIds);
-            let createNew = (roomSelection.length === 0) || (remainingMapIds.length === 0 && ran.getRandomChance(0.3)); //create new, if no rooms OR in the case where some maps are not taken
-            console.log("createNew", createNew);
+            let createNew = (roomSelection.length === 0) || ran.getRandomChance(0.3); //create new, if no rooms OR in the case where some maps are not taken
+            console.log("createNew", createNew, roomSelection.length);
             if (createNew) {
                 info.mapId = remainingMapIds[ran.getRandomFromList(remainingMapIds)];
                 console.log("<3", info.mapId)

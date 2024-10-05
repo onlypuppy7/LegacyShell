@@ -57,7 +57,7 @@ class newClient {
         ws.removeAllListeners('close');
         ws.on('close', this.onclose.bind(this));
 
-        console.log(!!this.room.packAllPlayers);
+        // console.log(!!this.room.packAllPlayers);
     };
 
     async onmessage(message) {
@@ -100,7 +100,7 @@ class newClient {
                         
                         let adjustedStateIdx = Math.mod(stateIdx - this.adjustment, stateBufferSize);
 
-                        console.log(stateIdx, this.player.stateIdx, this.adjustment, adjustedStateIdx);
+                        // console.log(stateIdx, this.player.stateIdx, this.adjustment, adjustedStateIdx);
 
                         this.player.shotsQueued = input.unPackInt8();
 
@@ -294,7 +294,7 @@ class newClient {
 
         let adjustedStateIdx = Math.mod(this.player.stateIdx + this.adjustment - FramesBetweenSyncs, stateBufferSize);
 
-        console.log("packsync", adjustedStateIdx, this.player.stateIdx, this.adjustment);
+        // console.log("packsync", adjustedStateIdx, this.player.stateIdx, this.adjustment);
 
         output.packInt8U(this.id);
         output.packInt8U(adjustedStateIdx);

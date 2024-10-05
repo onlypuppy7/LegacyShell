@@ -371,6 +371,18 @@ export const devlog = function (...args) {
     };
 };
 
+export const clientlog = function (...args) {
+    if (isClient && devmode) {
+        console.log(getTimestamp(), "LS_CLN_LOG", ...args);
+    };
+};
+
+export const serverlog = function (...args) {
+    if (isServer && devmode) {
+        console.log(getTimestamp(), "LS_SRV_LOG", ...args);
+    };
+};
+
 //(server-only-start)
 
 // export default { //why is this like this? because we need to define all these as vars in the client. kek. putting it all in one object kinda ugh ngl.
