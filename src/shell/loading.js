@@ -59,7 +59,7 @@ export function loadMeshes(scene, meshNames, onMeshLoaded, onComplete) { //[srvr
                 for (var m = 0; m < meshes.length; m++) {
                     var mesh = meshes[m];
 
-                    if (isServer && ss && ss.config.verbose) ss.log.bgPurple(mesh.name);
+                    // if (isServer && ss && ss.config.verbose) ss.log.bgPurple(mesh.name);
                     
                     "egg" == mesh.name && numEggs++;
                     "hands" == mesh.name && numHands++;

@@ -431,7 +431,6 @@ class Player {
         };
         
         if (this.canJump()) {
-            devlog("JUMPIGN!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
             this.dy = 0.06;
             this.setJumping(true);
             return !(this.lastTouchedGround === 0);
