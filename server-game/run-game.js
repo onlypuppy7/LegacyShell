@@ -94,7 +94,7 @@ function startServer() {
                 }
             });
     
-            ws.on('close', () => console.log('Client disconnected'));
+            ws.on('close', () => console.log('Client disconnected (not in a game)'));
             ws.on('error', (e) => console.error(`WebSocket error:`, e));
         } catch (error) {
             //you can shit the bed but dont crash everything

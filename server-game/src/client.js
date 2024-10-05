@@ -54,6 +54,8 @@ class newClient {
 
         ws.removeAllListeners('message');
         ws.on('message', this.onmessage.bind(this));
+        ws.removeAllListeners('close');
+        ws.on('close', this.onclose.bind(this));
 
         console.log(!!this.room.packAllPlayers);
     };
@@ -155,6 +157,10 @@ class newClient {
             console.error('Error processing message:', error);
             // ws.send(JSON.stringify({ error: 'Internal server error' }));
         };
+    };
+
+    async onclose() {
+        this.room.disconnectClient(this);
     };
 
     setEquippedItem(itemType, classIdx, item) { //itemType: stamp/hat/prim/sec, classIdx: eggk/shotgun etc

@@ -125,6 +125,18 @@ class newRoom {
         this.players[client.id] = client.player;
     };
 
+    disconnectClient(client) {
+        delete this.clients[client.id];
+        delete this.players[client.id];
+
+        var output = new Comm.Out(2);
+        output.packInt8U(Comm.Code.removePlayer);
+        output.packInt8U(client.id);
+        this.sendToAll(output);
+
+        console.log('Client disconnected', client.id);
+    };
+
     getRandomSpawn(player) {
         const list = this.spawnPoints[player.team];
         const pos = ran.getRandomFromList(list);
