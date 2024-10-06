@@ -5,16 +5,16 @@ var rainParticleSystem = new BABYLON.ParticleSystem("rain", 2000, gameScene);
 rainParticleSystem.particleTexture = new BABYLON.Texture("/img/rain.png", gameScene);
 
 // Set the emitter position and shape (surrounding the camera)
-rainParticleSystem.emitter = gameScene.activeCamera.position.clone(); // Emitter follows the camera
-rainParticleSystem.minEmitBox = new BABYLON.Vector3(-20, 20, -20); // Rain area size (X, Y, Z)
-rainParticleSystem.maxEmitBox = new BABYLON.Vector3(20, 20, 20);   // Larger area means more rain
+rainParticleSystem.emitter = me.actor.mesh.position.clone(); // Emitter follows the camera
+rainParticleSystem.minEmitBox = new BABYLON.Vector3(-10, 20, -10); // Rain area size (X, Y, Z)
+rainParticleSystem.maxEmitBox = new BABYLON.Vector3(10, 20, 10);   // Larger area means more rain
 
 // Set particle behavior
 rainParticleSystem.minSize = 0.05; // Small raindrops
 rainParticleSystem.maxSize = 0.1;
 rainParticleSystem.minLifeTime = 1.0; // Short lifetime to simulate falling
 rainParticleSystem.maxLifeTime = 1.5;
-rainParticleSystem.emitRate = 1000; // Number of particles per second
+rainParticleSystem.emitRate = 2000; // Number of particles per second
 
 // Set speed and direction
 rainParticleSystem.direction1 = new BABYLON.Vector3(0, -1, 0); // Particles fall down
@@ -30,24 +30,24 @@ rainParticleSystem.minScaleY = 10; // Minimum stretch factor on the Y-axis
 rainParticleSystem.maxScaleY = 15; // Maximum stretch factor on the Y-axis
 
 // Optional: add some randomness to the rain direction to simulate wind
-rainParticleSystem.gravity = new BABYLON.Vector3(0, -22.81, 0); // Gravity for falling rain
+rainParticleSystem.gravity = new BABYLON.Vector3(0, -30.81, 0); // Gravity for falling rain
 
 // Enable alpha blending for the rain particles to handle transparency
 // rainParticleSystem.blendMode = BABYLON.ParticleSystem.BLENDMODE_STANDARD; // Alpha blending mode
 
 // Ensure the particles are not affected by scene lighting
-rainParticleSystem.isBillboardBased = true; // Makes particles always face the camera
+// rainParticleSystem.isBillboardBased = true; // Makes particles always face the camera
 rainParticleSystem.isLocal = false; // Makes sure they are not affected by scene lighting
 
 // Disable lighting effects on the particles (makes brightness uniform)
-rainParticleSystem.disableLighting = true; // Prevent particles from being affected by lights
+// rainParticleSystem.disableLighting = true; // Prevent particles from being affected by lights
 
 // Start the particle system
 rainParticleSystem.start();
 
 // Make the emitter follow the camera as it moves
 gameScene.registerBeforeRender(function() {
-    rainParticleSystem.emitter = gameScene.activeCamera.position.clone(); // Update emitter position
+    rainParticleSystem.emitter = me.actor.mesh.position.clone(); // Update emitter position
 });
 
 // Create a shiny material
@@ -55,9 +55,9 @@ var wetMaterial = new BABYLON.StandardMaterial("wetMaterial", gameScene);
 wetMaterial.diffuseColor = new BABYLON.Color3(0.7, 0.7, 0.7); // Darker to simulate wetness
 wetMaterial.specularColor = new BABYLON.Color3(1, 1, 1); // White specular for highlights
 wetMaterial.specularPower = 64; // Higher power for sharper reflections
-wetMaterial.reflectionTexture = new BABYLON.MirrorTexture("mirror", 1024, gameScene, true);
+wetMaterial.reflectionTexture = new BABYLON.MirrorTexture("mirror", 1024 * 1, gameScene, true);
 wetMaterial.reflectionTexture.mirrorPlane = new BABYLON.Plane(0, -1, 0, 0); // Reflect the ground
-wetMaterial.reflectionTexture.level = 5; // Adjust reflection intensity
+wetMaterial.reflectionTexture.level = .5; // Adjust reflection intensity
 
 // Apply the material to the mapMesh
 mapMesh.material = wetMaterial;

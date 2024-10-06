@@ -24,6 +24,9 @@ function setSS(newSS) {
 class newRoom {
     constructor(info) {
         console.log("creating room", info.gameId);
+        this.startTime = Date.now();
+        this.existedFor = 0;
+
         this.serverStateIdx = 0;
 
         this.joinType = info.joinType;
@@ -59,20 +62,23 @@ class newRoom {
 
             this.Collider.setSS(ss, this.map, this.mapMeshes, this.playerLimit, this.players);
 
-            createLoop(this.updateLoop.bind(this), TickStep);
+            this.updateLoopObject = createLoop(this.updateLoop.bind(this), TickStep);
+            this.metaLoopObject = createLoop(this.metaLoop.bind(this), 2e3);
         });
     };
 
-    updateLoop () {
+    updateLoop (delta) {
         var currentTimeStamp = Date.now();
+        this.existedFor = Date.now() - this.startTime;
     
-        while (lastTimeStamp < currentTimeStamp) {
+        while (lastTimeStamp < currentTimeStamp) { //repeat until catching up :shrug:
             lastTimeStamp += TickStep;
     
             // this.munitionsManager.updateLogic();
     
             //i dont understand their netcode wtf
             this.players.forEach(player => {
+                console.log("lóóp", delta, lastTimeStamp, currentTimeStamp, player.stateIdx, player.syncStateIdx);
                 while (player.stateIdx !== player.syncStateIdx) {
                     player.update(1);
                     // console.log(player.x, player.y, player.z, player.controlKeys, player.stateIdx, this.serverStateIdx);
@@ -87,6 +93,25 @@ class newRoom {
                 this.sync();
             };
         };
+    };
+
+    metaLoop (delta) {
+        if (this.getPlayerCount() === 0 && this.existedFor > 5e3) {
+            this.destroy();
+        };
+    };
+
+    destroy() {
+        console.log("destroy room", this.existedFor, this.gameId);
+        this.updateLoopObject.stop();
+        this.metaLoopObject.stop();
+        this.players = null;
+        this.clients = null;
+        this.map = null;
+        this.Collider = null;
+        this.engine = null;
+        this.scene = null;
+        ss.RoomManager.removeRoom(this.gameId);
     };
 
     sync() {
@@ -126,8 +151,8 @@ class newRoom {
     };
 
     disconnectClient(client) {
-        delete this.clients[client.id];
-        delete this.players[client.id];
+        this.clients.splice(client.id, 1);
+        this.players.splice(client.id, 1);
 
         var output = new Comm.Out(2);
         output.packInt8U(Comm.Code.removePlayer);
@@ -135,6 +160,16 @@ class newRoom {
         this.sendToAll(output);
 
         console.log('Client disconnected', client.id);
+    };
+
+    getPlayerCount() {
+        let count = 0;
+        for (let i = 0; i < this.players.length; i++) {
+            if (this.players[i]) {
+                count++;
+            };
+        };
+        return count;
     };
 
     getRandomSpawn(player) {

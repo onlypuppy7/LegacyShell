@@ -58,11 +58,11 @@ class newRoomManager {
                 remainingMapIds = remainingMapIds.filter(mapId => mapId !== room.mapId);
             });
             // console.log("remainingMapIds", remainingMapIds);
-            let createNew = (roomSelection.length === 0) || ran.getRandomChance(0.3); //create new, if no rooms OR in the case where some maps are not taken
+            let createNew = (roomSelection.length === 0) || ran.getRandomChance(0.1); //create new, if no rooms OR in the case where some maps are not taken
             console.log("createNew", createNew, roomSelection.length);
             if (createNew) {
                 info.mapId = ran.getRandomFromList(remainingMapIds);
-                console.log("<3", info.mapId, remainingMapIds)
+                console.log("<3", info.mapId, info.mapId && ss.maps[info.mapId].name, remainingMapIds)
                 return this.createRoom(info);
             } else {
                 return ran.getRandomFromList(roomSelection);
@@ -102,19 +102,13 @@ class newRoomManager {
         info.gameId = this.getUnusedID();
         // info.gameKey = ran.getRandomInt(10, Math.pow(36, 2) - 10);
         info.gameKey = 784;
-        const createdRoom = new RoomConstructor.newRoom(info);
+        const createdRoom = new RoomConstructor.newRoom(info, this);
         this.rooms.set(info.gameId, createdRoom);
         return createdRoom;
     };
 
     removeRoom(id) {
-        try {
-            const retrievedRoom = this.getRoom(id);
-            retrievedRoom.destroy();
-            return true;
-        } catch (error) {
-            return null;
-        };
+        this.rooms.delete(id);
     };
 
     getRoom(id) {
