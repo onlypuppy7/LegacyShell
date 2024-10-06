@@ -5,6 +5,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: write
+
 jobs:
   update-version:
     runs-on: ubuntu-latest
@@ -36,3 +39,9 @@ jobs:
         git add versionEnum.txt versionHash.txt
         git commit -m "Increment version to $new_version and update commit hash"
         git push
+
+    - name: Push changes
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        git push origin main
