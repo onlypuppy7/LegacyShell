@@ -1,7 +1,8 @@
 //legacyshell: client
 import ran from '#scrambled';
 import Comm from '#comm';
-import { ItemType, itemIdOffsets, FramesBetweenSyncs, stateBufferSize, timeout } from '#constants';
+import { ItemType, itemIdOffsets, FramesBetweenSyncs, stateBufferSize, timeout, maxChatWidth } from '#constants';
+import { fixStringWidth } from '#stringWidth';
 import Player from '#player';
 import CatalogConstructor from '#catalog';
 import extendMath from '#math';
@@ -125,7 +126,7 @@ class newClient {
 
                         timeout.set(() => {
                             this.player.removeFromPlay();
-                            this.room.sendToOthers(this.packPaused());
+                            this.room.sendToOthers(this.packPaused(), this.id);
                         }, 3e3);
                         break;
                     case Comm.Code.requestRespawn:
@@ -145,13 +146,25 @@ class newClient {
                             this.room.sendToAll(output);
                         };
                         break;
+                    case Comm.Code.chat:
+                        var text = input.unPackString();
+                        text = fixStringWidth(text, maxChatWidth);
+
+                        if ("" != text && text.indexOf("<") < 0) { //todo, ratelimiting
+                            var output = new Comm.Out();
+                            output.packInt8U(Comm.Code.chat);
+                            output.packInt8U(this.id);
+                            output.packString(text);
+                            this.room.sendToOthers(output, this.id);
+                        };
+                        break;
                     case Comm.Code.ping:
                         var output = new Comm.Out();
                         output.packInt8(Comm.Code.ping);
                         this.sendBuffer(output);
                         break;
-                }
-            }
+                };
+            };
 
         } catch (error) {
             console.error('Error processing message:', error);

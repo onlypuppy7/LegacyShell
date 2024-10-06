@@ -18,6 +18,7 @@
     "dependencies": {
         "babylonjs": "3.3.0",
         "bcrypt": "^5.1.1",
+        "canvas": "^2.11.2",
         "chalk": "^5.3.0",
         "express": "^4.21.0",
         "js-yaml": "^4.1.0",
@@ -35,6 +36,7 @@
         "#bullets": "./src/shell/bullets.js",
         "#comm": "./src/shell/comm.js",
         "#catalog": "./src/shell/catalog.js",
+        "#censor": "./src/shell/censor.js",
         "#collider": "./src/shell/collider.js",
         "#constants": "./src/shell/constants.js",
         "#grenade": "./src/shell/grenade.js",
@@ -42,6 +44,7 @@
         "#loading": "./src/shell/loading.js",
         "#math": "./src/shell/math.js",
         "#player": "./src/shell/player.js",
+        "#stringWidth": "./src/shell/stringWidth.js",
         "#prepare-modified": "./server-client/src/prepare-modified.js",
         "#client": "./server-game/src/client.js",
         "#roomManager": "./server-game/src/roomManager.js",

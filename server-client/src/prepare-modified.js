@@ -54,6 +54,8 @@ function prepareModified(ss) {
             { pattern: /LEGACYSHELLGRENADE/g, file: "#grenade" },
             { pattern: /LEGACYSHELLGUNS/g, file: "#guns" },
             { pattern: /LEGACYSHELLLOADING/g, file: "#loading" },
+            { pattern: /LEGACYSHELLSTRINGWIDTH/g, file: "#stringWidth" },
+            { pattern: /LEGACYSHELLCENSOR/g, file: "#censor" },
         ];
         
         replacements.forEach(replacement => {
