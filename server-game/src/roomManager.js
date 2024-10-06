@@ -61,8 +61,8 @@ class newRoomManager {
             let createNew = (roomSelection.length === 0) || ran.getRandomChance(0.3); //create new, if no rooms OR in the case where some maps are not taken
             console.log("createNew", createNew, roomSelection.length);
             if (createNew) {
-                info.mapId = remainingMapIds[ran.getRandomFromList(remainingMapIds)];
-                console.log("<3", info.mapId)
+                info.mapId = ran.getRandomFromList(remainingMapIds);
+                console.log("<3", info.mapId, remainingMapIds)
                 return this.createRoom(info);
             } else {
                 return ran.getRandomFromList(roomSelection);
