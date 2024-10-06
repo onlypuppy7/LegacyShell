@@ -1,0 +1,38 @@
+name: Update Version and Commit Hash
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  update-version:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Setup Git
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+
+    - name: Increment version number
+      run: |
+        version_file="versionEnum.txt"
+        version=$(cat $version_file)
+        new_version=$((version + 1))
+        echo $new_version > $version_file
+
+    - name: Update commit hash
+      run: |
+        hash_file="versionHash.txt"
+        commit_hash=$(git rev-parse HEAD)
+        echo $commit_hash > $hash_file
+
+    - name: Commit changes
+      run: |
+        git add versionEnum.txt versionHash.txt
+        git commit -m "Increment version to $new_version and update commit hash"
+        git push
