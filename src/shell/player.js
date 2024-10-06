@@ -123,6 +123,7 @@ class Player {
         this.changeWeaponLoadout(this.primaryWeaponItem, this.secondaryWeaponItem);
 
         this.resetDespawn(-5000);
+        this.jumpHeld = false;
     };
     changeWeaponLoadout (primaryWeaponItem, secondaryWeaponItem) {
         if (this.actor && this.weapons) {
@@ -188,7 +189,12 @@ class Player {
         };
         
         if ((this.controlKeys & CONTROL.jump) && (0 < this.lastTouchedGround && Date.now() > this.lastTouchedGround + 100)) {
-            this.jump();
+            if (!this.jumpHeld) {
+                this.jump();
+                this.jumpHeld = true;
+            };
+        } else {
+            this.jumpHeld = false;
         };
         
         if (this.climbing) {
