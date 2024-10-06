@@ -26,7 +26,7 @@ class Player {
 
         this.id = data.id;
         this.uniqueId = data.uniqueId;
-        this.name = data.name;
+        this.name = data.name || data.nickname; //fyi this is a bad
         this.classIdx = data.classIdx;
         this.username = data.username !== "" ? data.username : "Guest";
         this.team = data.team;
@@ -158,7 +158,7 @@ class Player {
             this.pitch = this.stateBuffer[idx].pitch;
         };
 
-        // devlog(this.name, this.stateIdx, this.controlKeys, this.x.toFixed(2), this.y.toFixed(2), this.z.toFixed(2), this.dx.toFixed(2), this.dy.toFixed(2), this.dz.toFixed(2), this.yaw.toFixed(2), this.pitch.toFixed(2));
+        devlog(this.name, this.stateIdx, this.controlKeys, this.x.toFixed(2), this.y.toFixed(2), this.z.toFixed(2), this.dx.toFixed(2), this.dy.toFixed(2), this.dz.toFixed(2), this.yaw.toFixed(2), this.pitch.toFixed(2));
         
         if (this.controlKeys & CONTROL.left) {
             dx -= Math.cos(this.yaw);

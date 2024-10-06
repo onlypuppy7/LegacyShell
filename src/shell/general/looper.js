@@ -41,11 +41,15 @@ export default function createLoop (update, tickLengthMs) {
     let prev = getMicro();
     let target = getMicro();
 
+    let isRunning = true;
     let frame = 0;
+    let timeoutId;
 
     // console.log(36756767)
 
     let gameLoop = function () {
+        if (!isRunning) return;
+
         frame++;
 
         let now = getMicro();
@@ -57,6 +61,7 @@ export default function createLoop (update, tickLengthMs) {
             target = now + tickLengthMicro;
 
             // actually run user code
+            console.log("looper: run");
             update(delta * micro2s);
         };
 
@@ -66,11 +71,19 @@ export default function createLoop (update, tickLengthMs) {
             // unfortunately it seems our code/node leaks memory if setTimeout is
             // called with a value less than 16, so we give up our accuracy for
             // memory stability
-            setTimeout(gameLoop, Math.max(longwaitMs, 16));
+            timeoutId = setTimeout(gameLoop, Math.max(longwaitMs, 16));
         } else {
             setImmediate(gameLoop);
         };
     };
     // begin the loop!
     gameLoop();
+
+    return {
+        stop: function () {
+            isRunning = false;
+            clearTimeout(timeoutId);
+            console.log("stop loop");
+        },
+    };
 };

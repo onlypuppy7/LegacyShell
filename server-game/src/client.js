@@ -71,8 +71,7 @@ class newClient {
                 let msg = {};
                 msg.cmd = input.unPackInt8U();
 
-                // if (msg.cmd !== Comm.Code.sync)
-                console.log(Comm.Convert(msg.cmd));
+                if (msg.cmd !== Comm.Code.sync) console.log(Comm.Convert(msg.cmd));
 
                 switch (msg.cmd) {
                     case Comm.Code.clientReady:
@@ -99,16 +98,12 @@ class newClient {
                         let stateIdx = input.unPackInt8U(); //be suspicious of this
 
                         this.adjustment = Math.diff(this.player.stateIdx, stateIdx, stateBufferSize);
-                        
-                        let adjustedStateIdx = Math.mod(stateIdx - this.adjustment, stateBufferSize);
 
-                        // console.log(stateIdx, this.player.stateIdx, this.adjustment, adjustedStateIdx);
+                        // console.log(`rec: ${stateIdx}, cli: ${this.player.stateIdx}, dif: ${this.adjustment}`);
 
                         this.player.shotsQueued = input.unPackInt8();
 
-                        stateIdx = adjustedStateIdx;
-
-                        var startIdx = Math.mod(adjustedStateIdx, stateBufferSize);
+                        var startIdx = Math.mod(this.player.stateIdx, stateBufferSize);
                         var i;
                         for (startIdx, i = 0; i < FramesBetweenSyncs; i++) {
                             var idx = Math.mod(startIdx + i, stateBufferSize);
@@ -119,7 +114,7 @@ class newClient {
                             // console.log("sync:", idx, this.player.stateIdx);
                         };
 
-                        this.player.syncStateIdx = Math.mod(stateIdx + FramesBetweenSyncs, stateBufferSize);
+                        this.player.syncStateIdx = Math.mod(this.player.stateIdx + FramesBetweenSyncs, stateBufferSize);
 
                         break;
                     case Comm.Code.pause:
