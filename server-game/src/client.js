@@ -125,7 +125,7 @@ class newClient {
 
                         timeout.set(() => {
                             this.player.removeFromPlay();
-                            this.room.sendToAll(this.packPaused());
+                            this.room.sendToOthers(this.packPaused());
                         }, 3e3);
                         break;
                     case Comm.Code.requestRespawn:
