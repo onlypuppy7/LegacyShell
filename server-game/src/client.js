@@ -71,7 +71,8 @@ class newClient {
                 let msg = {};
                 msg.cmd = input.unPackInt8U();
 
-                if (msg.cmd !== Comm.Code.sync) console.log(Comm.Convert(msg.cmd));
+                // if (msg.cmd !== Comm.Code.sync)
+                console.log(Comm.Convert(msg.cmd));
 
                 switch (msg.cmd) {
                     case Comm.Code.clientReady:
