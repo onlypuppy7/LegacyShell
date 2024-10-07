@@ -78,7 +78,7 @@ class newRoom {
     
             //i dont understand their netcode wtf
             this.players.forEach(player => {
-                console.log("lóóp", delta, lastTimeStamp, currentTimeStamp, player.stateIdx, player.syncStateIdx);
+                // console.log("lóóp", delta, lastTimeStamp, currentTimeStamp, player.stateIdx, player.syncStateIdx);
                 while (player.stateIdx !== player.syncStateIdx) {
                     player.update(1);
                     // console.log(player.x, player.y, player.z, player.controlKeys, player.stateIdx, this.serverStateIdx);
