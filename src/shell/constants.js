@@ -14,14 +14,14 @@ export const isServer = typeof (window) === 'undefined'; //clearer in code
 /**
 * do not change! this is basically how many updates per second. change this and you will change the speed of the game!
  */
-const fps = 60;
+export const fps = 60;
 
 /**
 * you can change this, it will affect the next variable (which is actually used)
 *
 * (fyi: never directly used)
  */
-const syncsPerSecond = 10;
+export const syncsPerSecond = 10;
 
 /**
 * how many statebuffers to pack at once. in theory, it will be less smoother the higher it is, but demands better latency.
@@ -325,34 +325,39 @@ export var Ease = {
 
 const thingForTheThing = isClient ? window : null;
 
-export var interval = {
-    intervals: {},
-    set: function (func, delay) {
+export class IntervalManagerConstructor {
+    constructor () {
+        this.intervals = {};
+    };
+    set (func, delay) {
         var newInterval = setInterval.apply(thingForTheThing, [func, delay].concat([].slice.call(arguments, 2)));
-        return interval.intervals[newInterval] = true, newInterval
-    },
-    clear: function (handle) {
-        return delete interval.intervals[handle], clearInterval(handle)
-    },
-    clearAll: function () {
-        for (var all = Object.keys(interval.intervals), len = all.length; 0 < len--;) clearInterval(all.shift());
-        interval.intervals = {}
-    }
+        return this.intervals[newInterval] = true, newInterval
+    };
+    clear (handle) {
+        return delete this.intervals[handle], clearInterval(handle)
+    };
+    clearAll () {
+        for (var all = Object.keys(this.intervals), len = all.length; 0 < len--;) clearInterval(all.shift());
+        this.intervals = {}
+    };
 };
 
-export var timeout = {
-    timeouts: {},
-    set: function (func, delay) {
+export class TimeoutManagerConstructor {
+    constructor () {
+        this.timeouts = {};
+    };
+    set (func, delay) {
         var newTimeout = setTimeout.apply(thingForTheThing, [func, delay].concat([].slice.call(arguments, 2)));
-        return timeout.timeouts[newTimeout] = true, newTimeout
-    },
-    clear: function (handle) {
-        return delete timeout.timeouts[handle], clearTimeout(handle)
-    },
-    clearAll: function () {
-        for (var all = Object.keys(timeout.timeouts), len = all.length; 0 < len--;) clearTimeout(all.shift());
-        timeout.timeouts = {}
-    }
+        return this.timeouts[newTimeout] = true, newTimeout
+    };
+    clear (handle) {
+        delete this.timeouts[handle];
+        return clearTimeout(handle)
+    };
+    clearAll () {
+        for (var all = Object.keys(this.timeouts), len = all.length; 0 < len--;) clearTimeout(all.shift());
+        this.timeouts = {}
+    };
 };
 
 export const getTimestamp = (noBrackets) => {
