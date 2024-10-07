@@ -61,7 +61,6 @@ export default function createLoop (update, tickLengthMs) {
             target = now + tickLengthMicro;
 
             // actually run user code
-            console.log("looper: run");
             update(delta * micro2s);
         };
 

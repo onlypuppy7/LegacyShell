@@ -147,6 +147,7 @@ class newClient {
                         text = fixStringWidth(text, maxChatWidth);
 
                         if ("" != text && text.indexOf("<") < 0) { //todo, ratelimiting
+                            console.log(this.player.name, "chatted:", text);
                             var output = new Comm.Out();
                             output.packInt8U(Comm.Code.chat);
                             output.packInt8U(this.id);
@@ -311,6 +312,9 @@ class newClient {
         output.packFloat(this.player.x);
         output.packFloat(this.player.y);
         output.packFloat(this.player.z);
+        output.packFloat(this.player.dx);
+        output.packFloat(this.player.dy);
+        output.packFloat(this.player.dz);
         output.packInt8U(this.player.climbing ? 1 : 0);
 
         for (var i = 0; i < FramesBetweenSyncs; i++) {
