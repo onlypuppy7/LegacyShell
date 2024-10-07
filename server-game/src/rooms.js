@@ -157,6 +157,8 @@ class newRoom {
     };
 
     disconnectClient(client) {
+        
+
         delete this.clients[client.id];
         delete this.players[client.id];
 

@@ -1,7 +1,7 @@
 //legacyshell: client
 import ran from '#scrambled';
 import Comm from '#comm';
-import { ItemType, itemIdOffsets, FramesBetweenSyncs, stateBufferSize, timeout, maxChatWidth } from '#constants';
+import { ItemType, itemIdOffsets, FramesBetweenSyncs, stateBufferSize, TimeoutManagerConstructor, maxChatWidth } from '#constants';
 import { fixStringWidth } from '#stringWidth';
 import Player from '#player';
 import CatalogConstructor from '#catalog';
@@ -19,6 +19,7 @@ function setSS(newSS) {
 class newClient {
     constructor(room, info, ws) {
         //
+        this.timeout = new TimeoutManagerConstructor();
         this.clientReady = false;
         this.room = room;
         this.ws = ws;
@@ -123,7 +124,7 @@ class newClient {
                     case Comm.Code.pause:
                         this.player.resetDespawn();
 
-                        timeout.set(() => {
+                        this.timeout.set(() => {
                             this.player.removeFromPlay();
                             this.room.sendToOthers(this.packPaused(), this.id);
                         }, 3e3);
@@ -168,7 +169,6 @@ class newClient {
 
         } catch (error) {
             console.error('Error processing message:', error);
-            // ws.send(JSON.stringify({ error: 'Internal server error' }));
         };
     };
 

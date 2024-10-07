@@ -2,6 +2,7 @@
 import ran from '#scrambled';
 import RoomConstructor from '#rooms';
 import Comm from '#comm';
+import { Worker } from 'worker_threads';
 //
 
 const id_length = 3; //btw you cant just modify this without also adjusting the client's code. do you ever NEED to modify this? no. just have it static.
@@ -117,6 +118,10 @@ class newRoomManager {
         } else {
             return null; //doesnt exist
         };
+    };
+
+    joinRoom(room, msg, ws) {
+        room.joinPlayer(msg, ws);
     };
 };
 

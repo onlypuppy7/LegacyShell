@@ -319,7 +319,7 @@ class Player {
                 this.id == meId && this.triggerPulled && this.fire()
             } else if (0 < this.shotsQueued) {
                 this.lastActivity = isClient ? now : Date.now();
-                this.fire(); //TODO! firing...
+                // this.fire(); //TODO! firing...
             };
             this.stateBuffer[this.stateIdx].x = this.x;
             this.stateBuffer[this.stateIdx].y = this.y;
@@ -568,7 +568,10 @@ class Player {
                     this.rofCountdown *= .9;
                     this.shotsQueued--
                 };
-                this.client.room.sendToAll(this.weapon.fire());
+
+                var output = this.weapon.fire();
+                if (isServer && output) this.client.room.sendToAll(output);
+
                 this.weapon.ammo.rounds--;
                 this.recoilCountdown = this.weapon.subClass.recoil;
                 this.rofCountdown = this.weapon.subClass.rof;

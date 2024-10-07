@@ -70,7 +70,7 @@ function startServer() {
                                 console.log("roomFound", !!roomFound);
     
                                 if (roomFound) {
-                                    roomFound.joinPlayer(msg, ws);
+                                    RoomManager.joinRoom(roomFound, msg, ws);
                                 } else {
                                     console.log(Comm.Close.gameNotFound);
                                     ws.close(Comm.Close.gameNotFound);
