@@ -35,12 +35,14 @@ const misc = {
             rootDir: path.join(path.resolve(import.meta.dirname), '..', '..', '..'),
             config: yaml.load(fs.readFileSync(configPath, 'utf8')),
             packageJson: JSON.parse(fs.readFileSync(path.join(path.resolve(import.meta.dirname), '..', '..', '..', 'package.json'), 'utf8')),
+            versionEnum: Number(fs.readFileSync(path.join(path.resolve(import.meta.dirname), '..', '..', '..', 'versionEnum.txt'), 'utf8')),
+            versionHash: fs.readFileSync(path.join(path.resolve(import.meta.dirname), '..', '..', '..', 'versionHash.txt'), 'utf8').slice(0,7),
             log,
         };
 
         // console.log(path.resolve(dirname), path.resolve(import.meta.dirname), ss);
 
-        ss.log.green("Created ss object!");
+        ss.log.green(`Created ss Object! Commit hash: ${ss.versionHash} (${ss.versionEnum})`);
         ss.config.verbose && ss.log.bgGray("VERBOSE LOGGING ENABLED!!!!!!");
 
         return ss;

@@ -213,6 +213,7 @@ initTables().then(() => {
                         let response = {
                             ...ss.config.services.distributed_configs.client,
                             nugget_interval: ss.config.services.nugget_interval,
+
                         };
 
                         console.log(await recs.getAllGameServerData());
