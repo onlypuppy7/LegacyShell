@@ -27,6 +27,7 @@ Gun.prototype.collectAmmo = function () {
 Gun.prototype.fire = function () {
     if (this.actor) this.actor.fire();
     else { //if server, actually make the bullet and fire that shit
+
         var rotMat = BABYLON.Matrix.RotationYawPitchRoll(this.player.yaw, this.player.pitch, 0);
         var forwardMat = BABYLON.Matrix.Translation(0, 0, this.subClass.range);
         var dirMat = forwardMat.multiply(rotMat, forwardMat);
@@ -57,8 +58,9 @@ Gun.prototype.fire = function () {
         output.packFloat(dir.y);
         output.packFloat(dir.z);
         output.packInt8(Math.seed);
-        sendToAll(output.buffer);
-        this.fireMunitions(pos, dir);
+
+        return output;
+        this.fireMunitions(pos, dir); //todo
     };
 };
 Gun.prototype.equip = function () {

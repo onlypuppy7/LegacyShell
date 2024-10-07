@@ -8,9 +8,10 @@ const wsSend = function (output, CommCode) {
     console.log("wtf?", CommCode); //case that shouldnt exist
 };
 
-let Collider;
-let mapMeshes;
-let map;
+let Collider = null;
+let mapMeshes = null;
+let map = null;
+
 let meId = -100;
 //(server-only-end)
 
@@ -19,9 +20,13 @@ class Player {
     constructor (data, scene, client) {
         if (client) {
             this.client = client;
-            Collider = this.client.room.Collider;
-            mapMeshes = this.client.room.mapMeshes;
-            map = this.client.room.map;
+            this.Collider = this.client.room.Collider;
+            this.mapMeshes = this.client.room.mapMeshes;
+            this.map = this.client.room.map;
+        } else {
+            this.Collider = Collider;
+            this.mapMeshes = mapMeshes;
+            this.map = map;
         };
 
         this.id = data.id;
@@ -210,11 +215,11 @@ class Player {
             var cy = Math.floor(this.y + 1e-4);
             var cz = Math.floor(this.climbingCell.z);
     
-            if (0 == this.climbingCell.ry || this.climbingCell.ry, cy >= map.height) {
+            if (0 == this.climbingCell.ry || this.climbingCell.ry, cy >= this.map.height) {
                 this.climbing = false;
             } else {
-                var cell = map.data[cx][cy][cz];
-                if (!(cell.idx && mapMeshes[cell.idx].colliderType === "ladder" && cell.ry === this.climbingCell.ry)) {
+                var cell = this.map.data[cx][cy][cz];
+                if (!(cell.idx && this.mapMeshes[cell.idx].colliderType === "ladder" && cell.ry === this.climbingCell.ry)) {
                     this.y = Math.round(this.y);
                     this.climbing = false;
                 };            
@@ -314,7 +319,7 @@ class Player {
                 this.id == meId && this.triggerPulled && this.fire()
             } else if (0 < this.shotsQueued) {
                 this.lastActivity = isClient ? now : Date.now();
-                // this.fire(); //TODO! firing...
+                this.fire(); //TODO! firing...
             };
             this.stateBuffer[this.stateIdx].x = this.x;
             this.stateBuffer[this.stateIdx].y = this.y;
@@ -563,7 +568,7 @@ class Player {
                     this.rofCountdown *= .9;
                     this.shotsQueued--
                 };
-                this.weapon.fire();
+                this.client.room.sendToAll(this.weapon.fire());
                 this.weapon.ammo.rounds--;
                 this.recoilCountdown = this.weapon.subClass.recoil;
                 this.rofCountdown = this.weapon.subClass.rof;
@@ -795,7 +800,7 @@ class Player {
         return this.hp <= 0;
     };
     lookForLadder (collide) {
-        if (collide && collide.cell && this.controlKeys & CONTROL.up && "ladder" == mapMeshes[collide.cell.idx].colliderType) {
+        if (collide && collide.cell && this.controlKeys & CONTROL.up && "ladder" == this.mapMeshes[collide.cell.idx].colliderType) {
             var diff = Math.abs(Math.radDifference(this.yaw, collide.cell.ry));
             if (!(.75 < diff && diff < 2.391)) {
                 if (1 == collide.cell.ry || 3 == collide.cell.ry) {
@@ -811,16 +816,16 @@ class Player {
         };
     };
     getOccupiedCell () {
-        if (this.x < 0 || this.y < 0 || this.z < 0 || this.x >= map.width || this.y >= map.height || this.z > map.depth) return {};
+        if (this.x < 0 || this.y < 0 || this.z < 0 || this.x >= this.map.width || this.y >= this.map.height || this.z > this.map.depth) return {};
     
         var cx = Math.floor(this.x);
         var cy = Math.floor(this.y + 1e-4);
         var cz = Math.floor(this.z);
         
-        return map.data[cx][cy][cz]
+        return this.map.data[cx][cy][cz]
     };
     collidesWithMap () {
-        return Collider.playerCollidesWithMap(this);
+        return this.Collider.playerCollidesWithMap(this);
     };
 };
 
