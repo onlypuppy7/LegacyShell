@@ -12,5 +12,9 @@ package-lock.json
 # my crap
 /assets/0.18.2
 
+# versioning (done by github)
+/versionEnum.txt
+/versionHash.txt
+
 #other
 /.vscode
