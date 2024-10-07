@@ -102,7 +102,7 @@ class newRoom {
         };
         this.clients.forEach(client => {
             client.lastSeen = Date.now() - client.lastSeenTime;
-            console.log(client.id, client.lastSeen, client.clientReady);
+            // console.log(client.id, client.lastSeen, client.clientReady);
             if ((client.lastSeen > 5e3 && !client.clientReady) || (client.lastSeen > 5 * 60e3)) client.ws.close();
         });
     };
@@ -157,8 +157,8 @@ class newRoom {
     };
 
     disconnectClient(client) {
-        this.clients.splice(client.id, 1);
-        this.players.splice(client.id, 1);
+        delete this.clients[client.id];
+        delete this.players[client.id];
 
         var output = new Comm.Out(2);
         output.packInt8U(Comm.Code.removePlayer);
@@ -166,6 +166,8 @@ class newRoom {
         this.sendToAll(output);
 
         console.log('Client disconnected', client.id);
+        
+        this.metaLoop();
     };
 
     getPlayerCount() {
@@ -195,6 +197,7 @@ class newRoom {
         for (let i = 0; i < this.playerLimit; i++) {
             var client = this.clients[i];
             var player = this.players[i];
+            console.log(i, !!client, !!player)
             if (!(client || player)) return i;
         };
         return null;
@@ -210,6 +213,7 @@ class newRoom {
     packAllPlayers(output) {
         this.clients.forEach(client => {
             if (client && client.clientReady) {
+                console.log("packing", client.id, client.player.name)
                 client.packPlayer(output);
             };
         });
