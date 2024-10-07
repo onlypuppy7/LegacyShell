@@ -31,11 +31,15 @@ export class ItemManagerConstructor {
         testing && item.mesh.freezeWorldMatrix()
     };
     collectItem (kind, id) {
-        this.pools[kind].recycle(this.pools[kind].objects[id]), this.pools[kind].objects[id].remove()
+        this.pools[kind].recycle(this.pools[kind].objects[id]);
+        this.pools[kind].objects[id].remove();
     };
     recycleAllItems () {
-        for (var that = this, k = 0; k < this.pools.length; k++) this.pools[k].forEachActive(function (item) {
-            that.pools[k].recycle(item), item.remove()
-        })
+        for (var that = this, k = 0; k < this.pools.length; k++) {
+            this.pools[k].forEachActive(function (item) {
+                that.pools[k].recycle(item);
+                item.remove();
+            });
+        };
     };
 };

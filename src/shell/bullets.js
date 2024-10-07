@@ -7,7 +7,7 @@ import { isClient } from '#constants';
 //(server-only-end)
 
 // [LS] Bullet CONSTRUCTOR
-function Bullet(scene) {
+export function Bullet(scene) {
     this.scene = scene;
     this.x = 0;
     this.y = 0;
@@ -33,10 +33,12 @@ Bullet.prototype.fireThis = function (player, pos, dir, weaponClass) {
     this.x = pos.x;
     this.y = pos.y;
     this.z = pos.z;
+
     Bullet.direction.copyFrom(dir).normalize();
     this.dx = Bullet.direction.x * weaponClass.velocity;
     this.dy = Bullet.direction.y * weaponClass.velocity;
     this.dz = Bullet.direction.z * weaponClass.velocity;
+    
     this.weaponClass = weaponClass;
     this.damage = weaponClass.damage;
     this.active = true;
@@ -78,7 +80,7 @@ Bullet.prototype.collidesWithPlayer = function (player, point) {
 };
 
 // [LS] Rocket CONSTRUCTOR
-function Rocket(scene) {
+export function Rocket(scene) {
     this.scene = scene, this.x = 0, this.y = 0, this.z = 0, this.dx = 0, this.dy = 0, this.dz = 0, this.ttArmed = 10, this.active = false, this.player = null, this.damage = 130, this.actor = new RocketActor(this), this.end = new BABYLON.Vector3
 };
 Rocket.origin = new BABYLON.Vector3, Rocket.direction = new BABYLON.Vector3, Rocket.prototype.remove = function () {

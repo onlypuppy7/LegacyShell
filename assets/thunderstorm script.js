@@ -80,12 +80,22 @@ Sounds.rain.play();
 
 window.addEventListener('keydown', function(event) {
     if (event.key === '[') {
-        Sounds.thunder.play();
-        gameScene.fogDensity = .2;
+        gameScene.fogDensity = .1;
         gameScene.texturesEnabled = true;
+        setTimeout(() => {
+            Sounds.thunder.play();
+        }, 250);
         setTimeout(() => {
             gameScene.fogDensity = .5;
             gameScene.texturesEnabled = false;
-        }, 500);
+        }, 100);
+        setTimeout(() => {
+            gameScene.fogDensity = .1;
+            gameScene.texturesEnabled = true;
+        }, 200);
+        setTimeout(() => {
+            gameScene.fogDensity = .5;
+            gameScene.texturesEnabled = false;
+        }, 400);
     }
 });

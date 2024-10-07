@@ -1,9 +1,12 @@
 //legacyshell: guns
 import BABYLON from "babylonjs";
 import { isClient } from '#constants';
+import { Bullet, Rocket } from '#bullets';
+import Comm from '#comm';
 //
 
 //(server-only-start)
+
 //(server-only-end)
 
 // [LS] Gun CONSTRUCTOR
@@ -23,20 +26,40 @@ Gun.prototype.collectAmmo = function () {
 };
 Gun.prototype.fire = function () {
     if (this.actor) this.actor.fire();
-    else {
-        var rotMat = BABYLON.Matrix.RotationYawPitchRoll(this.player.yaw, this.player.pitch, 0),
-            forwardMat = BABYLON.Matrix.Translation(0, 0, this.subClass.range),
-            dirMat = forwardMat.multiply(rotMat, forwardMat),
-            dir = dirMat.getTranslation(),
-            spread = .004 * (this.player.shotSpread + this.subClass.accuracy);
+    else { //if server, actually make the bullet and fire that shit
+        var rotMat = BABYLON.Matrix.RotationYawPitchRoll(this.player.yaw, this.player.pitch, 0);
+        var forwardMat = BABYLON.Matrix.Translation(0, 0, this.subClass.range);
+        var dirMat = forwardMat.multiply(rotMat, forwardMat);
+        var dir = dirMat.getTranslation();
+        var spread = .004 * (this.player.shotSpread + this.subClass.accuracy);
+
         isNaN(spread) && (spread = this.player.shotSpread = 0);
-        var spreadMat = BABYLON.Matrix.RotationYawPitchRoll((Math.random() - .5) * spread, (Math.random() - .5) * spread, (Math.random() - .5) * spread),
-            posMat = (dir = (dirMat = dirMat.multiply(spreadMat)).getTranslation(), BABYLON.Matrix.Translation(0, .1, 0)),
-            pos = (posMat = (posMat = posMat.multiply(rotMat)).add(BABYLON.Matrix.Translation(this.player.x, this.player.y + .3, this.player.z))).getTranslation();
-        Math.seed = Math.randomInt(0, 256), pos.x = Math.floor(300 * pos.x) / 300, pos.y = Math.floor(300 * pos.y) / 300, pos.z = Math.floor(300 * pos.z) / 300, dir.x = Math.floor(300 * dir.x) / 300, dir.y = Math.floor(300 * dir.y) / 300, dir.z = Math.floor(300 * dir.z) / 300;
+
+        var spreadMat = BABYLON.Matrix.RotationYawPitchRoll((Math.random() - .5) * spread, (Math.random() - .5) * spread, (Math.random() - .5) * spread);
+        var posMat = (dir = (dirMat = dirMat.multiply(spreadMat)).getTranslation(), BABYLON.Matrix.Translation(0, .1, 0));
+        var pos = (posMat = (posMat = posMat.multiply(rotMat)).add(BABYLON.Matrix.Translation(this.player.x, this.player.y + .3, this.player.z))).getTranslation();
+
+        Math.seed = Math.randomInt(0, 256);
+        pos.x = Math.floor(300 * pos.x) / 300;
+        pos.y = Math.floor(300 * pos.y) / 300;
+        pos.z = Math.floor(300 * pos.z) / 300;
+        dir.x = Math.floor(300 * dir.x) / 300;
+        dir.y = Math.floor(300 * dir.y) / 300;
+        dir.z = Math.floor(300 * dir.z) / 300;
+
         var output = new Comm.Out(15, true);
-        output.packInt8(Comm.Code.fire), output.packInt8(this.player.id), output.packFloat(pos.x), output.packFloat(pos.y), output.packFloat(pos.z), output.packFloat(dir.x), output.packFloat(dir.y), output.packFloat(dir.z), output.packInt8(Math.seed), sendToAll(output.buffer), this.fireMunitions(pos, dir)
-    }
+        output.packInt8(Comm.Code.fire);
+        output.packInt8(this.player.id);
+        output.packFloat(pos.x);
+        output.packFloat(pos.y);
+        output.packFloat(pos.z);
+        output.packFloat(dir.x);
+        output.packFloat(dir.y);
+        output.packFloat(dir.z);
+        output.packInt8(Math.seed);
+        sendToAll(output.buffer);
+        this.fireMunitions(pos, dir);
+    };
 };
 Gun.prototype.equip = function () {
     this.player.weaponIdx = this.player.equipWeaponIdx, this.player.weapon = this.player.weapons[this.player.weaponIdx], this.player.weapon.actor.equip(), this.player.id == meId && updateAmmoUi()
@@ -95,11 +118,14 @@ DozenGauge.accuracy = 30;
 DozenGauge.shotSpreadIncrement = 120;
 DozenGauge.accuracySettleFactor = .88;
 DozenGauge.damage = 12;
-DozenGauge.totalDamage = 240;
+DozenGauge.totalDamage = DozenGauge.damage * 20;
 DozenGauge.range = 7;
 DozenGauge.velocity = .45;
 DozenGauge.prototype.fireMunitions = function (pos, dir) {
-    for (var i = 0; i < 20; i++) this.v1.set(dir.x + Math.seededRandom(-.14, .14) * DozenGauge.range, dir.y + Math.seededRandom(-.09, .09) * DozenGauge.range, dir.z + Math.seededRandom(-.14, .14) * DozenGauge.range), Bullet.fire(this.player, pos, this.v1, DozenGauge)
+    for (var i = 0; i < 20; i++) {
+        this.v1.set(dir.x + Math.seededRandom(-.14, .14) * DozenGauge.range, dir.y + Math.seededRandom(-.09, .09) * DozenGauge.range, dir.z + Math.seededRandom(-.14, .14) * DozenGauge.range);
+        Bullet.fire(this.player, pos, this.v1, DozenGauge);
+    };
 };
 
 // [LS] CSG1 CONSTRUCTOR

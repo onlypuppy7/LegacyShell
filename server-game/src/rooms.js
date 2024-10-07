@@ -13,7 +13,6 @@ import BABYLON from "babylonjs";
 //
 
 let ss;
-var lastTimeStamp = Date.now();
 
 function setSS(newSS) {
     ss = newSS;
@@ -23,6 +22,7 @@ function setSS(newSS) {
 
 class newRoom {
     constructor(info) {
+        this.lastTimeStamp = Date.now();
         console.log("creating room", info.gameId);
         this.startTime = Date.now();
         this.existedFor = 0;
@@ -71,14 +71,14 @@ class newRoom {
         var currentTimeStamp = Date.now();
         this.existedFor = Date.now() - this.startTime;
     
-        while (lastTimeStamp < currentTimeStamp) { //repeat until catching up :shrug:
-            lastTimeStamp += TickStep;
+        while (this.lastTimeStamp < currentTimeStamp) { //repeat until catching up :shrug:
+            this.lastTimeStamp += TickStep;
     
             // this.munitionsManager.updateLogic();
     
             //i dont understand their netcode wtf
             this.players.forEach(player => {
-                // console.log("lóóp", delta, lastTimeStamp, currentTimeStamp, player.stateIdx, player.syncStateIdx);
+                // console.log("lóóp", delta, this.lastTimeStamp, currentTimeStamp, player.stateIdx, player.syncStateIdx);
                 while (player.stateIdx !== player.syncStateIdx) {
                     player.update(1);
                     // console.log(player.x, player.y, player.z, player.controlKeys, player.stateIdx, this.serverStateIdx);
