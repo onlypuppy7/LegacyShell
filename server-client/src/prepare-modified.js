@@ -110,6 +110,7 @@ function prepareModified(ss) {
         let htmlContent = fs.readFileSync(sourceHtmlPath, 'utf8');
         htmlContent = htmlContent.replace(/SHELLSHOCKMINJSHASH/g, hashes.SHELLSHOCKMINJSHASH);
         htmlContent = htmlContent.replace(/LEGACYSHELLVERSION/g, ss.packageJson.version);
+        htmlContent = htmlContent.replace(/LEGACYSHELLEXTVERSION/g, `${ss.packageJson.version} (${ss.versionHash}, ${ss.versionEnum})`);
         htmlContent = htmlContent.replace(/LEGACYSHELLDISCORDSERVER/g, ss.config.client.discordServer);
         htmlContent = htmlContent.replace(/LEGACYSHELLGITHUB/g, ss.config.client.githubURL);
         htmlContent = htmlContent.replace(/LEGACYSHELLSYNCURL/g, ss.config.client.sync_server);
