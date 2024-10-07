@@ -22,7 +22,9 @@ class newClient {
         this.clientReady = false;
         this.room = room;
         this.ws = ws;
-        this.lastSeen = Date.now();
+        this.lastSeen = 0;
+        this.lastSeenTime = Date.now();
+        this.joinedTime = Date.now();
         this.userData = info.userData;
         this.sessionData = info.sessionData;
         this.loggedIn = info.userData && info.sessionData;
@@ -65,24 +67,25 @@ class newClient {
         try {
             var input = new Comm.In(message);
 
-            this.lastSeen = Date.now(); //u can change/add to this later to exclude pings (ie idle for 5 mins)
-
             while (input.isMoreDataAvailable()) {
                 let msg = {};
                 msg.cmd = input.unPackInt8U();
 
-                if (msg.cmd !== Comm.Code.sync) console.log(Comm.Convert(msg.cmd));
+                if (msg.cmd !== Comm.Code.sync && msg.cmd !== Comm.Code.ping) {
+                    this.lastSeenTime = Date.now(); //excludes pings (ie idle for 5 mins)
+                    console.log(Comm.Convert(msg.cmd));
+                };
 
                 switch (msg.cmd) {
                     case Comm.Code.clientReady:
                         if (!this.clientReady) {
                             this.clientReady = true;
+
+                            // console.log()
     
                             var output = new Comm.Out();
                             this.room.packAllPlayers(output);
                             this.sendBuffer(output, "packAllPlayers");
-                    
-                            this.room.registerPlayerClient(this);
                     
                             var output = new Comm.Out();
                             this.packPlayer(output);
@@ -253,6 +256,8 @@ class newClient {
 
             upgradeProductId: this.loggedIn ? this.userData.upgradeProductId : 0,
         }, this.room.scene, this);
+                    
+        this.room.registerPlayerClient(this);
     };
 
     packPlayer(output) {

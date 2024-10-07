@@ -98,7 +98,13 @@ class newRoom {
     metaLoop (delta) {
         if (this.getPlayerCount() === 0 && this.existedFor > 5e3) {
             this.destroy();
+            return;
         };
+        this.clients.forEach(client => {
+            client.lastSeen = Date.now() - client.lastSeenTime;
+            console.log(client.id, client.lastSeen, client.clientReady);
+            if ((client.lastSeen > 5e3 && !client.clientReady) || (client.lastSeen > 5 * 60e3)) client.ws.close();
+        });
     };
 
     destroy() {
@@ -137,7 +143,7 @@ class newRoom {
 
         info.id = this.getUnusedPlayerId();
 
-        console.log(info.id);
+        console.log("joining new player with assigned id:", info.id, info.nickname, this.getPlayerCount());
 
         new ClientConstructor.newClient(this, info, ws);
 
