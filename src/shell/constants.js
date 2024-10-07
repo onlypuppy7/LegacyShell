@@ -258,6 +258,11 @@ export var bulletHitColors = [
     }
 ];
 
+export const ItemTypes = {
+    AMMO: 0,
+    GRENADE: 1
+};
+
 export var color4White = new BABYLON.Color4(1, 1, 1, 1);
 
 export var inputToControlMap = {

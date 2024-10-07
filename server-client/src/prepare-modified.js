@@ -56,6 +56,9 @@ function prepareModified(ss) {
             { pattern: /LEGACYSHELLLOADING/g, file: "#loading" },
             { pattern: /LEGACYSHELLSTRINGWIDTH/g, file: "#stringWidth" },
             { pattern: /LEGACYSHELLCENSOR/g, file: "#censor" },
+            { pattern: /LEGACYSHELLPOOL/g, file: "#pool" },
+            { pattern: /LEGACYSHELLMUNITIONSMANAGER/g, file: "#munitionsManager" },
+            { pattern: /LEGACYSHELLITEMMANAGER/g, file: "#itemManager" },
         ];
         
         replacements.forEach(replacement => {

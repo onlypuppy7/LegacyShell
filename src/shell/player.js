@@ -1,6 +1,6 @@
 //legacyshell: player
 import BABYLON from "babylonjs";
-import { stateBufferSize, isClient, isServer, CONTROL, devlog } from '#constants';
+import { stateBufferSize, isClient, isServer, CONTROL, devlog, ItemTypes } from '#constants';
 //
 
 //(server-only-start)
@@ -517,7 +517,7 @@ class Player {
     };
     collectItem (kind, applyToWeaponIdx) {
         switch (kind) {
-            case ItemManager.AMMO:
+            case ItemTypes.AMMO:
                 const ammoCollected = this.weapons[applyToWeaponIdx].collectAmmo();
                 if (ammoCollected) {
                     if (this.actor) {
@@ -527,7 +527,7 @@ class Player {
                     return true;
                 };
                 return false;
-            case ItemManager.GRENADE:
+            case ItemTypes.GRENADE:
                 if (this.grenadeCount < this.grenadeCapacity) {
                     this.grenadeCount++;
                     if (this.actor) {
