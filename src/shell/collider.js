@@ -71,11 +71,13 @@ class ColliderConstructor {
     };
 
     pointCollidesWithMap(point, ignoreSoft) {
+        var map_ = map || this.map;
+
         if (isNaN(point.x) || isNaN(point.y) || isNaN(point.z)) return false;
         var cx = Math.floor(point.x),
             cy = Math.floor(point.y),
             cz = Math.floor(point.z);
-        return !(cx < 0 || cx >= this.map.width || cz < 0 || cz >= this.map.depth || cy < 0 || cy >= this.map.height) && this.meshCollidesWithCell(this.pointCollisionMesh, point, cx, cy, cz, ignoreSoft);
+        return !(cx < 0 || cx >= map_.width || cz < 0 || cz >= map_.depth || cy < 0 || cy >= map_.height) && this.meshCollidesWithCell(this.pointCollisionMesh, point, cx, cy, cz, ignoreSoft);
     }
 
     playerCollidesWithMap(player) {
@@ -83,27 +85,32 @@ class ColliderConstructor {
     }
 
     meshCollidesWithMap(mesh, pos) {
+        var map_ = map || this.map;
+
         var cellsChecked = {};
         if (isNaN(pos.x) || isNaN(pos.y) || isNaN(pos.z)) return true;
         for (var bbox = mesh.getBoundingInfo().boundingBox, i = 0; i < bbox.vectors.length; i++) {
             var cx = Math.floor(pos.x + bbox.vectors[i].x),
                 cy = Math.floor(pos.y + bbox.vectors[i].y),
                 cz = Math.floor(pos.z + bbox.vectors[i].z);
-            if (cx < 0 || cx >= this.map.width || cz < 0 || cz >= this.map.depth || cy < 0) return true;
+            if (cx < 0 || cx >= map_.width || cz < 0 || cz >= map_.depth || cy < 0) return true;
             var checkId = cx + 1e3 * cy + 1e6 * cz;
-            if (cy < this.map.height && !cellsChecked[checkId]) {
+            if (cy < map_.height && !cellsChecked[checkId]) {
                 var res = this.meshCollidesWithCell(mesh, pos, cx, cy, cz);
                 if (res) return res;
                 cellsChecked[checkId] = true;
-            }
-        }
+            };
+        };
         return false;
-    }
+    };
 
     meshCollidesWithCell(mesh, pos, cx, cy, cz, ignoreSoft) {
-        var cell = this.map.data[cx][cy][cz];
+        var map_ = map || this.map;
+        var mapMeshes_ = mapMeshes || this.mapMeshes;
+
+        var cell = map_.data[cx][cy][cz];
         if (cell.idx) {
-            var mapMesh = this.mapMeshes[cell.idx];
+            var mapMesh = mapMeshes_[cell.idx];
             if (ignoreSoft && mapMesh.softness) return false;
             switch (mapMesh.colliderType) {
                 case "full":
@@ -137,8 +144,11 @@ class ColliderConstructor {
     }
 
     rayCollidesWithMap(origin, direction, callback) {
+        var map_ = map || this.map;
+        var mapMeshes_ = mapMeshes || this.mapMeshes;
+
         if (isNaN(origin.x) || isNaN(origin.y) || isNaN(origin.z)) return false;
-        if (origin.x < 0 || origin.x >= this.map.width || origin.z < 0 || origin.z >= this.map.depth || origin.y < 0 || origin.y >= this.map.height) return false;
+        if (origin.x < 0 || origin.x >= map_.width || origin.z < 0 || origin.z >= map_.depth || origin.y < 0 || origin.y >= map_.height) return false;
         var radius = direction.length(),
             x = Math.floor(origin.x),
             y = Math.floor(origin.y),
@@ -159,14 +169,14 @@ class ColliderConstructor {
         if (0 === dx && 0 === dy && 0 === dz) return false;
 
         for (radius /= Math.sqrt(dx * dx + dy * dy + dz * dz);
-            (0 < stepX ? x < this.map.width : 0 <= x) && (0 < stepY ? y < this.map.height : 0 <= y) && (0 < stepZ ? z < this.map.depth : 0 <= z);) {
-            if (!(x < 0 || y < 0 || z < 0 || x >= this.map.width || y >= this.map.height || z >= this.map.depth)) {
+            (0 < stepX ? x < map_.width : 0 <= x) && (0 < stepY ? y < map_.height : 0 <= y) && (0 < stepZ ? z < map_.depth : 0 <= z);) {
+            if (!(x < 0 || y < 0 || z < 0 || x >= map_.width || y >= map_.height || z >= map_.depth)) {
                 var res = callback(origin, direction, {
                     x: x,
                     y: y,
                     z: z
                 });
-                if (res && "verysoft" != this.mapMeshes[res.cell.idx].softness) return res;
+                if (res && "verysoft" != mapMeshes_[res.cell.idx].softness) return res;
             }
             if (tMaxX < tMaxY)
                 if (tMaxX < tMaxZ) {
@@ -195,8 +205,10 @@ class ColliderConstructor {
     }
 
     getCellForRay(voxel) {
+        var map_ = map || this.map;
+
         try {
-            var cell = this.map.data[voxel.x][voxel.y][voxel.z];
+            var cell = map_.data[voxel.x][voxel.y][voxel.z];
         } catch (e) {
             console.log(voxel);
         }
@@ -297,8 +309,11 @@ class ColliderConstructor {
     }
 
     rayCollidesWithPlayer(origin, direction, proj) {
-        for (var fromTeam = proj ? proj.player.team : null, fromId = proj ? proj.player.id : null, i = 0; i < this.playerLimit; i++) {
-            var player = this.players[i];
+        var playerLimit_ = playerLimit || this.playerLimit;
+        var players_ = players || this.players;
+
+        for (var fromTeam = proj ? proj.player.team : null, fromId = proj ? proj.player.id : null, i = 0; i < playerLimit_; i++) {
+            var player = this.players_[i];
             if (player && player.playing && player.id != fromId && (0 == player.team || player.team != fromTeam)) {
                 this.ray.origin.copyFrom(origin);
                 this.ray.direction.copyFrom(direction);
