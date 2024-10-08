@@ -18,7 +18,7 @@
     "dependencies": {
         "babylonjs": "3.3.0",
         "bcrypt": "^5.1.1",
-        "canvas": "^2.11.2",
+        "canvas": "^3.0.0-rc2",
         "chalk": "^5.3.0",
         "express": "^4.21.0",
         "js-yaml": "^4.1.0",
@@ -52,6 +52,7 @@
         "#client": "./server-game/src/client.js",
         "#roomManager": "./server-game/src/roomManager.js",
         "#rooms": "./server-game/src/rooms.js",
+        "#worker": "./server-game/src/worker.js",
         "#accountManagement": "./server-services/src/data_management/accountManagement.js",
         "#recordsManagement": "./server-services/src/data_management/recordsManagement.js",
         "#sessionManagement": "./server-services/src/data_management/sessionManagement.js",

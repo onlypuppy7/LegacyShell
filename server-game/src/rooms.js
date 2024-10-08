@@ -14,7 +14,7 @@ import BABYLON from "babylonjs";
 
 let ss;
 
-function setSS(newSS) {
+function setSS(newSS, parentPort) {
     ss = newSS;
     ClientConstructor.setSS(ss);
     extendMath(Math);
@@ -27,6 +27,8 @@ class newRoom {
         this.startTime = Date.now();
         this.existedFor = 0;
 
+        this.wsToClient = {};
+
         this.serverStateIdx = 0;
 
         this.joinType = info.joinType;
@@ -35,6 +37,7 @@ class newRoom {
         this.gameId = info.gameId;
         this.gameKey = info.gameKey;
 
+        // this.items = info.items;
         this.mapJson = ss.maps[this.mapId];
         this.playerLimit = this.mapJson.playerLimit || 18;        
 
@@ -65,6 +68,22 @@ class newRoom {
             this.updateLoopObject = createLoop(this.updateLoop.bind(this), TickStep);
             this.metaLoopObject = createLoop(this.metaLoop.bind(this), 2e3);
         });
+    };
+
+    sendWsToClient (type, content, wsId) {
+        const client = this.wsToClient[wsId];
+        if (client) {
+            switch (type) {
+                case "wsMessage":
+                    client.onmessage(content);
+                    break;
+                case "wsClose":
+                    client.onclose(content);
+                    break;
+                default:
+                    break;
+            }
+        };
     };
 
     updateLoop (delta) {
@@ -103,12 +122,14 @@ class newRoom {
         this.clients.forEach(client => {
             client.lastSeen = Date.now() - client.lastSeenTime;
             // console.log(client.id, client.lastSeen, client.clientReady);
-            if ((client.lastSeen > 5e3 && !client.clientReady) || (client.lastSeen > 5 * 60e3)) client.ws.close();
+            if ((client.lastSeen > 5e3 && !client.clientReady) || (client.lastSeen > 5 * 60e3)) client.sendCloseToWs();
         });
     };
 
     destroy() {
         console.log("destroy room", this.existedFor, this.gameId);
+
+        //most of this is redundant now, but eh.
         this.updateLoopObject.stop();
         this.metaLoopObject.stop();
         this.players = null;
@@ -117,7 +138,9 @@ class newRoom {
         this.Collider = null;
         this.engine = null;
         this.scene = null;
-        ss.RoomManager.removeRoom(this.gameId);
+
+        ss.parentPort.close();
+        process.exit(0);
     };
 
     sync() {
@@ -128,7 +151,7 @@ class newRoom {
         this.sendToAll(output);
     };
 
-    async joinPlayer(info, ws) {
+    async joinPlayer(info) {
         if (info.session && info.session.length > 0) {
             const response = await wsrequest({
                 cmd: "getUser",
@@ -143,9 +166,9 @@ class newRoom {
 
         info.id = this.getUnusedPlayerId();
 
-        console.log("joining new player with assigned id:", info.id, info.nickname, this.getPlayerCount());
+        console.log(info.wsId, "joining new player with assigned id:", info.id, info.nickname, this.getPlayerCount());
 
-        new ClientConstructor.newClient(this, info, ws);
+        this.wsToClient[info.wsId] = new ClientConstructor.newClient(this, info);
 
         // const client = new ClientConstructor.newClient(this, info, ws);
         // const player = client.player;
