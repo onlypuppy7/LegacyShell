@@ -16,6 +16,8 @@ package-lock.json
 /versionEnum.txt
 /versionHash.txt
 
-#other
+# other
 /.vscode
+
+# osx
 .DS_Store
