@@ -54,7 +54,7 @@ class newClient {
         
         var output = new Comm.Out(11); //if fixed for gameJoined, use 11
         this.packGameJoined(output);
-        this.sendBuffer(output, "packGameJoined");
+        this.sendBuffer(output, "packGameJoined"); 
 
         // ws.removeAllListeners('message');
         // ws.on('message', this.onmessage.bind(this));
@@ -74,7 +74,7 @@ class newClient {
 
                 if (msg.cmd !== Comm.Code.sync && msg.cmd !== Comm.Code.ping) {
                     this.lastSeenTime = Date.now(); //excludes pings (ie idle for 5 mins)
-                    console.log(Comm.Convert(msg.cmd));
+                    console.log(this.id, "received:", Comm.Convert(msg.cmd));
                 };
 
                 switch (msg.cmd) {
@@ -86,15 +86,15 @@ class newClient {
     
                             var output = new Comm.Out();
                             this.room.packAllPlayers(output);
-                            this.sendBuffer(output, "packAllPlayers");
+                            this.sendToMe(output, "packAllPlayers");
                     
                             var output = new Comm.Out();
                             this.packPlayer(output);
-                            this.room.sendToAll(output);
+                            this.sendToAll(output, "packThisPlayer (ready/joined)");
                     
                             var output = new Comm.Out(1);
                             output.packInt8U(Comm.Code.clientReady);
-                            this.sendBuffer(output, "clientReady");
+                            this.sendToMe(output, "clientReady");
                         };
                         break;
                     case Comm.Code.sync:
@@ -126,7 +126,7 @@ class newClient {
 
                         this.timeout.set(() => {
                             this.player.removeFromPlay();
-                            this.room.sendToOthers(this.packPaused(), this.id);
+                            this.sendToOthers(this.packPaused(), this.id, "pause");
                         }, 3e3);
                         break;
                     case Comm.Code.requestRespawn:
@@ -143,7 +143,7 @@ class newClient {
                             output.packFloat(this.player.z);
                             output.packRadU(this.player.yaw);
                             output.packRad(this.player.pitch);
-                            this.room.sendToAll(output);
+                            this.sendToAll(output, "respawn");
                         };
                         break;
                     case Comm.Code.chat:
@@ -156,13 +156,13 @@ class newClient {
                             output.packInt8U(Comm.Code.chat);
                             output.packInt8U(this.id);
                             output.packString(text);
-                            this.room.sendToOthers(output, this.id);
+                            this.sendToOthers(output, this.id, "chat: " + text);
                         };
                         break;
                     case Comm.Code.ping:
                         var output = new Comm.Out();
                         output.packInt8(Comm.Code.ping);
-                        this.sendBuffer(output);
+                        this.sendToMe(output, "ping");
                         break;
                 };
             };
@@ -353,8 +353,24 @@ class newClient {
     };
 
     sendBuffer(output, debug) { // more direct operation, prefer this.room.sendToOne
-        // console.log(output, debug);
+        // console.log(this.id, debug);
         this.sendMsgToWs(output.buffer);
+    };
+
+    sendToMe (output, debug) {
+        this.room.sendToOne(output, this.id, this.id, debug);
+    };
+
+    sendToOne (output, toId, debug) {
+        this.room.sendToOne(output, this.id, toId, debug);
+    };
+
+    sendToOthers (output, debug) {
+        this.room.sendToOthers(output, this.id, debug);
+    };
+
+    sendToAll (output, debug) {
+        this.room.sendToAll(output, this.id, debug);
     };
 
     sendMsgToWs(msg) {

@@ -245,25 +245,25 @@ class newRoom {
     };
     
     //semi stolen from rtw (is good code)
-    sendToOne(output, id) {
-        // const client = this.clients[id];
-        // if (client && client.clientReady) client.sendBuffer(output);
+    sendToOne(output, fromId, toId, debug) {
+        const client = this.clients[toId];
+        if (client && client.clientReady) client.sendBuffer(output,  "sendToOne: " + debug + " | from " + fromId);
 
-        //idk why it was done like this? there shouldnt be multiple clients with same id :< - onlypuppy7
-        this.clients.forEach(client => {
-            if (client.clientReady && client.id === id) client.sendBuffer(output);
-        });
+        // //idk why it was done like this? there shouldnt be multiple clients with same id :<
+        // this.clients.forEach(client => {
+        //     if (client.clientReady && client.id === fromId) client.sendBuffer(output, "sendToOne: " + debug + " | from " + fromId);
+        // });
     };
     
-    sendToOthers(output, id) {
+    sendToOthers(output, fromId, debug) {
         this.clients.forEach(client => {
-            if (client.clientReady && client.id !== id) client.sendBuffer(output);
+            if (client.clientReady && client.id !== fromId) client.sendBuffer(output, "sendToOthers: " + debug + " | from " + fromId);
         });
     };
 
-    sendToAll(output) {
+    sendToAll(output, fromId, debug) {
         this.clients.forEach(client => {
-            if (client.clientReady) client.sendBuffer(output, "sendToAll");
+            if (client.clientReady) client.sendBuffer(output, "sendToAll: " + debug + " | from " + fromId);
         });
     };
 };

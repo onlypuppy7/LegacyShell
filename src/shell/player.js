@@ -570,7 +570,7 @@ class Player {
                 };
 
                 var output = this.weapon.fire();
-                if (isServer && output) this.client.room.sendToAll(output);
+                if (isServer && output) this.client.sendToAll(output, "fire");
 
                 this.weapon.ammo.rounds--;
                 this.recoilCountdown = this.weapon.subClass.recoil;
@@ -697,6 +697,7 @@ class Player {
             output.packFloat(vec.x);
             output.packFloat(vec.y);
             output.packFloat(vec.z);
+            
             sendToAll(output.buffer);
             munitionsManager.throwGrenade(this, pos, vec);
         };
