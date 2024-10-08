@@ -290,10 +290,10 @@ class ColliderConstructor {
                 var dot, distance = BABYLON.Vector3.DistanceSquared(this.ray.origin, pickInfo.pickedPoint),
                     normal = pickInfo.getNormal(true, false);
                 0 < (dot = BABYLON.Vector3.Dot(this.ray.direction, normal)) && (insideMesh = true), distance < closestDistance && (closestDistance = distance, closestPick = pickInfo, closestNormal = normal, 0 < dot && (insideMesh = true));
-            }
-        }
+            };
+        };
         return closestPick.normal = closestNormal, closestPick.insideMesh = insideMesh, closestPick;
-    }
+    };
 
     rayCollidesWithPlayer(origin, direction, proj) {
         for (var fromTeam = proj ? proj.player.team : null, fromId = proj ? proj.player.id : null, i = 0; i < playerLimit; i++) {
@@ -304,10 +304,10 @@ class ColliderConstructor {
                 this.ray.length = 1;
                 var point = this.rayCollidesWithPlayerHelper(this.ray, player);
                 if (point) return proj && proj.collidesWithPlayer(player, point), point;
-            }
-        }
+            };
+        };
         return false;
-    }
+    };
 
     rayCollidesWithPlayerHelper(ray, player) {
         var p = this.v2,

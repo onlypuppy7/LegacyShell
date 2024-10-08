@@ -1,6 +1,7 @@
 //legacyshell: bullets
 import BABYLON from "babylonjs";
 import { isClient, isServer } from '#constants';
+import Comm from "#comm";
 //
 
 //(server-only-start)
@@ -98,21 +99,32 @@ Bullet.prototype.collidesWithPlayer = function (player, point) {
 
     //(server-only-start)
     if (isServer) {
-        var damageExp = 4;
-
-        tv1.x = this.dx;
-        tv1.y = this.dy;
-        tv1.z = this.dz;
+        var damageExp = 4; //higher means damage falls off more sharply
+ 
+        tv1.x = this.dx; // 0;
+        tv1.y = this.dy; // 1;
+        tv1.z = this.dz; // 0;
         tv1.normalize();
 
-        var dot = -BABYLON.Vector3.Dot(tv1, point) * 0.8 + 0.2;
+        tv2.x = player.x - point.x; //point is the position on the egg that the bullet lands
+        tv2.y = player.y + .32 - point.y; // +0.32, the supposed center
+        tv2.z = player.z - point.z;
+        tv2.normalize();
+
+        var dist = BABYLON.Vector3.Cross(tv1, tv2).length();
+
+        var dot = -BABYLON.Vector3.Dot(tv1, tv2) * 0.9 + 0.1;
         let damageMod = 1;
         // var damage = this.damage * Math.pow(dot, damageExp + Math.pow(dot, damageExp) * damageMod);
         var damage = this.damage * Math.pow(dot, damageExp);
 
-        console.log("damage to playerId:", player.id, damage, "other", dot, damageMod, damageExp, this.damage);
+        // console.log("damage to playerId:", player.id, damage, "other", dot, damageExp, damageMod, this.damage);
+        // console.log("tv", tv1, tv2, "point", point, "playerpos", player.x, player.y, player.z, "dist", dist, "other", BABYLON.Vector3.Dot(tv1, tv2));
+
+        player.hit(damage, this.player, this.dx, this.dz);
     };
     //(server-only-end)
+
     this.remove();
 };
 

@@ -160,10 +160,13 @@ class newClient {
                             this.sendToOthers(output, this.id, "chat: " + text);
                         };
                         break;
-                    case Comm.Code.reload: {
+                    case Comm.Code.reload: 
                         this.player.reload();
                         break;
-                    }
+                    case Comm.Code.swapWeapon: 
+                        var idx = input.unPackInt8();
+                        this.player.swapWeapon(idx);
+                        break;
                     case Comm.Code.ping:
                         var output = new Comm.Out();
                         output.packInt8(Comm.Code.ping);
@@ -358,7 +361,7 @@ class newClient {
     };
 
     sendBuffer(output, debug) { // more direct operation, prefer this.room.sendToOne
-        // console.log(this.id, output.idx, debug);
+        if (!(debug.includes("sync") || debug.includes("ping"))) console.log(this.id, output.idx, debug);
         this.sendMsgToWs(output.buffer);
     };
 

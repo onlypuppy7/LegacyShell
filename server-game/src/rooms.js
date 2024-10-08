@@ -156,7 +156,7 @@ class newRoom {
         this.clients.forEach(client => {
             client.packSync(output);
         });
-        this.sendToAll(output);
+        this.sendToAll(output, "sync");
     };
 
     async joinPlayer(info) {
