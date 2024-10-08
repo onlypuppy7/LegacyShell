@@ -517,7 +517,7 @@ class Player {
                 (output = new Comm.Out(3, true)).packInt8(Comm.Code.swapWeapon);
                 output.packInt8(this.id);
                 output.packInt8(idx);
-                sendToOthers(output.buffer, this.id);
+                this.client.sendToOthers(output.buffer, this.id);
             };
         };
     };
@@ -731,6 +731,33 @@ class Player {
         this.bestOverallStreak = Math.max(this.bestOverallStreak, this.streak);
         this.score = this.streak;
     };
+    hit (damage, firedPlayer, dx, dz) {
+        if (damage > this.hp) {
+            this.die();
+
+            var output = new Comm.Out();
+            output.packInt8U(Comm.Code.die);
+            output.packInt8U(this.id);
+            output.packInt8U(firedPlayer.id);
+            output.packInt8U(5);
+            this.client.sendToAll(output, "die");
+        } else {
+            this.hp -= damage;
+
+            var output = new Comm.Out();
+            output.packInt8U(Comm.Code.hitMe);
+            output.packInt8U(this.hp);
+            output.packFloat(dx);
+            output.packFloat(dz);
+            this.client.sendToMe(output, "hitMe");
+    
+            var output = new Comm.Out();
+            output.packInt8U(Comm.Code.hitThem);
+            output.packInt8U(this.id);
+            output.packInt8U(this.hp);
+            this.client.sendToOthers(output, "hitThem");
+        };
+    }
     die () {
         this.score = 0;
         this.streak = 0;
