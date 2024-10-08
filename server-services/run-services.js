@@ -20,7 +20,7 @@ import recs from '#recordsManagement';
 //init db (ooooh! sql! fancy! a REAL database! not a slow json!)
 const db = new sqlite3.Database('./server-services/store/LegacyShellData.db');
 
-let ss = misc.instanciateSS(import.meta.dirname);
+let ss = misc.instantiateSS(import.meta.dirname);
 
 ss = {
     ...ss,

@@ -32,6 +32,18 @@ So depending on your use case, you could either be using all or some of the serv
 2. Enter: `npm install`
 3. Enter: `npm run init` to set up the config (just roll with it for now).
 
+If you get issues with installing the canvas package, try this:
+
+```
+sudo apt-get update
+sudo apt-get install -y libcairo2-dev libjpeg-dev libpango1.0-dev libgif-dev build-essential g++ pkg-config
+
+sudo apt-get install libpixman-1-dev
+npm install
+```
+
+This is an issue known to affect unix based systems.
+
 ## Starting up the server
 At the moment you have to start up each section separately. Perhaps in the future there can be a script for them all. I recommend using a program such as tmux (linux), or creating at least a quick batch script to open everything in separate terminal windows.
 - `node run client`

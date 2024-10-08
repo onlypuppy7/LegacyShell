@@ -25,7 +25,7 @@ import readline from 'readline';
 // };
 // passed = (typeof passed == 'object' && !Array.isArray(passed)) ? passed : {}; //idk what all this is for
 
-let ss = misc.instanciateSS(import.meta.dirname, true);
+let ss = misc.instantiateSS(import.meta.dirname, true);
 
 let server_type = process.argv[2].replace("--","");
 

@@ -12,7 +12,7 @@ import Comm from '#comm';
 import rm from './src/roomManager.js';
 //
 
-let ss = misc.instanciateSS(import.meta.dirname);
+let ss = misc.instantiateSS(import.meta.dirname);
 
 var RoomManager;
 
