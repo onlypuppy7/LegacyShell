@@ -1,8 +1,8 @@
 //legacyshell: roomManager
 import ran from '#scrambled';
-import RoomConstructor from '#rooms';
 import Comm from '#comm';
 import { Worker } from 'worker_threads';
+import misc from '#misc';
 //
 
 const id_length = 3; //btw you cant just modify this without also adjusting the client's code. do you ever NEED to modify this? no. just have it static.
@@ -18,12 +18,12 @@ let ss;
 
 function setSS(newSS) {
     ss = newSS;
-    RoomConstructor.setSS(newSS);
 };
 
 class newRoomManager {
     constructor() {
         this.rooms = new Map();
+        this.workers = new Map();
         console.log(`RoomManager initialized.`, this.getUnusedID());
     };
 
@@ -103,9 +103,80 @@ class newRoomManager {
         info.gameId = this.getUnusedID();
         // info.gameKey = ran.getRandomInt(10, Math.pow(36, 2) - 10);
         info.gameKey = 784;
-        const createdRoom = new RoomConstructor.newRoom(info, this);
+        const worker = new Worker(new URL('./worker.js', import.meta.url));
+
+        worker.on('message', (msg) => {
+            try {
+                const [ msgType, content, wsId ] = msg;
+                const room = this.getRoom(info.gameId);
+                const ws = room.wsMap.get(wsId);
+    
+                switch (msgType) {
+                    case 0: //send stuff to ws
+                        ws.send(content);
+                        break;
+                    case 1: //close stuff to ws
+                        ws.close(content);
+                        break;
+                    default:
+                        break;
+                };
+            } catch (error) {
+                console.error(error);
+            };
+        });
+
+        worker.on('error', (error) => {
+            console.error('The game thread for', info.gameId, "errored out, now look at this:", error);
+        });
+
+        worker.on('exit', (code) => {
+            console.log('Worker exited.', info.gameId);
+            this.removeRoom(info.gameId);
+        });
+
+        worker.postMessage(["setSS", {
+            maps: ss.maps,
+            items: ss.items,
+        }]);
+
+        info = {
+            ...info,
+        };
+
+        worker.postMessage(["createRoom", info]);
+
+        const createdRoom = {
+            ...info,
+            worker,
+            wsMap: new Map(),
+            wsIdx: 0,
+        };
+
         this.rooms.set(info.gameId, createdRoom);
+        this.workers.set(info.gameId, worker);
+
         return createdRoom;
+    };
+
+    joinRoom(room, msg, ws) {
+        let wsId = room.wsIdx++;
+
+        // console.log("joining player, wsId:", wsId);
+
+        ws.removeAllListeners('message');
+        ws.on('message', (content)=>{
+            room.worker.postMessage(["wsMessage", content, wsId]);
+        });
+        ws.removeAllListeners('close');
+        ws.on('close', (content)=>{
+            room.worker.postMessage(["wsClose", content, wsId]);
+        });
+
+        room.wsMap.set(wsId, ws);
+
+        msg.wsId = wsId;
+        room.worker.postMessage(["joinPlayer", msg]);
     };
 
     removeRoom(id) {
@@ -119,13 +190,9 @@ class newRoomManager {
             return null; //doesnt exist
         };
     };
-
-    joinRoom(room, msg, ws) {
-        room.joinPlayer(msg, ws);
-    };
 };
 
 export default {
     setSS,
     newRoomManager,
-};
+};;

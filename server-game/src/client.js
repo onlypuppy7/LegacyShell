@@ -17,12 +17,12 @@ function setSS(newSS) {
 };
 
 class newClient {
-    constructor(room, info, ws) {
+    constructor(room, info) {
         //
         this.timeout = new TimeoutManagerConstructor();
         this.clientReady = false;
         this.room = room;
-        this.ws = ws;
+        this.wsId = info.wsId;
         this.lastSeen = 0;
         this.lastSeenTime = Date.now();
         this.joinedTime = Date.now();
@@ -56,10 +56,10 @@ class newClient {
         this.packGameJoined(output);
         this.sendBuffer(output, "packGameJoined");
 
-        ws.removeAllListeners('message');
-        ws.on('message', this.onmessage.bind(this));
-        ws.removeAllListeners('close');
-        ws.on('close', this.onclose.bind(this));
+        // ws.removeAllListeners('message');
+        // ws.on('message', this.onmessage.bind(this));
+        // ws.removeAllListeners('close');
+        // ws.on('close', this.onclose.bind(this));
 
         // console.log(!!this.room.packAllPlayers);
     };
@@ -354,7 +354,15 @@ class newClient {
 
     sendBuffer(output, debug) { // more direct operation, prefer this.room.sendToOne
         // console.log(output, debug);
-        this.ws.send(output.buffer);
+        this.sendMsgToWs(output.buffer);
+    };
+
+    sendMsgToWs(msg) {
+        ss.parentPort.postMessage([0, msg, this.wsId]);
+    };
+
+    sendCloseToWs(msg) {
+        ss.parentPort.postMessage([1, msg, this.wsId]);
     };
 };
 
