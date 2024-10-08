@@ -1,9 +1,10 @@
 //legacyshell: bullets
 import BABYLON from "babylonjs";
-import { isClient } from '#constants';
+import { isClient, isServer } from '#constants';
 //
 
 //(server-only-start)
+var room, Collider;
 //(server-only-end)
 
 // [LS] Bullet CONSTRUCTOR
@@ -20,13 +21,22 @@ export function Bullet(scene) {
     this.damage = 20;
     this.range = 0;
     this.velocity = 0;
-    this.actor = new BulletActor(this);
+    if (isClient) {
+        this.actor = new BulletActor(this);
+    } else {
+        Collider = scene.room.Collider;
+    }
     this.end = new BABYLON.Vector3;
 };
 Bullet.origin = new BABYLON.Vector3;
 Bullet.direction = new BABYLON.Vector3;
 Bullet.fire = function (player, pos, dir, weaponClass) {
-    munitionsManager.bulletPool.retrieve().fireThis(player, pos, dir, weaponClass)
+    // console.log(!!player.client.room);
+    this.getMunitionsManager(player).bulletPool.retrieve().fireThis(player, pos, dir, weaponClass)
+};
+Bullet.getMunitionsManager = function (player) {
+    if (player) room = player.client.room;
+    return (isServer && room) ? player.client.room.munitionsManager : munitionsManager;
 };
 Bullet.prototype.fireThis = function (player, pos, dir, weaponClass) {
     this.player = player;
@@ -38,17 +48,17 @@ Bullet.prototype.fireThis = function (player, pos, dir, weaponClass) {
     this.dx = Bullet.direction.x * weaponClass.velocity;
     this.dy = Bullet.direction.y * weaponClass.velocity;
     this.dz = Bullet.direction.z * weaponClass.velocity;
-    
+
     this.weaponClass = weaponClass;
     this.damage = weaponClass.damage;
     this.active = true;
     this.range = weaponClass.range;
     this.velocity = weaponClass.velocity;
-    var res = Collider.rayCollidesWithMap(pos, dir, Collider.projectileCollidesWithCell);
+    var res = Collider.rayCollidesWithMap(pos, dir, Collider.projectileCollidesWithCell.bind(Collider));
     res && (this.actor && this.end.copyFrom(res.pick.pickedPoint), this.range = BABYLON.Vector3.Distance(pos, res.pick.pickedPoint)), this.actor && this.actor.fire()
 };
 Bullet.prototype.remove = function () {
-    munitionsManager.bulletPool.recycle(this);
+    this.getMunitionsManager().bulletPool.recycle(this);
     this.actor && this.actor.remove();
 };
 Bullet.prototype.update = function (delta) {
@@ -79,12 +89,27 @@ Bullet.prototype.collidesWithPlayer = function (player, point) {
     this.remove();
 };
 
+
 // [LS] Rocket CONSTRUCTOR
 export function Rocket(scene) {
-    this.scene = scene, this.x = 0, this.y = 0, this.z = 0, this.dx = 0, this.dy = 0, this.dz = 0, this.ttArmed = 10, this.active = false, this.player = null, this.damage = 130, this.actor = new RocketActor(this), this.end = new BABYLON.Vector3
+    this.scene = scene;
+    this.x = 0;
+    this.y = 0;
+    this.z = 0;
+    this.dx = 0;
+    this.dy = 0;
+    this.dz = 0;
+    this.ttArmed = 10;
+    this.active = false;
+    this.player = null;
+    this.damage = 130;
+    if (isClient) {
+        this.actor = new RocketActor(this);
+    };
+    this.end = new BABYLON.Vector3;
 };
 Rocket.origin = new BABYLON.Vector3, Rocket.direction = new BABYLON.Vector3, Rocket.prototype.remove = function () {
-    munitionsManager.rocketPool.recycle(this), this.actor && this.actor.remove()
+    this.getMunitionsManager().rocketPool.recycle(this), this.actor && this.actor.remove()
 };
 Rocket.prototype.update = function (delta) {
     if (Rocket.origin.set(this.x, this.y, this.z), Rocket.direction.set(this.dx, this.dy, this.dz), !Collider.rayCollidesWithPlayer(Rocket.origin, Rocket.direction, this)) {
@@ -93,7 +118,7 @@ Rocket.prototype.update = function (delta) {
     }
 };
 Rocket.fire = function (player, pos, dir, weaponClass) {
-    munitionsManager.rocketPool.retrieve().fireThis(player, pos, dir, weaponClass)
+    this.getMunitionsManager().rocketPool.retrieve().fireThis(player, pos, dir, weaponClass)
 };
 Rocket.prototype.fireThis = function (player, pos, dir, weaponClass) {
     this.ttArmed = 0, this.radius = weaponClass.radius, this.player = player, this.x = pos.x, this.y = pos.y, this.z = pos.z, this.weaponClass = weaponClass;
@@ -130,11 +155,56 @@ Rocket.prototype.collidesWithPlayer = function (player) {
     this.ttArmed <= 0 ? (this.actor || (this.player, tv1.x, tv1.z), this.explode()) : (this.actor || (this.player, tv1.x, tv1.z), this.poof())
 };
 
+
+// [LS] Grenade CONSTRUCTOR
+export function Grenade(scene) {
+    this.scene = scene;
+    this.x = 0;
+    this.y = 0;
+    this.z = 0;
+    this.dx = 0;
+    this.dy = 0;
+    this.dz = 0;
+    this.ttl = 0;
+    this.active = false;
+    this.player = null;
+    if (isClient) {
+        this.actor = new GrenadeActor(this);
+    };
+};
+Grenade.v1 = new BABYLON.Vector3, Grenade.v2 = new BABYLON.Vector3, Grenade.v3 = new BABYLON.Vector3, Grenade.v4 = new BABYLON.Vector3, Grenade.matrix = new BABYLON.Matrix;
+Grenade.prototype.update = function (delta) {
+    if (this.ttl <= 0)
+        if (munitionsManager.grenadePool.recycle(this), this.actor) {
+            addExplosion(this.x, this.y, this.z, this.damage, this.radius);
+            var pos = new BABYLON.Vector3(this.x, this.y, this.z);
+            this.actor.explodeSound.setPosition(pos), this.actor.explodeSound.play(), this.actor.remove()
+        } else checkExplosionCollisions(this);
+    else {
+        var pdx = this.dx,
+            pdy = this.dy,
+            pdz = this.dz,
+            ndx = .5 * (this.dx + pdx) * delta,
+            ndy = .5 * (this.dy + pdy) * delta,
+            ndz = .5 * (this.dz + pdz) * delta;
+        this.collidesWithMap() || (this.x += ndx, this.y += ndy, this.z += ndz, this.dy -= .003 * delta), this.dx *= Math.pow(.98, delta), this.dz *= Math.pow(.98, delta), this.ttl -= delta, this.actor && this.actor.update()
+    }
+};
+Grenade.prototype.collidesWithMap = function () {
+    Grenade.v1.set(this.x, this.y - .07, this.z), Grenade.v2.set(this.dx, this.dy, this.dz), Grenade.v3.set(this.dx, this.dy, this.dz);
+    var res = Collider.rayCollidesWithMap(Grenade.v1, Grenade.v2, Collider.grenadeCollidesWithCell);
+    return !!res && (Grenade.v3.subtractInPlace(res.normal.scale(1.6 * res.dot)), this.dx = .98 * Grenade.v3.x, this.dy = Grenade.v3.y, this.dz = .98 * Grenade.v3.z, this.actor && this.actor.bounce(), res)
+};
+Grenade.prototype.throw = function (player, pos, vec) {
+    this.player = player, this.x = pos.x, this.y = pos.y, this.z = pos.z, this.dx = vec.x, this.dy = vec.y, this.dz = vec.z, this.ttl = 150, this.damage = 130, this.radius = 3, this.active = true, this.actor && this.actor.throw()
+};
+
 //(server-only-start)
 
 export default {
     Bullet,
-    Rocket
+    Rocket,
+    Grenade
 };
 
 //(server-only-end)

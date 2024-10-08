@@ -1,6 +1,7 @@
 //legacyshell: munitions manager
 import { Pool } from "#pool";
 import { isClient, isServer } from '#constants';
+import { Bullet, Rocket, Grenade } from "#bullets";
 //
 
 export class MunitionsManagerConstructor {

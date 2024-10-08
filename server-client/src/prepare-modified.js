@@ -51,7 +51,6 @@ function prepareModified(ss) {
             { pattern: /LEGACYSHELLCOLLIDER/g, file: "#collider" },
             { pattern: /LEGACYSHELLMATHEXTENSIONS/g, file: "#math" },
             { pattern: /LEGACYSHELLBULLETS/g, file: "#bullets" },
-            { pattern: /LEGACYSHELLGRENADE/g, file: "#grenade" },
             { pattern: /LEGACYSHELLGUNS/g, file: "#guns" },
             { pattern: /LEGACYSHELLLOADING/g, file: "#loading" },
             { pattern: /LEGACYSHELLSTRINGWIDTH/g, file: "#stringWidth" },
