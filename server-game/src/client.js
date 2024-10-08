@@ -1,7 +1,7 @@
 //legacyshell: client
 import ran from '#scrambled';
 import Comm from '#comm';
-import { ItemType, itemIdOffsets, FramesBetweenSyncs, stateBufferSize, TimeoutManagerConstructor, maxChatWidth } from '#constants';
+import { ItemType, itemIdOffsets, FramesBetweenSyncs, stateBufferSize, TimeoutManagerConstructor, maxChatWidth, IntervalManagerConstructor } from '#constants';
 import { fixStringWidth } from '#stringWidth';
 import Player from '#player';
 import CatalogConstructor from '#catalog';
@@ -20,6 +20,7 @@ class newClient {
     constructor(room, info) {
         //
         this.timeout = new TimeoutManagerConstructor();
+        this.interval = new IntervalManagerConstructor();
         this.clientReady = false;
         this.room = room;
         this.wsId = info.wsId;
@@ -159,6 +160,10 @@ class newClient {
                             this.sendToOthers(output, this.id, "chat: " + text);
                         };
                         break;
+                    case Comm.Code.reload: {
+                        this.player.reload();
+                        break;
+                    }
                     case Comm.Code.ping:
                         var output = new Comm.Out();
                         output.packInt8(Comm.Code.ping);
@@ -353,7 +358,7 @@ class newClient {
     };
 
     sendBuffer(output, debug) { // more direct operation, prefer this.room.sendToOne
-        // console.log(this.id, debug);
+        // console.log(this.id, output.idx, debug);
         this.sendMsgToWs(output.buffer);
     };
 

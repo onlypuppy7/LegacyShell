@@ -39,7 +39,6 @@
         "#collider": "./src/shell/collider.js",
         "#comm": "./src/shell/comm.js",
         "#constants": "./src/shell/constants.js",
-        "#grenade": "./src/shell/grenade.js",
         "#guns": "./src/shell/guns.js",
         "#itemManager": "./src/shell/itemManager.js",
         "#loading": "./src/shell/loading.js",

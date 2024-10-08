@@ -7,6 +7,8 @@ import createLoop from '#looper';
 import extendMath from '#math';
 import { setSSforLoader, loadMapMeshes, buildMapData } from '#loading';
 import { TickStep, stateBufferSize, FramesBetweenSyncs } from '#constants';
+import { MunitionsManagerConstructor } from '#munitionsManager';
+import { ItemManagerConstructor } from '#itemManager';
 //legacyshell: getting user data
 import wsrequest from '#wsrequest';
 import BABYLON from "babylonjs";
@@ -47,9 +49,15 @@ class newRoom {
         //scene init
         this.engine = new BABYLON.NullEngine();
         this.scene = new BABYLON.Scene(this.engine);
+        this.scene.room = this;
         this.map = null;
 
+        //collider init (kinda)
         this.Collider = new ColliderConstructor(this.scene);
+
+        //pools init
+        this.munitionsManager = new MunitionsManagerConstructor(this.scene);
+        this.itemManager = new ItemManagerConstructor();
 
         //map init
         setSSforLoader(ss, this.mapJson, this.Collider);
@@ -180,7 +188,8 @@ class newRoom {
     };
 
     disconnectClient(client) {
-        
+        client.timeout.clearAll();
+        client.interval.clearAll();
 
         delete this.clients[client.id];
         delete this.players[client.id];

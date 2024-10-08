@@ -24,7 +24,7 @@ Gun.prototype.update = function (delta) {
 Gun.prototype.collectAmmo = function () {
     return this.actor ? (this.ammo.store = Math.min(this.ammo.storeMax, this.ammo.store + this.ammo.pickup), true) : this.ammo.store < this.ammo.storeMax && (this.ammo.store = Math.min(this.ammo.storeMax, this.ammo.store + this.ammo.pickup), true)
 };
-Gun.prototype.fire = function () {
+Gun.prototype.fire = function (sendToAll) {
     if (this.actor) this.actor.fire();
     else { //if server, actually make the bullet and fire that shit
 
@@ -59,7 +59,8 @@ Gun.prototype.fire = function () {
         output.packFloat(dir.z);
         output.packInt8(Math.seed);
 
-        return output;
+        this.player.client.sendToAll(output, "fire");
+
         this.fireMunitions(pos, dir); //todo
     };
 };

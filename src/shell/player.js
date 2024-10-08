@@ -1,6 +1,7 @@
 //legacyshell: player
 import BABYLON from "babylonjs";
 import { stateBufferSize, isClient, isServer, CONTROL, devlog, ItemTypes } from '#constants';
+import Comm from '#comm';
 //
 
 //(server-only-start)
@@ -319,7 +320,7 @@ class Player {
                 this.id == meId && this.triggerPulled && this.fire()
             } else if (0 < this.shotsQueued) {
                 this.lastActivity = isClient ? now : Date.now();
-                // this.fire(); //TODO! firing...
+                this.fire(); //TODO! firing...
             };
             this.stateBuffer[this.stateIdx].x = this.x;
             this.stateBuffer[this.stateIdx].y = this.y;
@@ -569,8 +570,7 @@ class Player {
                     this.shotsQueued--
                 };
 
-                var output = this.weapon.fire();
-                if (isServer && output) this.client.sendToAll(output, "fire");
+                this.weapon.fire();
 
                 this.weapon.ammo.rounds--;
                 this.recoilCountdown = this.weapon.subClass.recoil;
@@ -613,7 +613,7 @@ class Player {
     releaseTrigger () {
         this.triggerPulled = false;
     };
-    reload () {
+    reload (sendToOthers) {
         if (this.actor && this.id != meId) {
             this.weapon.actor.reload();
         } else if (this.weapon.ammo.rounds != this.weapon.ammo.capacity && 0 != this.weapon.ammo.store && this.canSwapOrReload()) {
@@ -627,9 +627,10 @@ class Player {
                 wsSend(output, "reload");
                 this.weapon.ammo.store -= rounds;
             } else { //yay server code
-                (output = new Comm.Out(2, true)).packInt8(Comm.Code.reload);
+                output = new Comm.Out(2, true);
+                output.packInt8(Comm.Code.reload);
                 output.packInt8(this.id);
-                sendToOthers(output.buffer, this.id);
+                this.client.sendToOthers(output.buffer, this.id, "reload");
                 this.reloadsQueued--;
             };
             if (this.weapon.ammo.rounds == 0) {
@@ -697,7 +698,7 @@ class Player {
             output.packFloat(vec.x);
             output.packFloat(vec.y);
             output.packFloat(vec.z);
-            
+
             sendToAll(output.buffer);
             munitionsManager.throwGrenade(this, pos, vec);
         };

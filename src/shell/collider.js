@@ -55,6 +55,8 @@ class ColliderConstructor {
         this.v4 = new BABYLON.Vector3();
         this.ray = new BABYLON.Ray(BABYLON.Vector3.Zero(), BABYLON.Vector3.Zero(), 1);
         this.matrix = new BABYLON.Matrix();
+
+        this.setUp = 1;
     };
 
     setSS(ssP, mapP, mapMeshesP, playerLimitP, playersP) {
@@ -63,6 +65,8 @@ class ColliderConstructor {
         mapMeshes = mapMeshesP;
         playerLimit = playerLimitP;
         players = playersP;
+
+        this.setUp = 2;
     };
 
     pointCollidesWithMap(point, ignoreSoft) {
@@ -194,15 +198,15 @@ class ColliderConstructor {
             var cell = map.data[voxel.x][voxel.y][voxel.z];
         } catch (e) {
             console.log(voxel);
-        }
+        };
         if (!cell || !cell.mesh) return false;
         switch (cell.mesh.colliderType) {
             case "none":
             case "ladder":
                 return false;
-        }
+        };
         return cell;
-    }
+    };
 
     projectileCollidesWithCell(origin, direction, voxel) {
         var cell = this.getCellForRay(voxel);
@@ -232,7 +236,7 @@ class ColliderConstructor {
             }
         }
         return false;
-    }
+    };
 
     grenadeCollidesWithCell(origin, direction, voxel, ignoreSoft) {
         var cell = this.getCellForRay(voxel);

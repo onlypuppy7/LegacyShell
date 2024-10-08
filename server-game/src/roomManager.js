@@ -105,6 +105,25 @@ class newRoomManager {
         info.gameKey = 784;
         const worker = new Worker(new URL('./worker.js', import.meta.url));
 
+        info = {
+            ...info,
+        };
+
+        const createdRoom = {
+            ...info,
+            worker,
+            wsMap: new Map(),
+            wsIdx: 0,
+            closeAllWs: () => {
+                createdRoom.wsMap.forEach(ws => {
+                    try {
+                        ws.close();
+                        console.log("Mass closed WS connection to wsId:", ws.wsId);
+                    } catch (error) { }
+                });
+            },
+        };
+
         worker.on('message', (msg) => {
             try {
                 const [ msgType, content, wsId ] = msg;
@@ -127,7 +146,9 @@ class newRoomManager {
         });
 
         worker.on('error', (error) => {
+            createdRoom.closeAllWs();
             console.error('The game thread for', info.gameId, "errored out, now look at this:", error);
+            // this.removeRoom(info.gameId); //unnecessary, is removed on exit
         });
 
         worker.on('exit', (code) => {
@@ -140,18 +161,7 @@ class newRoomManager {
             items: ss.items,
         }]);
 
-        info = {
-            ...info,
-        };
-
         worker.postMessage(["createRoom", info]);
-
-        const createdRoom = {
-            ...info,
-            worker,
-            wsMap: new Map(),
-            wsIdx: 0,
-        };
 
         this.rooms.set(info.gameId, createdRoom);
         this.workers.set(info.gameId, worker);
@@ -172,6 +182,7 @@ class newRoomManager {
         ws.on('close', (content)=>{
             room.worker.postMessage(["wsClose", content, wsId]);
         });
+        ws.wsId = wsId;
 
         room.wsMap.set(wsId, ws);
 
@@ -180,7 +191,11 @@ class newRoomManager {
     };
 
     removeRoom(id) {
-        this.rooms.delete(id);
+        if (this.rooms.has(id)) {
+            this.rooms.delete(id);
+        } else {
+            return null; //doesnt exist
+        };
     };
 
     getRoom(id) {
