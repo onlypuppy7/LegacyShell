@@ -54,7 +54,7 @@ class newClient {
         
         var output = new Comm.Out(11); //if fixed for gameJoined, use 11
         this.packGameJoined(output);
-        this.sendBuffer(output, "packGameJoined"); 
+        this.sendBuffer(output, "packGameJoined"); //buffer cause not clientReady
 
         // ws.removeAllListeners('message');
         // ws.on('message', this.onmessage.bind(this));
