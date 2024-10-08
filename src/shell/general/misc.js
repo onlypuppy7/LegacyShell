@@ -20,7 +20,7 @@ const misc = {
             return 0;
         }
     },
-    instanciateSS: function (dirname, noStorage) {
+    instantiateSS: function (dirname, noStorage) {
         //storage
         if (!noStorage) fs.mkdirSync(path.join(dirname, 'store'), { recursive: true });
 

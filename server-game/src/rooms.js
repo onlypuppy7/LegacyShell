@@ -101,7 +101,7 @@ class newRoom {
         while (this.lastTimeStamp < currentTimeStamp) { //repeat until catching up :shrug:
             this.lastTimeStamp += TickStep;
     
-            // this.munitionsManager.updateLogic();
+            this.munitionsManager.update(1);
     
             //i dont understand their netcode wtf
             this.players.forEach(player => {
