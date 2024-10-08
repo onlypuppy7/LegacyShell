@@ -122,7 +122,7 @@ class newRoom {
         this.clients.forEach(client => {
             client.lastSeen = Date.now() - client.lastSeenTime;
             // console.log(client.id, client.lastSeen, client.clientReady);
-            if ((client.lastSeen > 5e3 && !client.clientReady) || (client.lastSeen > 5 * 60e3)) client.sendCloseToWs();
+            if ((client.lastSeen > 5e3 && !client.clientReady) || (client.lastSeen > 5 * 60e3)) client.sendCloseToWs(); // kick if idle for 5 mins or takes over 5 secs to join game
         });
     };
 
