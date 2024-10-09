@@ -49,17 +49,17 @@ function startServer() {
     
                         switch (msg.cmd) {
                             case Comm.Code.joinGame:
-                                msg.joinType = input.unPackInt8(); //this is private/public //Comm.Convert(input.unPackInt8())
-                                msg.gameType = input.unPackInt8(); //this is the gamemode //Comm.Convert(input.unPackInt8())
-                                msg.mapId = input.unPackInt8(); //selected map
-                                msg.gameId = input.unPackInt16(); //this is the ID of the room
-                                msg.gameKey = input.unPackInt16(); //who knows what this does.
-                                msg.classIdx = input.unPackInt8(); //selected weapon
-                                msg.primary_item_id = input.unPackInt8(); //primary weapon skin (only accept if signed in btw)
-                                msg.secondary_item_id = input.unPackInt8(); //secondary weapon skin (only accept if signed in)
-                                msg.colorIdx = input.unPackInt8(); //selected colour (0-6, 8-13 if vip)
-                                msg.hatId = input.unPackInt8(); //ignore if not logged in (+999)
-                                msg.stampId = input.unPackInt8(); //ignore if not logged in (+1999)
+                                msg.joinType = input.unPackInt8U(); //this is private/public //Comm.Convert(input.unPackInt8())
+                                msg.gameType = input.unPackInt8U(); //this is the gamemode //Comm.Convert(input.unPackInt8())
+                                msg.mapId = input.unPackInt8U(); //selected map
+                                msg.gameId = input.unPackInt16U(); //this is the ID of the room
+                                msg.gameKey = input.unPackInt16U(); //who knows what this does.
+                                msg.classIdx = input.unPackInt8U(); //selected weapon
+                                msg.primary_item_id = input.unPackInt8U(); //primary weapon skin (only accept if signed in btw)
+                                msg.secondary_item_id = input.unPackInt8U(); //secondary weapon skin (only accept if signed in)
+                                msg.colorIdx = input.unPackInt8U(); //selected colour (0-6, 8-13 if vip)
+                                msg.hatId = input.unPackInt8U(); //ignore if not logged in (+999)
+                                msg.stampId = input.unPackInt8U(); //ignore if not logged in (+1999)
                                 msg.nickname = input.unPackString(); //NOT the username!
                                 //additional stuff provided they are signed in
                                 msg.session = input.unPackString(); //technically this is all thats rlly needed tbh

@@ -169,7 +169,7 @@ class newRoom {
             info.userData = response.userData;
             info.sessionData = response.sessionData;
 
-            console.log(info.sessionData);
+            console.log(info.userData);
         };
 
         info.id = this.getUnusedPlayerId();

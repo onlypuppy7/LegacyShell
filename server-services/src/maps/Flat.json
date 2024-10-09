@@ -3108,7 +3108,7 @@
             "x": 12,
             "y": 0,
             "z": 18,
-            "ry": 2
+            "ry": 3
         }, {
             "x": 12,
             "y": 0,
@@ -5647,8 +5647,7 @@
         }, {
             "x": 22,
             "y": 0,
-            "z": 26,
-            "ry": 2
+            "z": 26
         }, {
             "x": 22,
             "y": 0,
@@ -6142,11 +6141,6 @@
         }, {
             "x": 24,
             "y": 0,
-            "z": 25,
-            "ry": 2
-        }, {
-            "x": 24,
-            "y": 0,
             "z": 26,
             "ry": 2
         }, {
@@ -6392,18 +6386,12 @@
         }, {
             "x": 25,
             "y": 0,
-            "z": 25,
-            "ry": 2
-        }, {
-            "x": 25,
-            "y": 0,
             "z": 26,
             "ry": 2
         }, {
             "x": 25,
             "y": 0,
-            "z": 27,
-            "ry": 2
+            "z": 27
         }, {
             "x": 25,
             "y": 0,
@@ -6652,8 +6640,7 @@
         }, {
             "x": 26,
             "y": 0,
-            "z": 27,
-            "ry": 2
+            "z": 27
         }, {
             "x": 26,
             "y": 0,
@@ -7122,23 +7109,19 @@
         }, {
             "x": 28,
             "y": 0,
-            "z": 21,
-            "ry": 2
+            "z": 21
         }, {
             "x": 28,
             "y": 0,
-            "z": 22,
-            "ry": 2
+            "z": 22
         }, {
             "x": 28,
             "y": 0,
-            "z": 23,
-            "ry": 2
+            "z": 23
         }, {
             "x": 28,
             "y": 0,
-            "z": 24,
-            "ry": 2
+            "z": 24
         }, {
             "x": 28,
             "y": 0,
@@ -12515,15 +12498,24 @@
             "z": 49,
             "ry": 2
         }],
-        "SPECIAL.spawn-blue.none": [{
-            "x": 21,
-            "y": 1,
-            "z": 31
+        "desert.sand-wall_01.full": [{
+            "x": 24,
+            "y": 0,
+            "z": 25
+        }, {
+            "x": 25,
+            "y": 0,
+            "z": 25
         }],
         "SPECIAL.spawn-red.none": [{
-            "x": 22,
+            "x": 24,
             "y": 1,
-            "z": 31
+            "z": 25
+        }],
+        "SPECIAL.spawn-blue.none": [{
+            "x": 25,
+            "y": 1,
+            "z": 25
         }]
     },
     "palette": ["SPECIAL.spawn-blue.none", "SPECIAL.spawn-red.none", "generic.metal-ladder.ladder", "generic.brown-block.full", "desert.sand-wall-trim-crnr.aabb", "generic.barricade.aabb", "desert.sand-wall_02.aabb", "desert.sand-wall_01.full", "nature.ground_01.full", "desert.sand-wall_01-rounded.obb"],

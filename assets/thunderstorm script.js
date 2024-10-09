@@ -23,21 +23,12 @@ rainParticleSystem.minEmitPower = 3; // How fast raindrops fall
 rainParticleSystem.maxEmitPower = 5;
 rainParticleSystem.updateSpeed = 0.01;
 
-// Stretch the particles along the Y-axis (to make the rain look elongated)
-rainParticleSystem.minScaleX = 0.25; // Minimum stretch factor on the Y-axis
-rainParticleSystem.maxScaleY = 0.5; // Minimum stretch factor on the Y-axis
-rainParticleSystem.minScaleY = 10; // Minimum stretch factor on the Y-axis
-rainParticleSystem.maxScaleY = 15; // Maximum stretch factor on the Y-axis
-
-// Optional: add some randomness to the rain direction to simulate wind
-rainParticleSystem.gravity = new BABYLON.Vector3(0, -30.81, 0); // Gravity for falling rain
-
-// Enable alpha blending for the rain particles to handle transparency
-// rainParticleSystem.blendMode = BABYLON.ParticleSystem.BLENDMODE_STANDARD; // Alpha blending mode
-
-// Ensure the particles are not affected by scene lighting
-// rainParticleSystem.isBillboardBased = true; // Makes particles always face the camera
-rainParticleSystem.isLocal = false; // Makes sure they are not affected by scene lighting
+rainParticleSystem.minScaleX = 0.25;
+rainParticleSystem.maxScaleY = 0.5; 
+rainParticleSystem.minScaleY = 10;
+rainParticleSystem.maxScaleY = 15;
+rainParticleSystem.gravity = new BABYLON.Vector3(0, -30.81, 0);
+rainParticleSystem.isLocal = false;
 
 // Disable lighting effects on the particles (makes brightness uniform)
 // rainParticleSystem.disableLighting = true; // Prevent particles from being affected by lights

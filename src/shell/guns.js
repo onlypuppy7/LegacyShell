@@ -155,7 +155,7 @@ CSG1.accuracySettleFactor = .94;
 CSG1.damage = 230;
 CSG1.totalDamage = 230;
 CSG1.range = 50;
-CSG1.velocity = .6;
+CSG1.velocity = 0.6;
 CSG1.prototype.fireMunitions = function (pos, dir) {
     Bullet.fire(this.player, pos, dir, CSG1)
 };
