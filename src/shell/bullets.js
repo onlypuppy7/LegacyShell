@@ -114,9 +114,9 @@ Bullet.prototype.collidesWithPlayer = function (player, point) {
         var dist = BABYLON.Vector3.Cross(tv1, tv2).length();
 
         var dot = -BABYLON.Vector3.Dot(tv1, tv2) * 0.9 + 0.1;
-        let damageMod = 1;
+        let damageMod = 2;
         // var damage = this.damage * Math.pow(dot, damageExp + Math.pow(dot, damageExp) * damageMod);
-        var damage = this.damage * Math.pow(dot, damageExp);
+        var damage = this.damage * Math.pow(dot, damageExp) * damageMod;
 
         // console.log("damage to playerId:", player.id, damage, "other", dot, damageExp, damageMod, this.damage);
         // console.log("tv", tv1, tv2, "point", point, "playerpos", player.x, player.y, player.z, "dist", dist, "other", BABYLON.Vector3.Dot(tv1, tv2));

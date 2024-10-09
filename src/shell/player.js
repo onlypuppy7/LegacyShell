@@ -280,8 +280,8 @@ class Player {
             if (this.weapon) {
                 this.weapon.update(delta)
             };
-            if (0 < this.hp) {
-                this.hp = Math.min(100, this.hp + .05 * delta);
+            if (0 < this.hp && this.playing) {
+                this.setHp(Math.min(100, this.hp + .05 * delta)); //regenning, you can put `* -2` or something here to simulate hunger, or something
             };
             if (0 < this.swapWeaponCountdown) {
                 this.shotSpread = this.weapon.subClass.shotSpreadIncrement;
@@ -341,7 +341,7 @@ class Player {
             };
         };    
     };
-    disableShield () {
+    disableShield () { //shield is NOT the powerup, it is the spawning in protection!
         this.shield = 0;
         if (this.actor) { // client/server differentiation stuff
             this.actor.bodyMesh.renderOverlay = false;
@@ -732,17 +732,10 @@ class Player {
         this.score = this.streak;
     };
     hit (damage, firedPlayer, dx, dz) {
-        if (damage > this.hp) {
+        if (damage > this.hp) { //no powerup so whatever
             this.die();
-
-            var output = new Comm.Out();
-            output.packInt8U(Comm.Code.die);
-            output.packInt8U(this.id);
-            output.packInt8U(firedPlayer.id);
-            output.packInt8U(5);
-            this.client.sendToAll(output, "die");
         } else {
-            this.hp -= damage;
+            this.setHp(this.hp - damage, firedPlayer.id);
 
             var output = new Comm.Out();
             output.packInt8U(Comm.Code.hitMe);
@@ -757,8 +750,8 @@ class Player {
             output.packInt8U(this.hp);
             this.client.sendToOthers(output, "hitThem");
         };
-    }
-    die () {
+    };
+    die (firedId) {
         this.score = 0;
         this.streak = 0;
         this.deaths++;
@@ -766,6 +759,20 @@ class Player {
         this.hp = 0;
         this.playing = false;
         this.removeFromPlay()
+
+        if (isServer) {
+            var output = new Comm.Out();
+            output.packInt8U(Comm.Code.die);
+            output.packInt8U(this.id);
+            output.packInt8U(firedId);
+            output.packInt8U(5);
+            this.client.sendToAll(output, "die");
+        };
+    };
+    setHp (newHp, firedId = this.id) {
+        this.hp = Math.clamp(newHp, 0, 100);
+
+        if (this.hp <= 0) this.die(firedId);
     };
     respawn (newPos) {
         this.x = newPos.x;
@@ -778,7 +785,7 @@ class Player {
         this.playing = true;
         if (this.hp <= 0) {
             this.hp = 100;
-            this.resetWeaponState();
+            this.resetWeaponState(true); //FYI: this is not original behaviour! originally ammo does not come back...
         } else {
             this.resetWeaponState(true);
         };
