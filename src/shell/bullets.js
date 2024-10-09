@@ -245,6 +245,7 @@ Rocket.prototype.fireThis = function (player, pos, dir, weaponClass) {
     res && (this.actor && this.end.copyFrom(res.pick.pickedPoint), this.range = BABYLON.Vector3.Distance(pos, res.pick.pickedPoint)), this.actor && this.actor.fire()
 };
 Rocket.prototype.explode = function () {
+    console.log()
     if (this.actor) {
         addExplosion(this.x, this.y, this.z, this.damage, this.radius);
         var pos = new BABYLON.Vector3(this.x, this.y, this.z);
