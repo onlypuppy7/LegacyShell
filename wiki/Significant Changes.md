@@ -1,5 +1,7 @@
 # Shell Changes (with archives/videos)
 
+## Gameplay
+between [16 Aug 2018 (0.14.0)](https://discord.com/channels/350339162177798154/350344229005819905/468518456422039589) and [17 Aug 2018 (~0.13.5)](https://discord.com/channels/350339162177798154/366644989650010113/468881448372273152) timed rounds were added, and quickly reverted
 ## Models
 between [16 Jul 2018 (0.13.5)](https://web.archive.org/web/20180716191908/https://shellshock.io/) and [10 Sep 2018 (0.14.32)](https://web.archive.org/web/20180910212010/https://shellshock.io/) shell changed the gun models from the classics to the legacy ones
 ## Animations
