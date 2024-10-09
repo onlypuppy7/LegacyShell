@@ -116,6 +116,7 @@ function prepareModified(ss) {
         htmlContent = htmlContent.replace(/LEGACYSHELLDISCORDSERVER/g, ss.config.client.discordServer);
         htmlContent = htmlContent.replace(/LEGACYSHELLGITHUB/g, ss.config.client.githubURL);
         htmlContent = htmlContent.replace(/LEGACYSHELLSYNCURL/g, ss.config.client.sync_server);
+        htmlContent = htmlContent.replace(/LEGACYSHELLCLIENTURL/g, ss.config.client.this_url);
         htmlContent = htmlContent.replace(/LEGACYSHELLCONFIG/g, ss.distributed_config.replace(/\n/g, '<br>'));
 
         fs.writeFileSync(destinationHtmlPath, htmlContent, 'utf8');
