@@ -167,6 +167,11 @@ class newClient {
                         var idx = input.unPackInt8();
                         this.player.swapWeapon(idx);
                         break;
+                    case Comm.Code.throwGrenade: 
+                        var grenadeThrowPower = input.unPackFloat();
+                        console.log("throwing a grenade", grenadeThrowPower);
+                        this.player.queueGrenade(grenadeThrowPower);
+                        break;
                     case Comm.Code.ping:
                         var output = new Comm.Out();
                         output.packInt8(Comm.Code.ping);

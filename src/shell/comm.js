@@ -315,14 +315,25 @@ const Comm = {
         * @constant {number}
         */
         sync: 6,
-        /** CLIENT: attempt to make me player jump
+        /** NOTE: this is depracated in LegacyShell, this information is instead in controlKeys in sync
+        * 
+        * CLIENT: attempt to make me player jump
         * 
         * SERVER: attempt to make another player jump
         * @constant {number}
         */
         jump: 7,
+        /** SERVER: tells the clients that someone died
+        * @constant {number}
+        */
         die: 8,
+        /** SERVER: tells the players who didnt get hit that it happened. idk why they need two functions.
+        * @constant {number}
+        */
         hitThem: 9,
+        /** SERVER: tells the player who got hit that it happened. idk why they need two functions.
+        * @constant {number}
+        */
         hitMe: 10,
         /** SERVER: tells the client they picked up an item
         * @constant {number}
@@ -362,8 +373,13 @@ const Comm = {
         * @constant {number}
         */
         requestRespawn: 19,
+        /** CLIENT: tells the players who didnt get hit that it happened. idk why they need two functions.
+        * @constant {number}
+        */
         throwGrenade: 20,
-        /** CLIENT: request search for a public room and join it 
+        /** CLIENT: sends a signal that a grenade was thrown, and its power
+        * 
+        * SERVER: reports that a player threw a grenade and its power, dir, etc
         * @constant {number}
         */
         joinPublicGame: 21,
