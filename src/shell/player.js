@@ -1,6 +1,7 @@
 //legacyshell: player
 import BABYLON from "babylonjs";
 import { stateBufferSize, isClient, isServer, CONTROL, devlog, ItemTypes } from '#constants';
+import { getMunitionsManager } from '#bullets';
 import Comm from '#comm';
 //
 
@@ -491,7 +492,7 @@ class Player {
                 output.packInt8(shellColor);
                 output.packInt8(catalog.get8BitItemId(hatItem, newClassIdx));
                 output.packInt8(catalog.get8BitItemId(stampItem, newClassIdx));
-                sendToOthers(output.buffer, this.id);
+                sendToOthers(output.buffer, this.id, "changeCharacter");
             };
     
             this.changeWeaponLoadout(primaryWeaponItem, secondaryWeaponItem)
@@ -663,7 +664,8 @@ class Player {
     throwGrenade () {
         if (0 < this.shield) this.disableShield();
         if (this.actor) {
-            (output = new Comm.Out(3)).packInt8(Comm.Code.throwGrenade);
+            var output = new Comm.Out(3);
+            output.packInt8(Comm.Code.throwGrenade);
             output.packFloat(Math.clamp(grenadeThrowPower, 0, 1));
             wsSend(output, "throwGrenade");
             me.grenadeCountdown = 80;
@@ -690,7 +692,9 @@ class Player {
             vec.x = Math.floor(300 * vec.x) / 300;
             vec.y = Math.floor(300 * vec.y) / 300;
             vec.z = Math.floor(300 * vec.z) / 300;
-            (output = new Comm.Out(14, true)).packInt8(Comm.Code.throwGrenade);
+
+            var output = new Comm.Out(14);
+            output.packInt8(Comm.Code.throwGrenade);
             output.packInt8(this.id);
             output.packFloat(pos.x);
             output.packFloat(pos.y);
@@ -699,8 +703,8 @@ class Player {
             output.packFloat(vec.y);
             output.packFloat(vec.z);
 
-            sendToAll(output.buffer);
-            munitionsManager.throwGrenade(this, pos, vec);
+            this.client.sendToAll(output, "throwGrenade");
+            getMunitionsManager(this).throwGrenade(this, pos, vec);
         };
     };
     resetDespawn (offset = 0) {

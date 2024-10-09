@@ -30,8 +30,11 @@ function checkExplosionCollisions (explosion) { //stolen from rtw 🥺
         });
 
         let maxRange = 3;
+        console.log("explosion0", nearestWall, delta.length(), maxRange);
         if (nearestWall <= 0 || nearestWall >= delta.length()) {
+            console.log("explosion1");
             if (delta.length() < maxRange) {
+                console.log("explosion2");
 
                 //bigger = falls off quicker
                 const scalingFactor = 0.7; //linear
@@ -41,7 +44,7 @@ function checkExplosionCollisions (explosion) { //stolen from rtw 🥺
 
                 let damage = explosion.damage * modifier * (1 / Math.pow(delta.length() * scalingFactor, exponent));
 
-                // console.log("explosion hits", damage);
+                console.log("explosion hits", damage);
                 player.hit(damage, explosion.player.id, explosion.x, explosion.y);
             };
         };
@@ -50,7 +53,7 @@ function checkExplosionCollisions (explosion) { //stolen from rtw 🥺
 //(server-only-end)
 
 
-function getMunitionsManager (player) {
+export function getMunitionsManager (player) {
     if (player && isServer) room = player.client.room;
     return (isServer && room) ? room.munitionsManager : munitionsManager;
 };
@@ -258,9 +261,9 @@ Rocket.prototype.poof = function () {
                 dy = .2 * Math.random() - .1,
                 dz = .2 * Math.random() - .1;
             addExplosionSprite(explosionSmokeManager, 10, pos.x, pos.y, pos.z, dx, dy, dz, .4, false)
-        }
-    }
-    this.remove()
+        };
+    };
+    this.remove();
 };
 Rocket.prototype.collidesWithMap = function (res) {
     this.x -= this.dx, this.y -= this.dy, this.z -= this.dz, this.ttArmed <= 0 ? this.explode() : this.poof()
@@ -290,27 +293,42 @@ export function Grenade(scene) {
         Collider = room.Collider;
     };
 };
-Grenade.v1 = new BABYLON.Vector3, Grenade.v2 = new BABYLON.Vector3, Grenade.v3 = new BABYLON.Vector3, Grenade.v4 = new BABYLON.Vector3, Grenade.matrix = new BABYLON.Matrix;
+Grenade.v1 = new BABYLON.Vector3;
+Grenade.v2 = new BABYLON.Vector3;
+Grenade.v3 = new BABYLON.Vector3;
+Grenade.v4 = new BABYLON.Vector3;
+Grenade.matrix = new BABYLON.Matrix;
 Grenade.prototype.update = function (delta) {
     if (this.ttl <= 0)
-        if (munitionsManager.grenadePool.recycle(this), this.actor) {
+        if (getMunitionsManager().grenadePool.recycle(this), this.actor) {
             addExplosion(this.x, this.y, this.z, this.damage, this.radius);
             var pos = new BABYLON.Vector3(this.x, this.y, this.z);
             this.actor.explodeSound.setPosition(pos), this.actor.explodeSound.play(), this.actor.remove()
         } else checkExplosionCollisions(this);
     else {
-        var pdx = this.dx,
-            pdy = this.dy,
-            pdz = this.dz,
-            ndx = .5 * (this.dx + pdx) * delta,
-            ndy = .5 * (this.dy + pdy) * delta,
-            ndz = .5 * (this.dz + pdz) * delta;
-        this.collidesWithMap() || (this.x += ndx, this.y += ndy, this.z += ndz, this.dy -= .003 * delta), this.dx *= Math.pow(.98, delta), this.dz *= Math.pow(.98, delta), this.ttl -= delta, this.actor && this.actor.update()
-    }
+        var pdx = this.dx;
+        var pdy = this.dy;
+        var pdz = this.dz;
+        var ndx = .5 * (this.dx + pdx) * delta;
+        var ndy = .5 * (this.dy + pdy) * delta;
+        var ndz = .5 * (this.dz + pdz) * delta;
+
+        if (!this.collidesWithMap()) {
+            this.x += ndx;
+            this.y += ndy;
+            this.z += ndz;
+            this.dy -= .003 * delta;
+        };
+
+        this.dx *= Math.pow(.98, delta);
+        this.dz *= Math.pow(.98, delta);
+        this.ttl -= delta;
+        this.actor && this.actor.update();
+    };
 };
 Grenade.prototype.collidesWithMap = function () {
     Grenade.v1.set(this.x, this.y - .07, this.z), Grenade.v2.set(this.dx, this.dy, this.dz), Grenade.v3.set(this.dx, this.dy, this.dz);
-    var res = Collider.rayCollidesWithMap(Grenade.v1, Grenade.v2, Collider.grenadeCollidesWithCell);
+    var res = Collider.rayCollidesWithMap(Grenade.v1, Grenade.v2, Collider.grenadeCollidesWithCell.bind(Collider));
     return !!res && (Grenade.v3.subtractInPlace(res.normal.scale(1.6 * res.dot)), this.dx = .98 * Grenade.v3.x, this.dy = Grenade.v3.y, this.dz = .98 * Grenade.v3.z, this.actor && this.actor.bounce(), res)
 };
 Grenade.prototype.throw = function (player, pos, vec) {
