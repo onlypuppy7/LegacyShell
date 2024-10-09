@@ -14,8 +14,7 @@ function checkExplosionCollisions (explosion) { //stolen from rtw 🥺
     players.forEach(player => {
 
         let origin = new BABYLON.Vector3(explosion.x, explosion.y, explosion.z);
-        let state = player.stateBuffer[player.stateIdx];
-        let dest = new BABYLON.Vector3(state.x, state.y + 0.5, state.z);
+        let dest = new BABYLON.Vector3(player.x, player.y + 0.5, player.z);
 
         let delta = dest.subtract(origin);
         let direction = (new BABYLON.Vector3(0, 0, 0)).copyFrom(delta);
@@ -29,8 +28,10 @@ function checkExplosionCollisions (explosion) { //stolen from rtw 🥺
             //if()
         });
 
-        let maxRange = 3;
+        let maxRange = 6;
         console.log("explosion0", nearestWall, delta.length(), maxRange);
+        // console.log(new BABYLON.Vector3(state.x, state.y, state.z), new BABYLON.Vector3(player.x, player.y, player.z));
+
         if (nearestWall <= 0 || nearestWall >= delta.length()) {
             console.log("explosion1");
             if (delta.length() < maxRange) {
@@ -245,7 +246,6 @@ Rocket.prototype.fireThis = function (player, pos, dir, weaponClass) {
     res && (this.actor && this.end.copyFrom(res.pick.pickedPoint), this.range = BABYLON.Vector3.Distance(pos, res.pick.pickedPoint)), this.actor && this.actor.fire()
 };
 Rocket.prototype.explode = function () {
-    console.log()
     if (this.actor) {
         addExplosion(this.x, this.y, this.z, this.damage, this.radius);
         var pos = new BABYLON.Vector3(this.x, this.y, this.z);
@@ -300,13 +300,14 @@ Grenade.v3 = new BABYLON.Vector3;
 Grenade.v4 = new BABYLON.Vector3;
 Grenade.matrix = new BABYLON.Matrix;
 Grenade.prototype.update = function (delta) {
-    if (this.ttl <= 0)
+    if (this.ttl <= 0) {
+        console.log(new BABYLON.Vector3(this.x, this.y, this.z));
         if (getMunitionsManager().grenadePool.recycle(this), this.actor) {
             addExplosion(this.x, this.y, this.z, this.damage, this.radius);
             var pos = new BABYLON.Vector3(this.x, this.y, this.z);
             this.actor.explodeSound.setPosition(pos), this.actor.explodeSound.play(), this.actor.remove()
         } else checkExplosionCollisions(this);
-    else {
+    } else {
         var pdx = this.dx;
         var pdy = this.dy;
         var pdz = this.dz;
