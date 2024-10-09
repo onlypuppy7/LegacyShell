@@ -11,6 +11,7 @@ var tv2 = new BABYLON.Vector3;
 
 function checkExplosionCollisions (explosion) { //stolen from rtw 🥺
     let players = room.players;
+    console.log(explosion.player.name);
     players.forEach(player => {
 
         let origin = new BABYLON.Vector3(explosion.x, explosion.y, explosion.z);
@@ -28,14 +29,14 @@ function checkExplosionCollisions (explosion) { //stolen from rtw 🥺
             //if()
         });
 
-        let maxRange = 6;
-        console.log("explosion0", nearestWall, delta.length(), maxRange);
+        let maxRange = 3;
+        // console.log("explosion0", nearestWall, delta.length(), maxRange);
         // console.log(new BABYLON.Vector3(state.x, state.y, state.z), new BABYLON.Vector3(player.x, player.y, player.z));
 
         if (nearestWall <= 0 || nearestWall >= delta.length()) {
-            console.log("explosion1");
+            // console.log("explosion1");
             if (delta.length() < maxRange) {
-                console.log("explosion2");
+                // console.log("explosion2");
 
                 //bigger = falls off quicker
                 const scalingFactor = 0.7; //linear
@@ -45,8 +46,10 @@ function checkExplosionCollisions (explosion) { //stolen from rtw 🥺
 
                 let damage = explosion.damage * modifier * (1 / Math.pow(delta.length() * scalingFactor, exponent));
 
-                console.log("explosion hits", damage);
-                player.hit(damage, explosion.player.id, explosion.x, explosion.y);
+                // console.log("explosion hits", damage);
+                // console.log("who was hit?", player.id, player.name);
+                // console.log("who fired it?", explosion.player.id, explosion.player.name);
+                player.hit(damage, explosion.player, explosion.x, explosion.y);
             };
         };
     });
