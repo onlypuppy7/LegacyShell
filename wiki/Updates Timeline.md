@@ -583,7 +583,7 @@ https://www.youtube.com/watch?v=5qnfb6mgf08
 
 ### No archives exist for August on the Wayback Machine 
 
-## [0.13.5](https://web.archive.org/web/20180716191908/https://shellshock.io/) | 21 June - 22 Aug 2018
+## [0.13.5](https://web.archive.org/web/20180716191908/https://shellshock.io/) | 21 June - 16 July
 
 > **What's New**
 > - New server architecture
@@ -600,57 +600,65 @@ https://www.youtube.com/watch?v=5qnfb6mgf08
 
 ~~https://www.youtube.com/watch?v=CpHrbveQX8s~~
 
-~~https://www.youtube.com/watch?v=-I_Aa8-yobk~~
-
 ~~https://www.youtube.com/watch?v=FUfSN0Mpe2U~~
 
-**https://www.youtube.com/watch?v=Zd2Nlcn4Cog**
-
-***https://www.youtube.com/watch?v=N69RM5axvJk***
-
 **https://www.youtube.com/watch?v=WKYqbwaiN3M**
-
-***https://www.youtube.com/watch?v=_k3xhw-ZY_w***
-
-**https://www.youtube.com/watch?v=pRYxc_SPWBs**
 
 **https://www.youtube.com/watch?v=RYZfUCDBtZc** (30 mins)
 
 ***https://www.youtube.com/watch?v=kh9pPsXlAo0*** (30 mins 1080p60)
 
-~~https://www.youtube.com/watch?v=o8FNqs5q5NU~~
-
 ~~https://www.youtube.com/watch?v=1zzsnoU2c-E~~
 
 ~~https://www.youtube.com/watch?v=OqvVVos-KPc~~
 
-***https://www.youtube.com/watch?v=v8VAufoIrt4***
-
 **https://www.youtube.com/watch?v=bn1rVLgsKGA**
 
-**https://www.youtube.com/watch?v=3G8JERid68Y**
-
 ***https://www.youtube.com/watch?v=swmsfVbhbDI***
-
-**https://www.youtube.com/watch?v=FGCnTUTGDJg**
 
 **https://www.youtube.com/watch?v=YRpFJ_DsiiY**
 
 **https://www.youtube.com/watch?v=awJbhuiY6sM**
 
-~~https://www.youtube.com/watch?v=ANGY5yAlJPM~~
-
 ~~https://www.youtube.com/watch?v=E_qt29uoeU0~~
 
 ~~https://www.youtube.com/watch?v=mnFbOBuobEI~~
 
-~~https://www.youtube.com/watch?v=NLRMJ6oA7QY~~
+## 0.14.0 | [16 July](https://discord.com/channels/350339162177798154/350344229005819905/468518456422039589) - [17 July 2018](https://discord.com/channels/350339162177798154/366644989650010113/468881448372273152)
 
-**https://www.youtube.com/watch?v=O8TmU5iq3Hk**
+### This update is significant as it's where timed rounds were added, and very quickly removed. No footage exists (but LegacyShell will try and restore this).
+
+## [0.13.5 (rollback)](https://web.archive.org/web/20180716191908/https://shellshock.io/) | 17 July - 22 Aug 2018
+
+~~https://www.youtube.com/watch?v=-I_Aa8-yobk~~
+
+***https://www.youtube.com/watch?v=_k3xhw-ZY_w***
+
+**https://www.youtube.com/watch?v=Zd2Nlcn4Cog**
+
+***https://www.youtube.com/watch?v=N69RM5axvJk***
+
+**https://www.youtube.com/watch?v=pRYxc_SPWBs**
+
+~~https://www.youtube.com/watch?v=o8FNqs5q5NU~~
+
+***https://www.youtube.com/watch?v=v8VAufoIrt4***
+
+**https://www.youtube.com/watch?v=3G8JERid68Y**
+
+**https://www.youtube.com/watch?v=FGCnTUTGDJg**
 
 **https://www.youtube.com/watch?v=O-03mlbT-dU**
 
 ~~https://www.youtube.com/watch?v=zoxwsLcIYNc~~
+
+**https://www.youtube.com/watch?v=r6NKqgQRevA**
+
+~~https://www.youtube.com/watch?v=ANGY5yAlJPM~~
+
+**https://www.youtube.com/watch?v=O8TmU5iq3Hk**
+
+~~https://www.youtube.com/watch?v=NLRMJ6oA7QY~~
 
 ## 0.14.2 | 26 Aug 2018
 
@@ -659,6 +667,8 @@ https://www.youtube.com/watch?v=5qnfb6mgf08
 ## 0.14.3 | 27 Aug 2018
 
 ***https://www.youtube.com/watch?v=Au3UnXUoVhs***
+
+https://www.youtube.com/watch?v=pATHiYbGYuo (version in title)
 
 ## [0.14.31](https://web.archive.org/web/20180830214113/https://shellshock.io/) | 30 Aug 2018
 
@@ -723,6 +733,8 @@ https://www.youtube.com/watch?v=5qnfb6mgf08
 
 ~~https://www.youtube.com/watch?v=JSqB1BRR1RM~~
 
+**https://www.youtube.com/watch?v=SwnXYQjWqG0**
+
 ## [0.14.5](https://web.archive.org/web/20181003012342/https://shellshock.io/) | 3 - 12 Oct 2018
 
 ## [0.14.6](https://web.archive.org/web/20181016210713/https://shellshock.io/) | 16 - 18 Oct 2018
@@ -730,6 +742,8 @@ https://www.youtube.com/watch?v=5qnfb6mgf08
 ## [0.14.7](https://web.archive.org/web/20181019183046/https://shellshock.io/) | 19 Oct - 1 Nov 2018
 
 ~~*https://www.youtube.com/watch?v=dqaNPqbhD7U*~~
+
+~~https://www.youtube.com/watch?v=c4ug5UplAgE~~
 
 ## [0.15.1](https://web.archive.org/web/20181101234641/https://shellshock.io/) | 1 - 6 Nov 2018
 
@@ -780,6 +794,8 @@ https://www.youtube.com/watch?v=5qnfb6mgf08
 ### On 26 Feb 2019, the [first proxy site eggcombat.com is released](https://x.com/eggcombat/status/1100157303393640449).
 
 **https://www.youtube.com/watch?v=8j6unft7iyw**
+
+~~https://www.youtube.com/watch?v=_jRzeSM3MEU~~
 
 ~~https://www.youtube.com/watch?v=PYZ-S2TR75s~~
 

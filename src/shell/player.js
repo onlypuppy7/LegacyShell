@@ -785,9 +785,9 @@ class Player {
         this.playing = true;
         if (this.hp <= 0) {
             this.hp = 100;
-            this.resetWeaponState(true); //FYI: this is not original behaviour! originally ammo does not come back...
+            this.resetWeaponState();
         } else {
-            this.resetWeaponState(true);
+            this.resetWeaponState(); //FYI: this is not original behaviour! originally ammo does not come back (so is true)...
         };
         this.resetStateBuffer();
         if (this.actor) {
