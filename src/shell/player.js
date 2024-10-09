@@ -739,8 +739,9 @@ class Player {
         damage = Math.ceil(damage);
 
         if (damage > this.hp) { //no powerup so whatever
-            this.die();
+            this.die(firedPlayer.id);
         } else {
+            // console.log("who REALLY fired?", firedPlayer.id, firedPlayer.name)
             this.setHp(this.hp - damage, firedPlayer.id);
 
             var output = new Comm.Out();
@@ -778,7 +779,7 @@ class Player {
     setHp (newHp, firedId = this.id) {
         this.hp = Math.clamp(newHp, 0, 100);
 
-        if (this.hp <= 0) this.die(firedId);
+        if (this.hp < 1) this.die(firedId);
     };
     respawn (newPos) {
         this.x = newPos.x;
