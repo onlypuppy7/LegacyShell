@@ -129,7 +129,11 @@ function askAuthServer(callback) {
     let ss = misc.instantiateSS(import.meta.dirname, undefined, true);
 
     // Initialize the database
-    const db = new sqlite3.Database(path.join(ss.rootDir, 'server-services', 'store', 'LegacyShellData.db'));
+    const servicesStoreFolder = path.join(ss.rootDir, 'server-services', 'store');
+
+    fs.mkdirSync(servicesStoreFolder, { recursive: true });
+
+    const db = new sqlite3.Database(path.join(servicesStoreFolder, 'LegacyShellData.db'));
     
     recs.initDB(db);
     
