@@ -1,0 +1,15 @@
+#this is what the other servers will ping this server for
+
+servicesURL: "wss://services.legacyshell.com:443"
+
+minify: true #this lags startup of the server by a few seconds, in theory though will reduce lag longer term for both clients and the server itself
+
+discordServer: F3Xh5bhXTr # do NOT put anything except the ending id/vanity as the rest is filled in!
+
+githubURL: "https://github.com/onlypuppy7/LegacyShell/"
+
+login: #require logins to view the site
+  enabled: false
+
+  username: "legacy"
+  password: "client"

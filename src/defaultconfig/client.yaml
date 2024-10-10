@@ -1,0 +1,11 @@
+# configurable client settings
+
+# looking for more settings?
+# you will find them in the distributed_config yaml.
+# they are sent from the services/sync server in order to maintain consistency across everything!
+
+port: 13370
+
+sync_server: "ws://localhost:13371" #this is basically the services server. but its not! this is what the client server will internally use to retrieve its configs and shit. in theory the sync server could put in a different services URL entirely! anyway, if the client and services servers are both running on the same machine, you can keep this as localhost.
+
+this_url: "legacyshell.com" #used in some find and replaces. input the url you want people to access your site via.

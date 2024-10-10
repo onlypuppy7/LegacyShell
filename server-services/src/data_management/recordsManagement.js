@@ -10,10 +10,10 @@ const exported = {
     setSS: function (newSS) {
         ss = newSS;
     },
-    initDB: () => {
-        ss.db.serialize(() => {
+    initDB: (db) => {
+        db.serialize(() => {
             //USERS
-            ss.db.run(`
+            db.run(`
                 CREATE TABLE IF NOT EXISTS users (
                     account_id INTEGER PRIMARY KEY AUTOINCREMENT,
                     username TEXT UNIQUE,
@@ -40,15 +40,15 @@ const exported = {
                 )
             `);
         
-            ss.db.run(`
+            db.run(`
                 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
             `);
         
-            ss.db.run(`
+            db.run(`
                 CREATE INDEX IF NOT EXISTS idx_users_authToken ON users(authToken);
             `);
             
-            ss.db.run(`
+            db.run(`
                 CREATE TRIGGER IF NOT EXISTS update_dateModified
                 AFTER UPDATE ON users
                 FOR EACH ROW
@@ -58,7 +58,7 @@ const exported = {
             `);
         
             //RATELIMITING
-            ss.db.run(`
+            db.run(`
                 CREATE TABLE IF NOT EXISTS ip_requests (
                     ip TEXT PRIMARY KEY,
                     sensitive_count INTEGER DEFAULT 0,
@@ -69,7 +69,7 @@ const exported = {
             `);
         
             //SESSIONS
-            ss.db.run(`
+            db.run(`
             CREATE TABLE IF NOT EXISTS sessions (
                 session_id TEXT PRIMARY KEY,
                 user_id INTEGER UNIQUE,
@@ -80,7 +80,7 @@ const exported = {
             `);
         
             //ITEMS
-            ss.db.run(`
+            db.run(`
             CREATE TABLE IF NOT EXISTS items (
                 id INTEGER PRIMARY KEY,
                 name TEXT DEFAULT 'Unknown item',
@@ -96,7 +96,7 @@ const exported = {
             )
             `);
             
-            ss.db.run(`
+            db.run(`
                 CREATE TRIGGER IF NOT EXISTS update_dateModified_items
                 AFTER UPDATE ON items
                 FOR EACH ROW
@@ -108,7 +108,7 @@ const exported = {
             //ITEMS (i removed some chars from ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 for ease of reading such as 0/O, 1/I)
             //i know this looks horrible, and it is. but it has to be done so that you can just insert stuff in a sql editor. please just accept this and move on w ur life.
             //remember to change the '31' value if you change the character set.
-            ss.db.run(`
+            db.run(`
             CREATE TABLE IF NOT EXISTS codes (
                 key TEXT PRIMARY KEY DEFAULT (substr('ABCDEFGHJKMNPQRSTUVWXYZ23456789', abs(random()) % 31 + 1, 1) ||
                                            substr('ABCDEFGHJKMNPQRSTUVWXYZ23456789', abs(random()) % 31 + 1, 1) ||
@@ -131,7 +131,7 @@ const exported = {
             )
             `);
             
-            ss.db.run(`
+            db.run(`
                 CREATE TRIGGER IF NOT EXISTS update_dateModified_codes
                 AFTER UPDATE ON codes
                 FOR EACH ROW
@@ -141,7 +141,7 @@ const exported = {
             `);
         
             //WIP! MAPS
-            ss.db.run(`
+            db.run(`
             CREATE TABLE IF NOT EXISTS maps (
                 name TEXT PRIMARY KEY DEFAULT 'Unknown map',
                 sun TEXT DEFAULT '{"direction":{"x":0.2,"y":1,"z":-0.3},"color":"#FFFFFF"}',
@@ -165,7 +165,7 @@ const exported = {
             )
             `);
             
-            ss.db.run(`
+            db.run(`
                 CREATE TRIGGER IF NOT EXISTS update_dateModified_maps
                 AFTER UPDATE ON maps
                 FOR EACH ROW
@@ -178,17 +178,17 @@ const exported = {
             //allows a server to make certain sensitive operations, such as adding eggs, retrieving user stats.
             //providing one of these auth keys also bypasses ratelimiting
             //also the cancer massive substring thing of doom yeah bitch im NOT sorry
-            ss.db.run(`
+            db.run(`
             CREATE TABLE IF NOT EXISTS game_servers (
                 auth_key TEXT PRIMARY KEY DEFAULT (substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1)),
                 name TEXT DEFAULT 'Unnamed server',
-                address TEXT DEFAULT 'Unnamed server',
+                address TEXT DEFAULT 'localhost:13372',
                 dateCreated INTEGER DEFAULT (strftime('%s', 'now')),
                 dateModified INTEGER DEFAULT (strftime('%s', 'now'))
             )
             `);
             
-            ss.db.run(`
+            db.run(`
                 CREATE TRIGGER IF NOT EXISTS update_dateModified_game_servers
                 AFTER UPDATE ON game_servers
                 FOR EACH ROW

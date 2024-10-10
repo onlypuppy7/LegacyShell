@@ -1,0 +1,30 @@
+# services/sync server settings
+
+# looking for the distributed config? its now a separate file.
+
+port: 13371
+
+feedback: false # a discord webhook for all feedback to be sent. leave to "false" to disable feedback
+
+protect_usernames: false #makes the errors less revealing of which usernames exist. but this is pointless, as you can just send a register request. if the user doesnt exist, then there is no way you can sign up with it anyway. this is just out of spite, tbh.
+
+password_cost_factor: 10 #higher is more secure, but will require more processing power - run "npm run bcrypt" to determine the recommended cost
+
+session_expiry_time: 180 #how long, in minutes, sessions should exist for
+session_cleanup_interval: 3 #how often, in minutes, sessions should be purged (should NOT be higher than expiry time! you will make some strange stuff happen, i can only imagine! dont!)
+
+ratelimit: #limit spammy requests
+  regular:
+    max_count: 10
+    reset_interval: 60 #in seconds
+    
+  sensitive:
+    max_count: 5
+    reset_interval: 300 #in seconds
+    cmds:
+      - "validateLogin"
+      - "validateLoginViaAuthToken"
+      - "validateRegister"
+      - "feedback"
+
+  protect_ips: true #md5 hashes ips. this is not a very strong algorithm, so still be careful about sharing info

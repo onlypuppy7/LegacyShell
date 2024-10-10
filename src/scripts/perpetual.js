@@ -29,7 +29,7 @@ let ss = misc.instantiateSS(import.meta.dirname, true);
 
 let server_type = process.argv[2].replace("--","");
 
-let passed = ss.config.perpetual[server_type];
+let passed = ss.config.perpetual_all[server_type];
 
 const options = {
     //process
