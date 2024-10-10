@@ -211,7 +211,7 @@ if (!ss.config.closed) initTables().then(() => {
                         ss.config.verbose && console.log("game_servers", game_servers.maxDateModified, msg.lastServers);
 
                         let response = {
-                            ...ss.config.services.distributed_client,
+                            ...ss.config.distributed_client,
                             nugget_interval: ss.config.services.nugget_interval,
                             servicesMeta: {
                                 versionEnum: ss.versionEnum,
@@ -219,7 +219,7 @@ if (!ss.config.closed) initTables().then(() => {
                             }
                         };
 
-                        console.log(await recs.getAllGameServerData());
+                        console.log(ss.config.distributed_client);
 
                         if (msg.lastItems !== undefined)    response.items  = items.maxDateModified         > msg.lastItems     ? await recs.getAllItemData()            : false;
                         if (msg.lastMaps !== undefined)     response.maps   = maps.maxDateModified          > msg.lastMaps      ? await recs.getAllMapData()             : false;
