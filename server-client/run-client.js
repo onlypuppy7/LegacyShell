@@ -32,9 +32,17 @@ function startServer() {
     const app = express();
     const port = ss.config.client.port || 13370;
 
-    app.use(express.static(path.join(ss.currentDir, 'store', 'client-modified'))); // server-client\store\client-modified
-    app.use(express.static(path.join(ss.rootDir, 'src', 'shared-static'))); // src\shared-static
-    app.use(express.static(path.join(ss.currentDir, 'src', 'client-static'))); // server-client\src\client-static
+    if (!ss.config.closed) {
+        app.use(express.static(path.join(ss.currentDir, 'store', 'client-modified'))); // server-client\store\client-modified
+        app.use(express.static(path.join(ss.rootDir, 'src', 'shared-static'))); // src\shared-static
+        app.use(express.static(path.join(ss.currentDir, 'src', 'client-static'))); // server-client\src\client-static
+    } else {
+        app.use(express.static(path.join(ss.currentDir, 'src', 'client-closed'))); // server-client\src\client-static
+    };
+
+    app.get('/discord', (req, res) => {
+        res.redirect('https://discord.gg/' + ss.config.client.discordServer);
+    });
 
     app.listen(port, () => {
         ss.log.success(`Server is running on http://localhost:${port}`);

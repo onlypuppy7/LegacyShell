@@ -80,3 +80,4 @@ perpetual:
     webhook_ping_role: "" #ENTER THE ROLE ID. for when there is an error. empty = no ping.
 
 verbose: false # loads of more logs?
+closed: false
