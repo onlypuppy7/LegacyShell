@@ -124,7 +124,7 @@ const initTables = async () => {
     };
 };
 
-initTables().then(() => {
+if (!ss.config.closed) initTables().then(() => {
     sess.cleanupExpiredSessions();
 
     const port = ss.config.services.port || 13371;

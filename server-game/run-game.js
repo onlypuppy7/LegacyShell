@@ -165,8 +165,8 @@ async function connectWebSocket(retryCount = 0) {
                         break;
                 };
             };
-
-            startServer();
+            
+            if (!ss.config.closed) startServer();
         } else {
             if (!retrieved) {
                 ss.log.yellow('Config retrieval failed. Retrying in 30 seconds...');
