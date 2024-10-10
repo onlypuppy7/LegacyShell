@@ -12,4 +12,4 @@ login: #require logins to view the site
   enabled: false
 
   username: "legacy"
-  password: "client"
+  password: "shell"

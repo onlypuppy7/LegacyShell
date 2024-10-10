@@ -32,6 +32,10 @@ function startServer() {
     const app = express();
     const port = ss.config.client.port || 13370;
 
+    if (ss.config.client.login.enabled) {
+        app.use(checkPassword);
+    };
+
     if (!ss.config.closed) {
         app.use(express.static(path.join(ss.currentDir, 'store', 'client-modified'))); // server-client\store\client-modified
         app.use(express.static(path.join(ss.rootDir, 'src', 'shared-static'))); // src\shared-static
@@ -47,6 +51,24 @@ function startServer() {
     app.listen(port, () => {
         ss.log.success(`Server is running on http://localhost:${port}`);
     });
+};
+
+const checkPassword = (req, res, next) => {
+    try {
+        const auth = { login: ss.config.client.login.username, password: ss.config.client.login.password };
+    
+        const b64auth = (req.headers.authorization || '').split(' ')[1] || '';
+        const [login, password] = Buffer.from(b64auth, 'base64').toString().split(':');
+    
+        // console.log(login, password, auth.login, auth.password);
+
+        if (login && password && login === auth.login && password === auth.password) {
+            return next();
+        };
+    
+        res.set('WWW-Authenticate', 'Basic realm="Protected Area"');
+        res.status(401).send('Authentication required.');
+    } catch (error) { console.error(error) };
 };
 
 //all this is retrieving the config:
@@ -95,6 +117,9 @@ async function connectWebSocket(retryCount = 0) {
             // console.log(ss.items);
     
             ss.config.client = { ...ss.config.client, ...configInfo };
+
+            // delete configInfo.login;
+
             ss.distributed_config = yaml.dump(configInfo, { indent: 4 }); //this is for later usage displaying for all to see
     
             ss.config.verbose && ss.log.info(`\n${ss.distributed_config}`);
