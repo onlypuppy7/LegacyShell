@@ -1,0 +1,53 @@
+# config for how you want the files to continually run. setup for error notifications on discord!
+# the options are the same for all, but you can configure each differently.
+
+client:
+  process_cmd: "server-client/run-client.js" #dont touch unless u changed the path
+
+  #daily restarts, at specified time every day
+  dailyrestart_enable: true
+  dailyrestart_time: "4:00" # HH:MM (24 hours)
+
+  #logfiles
+  logfile_enable: true
+
+  #webhook logging
+  webhook_url: "" #empty disables it
+  webhook_username: "LegacyShell: Client Server"
+  webhook_avatar: "https://cdn.onlypuppy7.online/legacyshell/client.png"
+  webhook_ping_user: "" #ENTER THE USER ID. for when there is an error. empty = no ping.
+  webhook_ping_role: "" #ENTER THE ROLE ID. for when there is an error. empty = no ping.
+
+services:
+  process_cmd: "server-services/run-services.js" #dont touch unless u changed the path
+
+  #daily restarts, at specified time every day
+  dailyrestart_enable: true
+  dailyrestart_time: "4:00" # HH:MM (24 hours)
+
+  #logfiles
+  logfile_enable: true
+
+  #webhook logging
+  webhook_url: "" #empty disables it
+  webhook_username: "LegacyShell: Services Server"
+  webhook_avatar: "https://cdn.onlypuppy7.online/legacyshell/services.png"
+  webhook_ping_user: "" #ENTER THE USER ID. for when there is an error. empty = no ping.
+  webhook_ping_role: "" #ENTER THE ROLE ID. for when there is an error. empty = no ping.
+
+game:
+  process_cmd: "server-game/run-game.js" #dont touch unless u changed the path
+
+  #daily restarts, at specified time every day
+  dailyrestart_enable: true
+  dailyrestart_time: "4:00" # HH:MM (24 hours)
+
+  #logfiles
+  logfile_enable: true
+
+  #webhook logging
+  webhook_url: "" #empty disables it
+  webhook_username: "LegacyShell: Game Server"
+  webhook_avatar: "https://cdn.onlypuppy7.online/legacyshell/game.png"
+  webhook_ping_user: "" #ENTER THE USER ID. for when there is an error. empty = no ping.
+  webhook_ping_role: "" #ENTER THE ROLE ID. for when there is an error. empty = no ping.

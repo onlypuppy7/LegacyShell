@@ -1,0 +1,7 @@
+# configurable client settings
+
+port: 13372
+
+services_server: "ws://localhost:13371"
+
+auth_key: "AUTH_KEY" #this is given by the owner of the services server, and can be revoked.

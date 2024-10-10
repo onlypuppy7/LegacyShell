@@ -17,10 +17,10 @@ import sess from '#sessionManagement';
 import recs from '#recordsManagement';
 //
 
-//init db (ooooh! sql! fancy! a REAL database! not a slow json!)
-const db = new sqlite3.Database('./server-services/store/LegacyShellData.db');
-
 let ss = misc.instantiateSS(import.meta.dirname);
+
+//init db (ooooh! sql! fancy! a REAL database! not a slow json!)
+const db = new sqlite3.Database(path.join(ss.rootDir, 'server-services', 'store', 'LegacyShellData.db'));
 
 ss = {
     ...ss,
@@ -41,9 +41,9 @@ sess.setSS(ss);
 recs.setSS(ss);
 extendMath(Math);
 
-recs.initDB();
+recs.initDB(ss.db);
 
-ss.log.green('account DB set up! (if it didnt exist already i suppose)');
+ss.log.green('Account DB set up! (if it didnt exist already i suppose)');
 
 //account stuff
 
@@ -211,7 +211,7 @@ if (!ss.config.closed) initTables().then(() => {
                         ss.config.verbose && console.log("game_servers", game_servers.maxDateModified, msg.lastServers);
 
                         let response = {
-                            ...ss.config.services.distributed_configs.client,
+                            ...ss.config.services.distributed_client,
                             nugget_interval: ss.config.services.nugget_interval,
                             servicesMeta: {
                                 versionEnum: ss.versionEnum,

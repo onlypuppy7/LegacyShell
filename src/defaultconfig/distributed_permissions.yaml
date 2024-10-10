@@ -1,0 +1,29 @@
+# used by both the client/game to determine whether users have permissions to do things
+
+ranks:
+  0: "Guest" # do not modify
+  1: "Signed In" # do not modify
+
+  5: "Content Creator"
+
+  # add extra ranks here
+
+  10: "Moderator" # do not modify
+
+  # add extra ranks here
+
+  20: "Admin" # do not modify
+
+  # add extra ranks here
+
+  255: "Superuser" # do not modify
+
+
+permissions: # user must have permissions above or equal to the set values.
+  rooms:
+    joinPublicGame: 0
+    joinPrivateGame: 0
+    createPrivateGame: 0
+
+  cmds:
+    announce: 20
