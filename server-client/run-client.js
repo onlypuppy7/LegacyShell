@@ -20,23 +20,23 @@ ss = {
 };
 
 function startServer() {
-    retrieved = true;
-    try {
-        ss.log.blue('Generating modified files (eg minifying shellshock.min.js)...');
-        prepareModified(ss);
-    } catch (error) {
-        console.error('Modification failed:', error);
-        process.exit(1);
-    };
-
-    const app = express();
-    const port = ss.config.client.port || 13370;
-
-    if (ss.config.client.login.enabled) {
-        app.use(checkPassword);
-    };
-
     if (!ss.config.closed) {
+        retrieved = true;
+        try {
+            ss.log.blue('Generating modified files (eg minifying shellshock.min.js)...');
+            prepareModified(ss);
+        } catch (error) {
+            console.error('Modification failed:', error);
+            process.exit(1);
+        };
+    
+        const app = express();
+        const port = ss.config.client.port || 13370;
+    
+        if (ss.config.client.login.enabled) {
+            app.use(checkPassword);
+        };
+
         app.use(express.static(path.join(ss.currentDir, 'store', 'client-modified'))); // server-client\store\client-modified
         app.use(express.static(path.join(ss.rootDir, 'src', 'shared-static'))); // src\shared-static
         app.use(express.static(path.join(ss.currentDir, 'src', 'client-static'))); // server-client\src\client-static
@@ -144,4 +144,4 @@ async function connectWebSocket(retryCount = 0) {
     };
 };
 
-connectWebSocket();
+ss.config.closed ? connectWebSocket() : startServer();

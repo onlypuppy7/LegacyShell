@@ -51,8 +51,6 @@ const misc = {
                 const filePath = path.join(configFolderPath, file);
 
                 const name = file.replace(".yaml", "");
-
-                console.log(name, filePath)
     
                 try {
                     const data = fs.readFileSync(filePath, 'utf8');
