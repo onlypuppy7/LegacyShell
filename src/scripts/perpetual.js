@@ -27,7 +27,7 @@ import readline from 'readline';
 
 console.log(import.meta, import.meta.dirname);
 
-let ss = misc.instantiateSS(import.meta.dirname, true);
+let ss = misc.instantiateSS(import.meta, true);
 
 let server_type = process.argv[2].replace("--","");
 

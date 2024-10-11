@@ -17,7 +17,7 @@ import sess from '#sessionManagement';
 import recs from '#recordsManagement';
 //
 
-let ss = misc.instantiateSS(import.meta.dirname);
+let ss = misc.instantiateSS(import.meta);
 
 //init db (ooooh! sql! fancy! a REAL database! not a slow json!)
 const db = new sqlite3.Database(path.join(ss.rootDir, 'server-services', 'store', 'LegacyShellData.db'));

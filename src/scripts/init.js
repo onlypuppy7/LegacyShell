@@ -126,7 +126,7 @@ function askDevLogging(callback) {
 };
 
 function askAuthServer(callback) {
-    let ss = misc.instantiateSS(import.meta.dirname, undefined, true);
+    let ss = misc.instantiateSS(import.meta, undefined, true);
 
     // Initialize the database
     const servicesStoreFolder = path.join(ss.rootDir, 'server-services', 'store');
