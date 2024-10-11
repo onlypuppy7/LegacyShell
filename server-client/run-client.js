@@ -20,37 +20,47 @@ ss = {
 };
 
 function startServer() {
-    if (!ss.config.closed) {
-        retrieved = true;
-        try {
-            ss.log.blue('Generating modified files (eg minifying shellshock.min.js)...');
-            prepareModified(ss);
-        } catch (error) {
-            console.error('Modification failed:', error);
-            process.exit(1);
-        };
-    
+    try {
         const app = express();
         const port = ss.config.client.port || 13370;
-    
-        if (ss.config.client.login.enabled) {
-            app.use(checkPassword);
+        
+        if (!ss.config.closed) {
+            retrieved = true;
+            try {
+                ss.log.blue('Generating modified files (eg minifying shellshock.min.js)...');
+                prepareModified(ss);
+            } catch (error) {
+                console.error('Modification failed:', error);
+                process.exit(1);
+            };
+        
+            try {
+            
+                if (ss.config.client.login.enabled) {
+                    app.use(checkPassword);
+                };
+        
+                app.use(express.static(path.join(ss.currentDir, 'store', 'client-modified'))); // server-client\store\client-modified
+                app.use(express.static(path.join(ss.rootDir, 'src', 'shared-static'))); // src\shared-static
+                app.use(express.static(path.join(ss.currentDir, 'src', 'client-static'))); // server-client\src\client-static
+            } catch (error) {
+                console.log("Starting client server failed:", error);
+                // process.exit(1);
+            }
+        } else {
+            app.use(express.static(path.join(ss.currentDir, 'src', 'client-closed'))); // server-client\src\client-static
         };
-
-        app.use(express.static(path.join(ss.currentDir, 'store', 'client-modified'))); // server-client\store\client-modified
-        app.use(express.static(path.join(ss.rootDir, 'src', 'shared-static'))); // src\shared-static
-        app.use(express.static(path.join(ss.currentDir, 'src', 'client-static'))); // server-client\src\client-static
-    } else {
-        app.use(express.static(path.join(ss.currentDir, 'src', 'client-closed'))); // server-client\src\client-static
+    
+        app.get('/discord', (req, res) => {
+            res.redirect('https://discord.gg/' + ss.config.client.discordServer);
+        });
+    
+        app.listen(port, () => {
+            ss.log.success(`Server is running on http://localhost:${port}`);
+        });
+    } catch (error) {
+        console.log(error);
     };
-
-    app.get('/discord', (req, res) => {
-        res.redirect('https://discord.gg/' + ss.config.client.discordServer);
-    });
-
-    app.listen(port, () => {
-        ss.log.success(`Server is running on http://localhost:${port}`);
-    });
 };
 
 const checkPassword = (req, res, next) => {
@@ -144,4 +154,8 @@ async function connectWebSocket(retryCount = 0) {
     };
 };
 
-connectWebSocket();
+try {
+    connectWebSocket();
+} catch (error) {
+    console.error(error);
+};
