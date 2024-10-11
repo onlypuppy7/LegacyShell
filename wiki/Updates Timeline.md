@@ -9,7 +9,7 @@
   - **bold = shows ui**
   - *italics = streamed*
   - ~~striked = version unconfirmed~~ this means that I don't know for sure, and just the date matches up.
-- - late upload indicates that the version shown in the video doesn't match up with the upload date
+  - late upload indicates that the version shown in the video doesn't match up with the upload date
 
 > **FYI: Dates are NOT accurate to the exact time of release (unless they are linked, in which case the link goes to evidence), but are general guides of timescale.**
 
@@ -49,6 +49,8 @@
 
 ## ??? | 10 Sept 2017
 
+### Egg death animation is noticeably different
+
 ~~https://www.youtube.com/watch?v=4XhxtmXu2Gc~~
 
 ## 0.1.2 | 11 Sept 2017
@@ -58,7 +60,7 @@
 
 **https://www.youtube.com/watch?v=7BgNrDCUy_o**
 
-## ??? | 14 Sept 2017
+## 0.1.? | 14 Sept 2017
 
 ~~https://www.youtube.com/watch?v=Fl5v2SwZPy0~~
 
@@ -73,8 +75,6 @@
 
 **https://www.youtube.com/watch?v=jWOLQNVGu3I** (spanish, 1080p, 1 min, bgm)
 
-~~https://www.youtube.com/watch?v=crw7PW-ZaMQ~~ (spanish, 1080p, 16 minutes)
-
 **~~https://www.youtube.com/watch?v=xgbEjZijSfQ~~**
 
 ## 0.4.0 | 22 Sept 2017
@@ -88,6 +88,14 @@
 > - Fixed a very rare server crash
 
 **https://www.youtube.com/watch?v=J6BHzEU7C6s**
+
+### Classic yolk death posted on [Twitter (23 Sept 2017)](https://x.com/FunFetched/status/911407656614600704)
+
+## 0.4.? | 25 Sept 2017
+
+### First video instance of the classic yolk death
+
+~~https://www.youtube.com/watch?v=crw7PW-ZaMQ~~ (spanish, 1080p, 16 minutes)
 
 ## 0.4.2 | 27 Sept 2017
 

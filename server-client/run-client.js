@@ -129,7 +129,7 @@ async function connectWebSocket(retryCount = 0) {
     
             ss.config.client = { ...ss.config.client, ...configInfo };
 
-            // delete configInfo.login;
+            delete configInfo.login;
 
             ss.distributed_config = yaml.dump(configInfo, { indent: 4 }); //this is for later usage displaying for all to see
     

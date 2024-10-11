@@ -5,6 +5,10 @@ between [16 Aug 2018 (0.14.0)](https://discord.com/channels/350339162177798154/3
 ## Models
 between [16 Jul 2018 (0.13.5)](https://web.archive.org/web/20180716191908/https://shellshock.io/) and [10 Sep 2018 (0.14.32)](https://web.archive.org/web/20180910212010/https://shellshock.io/) shell changed the gun models from the classics to the legacy ones
 ## Animations
+### Death
+between [7 Sept 2017 (0.1.0)](https://www.youtube.com/watch?v=FecNvQjEE6U) and [10 Sept 2017 (0.1.1?)](https://www.youtube.com/watch?v=4XhxtmXu2Gc) the egg cracking animation changed such that the eggshell pieces dont fall through the floor
+between [23 Sept 2017 (0.4.?)](https://x.com/FunFetched/status/911407656614600704) and [25 Sept 2017 (0.4.?)](https://www.youtube.com/watch?v=crw7PW-ZaMQ) the classic yolk death animation was added.
+
 between [16 Nov 2018 (0.15.2)](https://www.youtube.com/watch?v=rSxWLVd9oyQ) and [14 Dec 2018 (0.15.4d)](https://www.youtube.com/watch?v=V81d1W-y9PM) egg death anim changed
 ## UI
 ### Overhauls
