@@ -5,6 +5,9 @@ import path from 'node:path';
 //legacyshell: config reqs
 import log from '#coloured-logging';
 import WebSocket, { WebSocketServer } from 'ws';
+//legacyshell: dirname resolving
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 //
 
 let ss; //trollage. access it later.
@@ -19,13 +22,25 @@ const misc = {
             return 0;
         }
     },
-    instantiateSS: function (dirname, noStorage, noConfig) {
+    instantiateSS: function (meta, noStorage, noConfig) {
+        let ogDirname = meta.dirname;
+        let miscDirname = import.meta.dirname;
+
+        if (!ogDirname) {
+            const __filename = fileURLToPath(meta.url);
+            ogDirname = dirname(__filename);
+        };
+        if (!miscDirname) {
+            const __filename = fileURLToPath(import.meta.url);
+            miscDirname = dirname(__filename);
+        };
+
         //storage
-        if (!noStorage) fs.mkdirSync(path.join(dirname, 'store'), { recursive: true });
+        if (!noStorage) fs.mkdirSync(path.join(ogDirname, 'store'), { recursive: true });
 
         ss = {
-            currentDir: path.resolve(dirname),
-            rootDir: path.join(path.resolve(import.meta.dirname), '..', '..', '..'),
+            currentDir: path.resolve(ogDirname),
+            rootDir: path.join(path.resolve(miscDirname), '..', '..', '..'),
         };
 
         if (!noConfig) {
@@ -90,7 +105,7 @@ const misc = {
             log,
         };
 
-        // console.log(path.resolve(dirname), path.resolve(import.meta.dirname), ss);
+        // console.log(path.resolve(ogDirname), path.resolve(miscDirname), ss);
 
         ss.log.green(`Created ss Object! Commit hash: ${ss.versionHash} (${ss.versionEnum})`);
         (!noConfig) && ss.config.verbose && ss.log.bgGray("VERBOSE LOGGING ENABLED!!!!!!");

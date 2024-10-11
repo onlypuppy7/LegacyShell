@@ -11,7 +11,7 @@ import express from 'express';
 import prepareModified from '#prepare-modified';
 //
 
-let ss = misc.instantiateSS(import.meta.dirname);
+let ss = misc.instantiateSS(import.meta);
 
 ss = {
     ...ss,
