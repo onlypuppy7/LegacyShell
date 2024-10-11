@@ -89,6 +89,8 @@ let mapsFilePath = path.join(ss.currentDir, 'store', 'maps.json');
 let serversFilePath = path.join(ss.currentDir, 'store', 'servers.json');
 
 async function connectWebSocket(retryCount = 0) {
+    nextTimeout = Math.min(nextTimeout + 5e3, 30e3);
+
     try {
         ss.log.blue('WebSocket connection opening. Requesting config information...');
         const configInfo = await wsrequest({
@@ -136,24 +138,25 @@ async function connectWebSocket(retryCount = 0) {
             startServer();
         } else {
             if (!retrieved) {
-                ss.log.yellow('Config retrieval failed. Retrying in 30 seconds...');
+                ss.log.yellow(`Config retrieval failed. Retrying in ${nextTimeout / 1e3} seconds...`);
                 setTimeout(() => {
                     connectWebSocket(retryCount + 1);
-                }, 30000);
+                }, nextTimeout);
             };
         };
         
     } catch (err) {
         if (!retrieved) {
-            ss.log.red(`WebSocket connection failed: ${err.message}. Retrying in 30 seconds... (Attempt ${retryCount + 1})`);
+            ss.log.red(`WebSocket connection failed: ${err.message}. Retrying in ${nextTimeout / 1e3} seconds... (Attempt ${retryCount + 1})`);
             setTimeout(() => {
                 connectWebSocket(retryCount + 1);
-            }, 30000);
+            }, nextTimeout);
         };
     };
 };
 
 try {
+    var nextTimeout = 0;
     connectWebSocket();
 } catch (error) {
     console.error(error);
