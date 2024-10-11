@@ -29,10 +29,12 @@ const misc = {
         if (!ogDirname) {
             const __filename = fileURLToPath(meta.url);
             ogDirname = dirname(__filename);
+            console.log("(Using fallback mechanism for ogDirname)");
         };
         if (!miscDirname) {
             const __filename = fileURLToPath(import.meta.url);
             miscDirname = dirname(__filename);
+            console.log("(Using fallback mechanism for miscDirname)");
         };
 
         //storage
