@@ -25,7 +25,7 @@ import readline from 'readline';
 // };
 // passed = (typeof passed == 'object' && !Array.isArray(passed)) ? passed : {}; //idk what all this is for
 
-console.log(import.meta.dirname);
+console.log(import.meta, import.meta.dirname);
 
 let ss = misc.instantiateSS(import.meta.dirname, true);
 
