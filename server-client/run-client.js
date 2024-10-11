@@ -23,7 +23,7 @@ function startServer() {
     try {
         const app = express();
         const port = ss.config.client.port || 13370;
-        
+
         if (!ss.config.closed) {
             retrieved = true;
             try {
@@ -35,7 +35,6 @@ function startServer() {
             };
         
             try {
-            
                 if (ss.config.client.login.enabled) {
                     app.use(checkPassword);
                 };
