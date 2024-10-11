@@ -30,7 +30,7 @@ function startServer() {
     ss.RoomManager = RoomManager;
     rm.setSS(ss);
 
-    const port = ss.config.game.websocket || 13372;
+    const port = ss.config.game.port || 13372;
     const wss = new WebSocketServer({ port: port });
 
     wss.on('connection', (ws, req) => {
