@@ -144,4 +144,4 @@ async function connectWebSocket(retryCount = 0) {
     };
 };
 
-ss.config.closed ? connectWebSocket() : startServer();
+connectWebSocket();
