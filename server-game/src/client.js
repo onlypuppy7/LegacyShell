@@ -24,8 +24,6 @@ class newClient {
         this.clientReady = false;
         this.room = room;
         this.wsId = info.wsId;
-        this.lastSeen = 0;
-        this.lastSeenTime = Date.now();
         this.joinedTime = Date.now();
         this.userData = info.userData;
         this.sessionData = info.sessionData;
@@ -39,6 +37,8 @@ class newClient {
         //
         this.loadout = {};
         this.colorIdx = 0;
+        //
+        this.lastPingTime = Date.now();
         //
 
         //gun skins
@@ -74,7 +74,7 @@ class newClient {
                 msg.cmd = input.unPackInt8U();
 
                 if (msg.cmd !== Comm.Code.sync && msg.cmd !== Comm.Code.ping) {
-                    this.lastSeenTime = Date.now(); //excludes pings (ie idle for 5 mins)
+                    this.player.lastActivity = Date.now(); //excludes pings (ie idle for 5 mins)
                     console.log(this.id, "received:", Comm.Convert(msg.cmd));
                 };
 
@@ -151,7 +151,7 @@ class newClient {
                         var text = input.unPackString();
                         text = fixStringWidth(text, maxChatWidth);
 
-                        if ("" != text && text.indexOf("<") < 0) { //todo, ratelimiting
+                        if ("" != text && text.indexOf("<") < 0) { //todo, ratelimiting, censoring
                             console.log(this.player.name, "chatted:", text);
                             var output = new Comm.Out();
                             output.packInt8U(Comm.Code.chat);
@@ -176,6 +176,7 @@ class newClient {
                         var output = new Comm.Out();
                         output.packInt8(Comm.Code.ping);
                         this.sendToMe(output, "ping");
+                        this.lastPingTime = Date.now();
                         break;
                 };
             };
