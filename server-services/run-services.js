@@ -178,7 +178,8 @@ initTables().then(() => {
                 if (msg.session) {
                     sessionData = await sess.retrieveSession(msg.session, ip);
                     try {
-                        console.log(sessionData.expires_at, (Math.floor(Date.now() / 1000)))
+                        console.log(sessionData);
+                        console.log(sessionData.expires_at, (Math.floor(Date.now() / 1000)));
                         if (sessionData && (sessionData.expires_at > (Math.floor(Date.now() / 1000)))) {
                             userData = await accs.getUserData(sessionData.user_id, true);
                         };
