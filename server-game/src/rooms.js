@@ -128,9 +128,18 @@ class newRoom {
             return;
         };
         this.clients.forEach(client => {
-            client.lastSeen = Date.now() - client.lastSeenTime;
-            // console.log(client.id, client.lastSeen, client.clientReady);
-            if ((client.lastSeen > 5e3 && !client.clientReady) || (client.lastSeen > 5 * 60e3)) client.sendCloseToWs(); // kick if idle for 5 mins or takes over 5 secs to join game
+            client.lastSeenDelta = Date.now() - client.player.lastActivity;
+            client.lastPingDelta = Date.now() - client.lastPingTime;
+
+            // console.log(client.id, client.clientReady);
+            // console.log("lastSeenDelta", client.lastSeenDelta, "lastPingDelta", client.lastPingDelta);
+
+            if (client.lastPingDelta > 10e3) { // kick if over 10 secs since last connection
+                client.sendCloseToWs();
+            };
+            if (client.lastSeenDelta > 5 * 60e3) { // kick if idle for 5 mins
+                client.sendCloseToWs();
+            };
         });
     };
 

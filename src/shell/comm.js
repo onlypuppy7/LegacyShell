@@ -288,160 +288,210 @@ const Comm = {
      * @enum {number}
      */
     Code: {
-        /** SERVER: in response to one of the three join/create types
+        /** #SERVER: in response to one of the three join/create types
         * @constant {number}
         */
         gameJoined: 0,
-        /** SERVER: sends all the details of a player
+
+        /** #SERVER: sends all the details of a player
         * @constant {number}
         */
         addPlayer: 1,
-        /** SERVER: delete a player
+
+        /** #SERVER: delete a player
         * @constant {number}
         */
         removePlayer: 2,
+
+        /** #CLIENT: sends the player's chat
+        * 
+        * #SERVER: distributes the chat, assuming it completed all checks
+        * @constant {number}
+        */
         chat: 3,
-        /** ???: no known functionality 
+
+        /** -???: no known functionality 
         * @constant {number}
         */
         controlKeys: 4,
-        /** ???: no known functionality 
+
+        /** -???: no known functionality 
         * @constant {number}
         */
         keyUp: 5,
-        /** CLIENT: sends stateIdx, shotsQueued, FramesBetweenSyncs lots of statebuffer (yaw, pitch, controlKeys)
+
+        /** #CLIENT: sends stateIdx, shotsQueued, FramesBetweenSyncs lots of statebuffer (yaw, pitch, controlKeys)
         * 
-        * SERVER: directly sets stateIdx, xyz, climbing, and other stuff i dont understand yet
+        * #SERVER: directly sets stateIdx, xyz, climbing, and other stuff i dont understand yet
         * @constant {number}
         */
         sync: 6,
-        /** NOTE: this is depracated in LegacyShell, this information is instead in controlKeys in sync
+
+        /** NOTE: this is depracated in LegacyShell, this information is instead sent in controlKeys in sync
         * 
-        * CLIENT: attempt to make me player jump
+        * -CLIENT: attempt to make me player jump
         * 
-        * SERVER: attempt to make another player jump
+        * -SERVER: attempt to make another player jump
         * @constant {number}
         */
         jump: 7,
-        /** SERVER: tells the clients that someone died
+
+        /** #SERVER: tells the clients that someone died
         * @constant {number}
         */
         die: 8,
-        /** SERVER: tells the players who didnt get hit that it happened. idk why they need two functions.
+
+        /** #SERVER: tells the players who didnt get hit that it happened. idk why they need two functions.
         * @constant {number}
         */
         hitThem: 9,
-        /** SERVER: tells the player who got hit that it happened. idk why they need two functions.
+
+        /** #SERVER: tells the player who got hit that it happened. idk why they need two functions.
         * @constant {number}
         */
         hitMe: 10,
+
         /** SERVER: tells the client they picked up an item
         * @constant {number}
         */
         collectItem: 11,
+
         /** SERVER: tells the client there's a new item (usually right after one has been collected)
         * @constant {number}
         */
         spawnItem: 12,
-        /** SERVER: informs that ANY player has respawned
+
+        /** #SERVER: informs that ANY player has respawned
         * @constant {number}
         */
         respawn: 13,
-        /** CLIENT: attempt to swap weapons
+
+        /** #CLIENT: attempt to swap weapons
         * 
-        * SERVER: informs that someone's weapon has changed
+        * #SERVER: informs that someone's weapon has changed
         * @constant {number}
         */
         swapWeapon: 14,
-        /** CLIENT: request for a game search
+
+        /** #CLIENT: request for a game search
         * @constant {number}
         */
         joinGame: 15,
-        /** CLIENT: used for both getting ping on home screen and also ensuring connection to the server during a game. 
+
+        /** #CLIENT: used for both getting ping on home screen and also ensuring connection to the server during a game. 
+        * 
+        * #SERVER: returned message to calc client ping
+        * 
         * @constant {number}
         */
         ping: 16,
-        /** SERVER: actually you cant return this. the game does not recognise this and its useless.
+
+        /** -SERVER: you cant actually return this. the game does not recognise this and its useless.
         * @constant {number}
         */
         pong: 17,
-        /** SERVER: sent after all players have been initially added. if wanted, it also can send the time and stuff for the unused rounds feature. 
+
+        /** #SERVER: sent after all players have been initially added.
+        * 
+        * if wanted, it also can send the time and stuff for the unused rounds feature. 
         * @constant {number}
         */
         clientReady: 18,
-        /** CLIENT: try to respawn. if rejected for some reason ur screwed (i think)
+
+        /** #CLIENT: try to respawn. if rejected for some reason ur screwed (i think)
         * @constant {number}
         */
         requestRespawn: 19,
-        /** CLIENT: tells the players who didnt get hit that it happened. idk why they need two functions.
+
+        /** #CLIENT: sends a signal that a grenade was thrown, and its power
+        * 
+        * #SERVER: reports that a player threw a grenade and its power, dir, etc
         * @constant {number}
         */
         throwGrenade: 20,
-        /** CLIENT: sends a signal that a grenade was thrown, and its power
-        * 
-        * SERVER: reports that a player threw a grenade and its power, dir, etc
-        * @constant {number}
-        */
+
         joinPublicGame: 21,
-        /** CLIENT: identify specific room and join it 
+
+        /** #CLIENT: identify specific room and join it 
         * @constant {number}
         */
         joinPrivateGame: 22,
-        /** CLIENT: create a room 
+
+        /** #CLIENT: create a room 
         * @constant {number}
         */
         createPrivateGame: 23,
+
         /** SERVER: for the unused rounds feature. 
         * @constant {number}
         */
         roundStart: 24,
+
         switchTeam: 25,
+
         /** SERVER: display a notification on the person's game for any reason. 
         * @constant {number}
         */
         notification: 26,
+
         /** CLIENT: attempt to change skins and stuff
         * 
         * SERVER: informs that someone's skins and stuff has changed
         * @constant {number}
         */
         changeCharacter: 27,
+
         /** SERVER: unused/unknown
         * @constant {number}
         */
         playerCount: 28,
+
         /** SERVER: for the unused rounds feature. 
         * @constant {number}
         */
         roundEnd: 29,
+
         pause: 30,
+        
         /** SERVER: no logic associated with this. 
         * @constant {number}
         */
         announcement: 31,
+
         updateBalance: 32,
+
         reload: 33,
+
         refreshGameState: 34,
+
         switchTeamFail: 35,
+
         expireUpgrade: 36,
+
         /** CLIENT: send a req to boot someone (requires gameOwner) 
         * @constant {number}
         */
         bootPlayer: 37,
+
         /** SERVER: unused/unknown
         * @constant {number}
         */
         loginRequired: 38,
+
         /** SERVER: have been booted from a game. 
         * @constant {number}
         */
         banned: 39,
+
         /** SERVER: room has been locked from the public. doesnt seem to have kicked them. 
         * @constant {number}
         */
         gameLocked: 40,
+
         startReload: 48,
+
         fire: 49,
+
         /** CLIENT: used by bwd admins to look at ips and stuff (scary). 
         * @constant {number}
         */

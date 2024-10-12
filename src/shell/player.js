@@ -131,6 +131,7 @@ class Player {
 
         this.resetDespawn(-5000);
         this.jumpHeld = false;
+        this.lastActivity = Date.now();
     };
     changeWeaponLoadout (primaryWeaponItem, secondaryWeaponItem) {
         if (this.actor && this.weapons) {
@@ -168,16 +169,19 @@ class Player {
         // devlog(this.name, this.stateIdx, this.controlKeys, this.x.toFixed(2), this.y.toFixed(2), this.z.toFixed(2), this.dx.toFixed(2), this.dy.toFixed(2), this.dz.toFixed(2), this.yaw.toFixed(2), this.pitch.toFixed(2));
         
         if (this.controlKeys & CONTROL.left) {
+            this.lastActivity = Date.now();
             dx -= Math.cos(this.yaw);
             dz += Math.sin(this.yaw);
         };
         
         if (this.controlKeys & CONTROL.right) {
+            this.lastActivity = Date.now();
             dx += Math.cos(this.yaw);
             dz -= Math.sin(this.yaw);
         };
         
         if (this.controlKeys & CONTROL.up) {
+            this.lastActivity = Date.now();
             if (this.climbing) {
                 dy += 1;
             } else {
@@ -187,6 +191,7 @@ class Player {
         };
         
         if (this.controlKeys & CONTROL.down) {
+            this.lastActivity = Date.now();
             if (this.climbing) {
                 dy -= 1;
             } else {
@@ -196,6 +201,7 @@ class Player {
         };
         
         if ((this.controlKeys & CONTROL.jump) && (0 < this.lastTouchedGround && Date.now() > this.lastTouchedGround + 100)) {
+            this.lastActivity = Date.now();
             if (!this.jumpHeld) {
                 this.jump();
                 this.jumpHeld = true;
@@ -320,8 +326,8 @@ class Player {
             if (this.actor) {
                 this.id == meId && this.triggerPulled && this.fire()
             } else if (0 < this.shotsQueued) {
-                this.lastActivity = isClient ? now : Date.now();
-                this.fire(); //TODO! firing...
+                this.lastActivity = Date.now();
+                this.fire();
             };
             this.stateBuffer[this.stateIdx].x = this.x;
             this.stateBuffer[this.stateIdx].y = this.y;
