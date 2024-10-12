@@ -220,10 +220,13 @@ const startProcess = () => {
     });
 
     runningProcess.on('exit', (code, signal) => {
+        code = code == 57 ? 1337 : code; // 1337%256 = 57
+
         if (signal === 'SIGINT') {
             logSend(`Process terminated manually.`);
             return;
         };
+
         let pingUser = options.webhook_ping_user ? ` <@${options.webhook_ping_user}>` : "";
         let pingRole = options.webhook_ping_role ? ` <@&${options.webhook_ping_role}>` : "";
         logSend(`Process exited with code ${code}. ${code == 1337 ? "No ping, intended restart" : `Restarting...${pingUser}${pingRole}`}`);
