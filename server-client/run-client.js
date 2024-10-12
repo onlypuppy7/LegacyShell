@@ -25,7 +25,7 @@ function startServer() {
         const port = ss.config.client.port || 13370;
 
         if (!ss.config.client.closed) {
-            retrieved = true;
+            retrieved = 2;
             try {
                 ss.log.blue('Generating modified files (eg minifying shellshock.min.js)...');
                 prepareModified(ss);
@@ -103,7 +103,7 @@ async function connectWebSocket(retryCount = 0) {
             var configInfo = JSON.parse(response);
 
             if (configInfo) {
-                if (retrieved === false) {
+                if (retrieved !== 2) {
                     ss.log.green('Received config information from sync server.');
             
                     const load = function(thing, filePath) {

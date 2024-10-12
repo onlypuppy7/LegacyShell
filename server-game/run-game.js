@@ -25,7 +25,7 @@ ss = {
     },
 };
 
-function startServer() { retrieved = true;
+function startServer() { retrieved = 2;
     const RoomManager = new rm.newRoomManager();
     ss.RoomManager = RoomManager;
     rm.setSS(ss);
@@ -128,7 +128,7 @@ async function connectWebSocket(retryCount = 0) {
             var configInfo = JSON.parse(response);
 
             if (configInfo) {
-                if (retrieved === false) {
+                if (retrieved !== 2) {
                     ss.log.green('Received config information from sync server.');
         
                     const load = function(thing, filePath) {
