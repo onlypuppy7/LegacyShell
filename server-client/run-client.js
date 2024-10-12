@@ -150,6 +150,8 @@ async function connectWebSocket(retryCount = 0) {
             
                     startServer();
                 } else {
+                    console.log(configInfo);
+
                     if ((configInfo.servicesMeta.startTime > ss.config.client.servicesMeta.startTime) && ss.isPerpetual) {
                         console.log("Services server restarted, restarting...");
                         process.exit(1);
