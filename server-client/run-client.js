@@ -156,6 +156,7 @@ async function connectWebSocket(retryCount = 0) {
                         console.log("Services server restarted, restarting...");
                         process.exit(1);
                     };
+                    offline = false;
                 };
             } else {
                 if (!retrieved) {
