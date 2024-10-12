@@ -477,7 +477,8 @@ class Player {
             if (this.actor) {
                 this.actor.setShellColor(shellColor);
                 if (this.id == meId) {
-                    (output = new Comm.Out(7)).packInt8(Comm.Code.changeCharacter);
+                    var output = new Comm.Out(7);
+                    output.packInt8(Comm.Code.changeCharacter);
                     output.packInt8(newClassIdx);
                     output.packInt8(catalog.get8BitItemId(primaryWeaponItem, newClassIdx));
                     output.packInt8(catalog.get8BitItemId(secondaryWeaponItem, newClassIdx));
@@ -490,15 +491,16 @@ class Player {
                     this.actor.applyStamp(this.stampItem);
                 };
             } else { //server code woohoo!
-                (output = new Comm.Out(8, true)).packInt8(Comm.Code.changeCharacter);
+                var output = new Comm.Out(8);
+                output.packInt8(Comm.Code.changeCharacter);
                 output.packInt8(this.id);
                 output.packInt8(newClassIdx);
-                output.packInt8(catalog.get8BitItemId(primaryWeaponItem, newClassIdx));
-                output.packInt8(catalog.get8BitItemId(secondaryWeaponItem, newClassIdx));
+                output.packInt8(this.client.catalog.get8BitItemId(primaryWeaponItem, newClassIdx));
+                output.packInt8(this.client.catalog.get8BitItemId(secondaryWeaponItem, newClassIdx));
                 output.packInt8(shellColor);
-                output.packInt8(catalog.get8BitItemId(hatItem, newClassIdx));
-                output.packInt8(catalog.get8BitItemId(stampItem, newClassIdx));
-                sendToOthers(output.buffer, this.id, "changeCharacter");
+                output.packInt8(this.client.catalog.get8BitItemId(hatItem, newClassIdx));
+                output.packInt8(this.client.catalog.get8BitItemId(stampItem, newClassIdx));
+                this.client.sendToOthers(output, "changeCharacter");
             };
     
             this.changeWeaponLoadout(primaryWeaponItem, secondaryWeaponItem)
@@ -620,7 +622,7 @@ class Player {
     releaseTrigger () {
         this.triggerPulled = false;
     };
-    reload (sendToOthers) {
+    reload () {
         if (this.actor && this.id != meId) {
             this.weapon.actor.reload();
         } else if (this.weapon.ammo.rounds != this.weapon.ammo.capacity && 0 != this.weapon.ammo.store && this.canSwapOrReload()) {
