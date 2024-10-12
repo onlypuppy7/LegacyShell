@@ -204,7 +204,7 @@ async function connectWebSocket(retryCount = 0) {
             console.log("damn, it closed. that sucks.");
 
             if (!offline) {
-                nextTimeout = 5e3;
+                nextTimeout = 1e3;
                 offline = true;
             };
 
