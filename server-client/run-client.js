@@ -173,7 +173,7 @@ async function connectWebSocket(retryCount = 0) {
             console.log("damn, it closed. that sucks.");
 
             if (!offline) {
-                nextTimeout = 5e3;
+                nextTimeout = 1e3;
                 offline = true;
             };
 
@@ -184,7 +184,6 @@ async function connectWebSocket(retryCount = 0) {
                 }, nextTimeout);
             };
         });
-        
     } catch (err) {
         if (!retrieved) {
             ss.log.red(`WebSocket connection failed: ${err.message}. Retrying in ${nextTimeout / 1e3} seconds... (Attempt ${retryCount + 1})`);

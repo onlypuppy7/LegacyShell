@@ -92,7 +92,7 @@ Eggk47.accuracy = 12;
 Eggk47.shotSpreadIncrement = 40;
 Eggk47.accuracySettleFactor = .9;
 Eggk47.damage = 48;
-Eggk47.totalDamage = 48;
+Eggk47.totalDamage = Eggk47.damage;
 Eggk47.range = 20;
 Eggk47.velocity = .5;
 Eggk47.prototype.fireMunitions = function (pos, dir) {
@@ -152,8 +152,8 @@ CSG1.automatic = false;
 CSG1.accuracy = 0;
 CSG1.shotSpreadIncrement = 180;
 CSG1.accuracySettleFactor = .94;
-CSG1.damage = 230;
-CSG1.totalDamage = 230;
+CSG1.damage = 230 * 0.5; //its too op rn
+CSG1.totalDamage = CSG1.damage;
 CSG1.range = 50;
 CSG1.velocity = 0.6;
 CSG1.prototype.fireMunitions = function (pos, dir) {
@@ -182,11 +182,11 @@ Cluck9mm.accuracy = 26;
 Cluck9mm.shotSpreadIncrement = 100;
 Cluck9mm.accuracySettleFactor = .84;
 Cluck9mm.damage = 38;
-Cluck9mm.totalDamage = 38;
+Cluck9mm.totalDamage = Cluck9mm.damage;
 Cluck9mm.range = 15;
 Cluck9mm.velocity = .45;
 Cluck9mm.prototype.fireMunitions = function (pos, dir) {
-    Bullet.fire(this.player, pos, dir, Cluck9mm)
+    Bullet.fire(this.player, pos, dir, Cluck9mm);
 };
 
 // [LS] RPEGG CONSTRUCTOR
