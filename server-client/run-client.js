@@ -19,6 +19,9 @@ ss = {
     misc,
 };
 
+let retrieved = false;
+let offline = false;
+
 function startServer() {
     try {
         const app = express();
@@ -82,8 +85,6 @@ const checkPassword = (req, res, next) => {
 
 //all this is retrieving the config:
 
-let retrieved = false;
-
 let itemsFilePath = path.join(ss.currentDir, 'store', 'items.json');
 let mapsFilePath = path.join(ss.currentDir, 'store', 'maps.json');
 let serversFilePath = path.join(ss.currentDir, 'store', 'servers.json');
@@ -103,7 +104,7 @@ async function connectWebSocket(retryCount = 0) {
             var configInfo = JSON.parse(response);
 
             if (configInfo) {
-                if (retrieved !== 2) {
+                if (!retrieved) {
                     ss.log.green('Received config information from sync server.');
             
                     const load = function(thing, filePath) {
@@ -148,9 +149,10 @@ async function connectWebSocket(retryCount = 0) {
         
                     // console.log(ss.config);
             
+                    retrieved = true;
                     startServer();
                 } else {
-                    if ((configInfo.servicesMeta.startTime > ss.config.client.servicesMeta.startTime) && ss.isPerpetual) {
+                    if (offline && (configInfo.servicesMeta.startTime > ss.config.client.servicesMeta.startTime) && ss.isPerpetual) {
                         console.log("Services server restarted, restarting...");
                         process.exit(1);
                     };
@@ -168,9 +170,9 @@ async function connectWebSocket(retryCount = 0) {
         }, (event) => {
             console.log("damn, it closed. that sucks.");
 
-            if (retrieved !== 1) {
+            if (!offline) {
                 nextTimeout = 5e3;
-                retrieved = 1;
+                offline = true;
             };
 
             if (retrieved) {
