@@ -186,7 +186,7 @@ async function connectWebSocket(retryCount = 0) {
                 } else {
                     if ((configInfo.servicesMeta.startTime > ss.config.game.servicesMeta.startTime) && ss.isPerpetual) {
                         console.log("Services server restarted, restarting...");
-                        process.exit(1);
+                        process.exit(1337);
                     };
                     offline = false;
                 };
