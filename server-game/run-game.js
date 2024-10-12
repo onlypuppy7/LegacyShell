@@ -128,7 +128,7 @@ async function connectWebSocket(retryCount = 0) {
             var configInfo = JSON.parse(response);
 
             if (configInfo) {
-                if (!retrieved) {
+                if (retrieved === false) {
                     ss.log.green('Received config information from sync server.');
         
                     const load = function(thing, filePath) {
