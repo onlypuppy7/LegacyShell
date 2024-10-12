@@ -59,7 +59,9 @@ rl.on('line', (line) => {
     let cmd = line.trim();
     if (cmd === "r" || cmd === "restart") {
         startProcess();
-    }
+    } else if (cmd === "p" || cmd === "pull") {
+        spawn('git', ['pull']);
+    };
     rl.prompt();
 }).on('close', () => {
     logSend('Exiting interactive mode');
