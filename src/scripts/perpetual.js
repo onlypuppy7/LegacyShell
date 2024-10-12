@@ -54,17 +54,34 @@ const rl = readline.createInterface({
     prompt: '> '
 });
 
+
+function executeCommand(command, args) {
+    const cmdProcess = spawn(command, args, {
+        stdio: 'inherit',
+    });
+
+    cmdProcess.on('exit', (code) => {
+        console.log(`${command} exited with code: ${code}`);
+    });
+
+    cmdProcess.on('error', (err) => {
+        console.error(`Failed to start ${command}:`, err);
+    });
+};
+
 rl.prompt();
 rl.on('line', (line) => {
     let cmd = line.trim();
     if (cmd === "r" || cmd === "restart") {
         startProcess();
     } else if (cmd === "p" || cmd === "pull") {
-        spawn('git', ['pull']);
+        executeCommand('git', ['pull']);
+    } else if (cmd === "i" || cmd === "init") {
+        executeCommand('node', [ss.packageJson.scripts.init.replace("node ", "")]);
     };
     rl.prompt();
 }).on('close', () => {
-    logSend('Exiting interactive mode');
+    console.log('Exiting interactive mode');
     process.exit(0);
 });
 
