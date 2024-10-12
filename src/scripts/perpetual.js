@@ -226,10 +226,10 @@ const startProcess = () => {
         };
         let pingUser = options.webhook_ping_user ? ` <@${options.webhook_ping_user}>` : "";
         let pingRole = options.webhook_ping_role ? ` <@&${options.webhook_ping_role}>` : "";
-        logSend(`Process exited with code ${code}. Restarting...${pingUser}${pingRole}`);
+        logSend(`Process exited with code ${code}. ${code == 1337 ? "No ping, intended restart" : `Restarting...${pingUser}${pingRole}`}`);
         setTimeout(() => {
             startProcess();
-        }, 5000);
+        }, code == 1337 ? 1e3 : 5e3);
     });
 };
 
