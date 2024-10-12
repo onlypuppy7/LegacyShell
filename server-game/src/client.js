@@ -1,7 +1,7 @@
 //legacyshell: client
 import ran from '#scrambled';
 import Comm from '#comm';
-import { ItemType, itemIdOffsets, FramesBetweenSyncs, stateBufferSize, TimeoutManagerConstructor, maxChatWidth, IntervalManagerConstructor } from '#constants';
+import { ItemType, itemIdOffsets, FramesBetweenSyncs, stateBufferSize, TimeoutManagerConstructor, maxChatWidth, IntervalManagerConstructor, classes } from '#constants';
 import { fixStringWidth } from '#stringWidth';
 import Player from '#player';
 import CatalogConstructor from '#catalog';
@@ -37,16 +37,19 @@ class newClient {
         //
         this.loadout = {};
         this.colorIdx = 0;
+        this.catalog = catalog;
         //
         this.lastPingTime = Date.now();
         //
 
+        //classIdx
+        this.setClassIdx(info.classIdx);
         //gun skins
-        this.setEquippedItem(ItemType.Primary, info.classIdx, catalog.findItemBy8BitItemId(ItemType.Primary, info.classIdx, info.primary_item_id));
-        this.setEquippedItem(ItemType.Secondary, info.classIdx, catalog.findItemBy8BitItemId(ItemType.Secondary, info.classIdx, info.secondary_item_id));
+        this.setEquippedItem(ItemType.Primary, this.classIdx, catalog.findItemBy8BitItemId(ItemType.Primary, this.classIdx, info.primary_item_id));
+        this.setEquippedItem(ItemType.Secondary, this.classIdx, catalog.findItemBy8BitItemId(ItemType.Secondary, this.classIdx, info.secondary_item_id));
         //cosmetics
-        this.setEquippedItem(ItemType.Hat, info.classIdx, catalog.findItemBy8BitItemId(ItemType.Hat, info.classIdx, info.hatId));
-        this.setEquippedItem(ItemType.Stamp, info.classIdx, catalog.findItemBy8BitItemId(ItemType.Stamp, info.classIdx, info.stampId));
+        this.setEquippedItem(ItemType.Hat, this.classIdx, catalog.findItemBy8BitItemId(ItemType.Hat, this.classIdx, info.hatId));
+        this.setEquippedItem(ItemType.Stamp, this.classIdx, catalog.findItemBy8BitItemId(ItemType.Stamp, this.classIdx, info.stampId));
         this.setColorIdx(info.colorIdx);
 
         this.instantiatePlayer();
@@ -167,6 +170,32 @@ class newClient {
                         var idx = input.unPackInt8();
                         this.player.swapWeapon(idx);
                         break;
+                    case Comm.Code.changeCharacter:
+                        var newClassIdx = input.unPackInt8U();
+                        var primaryWeaponItem = catalog.findItemBy8BitItemId(ItemType.Primary, newClassIdx, input.unPackInt8U());
+                        var secondaryWeaponItem = catalog.findItemBy8BitItemId(ItemType.Secondary, newClassIdx, input.unPackInt8U());
+                        var shellColor = input.unPackInt8U();
+                        var hatItem = catalog.findItemBy8BitItemId(ItemType.Hat, newClassIdx, input.unPackInt8U());
+                        var stampItem = catalog.findItemBy8BitItemId(ItemType.Stamp, newClassIdx, input.unPackInt8U());
+
+                        // in theory this should all be in the player thing really. todo, refactor
+                        // pretty sure if u just send bs it will accept it :shrug:
+                        // works for the minute
+
+                        this.setClassIdx(newClassIdx);
+                        //gun skins
+                        this.setEquippedItem(ItemType.Primary, this.classIdx, primaryWeaponItem);
+                        this.setEquippedItem(ItemType.Secondary, this.classIdx, secondaryWeaponItem);
+                        //cosmetics
+                        this.setEquippedItem(ItemType.Hat, this.classIdx, hatItem);
+                        this.setEquippedItem(ItemType.Stamp, this.classIdx, stampItem);
+                        this.setColorIdx(shellColor);
+
+                        console.log(newClassIdx, this.classIdx, shellColor, this.player.classIdx)
+
+                        this.player.changeCharacter(this.classIdx, primaryWeaponItem, secondaryWeaponItem, shellColor, hatItem, stampItem);
+                        console.log(this.player.classIdx);
+                        break;
                     case Comm.Code.throwGrenade: 
                         var grenadeThrowPower = input.unPackFloat();
                         console.log("throwing a grenade", grenadeThrowPower);
@@ -224,6 +253,12 @@ class newClient {
             };
         };
         this.loadout[itemType] = catalog.findItemById(itemId);
+    };
+
+    setClassIdx(classIdx) {
+        let range = 3;
+        classIdx = Math.clamp(Math.floor(classIdx), 0, range);
+        if (classes[this.classIdx]) this.classIdx = classIdx;
     };
 
     setColorIdx(colorIdx) {
