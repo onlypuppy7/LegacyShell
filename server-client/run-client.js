@@ -103,7 +103,7 @@ async function connectWebSocket(retryCount = 0) {
             var configInfo = JSON.parse(response);
 
             if (configInfo) {
-                if (!retrieved) {
+                if (retrieved === false) {
                     ss.log.green('Received config information from sync server.');
             
                     const load = function(thing, filePath) {
@@ -150,8 +150,6 @@ async function connectWebSocket(retryCount = 0) {
             
                     startServer();
                 } else {
-                    console.log(configInfo);
-
                     if ((configInfo.servicesMeta.startTime > ss.config.client.servicesMeta.startTime) && ss.isPerpetual) {
                         console.log("Services server restarted, restarting...");
                         process.exit(1);
