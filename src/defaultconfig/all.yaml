@@ -3,5 +3,3 @@
 verbose: false # loads of more logs?
 
 devlogs: false # even more logs in the browser console
-
-closed: false # shuts down services/game and displays a closed message on the webpage.

@@ -1,0 +1,3 @@
+#this is what the other servers will ping this server for
+
+closed: false # shuts down services/game and displays a closed message on the webpage.

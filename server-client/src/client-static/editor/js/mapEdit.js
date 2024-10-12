@@ -88705,6 +88705,7 @@ var extern = (() => {
       return null;
     } else {
       var mesh = mapMeshes[meshIdx];
+      console.log(meshIdx);
       var newCube = mesh.createInstance();
       newCube.parent = mapContainer;
       newCube.isPickable = true;
