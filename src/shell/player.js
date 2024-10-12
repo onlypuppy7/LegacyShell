@@ -744,6 +744,7 @@ class Player {
         this.score = this.streak;
     };
     hit (damage, firedPlayer, dx, dz) {
+        if(this.isDead() || (!this.playing)) return;
         damage = Math.ceil(damage);
 
         if (damage > this.hp) { //no powerup so whatever
