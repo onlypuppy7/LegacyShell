@@ -22,7 +22,7 @@ const misc = {
             return 0;
         }
     },
-    instantiateSS: function (meta, noStorage, noConfig) {
+    instantiateSS: function (meta, argv, noStorage, noConfig) {
         let ogDirname = meta.dirname;
         let miscDirname = import.meta.dirname;
 
@@ -105,7 +105,11 @@ const misc = {
             versionEnum: Number(fs.readFileSync(path.join(ss.rootDir, 'versionEnum.txt'), 'utf8')),
             versionHash: fs.readFileSync(path.join(ss.rootDir, 'versionHash.txt'), 'utf8').slice(0,7),
             log,
+            isPerpetual: argv[2] === "--perpetual",
+            startTime: Date.now(),
         };
+
+        ss.isPerpetual && ss.config.verbose && ss.log.gray("is perpetual");
 
         // console.log(path.resolve(ogDirname), path.resolve(miscDirname), ss);
 

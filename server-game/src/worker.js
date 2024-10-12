@@ -5,7 +5,7 @@ import RoomConstructor from '#rooms';
 import misc from '#misc';
 //
 
-let ss = misc.instantiateSS(import.meta);
+let ss = misc.instantiateSS(import.meta, process.argv);
 
 var room;
 

@@ -17,7 +17,7 @@ import sess from '#sessionManagement';
 import recs from '#recordsManagement';
 //
 
-let ss = misc.instantiateSS(import.meta);
+let ss = misc.instantiateSS(import.meta, process.argv);
 
 //init db (ooooh! sql! fancy! a REAL database! not a slow json!)
 const db = new sqlite3.Database(path.join(ss.rootDir, 'server-services', 'store', 'LegacyShellData.db'));
@@ -189,12 +189,6 @@ initTables().then(() => {
                 };
     
                 switch (msg.cmd) {
-                    // Game server commands
-                    case 'getUser':
-                        ws.send(JSON.stringify({
-                            sessionData,
-                            userData
-                        }));
                     // Sync commands
                     case 'requestConfig':
                         ss.config.verbose && ss.log.bgCyan("services: Reading from DB: get max modified of items");
@@ -211,15 +205,19 @@ initTables().then(() => {
                         ss.config.verbose && console.log("game_servers", game_servers.maxDateModified, msg.lastServers);
 
                         let response = {
-                            ...ss.config.distributed_client,
+                            distributed_all: ss.config.distributed_all,
+                            distributed_client: ss.config.distributed_client,
+                            distributed_game: ss.config.distributed_game,
+
                             nugget_interval: ss.config.services.nugget_interval,
                             servicesMeta: {
                                 versionEnum: ss.versionEnum,
-                                versionHash: ss.versionHash
-                            }
+                                versionHash: ss.versionHash,
+                                startTime: ss.startTime,
+                            },
                         };
 
-                        console.log(ss.config.distributed_client);
+                        // console.log(ss.config.distributed_client);
 
                         if (msg.lastItems !== undefined)    response.items  = items.maxDateModified         > msg.lastItems     ? await recs.getAllItemData()            : false;
                         if (msg.lastMaps !== undefined)     response.maps   = maps.maxDateModified          > msg.lastMaps      ? await recs.getAllMapData()             : false;
@@ -227,6 +225,14 @@ initTables().then(() => {
 
                         ws.send(JSON.stringify( response ));
                         break;
+                };
+                if (!ss.config.distributed_all.closed) switch (msg.cmd) {
+                    // Game server commands
+                    case 'getUser':
+                        ws.send(JSON.stringify({
+                            sessionData,
+                            userData
+                        }));
                     // Client commands
                     case 'validateLogin':
                         accs.getUserData(msg.username, true, true).then(userData => {
@@ -538,3 +544,4 @@ initTables().then(() => {
     
     console.log('WebSocket server is running on ws://localhost:' + port);
 });
+

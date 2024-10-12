@@ -25,7 +25,7 @@ import readline from 'readline';
 // };
 // passed = (typeof passed == 'object' && !Array.isArray(passed)) ? passed : {}; //idk what all this is for
 
-let ss = misc.instantiateSS(import.meta, true);
+let ss = misc.instantiateSS(import.meta, process.argv, true);
 
 let server_type = process.argv[2].replace("--","");
 
@@ -177,7 +177,7 @@ const startProcess = () => {
 
     logSend(`Starting process: ${options.process_cmd}`);
     
-    runningProcess = spawn('node', [options.process_cmd], {
+    runningProcess = spawn('node', [options.process_cmd, '--perpetual'], {
         stdio: ['inherit', 'pipe', 'pipe'],
         env: { ...process.env, FORCE_COLOR: 'true' },
     });

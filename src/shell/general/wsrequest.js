@@ -16,7 +16,7 @@ import WebSocket from 'ws';
  * 
  * @throws {Error} If the WebSocket throws a fit.
  */
-const wsrequest = async function (payload, url, auth_key, dontConvert) {
+const wsrequest = async function (payload, url, auth_key, onmessage, onclose) {
     return new Promise((resolve, reject) => {
         const ws = new WebSocket(url);
         if (auth_key) payload.auth_key = auth_key;
@@ -25,12 +25,16 @@ const wsrequest = async function (payload, url, auth_key, dontConvert) {
         };
         ws.onmessage = function(event) {
             let response = event.data;
-            if (!dontConvert) response = JSON.parse(response);
+            response = JSON.parse(response);
             resolve(response);
-            ws.close();
+            if (!onmessage) ws.close();
+            else if (!onmessage(event)) ws.close();
         };
         ws.onerror = function(error) {
             reject('WebSocket error: ' + error.message);
+        };
+        ws.onclose = function(event) {
+            onclose && onclose(event);
         };
     });
 };

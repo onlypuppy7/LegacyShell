@@ -11,7 +11,7 @@ import express from 'express';
 import prepareModified from '#prepare-modified';
 //
 
-let ss = misc.instantiateSS(import.meta);
+let ss = misc.instantiateSS(import.meta, process.argv);
 
 ss = {
     ...ss,
@@ -24,7 +24,7 @@ function startServer() {
         const app = express();
         const port = ss.config.client.port || 13370;
 
-        if (!ss.config.closed) {
+        if (!ss.config.client.closed) {
             retrieved = true;
             try {
                 ss.log.blue('Generating modified files (eg minifying shellshock.min.js)...');
@@ -93,57 +93,93 @@ async function connectWebSocket(retryCount = 0) {
 
     try {
         ss.log.blue('WebSocket connection opening. Requesting config information...');
-        const configInfo = await wsrequest({
+        await wsrequest({
             cmd: "requestConfig",
                 lastItems: Math.floor(misc.getLastSavedTimestamp(itemsFilePath)/1000), //well in theory, if its not in existence this returns 0 and we should get it :D
                 lastMaps: Math.floor(misc.getLastSavedTimestamp(mapsFilePath)/1000),
                 lastServers: Math.floor(misc.getLastSavedTimestamp(serversFilePath)/1000),
-        }, ss.config.client.sync_server);
+        }, ss.config.client.sync_server, undefined, (event) => {
+            let response = event.data;
+            var configInfo = JSON.parse(response);
 
-        if (configInfo) {
-            ss.log.green('Received config information from sync server.');
-    
-            const load = function(thing, filePath) {
-                if (configInfo[thing]) {
-                    ss.log.blue(`[${thing}] loaded from newly retrieved json.`)
-                    configInfo[thing] = JSON.stringify(configInfo[thing]);
-                    fs.writeFileSync(filePath, configInfo[thing]); //dont convert the json. there is no need.
-                    ss.cache[thing] = configInfo[thing];
-                    delete configInfo[thing];
+            if (configInfo) {
+                if (!retrieved) {
+                    ss.log.green('Received config information from sync server.');
+            
+                    const load = function(thing, filePath) {
+                        if (configInfo[thing]) {
+                            ss.log.blue(`[${thing}] loaded from newly retrieved json.`)
+                            configInfo[thing] = JSON.stringify(configInfo[thing]);
+                            fs.writeFileSync(filePath, configInfo[thing]); //dont convert the json. there is no need.
+                            ss.cache[thing] = configInfo[thing];
+                            delete configInfo[thing];
+                        } else {
+                            delete configInfo[thing]; //still delete the false, derp
+                            if (fs.existsSync(filePath)) {
+                                ss.log.italic(`[${thing}] loaded from previously saved json.`);
+                                ss.cache[thing] = fs.readFileSync(filePath, 'utf8');
+                            } else {
+                                ss.log.red(`Shit. We're fucked. We didn't receive an [${thing}] json nor do we have one stored. FUUUU-`);
+                            };
+                        };
+                    };
+            
+                    load("items", itemsFilePath);
+                    load("maps", mapsFilePath);
+                    load("servers", serversFilePath);
+            
+                    // console.log(ss.items);
+            
+                    delete configInfo.distributed_game;
+        
+                    configInfo = { ...configInfo, ...configInfo.distributed_client };
+                    delete configInfo.distributed_client;
+            
+                    configInfo = { ...configInfo, ...configInfo.distributed_all };
+                    delete configInfo.distributed_all;
+        
+                    ss.config.client = { ...ss.config.client, ...configInfo };
+        
+                    delete configInfo.login;
+        
+                    ss.distributed_config = yaml.dump(configInfo, { indent: 4 }); //this is for later usage displaying for all to see
+            
+                    ss.config.verbose && ss.log.info(`\n${ss.distributed_config}`);
+        
+                    // console.log(ss.config);
+            
+                    startServer();
                 } else {
-                    delete configInfo[thing]; //still delete the false, derp
-                    if (fs.existsSync(filePath)) {
-                        ss.log.italic(`[${thing}] loaded from previously saved json.`);
-                        ss.cache[thing] = fs.readFileSync(filePath, 'utf8');
-                    } else {
-                        ss.log.red(`Shit. We're fucked. We didn't receive an [${thing}] json nor do we have one stored. FUUUU-`);
+                    if ((configInfo.servicesMeta.startTime > ss.config.client.servicesMeta.startTime) && ss.isPerpetual) {
+                        console.log("Services server restarted, restarting...");
+                        process.exit(1);
                     };
                 };
+            } else {
+                if (!retrieved) {
+                    ss.log.yellow(`Config retrieval failed. Retrying in ${nextTimeout / 1e3} seconds...`);
+                    setTimeout(() => {
+                        connectWebSocket(retryCount + 1);
+                    }, nextTimeout);
+                };
             };
-    
-            load("items", itemsFilePath);
-            load("maps", mapsFilePath);
-            load("servers", serversFilePath);
-    
-            // console.log(ss.items);
-    
-            ss.config.client = { ...ss.config.client, ...configInfo };
 
-            delete configInfo.login;
+            return true;
+        }, (event) => {
+            console.log("damn, it closed. that sucks.");
 
-            ss.distributed_config = yaml.dump(configInfo, { indent: 4 }); //this is for later usage displaying for all to see
-    
-            ss.config.verbose && ss.log.info(`\n${ss.distributed_config}`);
-    
-            startServer();
-        } else {
-            if (!retrieved) {
-                ss.log.yellow(`Config retrieval failed. Retrying in ${nextTimeout / 1e3} seconds...`);
+            if (retrieved !== 1) {
+                nextTimeout = 5e3;
+                retrieved = 1;
+            };
+
+            if (retrieved) {
+                ss.log.yellow(`Services server offline. Retrying in ${nextTimeout / 1e3} seconds...`);
                 setTimeout(() => {
                     connectWebSocket(retryCount + 1);
                 }, nextTimeout);
             };
-        };
+        });
         
     } catch (err) {
         if (!retrieved) {
