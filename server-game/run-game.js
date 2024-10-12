@@ -25,7 +25,7 @@ ss = {
     },
 };
 
-function startServer() { retrieved = 2;
+function startServer() {
     const RoomManager = new rm.newRoomManager();
     ss.RoomManager = RoomManager;
     rm.setSS(ss);
@@ -108,6 +108,7 @@ function startServer() { retrieved = 2;
 //all this is retrieving the config:
 
 let retrieved = false;
+let offline = false;
 
 let mapsFilePath =      path.join(ss.currentDir, 'store', 'maps.json');
 let serversFilePath =   path.join(ss.currentDir, 'store', 'servers.json');
@@ -128,8 +129,9 @@ async function connectWebSocket(retryCount = 0) {
             var configInfo = JSON.parse(response);
 
             if (configInfo) {
-                if (retrieved !== 2) {
+                if (!retrieved) {
                     ss.log.green('Received config information from sync server.');
+                    offline = false;
         
                     const load = function(thing, filePath) {
                         if (configInfo[thing]) {
@@ -179,12 +181,14 @@ async function connectWebSocket(retryCount = 0) {
                         };
                     };
         
+                    retrieved = true;
                     startServer();
                 } else {
                     if ((configInfo.servicesMeta.startTime > ss.config.game.servicesMeta.startTime) && ss.isPerpetual) {
                         console.log("Services server restarted, restarting...");
                         process.exit(1);
                     };
+                    offline = false;
                 };
             } else {
                 if (!retrieved) {
@@ -199,9 +203,9 @@ async function connectWebSocket(retryCount = 0) {
         }, (event) => {
             console.log("damn, it closed. that sucks.");
 
-            if (retrieved !== 1) {
+            if (!offline) {
                 nextTimeout = 5e3;
-                retrieved = 1;
+                offline = true;
             };
 
             if (retrieved) {
