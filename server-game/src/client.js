@@ -24,9 +24,10 @@ class newClient {
     };
 
     async initClient(room, info) {
+        this.ss = ss;
+        //
         this.session = info.session;
         await this.updateUserData();
-
         //
         this.timeout = new TimeoutManagerConstructor();
         this.interval = new IntervalManagerConstructor();
@@ -145,7 +146,7 @@ class newClient {
                 cmd: "getUser",
                 session: this.session,
             }, ss.config.game.services_server, ss.config.game.auth_key);
-            console.log(this.userData);
+            // console.log(this.userData);
         };
 
         this.userData = response?.userData || null;

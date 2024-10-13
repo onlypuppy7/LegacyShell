@@ -3,6 +3,8 @@ import BABYLON from "babylonjs";
 import { stateBufferSize, isClient, isServer, CONTROL, devlog, ItemTypes } from '#constants';
 import { getMunitionsManager } from '#bullets';
 import Comm from '#comm';
+//legacyshell: adding kills and deaths (literally tracking ur every move the government is watching yuo)
+import wsrequest from '#wsrequest';
 //
 
 //(server-only-start)
@@ -735,7 +737,7 @@ class Player {
             };
         };
     };
-    scoreKill () {
+    scoreKill (killedPlayer) {
         this.kills++;
         this.totalKills++;
         this.streak++;
@@ -744,7 +746,22 @@ class Player {
         this.score = this.streak;
 
         if (isServer) { //do request to add eggs here
-
+            (async () => {
+                if (killedPlayer && this.id !== killedPlayer.id) {
+                    if (this.client.session && this.client.session.length > 0) {
+                        var response = await wsrequest({
+                            cmd: "addKill",
+                            session: this.client.session,
+                            currentKills: this.client.kills,
+                        }, this.client.ss.config.game.services_server, this.client.ss.config.game.auth_key);
+    
+                        var output = new Comm.Out();
+                        output.packInt8U(Comm.Code.updateBalance);
+                        output.packInt32U(response.currentBalance);
+                        this.client.sendToMe(output, "updateBalance");
+                    };
+                };
+            })();
         };
     };
     hit (damage, firedPlayer, dx, dz) {
@@ -754,7 +771,7 @@ class Player {
 
         if (damage > this.hp) { //no powerup so whatever
             this.die(firedPlayerId);
-            firedPlayer.scoreKill();
+            firedPlayer.scoreKill(this);
         } else {
             // console.log("who REALLY fired?", firedPlayer.id, firedPlayer.name)
             this.setHp(this.hp - damage, firedPlayerId);
@@ -789,6 +806,15 @@ class Player {
             output.packInt8U(firedId);
             output.packInt8U(5);
             this.client.sendToAll(output, "die");
+
+            (async () => {
+                if (this.client.session && this.client.session.length > 0) {
+                    var response = await wsrequest({
+                        cmd: "addDeath",
+                        session: this.client.session,
+                    }, this.client.ss.config.game.services_server, this.client.ss.config.game.auth_key);
+                };
+            })();
         };
     };
     setHp (newHp, firedId = this.id) {

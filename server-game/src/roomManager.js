@@ -51,9 +51,9 @@ class newRoomManager {
             console.log("public game");
             //this is where it gets interesting
             let roomSelection = this.getRoomsOfJoinType(info.joinType);
-            console.log("joinType", info.joinType, roomSelection);
+            // console.log("joinType", info.joinType, roomSelection);
             roomSelection = this.getRoomsOfGameType(info.gameType);
-            console.log("gameType", info.gameType, roomSelection);
+            // console.log("gameType", info.gameType, roomSelection);
             let remainingMapIds = [...ss.mapAvailability.public];
             roomSelection.forEach((room) => {
                 remainingMapIds = remainingMapIds.filter(mapId => mapId !== room.mapId);
