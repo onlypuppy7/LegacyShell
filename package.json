@@ -10,15 +10,15 @@
         "client": "node src/scripts/perpetual.js --client",
         "services": "node src/scripts/perpetual.js --services",
         "game": "node src/scripts/perpetual.js --game",
-        "binit": "bun src/init.js",
-        "bclient": "bun server-client/run-client.js",
-        "bservices": "bun server-services/run-services.js",
-        "bgame": "bun server-game/run-game.js"
+        "binit": "bun src/scripts/init.js",
+        "bclient": "bun src/scripts/perpetual.js --client",
+        "bservices": "bun src/scripts/perpetual.js --services",
+        "bgame": "bun src/scripts/perpetual.js --game"
     },
     "dependencies": {
+        "@napi-rs/canvas": "^0.1.56",
         "babylonjs": "3.3.0",
         "bcrypt": "^5.1.1",
-        "canvas": "^3.0.0-rc2",
         "chalk": "^5.3.0",
         "express": "^4.21.0",
         "js-yaml": "^4.1.0",
