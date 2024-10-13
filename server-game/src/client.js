@@ -6,6 +6,8 @@ import { fixStringWidth } from '#stringWidth';
 import Player from '#player';
 import CatalogConstructor from '#catalog';
 import extendMath from '#math';
+//legacyshell: getting user data
+import wsrequest from '#wsrequest';
 //
 
 let ss, catalog;
@@ -18,6 +20,13 @@ function setSS(newSS) {
 
 class newClient {
     constructor(room, info) {
+        this.initClient(room, info);
+    };
+
+    async initClient(room, info) {
+        this.session = info.session;
+        await this.updateUserData();
+
         //
         this.timeout = new TimeoutManagerConstructor();
         this.interval = new IntervalManagerConstructor();
@@ -25,8 +34,6 @@ class newClient {
         this.room = room;
         this.wsId = info.wsId;
         this.joinedTime = Date.now();
-        this.userData = info.userData;
-        this.sessionData = info.sessionData;
         this.loggedIn = info.userData && info.sessionData;
         //
         this.account_id = this.loggedIn ? this.userData.account_id : null; //reminder this is the ID of the actual account
@@ -42,30 +49,107 @@ class newClient {
         this.lastPingTime = Date.now();
         //
 
-        //classIdx
-        this.setClassIdx(info.classIdx);
-        //gun skins
-        this.setEquippedItem(ItemType.Primary, this.classIdx, catalog.findItemBy8BitItemId(ItemType.Primary, this.classIdx, info.primary_item_id));
-        this.setEquippedItem(ItemType.Secondary, this.classIdx, catalog.findItemBy8BitItemId(ItemType.Secondary, this.classIdx, info.secondary_item_id));
-        //cosmetics
-        this.setEquippedItem(ItemType.Hat, this.classIdx, catalog.findItemBy8BitItemId(ItemType.Hat, this.classIdx, info.hatId));
-        this.setEquippedItem(ItemType.Stamp, this.classIdx, catalog.findItemBy8BitItemId(ItemType.Stamp, this.classIdx, info.stampId));
-        this.setColorIdx(info.colorIdx);
+        this.updateLoadout(
+            info.classIdx,
+            info.primary_item_id,
+            info.secondary_item_id,
+            info.colorIdx,
+            info.hatId,
+            info.stampId
+        );
+        await this.instantiatePlayer();
+        // this.applyLoadout();
 
-        this.instantiatePlayer();
-
-        // console.log("kek", info, room);
+        this.room.registerPlayerClient(this);
         
         var output = new Comm.Out(11); //if fixed for gameJoined, use 11
         this.packGameJoined(output);
         this.sendBuffer(output, "packGameJoined"); //buffer cause not clientReady
+    };
 
-        // ws.removeAllListeners('message');
-        // ws.on('message', this.onmessage.bind(this));
-        // ws.removeAllListeners('close');
-        // ws.on('close', this.onclose.bind(this));
+    async updateLoadout (classIdx, primary_item_id, secondary_item_id, colorIdx, hatId, stampId) {
+        //classIdx
+        this.setClassIdx(classIdx);
+        //gun skins
+        this.setEquippedItem(ItemType.Primary, this.classIdx, catalog.findItemBy8BitItemId(ItemType.Primary, this.classIdx, primary_item_id));
+        this.setEquippedItem(ItemType.Secondary, this.classIdx, catalog.findItemBy8BitItemId(ItemType.Secondary, this.classIdx, secondary_item_id));
+        //cosmetics
+        this.setColorIdx(colorIdx);
+        this.setEquippedItem(ItemType.Hat, this.classIdx, catalog.findItemBy8BitItemId(ItemType.Hat, this.classIdx, hatId));
+        this.setEquippedItem(ItemType.Stamp, this.classIdx, catalog.findItemBy8BitItemId(ItemType.Stamp, this.classIdx, stampId));
+    };
 
-        // console.log(!!this.room.packAllPlayers);
+    applyLoadout () {
+        this.player.changeCharacter(
+            this.classIdx,
+            this.loadout[ItemType.Primary],
+            this.loadout[ItemType.Secondary],
+            this.colorIdx,
+            this.loadout[ItemType.Hat],
+            this.loadout[ItemType.Stamp],
+        );
+    };
+
+    async instantiatePlayer() {
+        this.player = new Player({
+            id: this.id,
+            uniqueId: this.account_id,
+            nickname: this.nickname,
+            classIdx: this.classIdx, // weapon class
+            username: this.username,
+
+            team: 0, //info.team,
+
+            primaryWeaponItem: this.loadout[ItemType.Primary],
+            secondaryWeaponItem: this.loadout[ItemType.Secondary],
+            shellColor: this.colorIdx,
+            hatItem: this.loadout[ItemType.Hat],
+            stampItem: this.loadout[ItemType.Stamp],
+
+            x: 15,
+            y: 5,
+            z: 5,
+            dx: 0,
+            dy: 0,
+            dz: 0,
+            yaw: 0,
+            pitch: 0,
+
+            score: 0,
+            kills: 0,
+            deaths: 0,
+            streak: 0,
+            totalKills: 0,
+            totalDeaths: 0,
+            bestGameStreak: 0,
+            bestOverallStreak: 0,
+
+            shield: 0,
+            hp: 100,
+
+            playing: 0,
+            weaponIdx: 0, // prim/sec: 0/1 (it's Slot in #constants)
+
+            controlKeys: 0,
+            randomSeed: 0,
+
+            upgradeProductId: this.loggedIn ? this.userData.upgradeProductId : 0,
+        }, this.room.scene, this);       
+    };
+
+    async updateUserData() {
+        var response;
+
+        if (this.session && this.session.length > 0) {
+            response = await wsrequest({
+                cmd: "getUser",
+                session: this.session,
+            }, ss.config.game.services_server, ss.config.game.auth_key);
+            console.log(this.userData);
+        };
+
+        this.userData = response?.userData || null;
+        this.sessionData = response?.sessionData || null;
     };
 
     async onmessage(message) {
@@ -172,29 +256,22 @@ class newClient {
                         break;
                     case Comm.Code.changeCharacter:
                         var newClassIdx = input.unPackInt8U();
-                        var primaryWeaponItem = catalog.findItemBy8BitItemId(ItemType.Primary, newClassIdx, input.unPackInt8U());
-                        var secondaryWeaponItem = catalog.findItemBy8BitItemId(ItemType.Secondary, newClassIdx, input.unPackInt8U());
+                        var primaryWeaponItem = input.unPackInt8U();
+                        var secondaryWeaponItem = input.unPackInt8U();
                         var shellColor = input.unPackInt8U();
-                        var hatItem = catalog.findItemBy8BitItemId(ItemType.Hat, newClassIdx, input.unPackInt8U());
-                        var stampItem = catalog.findItemBy8BitItemId(ItemType.Stamp, newClassIdx, input.unPackInt8U());
+                        var hatId = input.unPackInt8U();
+                        var stampId = input.unPackInt8U();
 
-                        // in theory this should all be in the player thing really. todo, refactor
-                        // pretty sure if u just send bs it will accept it :shrug:
-                        // works for the minute
-
-                        this.setClassIdx(newClassIdx);
-                        //gun skins
-                        this.setEquippedItem(ItemType.Primary, this.classIdx, primaryWeaponItem);
-                        this.setEquippedItem(ItemType.Secondary, this.classIdx, secondaryWeaponItem);
-                        //cosmetics
-                        this.setEquippedItem(ItemType.Hat, this.classIdx, hatItem);
-                        this.setEquippedItem(ItemType.Stamp, this.classIdx, stampItem);
-                        this.setColorIdx(shellColor);
-
-                        console.log(newClassIdx, this.classIdx, shellColor, this.player.classIdx)
-
-                        this.player.changeCharacter(this.classIdx, primaryWeaponItem, secondaryWeaponItem, shellColor, hatItem, stampItem);
-                        console.log(this.player.classIdx);
+                        await this.updateUserData();
+                        this.updateLoadout(
+                            newClassIdx,
+                            primaryWeaponItem,
+                            secondaryWeaponItem,
+                            shellColor,
+                            hatId,
+                            stampId
+                        );
+                        this.applyLoadout();
                         break;
                     case Comm.Code.throwGrenade: 
                         var grenadeThrowPower = input.unPackFloat();
@@ -222,8 +299,8 @@ class newClient {
     setEquippedItem(itemType, classIdx, item) { //itemType: stamp/hat/prim/sec, classIdx: eggk/shotgun etc
         let itemId = 0;
 
-        // console.log("verifying item");
-        // console.log(item, !!this.userData);
+        console.log("verifying item");
+        console.log(item, !!this.userData);
         // console.log(item.exclusive_for_class, classIdx);
         // console.log(item.item_type_id, itemType);
         // this.userData && console.log(this.userData.ownedItemIds, item.id, this.userData.ownedItemIds.includes(item.id));
@@ -267,53 +344,8 @@ class newClient {
         this.colorIdx = Math.clamp(Math.floor(colorIdx), 0, range);
     };
 
-    instantiatePlayer() {
-        this.player = new Player({
-            id: this.id,
-            uniqueId: this.account_id,
-            nickname: this.nickname,
-            classIdx: this.classIdx, // weapon class
-            username: this.username,
+    async setLoadout() {
 
-            team: 0, //info.team,
-
-            primaryWeaponItem: this.loadout[ItemType.Primary],
-            secondaryWeaponItem: this.loadout[ItemType.Secondary],
-            shellColor: this.colorIdx,
-            hatItem: this.loadout[ItemType.Hat],
-            stampItem: this.loadout[ItemType.Stamp],
-
-            x: 15,
-            y: 5,
-            z: 5,
-            dx: 0,
-            dy: 0,
-            dz: 0,
-            yaw: 0,
-            pitch: 0,
-
-            score: 0,
-            kills: 0,
-            deaths: 0,
-            streak: 0,
-            totalKills: 0,
-            totalDeaths: 0,
-            bestGameStreak: 0,
-            bestOverallStreak: 0,
-
-            shield: 0,
-            hp: 100,
-
-            playing: 0,
-            weaponIdx: 0, // prim/sec: 0/1 (it's Slot in #constants)
-
-            controlKeys: 0,
-            randomSeed: 0,
-
-            upgradeProductId: this.loggedIn ? this.userData.upgradeProductId : 0,
-        }, this.room.scene, this);
-                    
-        this.room.registerPlayerClient(this);
     };
 
     packPlayer(output) {
