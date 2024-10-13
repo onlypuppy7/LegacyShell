@@ -148,6 +148,7 @@ initTables().then(() => {
                 const auth_commands = [
                     "getUser", //modify this i guess
                     "addKill",
+                    "addDeath",
                 ];
                 auth_commands.includes(msg.cmd) && (cmdType = 'auth_required');
                 
@@ -178,7 +179,7 @@ initTables().then(() => {
                 if (msg.session) {
                     sessionData = await sess.retrieveSession(msg.session, ip);
                     try {
-                        console.log(sessionData);
+                        // console.log(sessionData);
                         console.log(sessionData.expires_at, (Math.floor(Date.now() / 1000)));
                         if (sessionData && (sessionData.expires_at > (Math.floor(Date.now() / 1000)))) {
                             userData = await accs.getUserData(sessionData.user_id, true);
@@ -231,6 +232,38 @@ initTables().then(() => {
                             ws.send(JSON.stringify({
                                 sessionData,
                                 userData
+                            }));
+                            break;
+                        case 'addKill':
+                            userData.currentBalance += 10;
+                            userData.kills += 1;
+                            userData.streak = Math.max(msg.currentKills, userData.streak);
+
+                            ss.config.verbose && ss.log.bgBlue("services: Writing to DB: set new balance + kills + streak "+userData.username);
+                            await ss.runQuery(`
+                                UPDATE users 
+                                SET currentBalance = ?, kills = ?, streak = ?
+                                WHERE account_id = ?
+                            `, [userData.currentBalance, userData.kills, userData.streak, userData.account_id]);
+
+                            ws.send(JSON.stringify({
+                                currentBalance: userData.currentBalance,
+                                kills: userData.kills, //i dont think we really need this for anything, but doesnt hurt to show something happened
+                                streak: userData.streak
+                            }));
+                            break;
+                        case 'addDeath':
+                            userData.deaths += 1;
+
+                            ss.config.verbose && ss.log.bgBlue("services: Writing to DB: set new deaths "+userData.username);
+                            await ss.runQuery(`
+                                UPDATE users 
+                                SET deaths = ?
+                                WHERE account_id = ?
+                            `, [userData.deaths, userData.account_id]);
+
+                            ws.send(JSON.stringify({
+                                deaths: userData.deaths, //again, i dont think we really need this for anything
                             }));
                             break;
                         // Client commands

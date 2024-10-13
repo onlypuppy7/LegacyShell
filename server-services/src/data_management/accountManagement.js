@@ -118,18 +118,19 @@ const exported = {
             if (isBuying) {
                 if (userData.currentBalance >= item.price) {
                     userData.currentBalance -= item.price;
+                    userData.eggsSpent += item.price;
                 } else {
                     return "INSUFFICIENT_FUNDS";
                 };
             };
             userData.ownedItemIds = [...userData.ownedItemIds, item_id];
-    
+
             ss.config.verbose && ss.log.bgBlue("services: Writing to DB: set new balance + ownedItemIds "+userData.username);
             await ss.runQuery(`
                 UPDATE users 
-                SET currentBalance = ?, ownedItemIds = ?
+                SET currentBalance = ?, eggsSpent = ?, ownedItemIds = ?
                 WHERE account_id = ?
-            `, [userData.currentBalance, JSON.stringify(userData.ownedItemIds), userData.account_id]);
+            `, [userData.currentBalance, userData.eggsSpent, JSON.stringify(userData.ownedItemIds), userData.account_id]);
             return "SUCCESS"; //god, i hope
         } catch (error) {
             console.error('Error retrieving item data:', error);
