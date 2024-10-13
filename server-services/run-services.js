@@ -237,7 +237,7 @@ initTables().then(() => {
                         case 'addKill':
                             userData.currentBalance += 10;
                             userData.kills += 1;
-                            userData.streak = Math.max(msg.currentKills, userData.streak);
+                            userData.streak = Math.max(msg.currentKills, userData.streak || 0);
 
                             ss.config.verbose && ss.log.bgBlue("services: Writing to DB: set new balance + kills + streak "+userData.username);
                             await ss.runQuery(`
