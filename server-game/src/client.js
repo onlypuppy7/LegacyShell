@@ -386,7 +386,7 @@ class newClient {
         output.packInt8U(this.player.shield);
         output.packInt8U(this.player.hp);
         output.packInt8U(this.player.playing ? 1 : 0);
-        output.packInt8U(0); //weaponIdx
+        output.packInt8U(this.player.weaponIdx); //weaponIdx
         output.packInt8U(0); //controlKeys
         output.packInt16U(0); //randomSeed
         output.packInt8U(this.loggedIn ? this.userData.upgradeProductId : 0); //upgradeProductId

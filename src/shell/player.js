@@ -742,16 +742,22 @@ class Player {
         this.bestGameStreak = Math.max(this.bestGameStreak, this.streak);
         this.bestOverallStreak = Math.max(this.bestOverallStreak, this.streak);
         this.score = this.streak;
+
+        if (isServer) { //do request to add eggs here
+
+        };
     };
     hit (damage, firedPlayer, dx, dz) {
-        if(this.isDead() || (!this.playing)) return;
+        if (this.isDead() || (!this.playing)) return;
         damage = Math.ceil(damage);
+        var firedPlayerId = firedPlayer ? firedPlayer.id : null;
 
         if (damage > this.hp) { //no powerup so whatever
-            this.die(firedPlayer.id);
+            this.die(firedPlayerId);
+            firedPlayer.scoreKill();
         } else {
             // console.log("who REALLY fired?", firedPlayer.id, firedPlayer.name)
-            this.setHp(this.hp - damage, firedPlayer.id);
+            this.setHp(this.hp - damage, firedPlayerId);
 
             var output = new Comm.Out();
             output.packInt8U(Comm.Code.hitMe);
