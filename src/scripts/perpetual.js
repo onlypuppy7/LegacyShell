@@ -3,13 +3,11 @@
 //basic
 import fs from 'node:fs';
 import path from 'node:path';
-import yaml from 'js-yaml';
 //legacyshell: basic
 import misc from '#misc';
 import { getTimestamp } from '#constants';
 //legacyshell: perpetual
 import { spawn } from 'child_process';
-import fetch from 'node-fetch';
 import readline from 'readline';
 //
 
@@ -24,6 +22,11 @@ import readline from 'readline';
 //     passed = {};
 // };
 // passed = (typeof passed == 'object' && !Array.isArray(passed)) ? passed : {}; //idk what all this is for
+
+if (typeof fetch !== 'function') {
+    console.log("This script requires the native fetch API to be available. Upgrade to the latest Node LTS.");
+    process.exit(0);
+}
 
 let ss = misc.instantiateSS(import.meta, process.argv, true);
 
