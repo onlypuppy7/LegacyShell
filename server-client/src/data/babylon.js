@@ -19901,7 +19901,7 @@
         function (BABYLON) {
             Object.defineProperty(BABYLON.Scene.prototype, "forceShowBoundingBoxes", {
                 get: function () {
-                    return this._forceShowBoundingBoxes || !1
+                    return false //this._forceShowBoundingBoxes || !1
                 },
                 set: function (value) {
                     (this._forceShowBoundingBoxes = value) && this.getBoundingBoxRenderer()
