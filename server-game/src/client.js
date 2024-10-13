@@ -107,9 +107,9 @@ class newClient {
             hatItem: this.loadout[ItemType.Hat],
             stampItem: this.loadout[ItemType.Stamp],
 
-            x: 15,
-            y: 5,
-            z: 5,
+            x: 0,
+            y: 0,
+            z: 0,
             dx: 0,
             dy: 0,
             dz: 0,
