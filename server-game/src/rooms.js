@@ -121,7 +121,7 @@ class newRoom {
     };
 
     metaLoop (fromDisconnect) {
-        console.log("metaLoop", this.getPlayerCount(), this.existedFor, fromDisconnect);
+        // console.log("metaLoop", this.getPlayerCount(), this.existedFor, fromDisconnect);
         if (this.getPlayerCount() === 0 && (fromDisconnect === true || this.existedFor > 5e3)) {
             this.destroy();
             return;
