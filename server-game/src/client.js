@@ -299,8 +299,8 @@ class newClient {
     setEquippedItem(itemType, classIdx, item) { //itemType: stamp/hat/prim/sec, classIdx: eggk/shotgun etc
         let itemId = 0;
 
-        console.log("verifying item");
-        console.log(item, !!this.userData);
+        // console.log("verifying item");
+        // console.log(item, !!this.userData);
         // console.log(item.exclusive_for_class, classIdx);
         // console.log(item.item_type_id, itemType);
         // this.userData && console.log(this.userData.ownedItemIds, item.id, this.userData.ownedItemIds.includes(item.id));
