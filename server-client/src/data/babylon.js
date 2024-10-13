@@ -19909,7 +19909,7 @@
                 enumerable: !0,
                 configurable: !0
             }), BABYLON.Scene.prototype.getBoundingBoxRenderer = function () {
-                return this._boundingBoxRenderer || (this._boundingBoxRenderer = new BoundingBoxRenderer(this)), this._boundingBoxRenderer
+                // return this._boundingBoxRenderer || (this._boundingBoxRenderer = new BoundingBoxRenderer(this)), this._boundingBoxRenderer
             }, Object.defineProperty(BABYLON.AbstractMesh.prototype, "showBoundingBox", {
                 get: function () {
                     return this._showBoundingBox || !1
