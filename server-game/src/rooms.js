@@ -9,8 +9,6 @@ import { setSSforLoader, loadMapMeshes, buildMapData } from '#loading';
 import { TickStep, stateBufferSize, FramesBetweenSyncs } from '#constants';
 import { MunitionsManagerConstructor } from '#munitionsManager';
 import { ItemManagerConstructor } from '#itemManager';
-//legacyshell: getting user data
-import wsrequest from '#wsrequest';
 import BABYLON from "babylonjs";
 //
 
@@ -122,8 +120,9 @@ class newRoom {
         };
     };
 
-    metaLoop (delta) {
-        if (this.getPlayerCount() === 0 && this.existedFor > 5e3) {
+    metaLoop (fromDisconnect) {
+        console.log("metaLoop", this.getPlayerCount(), this.existedFor, fromDisconnect);
+        if (this.getPlayerCount() === 0 && (fromDisconnect === true || this.existedFor > 5e3)) {
             this.destroy();
             return;
         };
@@ -147,14 +146,16 @@ class newRoom {
         console.log("destroy room", this.existedFor, this.gameId);
 
         //most of this is redundant now, but eh.
-        this.updateLoopObject.stop();
-        this.metaLoopObject.stop();
-        this.players = null;
-        this.clients = null;
-        this.map = null;
-        this.Collider = null;
-        this.engine = null;
-        this.scene = null;
+        try {
+            this.players = null;
+            this.clients = null;
+            this.map = null;
+            this.Collider = null;
+            this.engine = null;
+            this.scene = null;
+            this.updateLoopObject.stop();
+            this.metaLoopObject.stop();
+        } catch (error) { } //possible that some wasnt initted, or something
 
         ss.parentPort.close();
         process.exit(0);
@@ -169,18 +170,6 @@ class newRoom {
     };
 
     async joinPlayer(info) {
-        if (info.session && info.session.length > 0) {
-            const response = await wsrequest({
-                cmd: "getUser",
-                session: info.session,
-            }, ss.config.game.services_server, ss.config.game.auth_key);
-
-            info.userData = response.userData;
-            info.sessionData = response.sessionData;
-
-            console.log(info.userData);
-        };
-
         info.id = this.getUnusedPlayerId();
 
         console.log(info.wsId, "joining new player with assigned id:", info.id, info.nickname, this.getPlayerCount());
@@ -210,7 +199,7 @@ class newRoom {
 
         console.log('Client disconnected', client.id);
         
-        this.metaLoop();
+        this.metaLoop(true);
     };
 
     getPlayerCount() {
