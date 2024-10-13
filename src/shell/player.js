@@ -752,7 +752,7 @@ class Player {
                         var response = await wsrequest({
                             cmd: "addKill",
                             session: this.client.session,
-                            currentKills: this.client.kills,
+                            currentKills: this.kills,
                         }, this.client.ss.config.game.services_server, this.client.ss.config.game.auth_key);
     
                         var output = new Comm.Out();
