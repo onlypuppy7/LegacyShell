@@ -159,20 +159,29 @@ export var teamColors = {
     outline: [new BABYLON.Color4(1, 1, 1, 1), new BABYLON.Color4(0, .75, 1, 1), new BABYLON.Color4(1, .25, .25, 1)]
 };
 
-export var GameType = {
-    ffa: 0,
-    teams: 1
-};
-
 export var GameTypes = [
     {
         shortName: "FFA",
-        longName: "Free For All"
+        longName: "Free For All",
+        codeName: "ffa",
+        options: {
+            teamsEnabled: false,
+        }
     }, {
         shortName: "Teams",
-        longName: "Teams"
+        longName: "Teams",
+        codeName: "teams",
+        options: {
+            teamsEnabled: true,
+        }
     }
 ];
+
+//LS: dynamically create from GameTypes
+export var GameType = GameTypes.reduce((acc, gameType, index) => {
+    acc[gameType.codeName] = index;
+    return acc;
+}, {});
 
 export var CONTROL = {
     up: 1,
