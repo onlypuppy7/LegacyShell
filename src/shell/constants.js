@@ -272,6 +272,42 @@ export const ItemTypes = {
     GRENADE: 1
 };
 
+export const PingIndicators = [
+    {
+        int: 0,
+        minimumPing: 0,
+        color: "#0f0", //green
+        icon: "ping1.png"
+    },
+    {
+        int: 1,
+        minimumPing: 100,
+        color: "#ff0", //yellow
+        icon: "ping2.png"
+    },
+    {
+        int: 2,
+        minimumPing: 150,
+        color: "#f90", //orange
+        icon: "ping3.png"
+    },
+    {
+        int: 3,
+        minimumPing: 200,
+        color: "#f00", //red
+        icon: "ping4.png"
+    },
+];
+
+export function getPingLevel(pingValue) {
+    for (let i = PingIndicators.length - 1; i >= 0; i--) {
+        if (pingValue >= PingIndicators[i].minimumPing) {
+            return PingIndicators[i];
+        };
+    };
+    return PingIndicators[0];
+};
+
 export var color4White = new BABYLON.Color4(1, 1, 1, 1);
 
 export var inputToControlMap = {
