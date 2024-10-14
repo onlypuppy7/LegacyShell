@@ -39,7 +39,7 @@ class newRoom {
 
         // this.items = info.items;
         this.mapJson = ss.maps[this.mapId];
-        this.playerLimit = 1//this.mapJson.playerLimit || 18;        
+        this.playerLimit = this.mapJson.playerLimit || 18;        
 
         this.players = [];
         this.clients = [];
