@@ -28,6 +28,7 @@ class newClient {
         //
         this.session = info.session;
         await this.updateUserData();
+        // console.log(info.nickname, this.userData)
         //
         this.timeout = new TimeoutManagerConstructor();
         this.interval = new IntervalManagerConstructor();
@@ -35,7 +36,7 @@ class newClient {
         this.room = room;
         this.wsId = info.wsId;
         this.joinedTime = Date.now();
-        this.loggedIn = info.userData && info.sessionData;
+        this.loggedIn = this.userData && this.sessionData;
         //
         this.account_id = this.loggedIn ? this.userData.account_id : null; //reminder this is the ID of the actual account
         this.nickname = info.nickname; //todo check this is legal length and stuff
@@ -136,6 +137,8 @@ class newClient {
 
             upgradeProductId: this.loggedIn ? this.userData.upgradeProductId : 0,
         }, this.room.scene, this);       
+
+        console.log("upgradeProductId", this.userData.upgradeProductId, this.loggedIn ? this.userData.upgradeProductId : 0);
     };
 
     async updateUserData() {
@@ -341,12 +344,9 @@ class newClient {
 
     setColorIdx(colorIdx) {
         let range = 6;
-        if (this.loggedIn && !this.userData.upgradeIsExpired) range = 13;
+        if (this.loggedIn && (this.userData.upgradeExpiryDate > Date.now() / 1000)) range = 13;
+        console.log(this.userData.upgradeExpiryDate, Date.now() / 1000)
         this.colorIdx = Math.clamp(Math.floor(colorIdx), 0, range);
-    };
-
-    async setLoadout() {
-
     };
 
     packPlayer(output) {
