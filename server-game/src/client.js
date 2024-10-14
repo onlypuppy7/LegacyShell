@@ -67,6 +67,8 @@ class newClient {
         var output = new Comm.Out(11); //if fixed for gameJoined, use 11
         this.packGameJoined(output);
         this.sendBuffer(output, "packGameJoined"); //buffer cause not clientReady
+
+        this.room.updateRoomDetails();
     };
 
     async updateLoadout (classIdx, primary_item_id, secondary_item_id, colorIdx, hatId, stampId) {
@@ -138,7 +140,7 @@ class newClient {
             upgradeProductId: this.loggedIn ? this.userData.upgradeProductId : 0,
         }, this.room.scene, this);       
 
-        console.log("upgradeProductId", this.userData.upgradeProductId, this.loggedIn ? this.userData.upgradeProductId : 0);
+        // console.log("upgradeProductId", this.userData.upgradeProductId, this.loggedIn ? this.userData.upgradeProductId : 0);
     };
 
     async updateUserData() {
@@ -345,7 +347,7 @@ class newClient {
     setColorIdx(colorIdx) {
         let range = 6;
         if (this.loggedIn && (this.userData.upgradeExpiryDate > Date.now() / 1000)) range = 13;
-        console.log(this.userData.upgradeExpiryDate, Date.now() / 1000)
+        // console.log(this.userData.upgradeExpiryDate, Date.now() / 1000)
         this.colorIdx = Math.clamp(Math.floor(colorIdx), 0, range);
     };
 
