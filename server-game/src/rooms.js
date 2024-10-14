@@ -39,7 +39,7 @@ class newRoom {
 
         // this.items = info.items;
         this.mapJson = ss.maps[this.mapId];
-        this.playerLimit = this.mapJson.playerLimit || 18;        
+        this.playerLimit = 1//this.mapJson.playerLimit || 18;        
 
         this.players = [];
         this.clients = [];
@@ -73,6 +73,7 @@ class newRoom {
 
             this.updateLoopObject = createLoop(this.updateLoop.bind(this), TickStep);
             this.metaLoopObject = createLoop(this.metaLoop.bind(this), 2e3);
+            this.updateRoomDetails();
         });
     };
 
@@ -90,6 +91,14 @@ class newRoom {
                     break;
             }
         };
+    };
+
+    updateRoomDetails() {
+        ss.parentPort.postMessage([2, {
+            ready: true,
+            playerLimit: this.playerLimit,
+            playerCount: this.getPlayerCount(),
+        }]);
     };
 
     updateLoop (delta) {

@@ -127,7 +127,7 @@ class newRoomManager {
         worker.on('message', (msg) => {
             try {
                 const [ msgType, content, wsId ] = msg;
-                const room = this.getRoom(info.gameId);
+                var room = this.getRoom(info.gameId);
                 const ws = room.wsMap.get(wsId);
     
                 switch (msgType) {
@@ -136,6 +136,11 @@ class newRoomManager {
                         break;
                     case 1: //close stuff to ws
                         ws.close(content);
+                        break;
+                    case 2: //update the room
+                        Object.assign(createdRoom, content);
+                        // console.log(room.ready, createdRoom.ready, content);
+                        // console.log(room.playerLimit, createdRoom.ready);
                         break;
                     default:
                         break;
@@ -173,6 +178,8 @@ class newRoomManager {
         let wsId = room.wsIdx++;
 
         // console.log("joining player, wsId:", wsId);
+
+        // console.log("is room ready?", room.ready);
 
         ws.removeAllListeners('message');
         ws.on('message', (content)=>{
