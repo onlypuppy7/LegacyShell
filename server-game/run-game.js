@@ -70,7 +70,7 @@ function startServer() {
                                 console.log("roomFound", !!roomFound);
     
                                 if (roomFound) {
-                                    console.log(roomFound.ready, roomFound.playerCount, roomFound.playerLimit)
+                                    // console.log(roomFound.ready, roomFound.playerCount, roomFound.playerLimit);
                                     if ((roomFound.ready) && roomFound.playerCount >= roomFound.playerLimit) {
                                         console.log("Comm.Close.gameFull");
                                         ws.close(Comm.Close.gameFull);
