@@ -102,7 +102,7 @@ class newClient {
             classIdx: this.classIdx, // weapon class
             username: this.username,
 
-            team: 0, //info.team,
+            team: this.room.gameOptions.teamsEnabled ? ran.getRandomInt(1,2) : 0, //info.team,
 
             primaryWeaponItem: this.loadout[ItemType.Primary],
             secondaryWeaponItem: this.loadout[ItemType.Secondary],
@@ -434,7 +434,7 @@ class newClient {
         output.packInt8U(Comm.Code.gameJoined);
 
         output.packInt8U(this.id); //meId (0-17 for 18 slots)
-        output.packInt8U(0); // myTeam (0 for ffa, 1-2 for teams)
+        output.packInt8U(this.player.team); // myTeam (0 for ffa, 1-2 for teams)
         output.packInt8U(this.room.gameType); // gameType
         output.packInt16U(this.room.gameId); // gameId
         output.packInt16U(this.room.gameKey); // gameKey

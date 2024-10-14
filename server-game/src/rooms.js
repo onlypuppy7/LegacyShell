@@ -6,7 +6,7 @@ import ColliderConstructor from '#collider';
 import createLoop from '#looper';
 import extendMath from '#math';
 import { setSSforLoader, loadMapMeshes, buildMapData } from '#loading';
-import { TickStep, stateBufferSize, FramesBetweenSyncs } from '#constants';
+import { TickStep, stateBufferSize, FramesBetweenSyncs, GameTypes } from '#constants';
 import { MunitionsManagerConstructor } from '#munitionsManager';
 import { ItemManagerConstructor } from '#itemManager';
 import BABYLON from "babylonjs";
@@ -33,6 +33,8 @@ class newRoom {
 
         this.joinType = info.joinType;
         this.gameType = info.gameType;
+        this.gameOptions = JSON.parse(JSON.stringify(GameTypes[this.gameType].options)); //create copy of object
+        console.log("gameOptions", this.gameOptions)
         this.mapId = info.mapId;
         this.gameId = info.gameId;
         this.gameKey = info.gameKey;
