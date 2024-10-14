@@ -286,7 +286,7 @@ class newClient {
                         break;
                     case Comm.Code.ping:
                         this.pingLevelInt = Math.clamp(input.unPackInt8U(), 0, 3);
-                        console.log(this.nickname, "new pingLevelInt", this.pingLevelInt)
+                        // console.log(this.nickname, "new pingLevelInt", this.pingLevelInt)
                         var output = new Comm.Out();
                         output.packInt8U(Comm.Code.ping);
                         this.sendToMe(output, "ping");
@@ -415,7 +415,7 @@ class newClient {
         output.packFloat(this.player.dz);
         output.packInt8U(this.player.climbing ? 1 : 0);
         output.packInt8U(this.pingLevelInt);
-        console.log(this.id, this.pingLevelInt)
+        // console.log(this.id, this.pingLevelInt)
 
         for (var i = 0; i < FramesBetweenSyncs; i++) {
             var idx = Math.mod(this.player.stateIdx + i - FramesBetweenSyncs, stateBufferSize);
