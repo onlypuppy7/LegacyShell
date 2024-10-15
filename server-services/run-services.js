@@ -148,6 +148,7 @@ initTables().then(() => {
                 const auth_commands = [
                     "getUser", //modify this i guess
                     "addKill",
+                    "addDeath",
                 ];
                 auth_commands.includes(msg.cmd) && (cmdType = 'auth_required');
                 
@@ -178,7 +179,7 @@ initTables().then(() => {
                 if (msg.session) {
                     sessionData = await sess.retrieveSession(msg.session, ip);
                     try {
-                        console.log(sessionData);
+                        // console.log(sessionData);
                         console.log(sessionData.expires_at, (Math.floor(Date.now() / 1000)));
                         if (sessionData && (sessionData.expires_at > (Math.floor(Date.now() / 1000)))) {
                             userData = await accs.getUserData(sessionData.user_id, true);
@@ -189,350 +190,386 @@ initTables().then(() => {
                     };
                 };
     
-                switch (msg.cmd) {
-                    // Sync commands
-                    case 'requestConfig':
-                        ss.config.verbose && ss.log.bgCyan("services: Reading from DB: get max modified of items");
-                        const items = await ss.getOne('SELECT MAX(dateModified) AS maxDateModified FROM items');
-                        ss.config.verbose && ss.log.bgCyan("services: Reading from DB: get max modified of maps");
-                        const maps = await ss.getOne('SELECT MAX(dateModified) AS maxDateModified FROM maps');
-                        ss.config.verbose && ss.log.bgCyan("services: Reading from DB: get max modified of game_servers");
-                        const game_servers = await ss.getOne('SELECT MAX(dateModified) AS maxDateModified FROM game_servers');
+                // Sync commands
+                if (msg.cmd == "requestConfig") {
+                    ss.config.verbose && ss.log.bgCyan("services: Reading from DB: get max modified of items");
+                    const items = await ss.getOne('SELECT MAX(dateModified) AS maxDateModified FROM items');
+                    ss.config.verbose && ss.log.bgCyan("services: Reading from DB: get max modified of maps");
+                    const maps = await ss.getOne('SELECT MAX(dateModified) AS maxDateModified FROM maps');
+                    ss.config.verbose && ss.log.bgCyan("services: Reading from DB: get max modified of game_servers");
+                    const game_servers = await ss.getOne('SELECT MAX(dateModified) AS maxDateModified FROM game_servers');
 
-                        let timeNow = Math.floor(Date.now()/1000);
-                        ss.config.verbose && console.log("TIME NOW", timeNow);
-                        ss.config.verbose && console.log("items", items.maxDateModified, msg.lastItems);
-                        ss.config.verbose && console.log("maps", maps.maxDateModified, msg.lastMaps);
-                        ss.config.verbose && console.log("game_servers", game_servers.maxDateModified, msg.lastServers);
+                    let timeNow = Math.floor(Date.now()/1000);
+                    ss.config.verbose && console.log("TIME NOW", timeNow);
+                    ss.config.verbose && console.log("items", items.maxDateModified, msg.lastItems);
+                    ss.config.verbose && console.log("maps", maps.maxDateModified, msg.lastMaps);
+                    ss.config.verbose && console.log("game_servers", game_servers.maxDateModified, msg.lastServers);
 
-                        let response = {
-                            distributed_all: ss.config.distributed_all,
-                            distributed_client: ss.config.distributed_client,
-                            distributed_game: ss.config.distributed_game,
+                    let response = {
+                        distributed_all: ss.config.distributed_all,
+                        distributed_client: ss.config.distributed_client,
+                        distributed_game: ss.config.distributed_game,
 
-                            nugget_interval: ss.config.services.nugget_interval,
-                            servicesMeta: {
-                                versionEnum: ss.versionEnum,
-                                versionHash: ss.versionHash,
-                                startTime: ss.startTime,
-                            },
-                        };
+                        nugget_interval: ss.config.services.nugget_interval,
+                        servicesMeta: {
+                            versionEnum: ss.versionEnum,
+                            versionHash: ss.versionHash,
+                            startTime: ss.startTime,
+                        },
+                    };
 
-                        // console.log(ss.config.distributed_client);
+                    // console.log(ss.config.distributed_client);
 
-                        if (msg.lastItems !== undefined)    response.items  = items.maxDateModified         > msg.lastItems     ? await recs.getAllItemData()            : false;
-                        if (msg.lastMaps !== undefined)     response.maps   = maps.maxDateModified          > msg.lastMaps      ? await recs.getAllMapData()             : false;
-                        if (msg.lastServers !== undefined)  response.servers= game_servers.maxDateModified  > msg.lastServers   ? await recs.getAllGameServerData()      : false;
+                    if (msg.lastItems !== undefined)    response.items  = items.maxDateModified         > msg.lastItems     ? await recs.getAllItemData()            : false;
+                    if (msg.lastMaps !== undefined)     response.maps   = maps.maxDateModified          > msg.lastMaps      ? await recs.getAllMapData()             : false;
+                    if (msg.lastServers !== undefined)  response.servers= game_servers.maxDateModified  > msg.lastServers   ? await recs.getAllGameServerData()      : false;
 
-                        ws.send(JSON.stringify( response ));
-                        break;
-                };
-                if (!ss.config.distributed_all.closed) switch (msg.cmd) {
-                    // Game server commands
-                    case 'getUser':
-                        ws.send(JSON.stringify({
-                            sessionData,
-                            userData
-                        }));
-                    // Client commands
-                    case 'validateLogin':
-                        accs.getUserData(msg.username, true, true).then(userData => {
-                            if (userData) {
-                                accs.comparePassword(userData, msg.password).then(async (isPasswordCorrect) => {
-                                    if (isPasswordCorrect === true) {
-                                        userData.authToken = await accs.generateToken(msg.username);
-                                        userData.session = await sess.createSession(userData.account_id, ip);
-                                        delete userData.password;
-                                        ws.send(JSON.stringify(userData));
-                                    } else {
-                                        ss.config.services.protect_usernames ? ws.send(JSON.stringify({ error: "Username or password is incorrect." })) : ws.send(JSON.stringify({ error: "Password is incorrect." }));
-                                    };
-                                }).catch(error => {
-                                    console.error('Error comparing passwords:', error);
-                                    standardError(ws);
-                                });
-                            } else {
-                                console.log('No data found for the given username.');
-                                ss.config.services.protect_usernames ? ws.send(JSON.stringify({ error: "Username or password is incorrect." })) : ws.send(JSON.stringify({ error: "User doesn't exist" }));
-                            };
-                        }).catch((err) => {
-                            console.error('Error:', err);
-                            ws.send(JSON.stringify({ error: 'Database error.' }))
-                        });
-                        break;
-                    case 'validateLoginViaAuthToken':
-                        accs.getUserData(msg.username, true, true).then(userData => {
-                            if (userData) {
-                                accs.compareAuthToken(userData, msg.authToken).then(async (accessGranted) => {
-                                    if (accessGranted === true) {
-                                        userData.authToken = await accs.generateToken(msg.username);
-                                        userData.session = await sess.createSession(userData.account_id, ip);
-                                        delete userData.password;
-                                        ws.send(JSON.stringify(userData));
-                                    } else {
-                                        ws.send(JSON.stringify({ error: accessGranted }));
-                                    };
-                                }).catch(error => {
-                                    console.error('Error comparing passwords:', error);
-                                    standardError(ws);
-                                });
-                            } else { //this case shouldnt happen
-                                console.log('No data found for the given username.');
-                                ws.send(JSON.stringify({ error: 'User doesn\'t exist' }));
-                            };
-                        }).catch((err) => {
-                            console.error('Error:', err);
-                            ws.send(JSON.stringify({ error: 'Database error.' }))
-                        });
-                    break;
-                    case 'validateRegister':
-                        try {
-                            if (msg.username.length < 3 || !/^[A-Za-z0-9?!._-]+$/.test(msg.username)) {
-                                ws.send(JSON.stringify({ error: 'Invalid username.' }));
-                                return;
-                            };
-                            if (!(/^[a-f0-9]{64}$/i).test(msg.password)) {
-                                standardError(ws);
-                                return;
-                            };
-                            const accountCreationResult = await accs.createAccount(msg.username, msg.password);
-                    
-                            if (accountCreationResult === true) {
-                                const newToken = await accs.generateToken(msg.username);
-                    
-                                const userData = await accs.getUserData(msg.username, true);
+                    ws.send(JSON.stringify( response ));
+                } else if (ss.config.distributed_all.closed !== true) {
+                    switch (msg.cmd) {
+                        // Game server commands
+                        case 'getUser':
+                            ws.send(JSON.stringify({
+                                sessionData,
+                                userData
+                            }));
+                            break;
+                        case 'addKill':
+                            var multiplier = 1;
+                            if (userData.upgradeExpiryDate * 1000 > Date.now()) multiplier = userData.upgradeMultiplier;
+                            console.log("egg multiplier", multiplier);
+
+                            userData.currentBalance += (10 * multiplier);
+                            userData.kills += 1;
+                            userData.streak = Math.max(msg.currentKills, userData.streak || 0);
+
+                            ss.config.verbose && ss.log.bgBlue("services: Writing to DB: set new balance + kills + streak "+userData.username);
+                            await ss.runQuery(`
+                                UPDATE users 
+                                SET currentBalance = ?, kills = ?, streak = ?
+                                WHERE account_id = ?
+                            `, [userData.currentBalance, userData.kills, userData.streak, userData.account_id]);
+
+                            ws.send(JSON.stringify({
+                                currentBalance: userData.currentBalance,
+                                kills: userData.kills, //i dont think we really need this for anything, but doesnt hurt to show something happened
+                                streak: userData.streak
+                            }));
+                            break;
+                        case 'addDeath':
+                            userData.deaths += 1;
+
+                            ss.config.verbose && ss.log.bgBlue("services: Writing to DB: set new deaths "+userData.username);
+                            await ss.runQuery(`
+                                UPDATE users 
+                                SET deaths = ?
+                                WHERE account_id = ?
+                            `, [userData.deaths, userData.account_id]);
+
+                            ws.send(JSON.stringify({
+                                deaths: userData.deaths, //again, i dont think we really need this for anything
+                            }));
+                            break;
+                        // Client commands
+                        case 'validateLogin':
+                            accs.getUserData(msg.username, true, true).then(userData => {
                                 if (userData) {
-                                    userData.session = await sess.createSession(userData.account_id, ip);
-                                    userData.authToken = newToken;
-                                    ws.send(JSON.stringify(userData));
+                                    accs.comparePassword(userData, msg.password).then(async (isPasswordCorrect) => {
+                                        if (isPasswordCorrect === true) {
+                                            userData.authToken = await accs.generateToken(msg.username);
+                                            userData.session = await sess.createSession(userData.account_id, ip);
+                                            delete userData.password;
+                                            ws.send(JSON.stringify(userData));
+                                        } else {
+                                            ss.config.services.protect_usernames ? ws.send(JSON.stringify({ error: "Username or password is incorrect." })) : ws.send(JSON.stringify({ error: "Password is incorrect." }));
+                                        };
+                                    }).catch(error => {
+                                        console.error('Error comparing passwords:', error);
+                                        standardError(ws);
+                                    });
                                 } else {
                                     console.log('No data found for the given username.');
-                                    ws.send(JSON.stringify({ error: 'Database error.' }));
+                                    ss.config.services.protect_usernames ? ws.send(JSON.stringify({ error: "Username or password is incorrect." })) : ws.send(JSON.stringify({ error: "User doesn't exist" }));
                                 };
-                            } else {
-                                if (accountCreationResult === 'SQLITE_CONSTRAINT') {
-                                    ws.send(JSON.stringify({ error: 'Username is already taken.' }));
-                                } else {
-                                    ws.send(JSON.stringify({ error: 'Database error.' }));
-                                };
-                            };
-                        } catch (error) {
-                            console.error('Error in validateRegister:', error);
-                            standardError(ws);
-                        };
-                        break;
-                    case 'feedback':
-                        if (ss.config.services.feedback && ss.config.services.feedback.length > 10) {
-                            const formData = new FormData();
-    
-                            const jsonBlob = new Blob([Object.entries(msg).map(([key, value]) => `${key}: ${value}`).join('\n')], { type: 'text/plain' });
-                            formData.append('file', jsonBlob, 'stats.txt');
-    
-                            formData.append('payload_json', JSON.stringify({
-                                username: 'LegacyShell Feedback',
-                                avatar_url: msg.url + 'favicon.ico',
-                                allowed_mentions: { parse: [] },
-                                embeds: [{ description: `> from ${msg.email}\n\n${msg.comments}` }]
-                            }));
-    
-                            fetch(ss.config.services.feedback, { method: 'POST', body: formData });
-                        } else ss.log.blue('Feedback received, no discord webhook set!:'+JSON.stringify(msg));
-    
-                        ws.send(JSON.stringify({ success: true }));
-                        break;
-                    case 'saveEquip':
-                        try {
-                            if (userData) {
-                                // class_idx: this.classIdx
-                                userData.loadout.classIdx = Math.clamp(Math.floor(msg.class_idx), 0, 3);
-                                // soldier_primary_item_id:
-                                if (accs.doesPlayerOwnItem(userData, msg.soldier_primary_item_id, "Eggk47")) 
-                                    userData.loadout.primaryId[0] = msg.soldier_primary_item_id;
-                                // soldier_secondary_item_id
-                                if (accs.doesPlayerOwnItem(userData, msg.soldier_secondary_item_id, "Cluck9mm")) 
-                                    userData.loadout.secondaryId[0] = msg.soldier_secondary_item_id;
-                                // scrambler_primary_item_id
-                                if (accs.doesPlayerOwnItem(userData, msg.scrambler_primary_item_id, "DozenGauge")) 
-                                    userData.loadout.primaryId[1] = msg.scrambler_primary_item_id;
-                                // scrambler_secondary_item_id
-                                if (accs.doesPlayerOwnItem(userData, msg.scrambler_secondary_item_id, "Cluck9mm")) 
-                                    userData.loadout.secondaryId[1] = msg.scrambler_secondary_item_id;
-                                // ranger_primary_item_id: 
-                                if (accs.doesPlayerOwnItem(userData, msg.ranger_primary_item_id, "CSG1")) 
-                                    userData.loadout.primaryId[2] = msg.ranger_primary_item_id;
-                                // ranger_secondary_item_id
-                                if (accs.doesPlayerOwnItem(userData, msg.ranger_secondary_item_id, "Cluck9mm")) 
-                                    userData.loadout.secondaryId[2] = msg.ranger_secondary_item_id;
-                                // eggsploder_primary_item_id
-                                if (accs.doesPlayerOwnItem(userData, msg.eggsploder_primary_item_id, "RPEGG")) 
-                                    userData.loadout.primaryId[3] = msg.eggsploder_primary_item_id;
-                                // eggsploder_secondary_item_id
-                                if (accs.doesPlayerOwnItem(userData, msg.eggsploder_secondary_item_id, "Cluck9mm")) 
-                                    userData.loadout.secondaryId[3] = msg.eggsploder_secondary_item_id;
-                                // hat_id: updateHatId,
-                                if (accs.doesPlayerOwnItem(userData, msg.hat_id, "Hats")) 
-                                    userData.loadout.hatId = msg.hat_id;
-                                // stamp_id: updateStampId,
-                                if (accs.doesPlayerOwnItem(userData, msg.stamp_id, "Stamps")) 
-                                    userData.loadout.stampId = msg.stamp_id;
-                                // color: this.colorIdx,
-                                userData.loadout.colorIdx = Math.clamp(Math.floor(msg.color), 0, userData.upgradeIsExpired ? 6 : 13); //if vip, then eep
-
-                                ss.config.verbose && ss.log.bgBlue("services: Writing to DB: set new loadout "+userData.username) //, console.log(userData.loadout);
-                                await ss.runQuery(`
-                                    UPDATE users 
-                                    SET loadout = ?
-                                    WHERE account_id = ?
-                                `, [JSON.stringify(userData.loadout), userData.account_id]);
-
-                                ws.send(JSON.stringify({ 
-                                    result: "success",
-                                }));
-                            };
-                        } catch (error) {
-                            console.error(error);
-                            standardError(ws);
-                        };
-                        break;
-                    case 'buy':
-                        let buyingResult = "PLAYER_NOT_FOUND";
-
-                        try {
-                            if (userData) {
-                                buyingResult = await accs.addItemToPlayer(msg.item_id, userData, true, false);
-                            }; //ELSE -> achievement: how did we get here?
-                        } catch (error) {
-                            ss.log.red("WHY IS THERE AN ERROR??");
-                            console.error(error);
-                            buyingResult = "ERROR";
-                        };
-    
-                        ws.send(JSON.stringify({ 
-                            result: buyingResult, //cases: SUCCESS, INSUFFICIENT_FUNDS, ALREADY_OWNED, PLAYER_NOT_FOUND, ITEM_NOT_FOUND, ERROR
-                            current_balance: userData.currentBalance || 0,
-                            item_id: msg.item_id,
-                        }));
-                        break;
-                    case 'redeem':
-                        let redeemResult = [];
-
-                        try {
-                            if (userData) {
-                                redeemResult = await accs.addCodeToPlayer(msg.code, userData);
-                            };
-                        } catch (error) {
-                            ss.log.red("WHY IS THERE AN ERROR??");
-                            console.error(error);
-                        };
-
-                        console.log(redeemResult);
-    
-                        ws.send(JSON.stringify({ 
-                            result: redeemResult.result || "ERROR", //cases: SUCCESS, CODE_PREV_REDEEMED, CODE_NOT_FOUND, ERROR
-                            // error: !redeemResult.item_ids,
-
-                            item_ids: redeemResult.item_ids || [],
-                            eggs_given: redeemResult.eggs_given || 0,
-                        }));
-                        break;
-                    case 'preview':
-                        let previewResult = [];
-
-                        try {
-                            if (userData) {
-                                previewResult = await recs.getCodeData(msg.code, true);
-                            };
-                        } catch (error) {
-                            ss.log.red("WHY IS THERE AN ERROR??");
-                            console.error(error);
-                        };
-
-                        let canBeUsed = previewResult ? (previewResult.uses > 0 ? (previewResult.used_by.includes(userData.id) ? "CODE_PREV_REDEEMED" : "SUCCESS") : "CODE_PREV_REDEEMED") : "CODE_NOT_FOUND";
-                        console.log(canBeUsed, previewResult);
-
-                        if (canBeUsed !== "SUCCESS") previewResult = [];
-    
-                        ws.send(JSON.stringify({ 
-                            result: canBeUsed, //cases: SUCCESS, CODE_PREV_REDEEMED, CODE_NOT_FOUND, ERROR
-
-                            item_ids: previewResult.item_ids || [],
-                            eggs_given: previewResult.eggs_given || 0,
-                            uses: previewResult.uses || 0,
-                        }));
-                        break;
-                    case 'checkBalance':
-                        if (userData) {
-                            ws.send(JSON.stringify({ current_balance: userData.currentBalance }));
-                        } else {
-                            standardError(ws);
-                        };
-                        break;
-                    case 'getUpgrade':
-                        if (userData) {
-                            ss.config.verbose && console.log({
-                                upgradeProductId: userData.upgradeProductId,
-                                multiplier: userData.upgradeMultiplier,
-                                hideAds: userData.upgradeAdFree,
-                                isExpired: userData.upgradeIsExpired,
+                            }).catch((err) => {
+                                console.error('Error:', err);
+                                ws.send(JSON.stringify({ error: 'Database error.' }))
                             });
-                            ws.send(JSON.stringify({
-                                upgradeProductId: userData.upgradeProductId,
-                                multiplier: userData.upgradeMultiplier,
-                                hideAds: userData.upgradeAdFree,
-                                isExpired: userData.upgradeIsExpired,
-                            }));
-                            // ws.send(JSON.stringify({
-                            //     upgradeProductId: 1,
-                            //     multiplier: 2,
-                            //     hideAds: true,
-                            //     isExpired: false,
-                            // }));
-                        } else {
-                            standardError(ws);
-                        };
+                            break;
+                        case 'validateLoginViaAuthToken':
+                            accs.getUserData(msg.username, true, true).then(userData => {
+                                if (userData) {
+                                    accs.compareAuthToken(userData, msg.authToken).then(async (accessGranted) => {
+                                        if (accessGranted === true) {
+                                            userData.authToken = await accs.generateToken(msg.username);
+                                            userData.session = await sess.createSession(userData.account_id, ip);
+                                            delete userData.password;
+                                            ws.send(JSON.stringify(userData));
+                                        } else {
+                                            ws.send(JSON.stringify({ error: accessGranted }));
+                                        };
+                                    }).catch(error => {
+                                        console.error('Error comparing passwords:', error);
+                                        standardError(ws);
+                                    });
+                                } else { //this case shouldnt happen
+                                    console.log('No data found for the given username.');
+                                    ws.send(JSON.stringify({ error: 'User doesn\'t exist' }));
+                                };
+                            }).catch((err) => {
+                                console.error('Error:', err);
+                                ws.send(JSON.stringify({ error: 'Database error.' }))
+                            });
                         break;
-                    case 'token': //this initiates the nugget "game" thing
-                        if (userData) {
-                            let oneHour = Math.floor(Date.now() / 1000) + (60*60);
-                            if (userData.upgradeIsExpired) {
-                                ss.config.verbose && console.log(userData.upgradeExpiryDate, (userData.upgradeExpiryDate + (ss.config.services.nugget_interval * 60 * 60)), Math.floor(Date.now() / 1000), (userData.upgradeExpiryDate + (ss.config.services.nugget_interval * 60 * 60)) < Math.floor(Date.now() / 1000));
-                                if ((userData.upgradeExpiryDate + (ss.config.services.nugget_interval * 60 * 60)) < Math.floor(Date.now() / 1000)) {
-                                    userData.upgradeExpiryDate = oneHour; //set it to one hour.
-                                    userData.upgradeAdFree = true;
-                                    userData.upgradeMultiplier = 2;
-                                    userData.upgradeProductId = 1; //actually, idk what these ids correspond to. but it seems fine when its at 1.
+                        case 'validateRegister':
+                            try {
+                                if (msg.username.length < 3 || !/^[A-Za-z0-9?!._-]+$/.test(msg.username)) {
+                                    ws.send(JSON.stringify({ error: 'Invalid username.' }));
+                                    return;
+                                };
+                                if (!(/^[a-f0-9]{64}$/i).test(msg.password)) {
+                                    standardError(ws);
+                                    return;
+                                };
+                                const accountCreationResult = await accs.createAccount(msg.username, msg.password);
+                        
+                                if (accountCreationResult === true) {
+                                    const newToken = await accs.generateToken(msg.username);
+                        
+                                    const userData = await accs.getUserData(msg.username, true);
+                                    if (userData) {
+                                        userData.session = await sess.createSession(userData.account_id, ip);
+                                        userData.authToken = newToken;
+                                        ws.send(JSON.stringify(userData));
+                                    } else {
+                                        console.log('No data found for the given username.');
+                                        ws.send(JSON.stringify({ error: 'Database error.' }));
+                                    };
+                                } else {
+                                    if (accountCreationResult === 'SQLITE_CONSTRAINT') {
+                                        ws.send(JSON.stringify({ error: 'Username is already taken.' }));
+                                    } else {
+                                        ws.send(JSON.stringify({ error: 'Database error.' }));
+                                    };
+                                };
+                            } catch (error) {
+                                console.error('Error in validateRegister:', error);
+                                standardError(ws);
+                            };
+                            break;
+                        case 'feedback':
+                            if (ss.config.services.feedback && ss.config.services.feedback.length > 10) {
+                                const formData = new FormData();
+        
+                                const jsonBlob = new Blob([Object.entries(msg).map(([key, value]) => `${key}: ${value}`).join('\n')], { type: 'text/plain' });
+                                formData.append('file', jsonBlob, 'stats.txt');
+        
+                                formData.append('payload_json', JSON.stringify({
+                                    username: 'LegacyShell Feedback',
+                                    avatar_url: msg.url + 'favicon.ico',
+                                    allowed_mentions: { parse: [] },
+                                    embeds: [{ description: `> from ${msg.email}\n\n${msg.comments}` }]
+                                }));
+        
+                                fetch(ss.config.services.feedback, { method: 'POST', body: formData });
+                            } else ss.log.blue('Feedback received, no discord webhook set!:'+JSON.stringify(msg));
+        
+                            ws.send(JSON.stringify({ success: true }));
+                            break;
+                        case 'saveEquip':
+                            try {
+                                if (userData) {
+                                    // class_idx: this.classIdx
+                                    userData.loadout.classIdx = Math.clamp(Math.floor(msg.class_idx), 0, 3);
+                                    // soldier_primary_item_id:
+                                    if (accs.doesPlayerOwnItem(userData, msg.soldier_primary_item_id, "Eggk47")) 
+                                        userData.loadout.primaryId[0] = msg.soldier_primary_item_id;
+                                    // soldier_secondary_item_id
+                                    if (accs.doesPlayerOwnItem(userData, msg.soldier_secondary_item_id, "Cluck9mm")) 
+                                        userData.loadout.secondaryId[0] = msg.soldier_secondary_item_id;
+                                    // scrambler_primary_item_id
+                                    if (accs.doesPlayerOwnItem(userData, msg.scrambler_primary_item_id, "DozenGauge")) 
+                                        userData.loadout.primaryId[1] = msg.scrambler_primary_item_id;
+                                    // scrambler_secondary_item_id
+                                    if (accs.doesPlayerOwnItem(userData, msg.scrambler_secondary_item_id, "Cluck9mm")) 
+                                        userData.loadout.secondaryId[1] = msg.scrambler_secondary_item_id;
+                                    // ranger_primary_item_id: 
+                                    if (accs.doesPlayerOwnItem(userData, msg.ranger_primary_item_id, "CSG1")) 
+                                        userData.loadout.primaryId[2] = msg.ranger_primary_item_id;
+                                    // ranger_secondary_item_id
+                                    if (accs.doesPlayerOwnItem(userData, msg.ranger_secondary_item_id, "Cluck9mm")) 
+                                        userData.loadout.secondaryId[2] = msg.ranger_secondary_item_id;
+                                    // eggsploder_primary_item_id
+                                    if (accs.doesPlayerOwnItem(userData, msg.eggsploder_primary_item_id, "RPEGG")) 
+                                        userData.loadout.primaryId[3] = msg.eggsploder_primary_item_id;
+                                    // eggsploder_secondary_item_id
+                                    if (accs.doesPlayerOwnItem(userData, msg.eggsploder_secondary_item_id, "Cluck9mm")) 
+                                        userData.loadout.secondaryId[3] = msg.eggsploder_secondary_item_id;
+                                    // hat_id: updateHatId,
+                                    if (accs.doesPlayerOwnItem(userData, msg.hat_id, "Hats")) 
+                                        userData.loadout.hatId = msg.hat_id;
+                                    // stamp_id: updateStampId,
+                                    if (accs.doesPlayerOwnItem(userData, msg.stamp_id, "Stamps")) 
+                                        userData.loadout.stampId = msg.stamp_id;
+                                    // color: this.colorIdx,
+                                    userData.loadout.colorIdx = Math.clamp(Math.floor(msg.color), 0, userData.upgradeIsExpired ? 6 : 13); //if vip, then eep
     
-                                    ss.config.verbose && ss.log.bgBlue("services: Writing to DB: set new upgrade stuff "+userData.username) //, console.log(userData.loadout);
+                                    ss.config.verbose && ss.log.bgBlue("services: Writing to DB: set new loadout "+userData.username) //, console.log(userData.loadout);
                                     await ss.runQuery(`
                                         UPDATE users 
-                                        SET 
-                                            upgradeExpiryDate = ?,
-                                            upgradeAdFree = ?,
-                                            upgradeMultiplier = ?,
-                                            upgradeProductId = ?
+                                        SET loadout = ?
                                         WHERE account_id = ?
-                                    `, [userData.upgradeExpiryDate, userData.upgradeAdFree, userData.upgradeMultiplier, userData.upgradeProductId, userData.account_id]);
+                                    `, [JSON.stringify(userData.loadout), userData.account_id]);
     
-                                    ws.send(JSON.stringify({
-                                        token: 1, //sure. go with it.
+                                    ws.send(JSON.stringify({ 
+                                        result: "success",
                                     }));
+                                };
+                            } catch (error) {
+                                console.error(error);
+                                standardError(ws);
+                            };
+                            break;
+                        case 'buy':
+                            let buyingResult = "PLAYER_NOT_FOUND";
+    
+                            try {
+                                if (userData) {
+                                    buyingResult = await accs.addItemToPlayer(msg.item_id, userData, true, false);
+                                }; //ELSE -> achievement: how did we get here?
+                            } catch (error) {
+                                ss.log.red("WHY IS THERE AN ERROR??");
+                                console.error(error);
+                                buyingResult = "ERROR";
+                            };
+        
+                            ws.send(JSON.stringify({ 
+                                result: buyingResult, //cases: SUCCESS, INSUFFICIENT_FUNDS, ALREADY_OWNED, PLAYER_NOT_FOUND, ITEM_NOT_FOUND, ERROR
+                                current_balance: userData.currentBalance || 0,
+                                item_id: msg.item_id,
+                            }));
+                            break;
+                        case 'redeem':
+                            let redeemResult = [];
+    
+                            try {
+                                if (userData) {
+                                    redeemResult = await accs.addCodeToPlayer(msg.code, userData);
+                                };
+                            } catch (error) {
+                                ss.log.red("WHY IS THERE AN ERROR??");
+                                console.error(error);
+                            };
+    
+                            console.log(redeemResult);
+        
+                            ws.send(JSON.stringify({ 
+                                result: redeemResult.result || "ERROR", //cases: SUCCESS, CODE_PREV_REDEEMED, CODE_NOT_FOUND, ERROR
+                                // error: !redeemResult.item_ids,
+    
+                                item_ids: redeemResult.item_ids || [],
+                                eggs_given: redeemResult.eggs_given || 0,
+                            }));
+                            break;
+                        case 'preview':
+                            let previewResult = [];
+    
+                            try {
+                                if (userData) {
+                                    previewResult = await recs.getCodeData(msg.code, true);
+                                };
+                            } catch (error) {
+                                ss.log.red("WHY IS THERE AN ERROR??");
+                                console.error(error);
+                            };
+    
+                            let canBeUsed = previewResult ? (previewResult.uses > 0 ? (previewResult.used_by.includes(userData.id) ? "CODE_PREV_REDEEMED" : "SUCCESS") : "CODE_PREV_REDEEMED") : "CODE_NOT_FOUND";
+                            console.log(canBeUsed, previewResult);
+    
+                            if (canBeUsed !== "SUCCESS") previewResult = [];
+        
+                            ws.send(JSON.stringify({ 
+                                result: canBeUsed, //cases: SUCCESS, CODE_PREV_REDEEMED, CODE_NOT_FOUND, ERROR
+    
+                                item_ids: previewResult.item_ids || [],
+                                eggs_given: previewResult.eggs_given || 0,
+                                uses: previewResult.uses || 0,
+                            }));
+                            break;
+                        case 'checkBalance':
+                            if (userData) {
+                                ws.send(JSON.stringify({ current_balance: userData.currentBalance }));
+                            } else {
+                                standardError(ws);
+                            };
+                            break;
+                        case 'getUpgrade':
+                            if (userData) {
+                                ss.config.verbose && console.log({
+                                    upgradeProductId: userData.upgradeProductId,
+                                    multiplier: userData.upgradeMultiplier,
+                                    hideAds: userData.upgradeAdFree,
+                                    isExpired: userData.upgradeIsExpired,
+                                });
+                                ws.send(JSON.stringify({
+                                    upgradeProductId: userData.upgradeProductId,
+                                    multiplier: userData.upgradeMultiplier,
+                                    hideAds: userData.upgradeAdFree,
+                                    isExpired: userData.upgradeIsExpired,
+                                }));
+                                // ws.send(JSON.stringify({
+                                //     upgradeProductId: 1,
+                                //     multiplier: 2,
+                                //     hideAds: true,
+                                //     isExpired: false,
+                                // }));
+                            } else {
+                                standardError(ws);
+                            };
+                            break;
+                        case 'token': //this initiates the nugget "game" thing
+                            if (userData) {
+                                let oneHour = Math.floor(Date.now() / 1000) + (60*60);
+                                if (userData.upgradeIsExpired) {
+                                    ss.config.verbose && console.log(userData.upgradeExpiryDate, (userData.upgradeExpiryDate + (ss.config.services.nugget_interval * 60 * 60)), Math.floor(Date.now() / 1000), (userData.upgradeExpiryDate + (ss.config.services.nugget_interval * 60 * 60)) < Math.floor(Date.now() / 1000));
+                                    if ((userData.upgradeExpiryDate + (ss.config.services.nugget_interval * 60 * 60)) < Math.floor(Date.now() / 1000)) {
+                                        userData.upgradeExpiryDate = oneHour; //set it to one hour.
+                                        userData.upgradeAdFree = true;
+                                        userData.upgradeMultiplier = 2;
+                                        userData.upgradeProductId = 1; //actually, idk what these ids correspond to. but it seems fine when its at 1.
+        
+                                        ss.config.verbose && ss.log.bgBlue("services: Writing to DB: set new upgrade stuff "+userData.username) //, console.log(userData.loadout);
+                                        await ss.runQuery(`
+                                            UPDATE users 
+                                            SET 
+                                                upgradeExpiryDate = ?,
+                                                upgradeAdFree = ?,
+                                                upgradeMultiplier = ?,
+                                                upgradeProductId = ?
+                                            WHERE account_id = ?
+                                        `, [userData.upgradeExpiryDate, userData.upgradeAdFree, userData.upgradeMultiplier, userData.upgradeProductId, userData.account_id]);
+        
+                                        ws.send(JSON.stringify({
+                                            token: 1, //sure. go with it.
+                                        }));
+                                    } else {
+                                        console.log("Please wait to unlock again.");
+                                        ws.send(JSON.stringify({ error: "Please wait to unlock again.", }));
+                                    };
                                 } else {
-                                    console.log("Please wait to unlock again.");
-                                    ws.send(JSON.stringify({ error: "Please wait to unlock again.", }));
+                                    console.log("User already has VIP.");
+                                    ws.send(JSON.stringify({ error: "User already has VIP.", }));
                                 };
                             } else {
-                                console.log("User already has VIP.");
-                                ws.send(JSON.stringify({ error: "User already has VIP.", }));
+                                standardError(ws);
                             };
-                        } else {
-                            standardError(ws);
-                        };
-                        break;
-    
-                    default:
-                        console.log('user sent', msg.cmd || '(unknown cmd)', 'to services, not running function')
-                        break;
-                };
+                            break;
+        
+                        default:
+                            console.log('user sent', msg.cmd || '(unknown cmd)', 'to services, not running function')
+                            break;
+                    };
+                }
             } catch (error) {
                 console.error('Error processing message:', error);
                 standardError(ws);
@@ -545,4 +582,3 @@ initTables().then(() => {
     
     console.log('WebSocket server is running on ws://localhost:' + port);
 });
-

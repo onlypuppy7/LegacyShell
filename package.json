@@ -10,10 +10,11 @@
         "client": "node src/scripts/perpetual.js --client",
         "services": "node src/scripts/perpetual.js --services",
         "game": "node src/scripts/perpetual.js --game",
-        "binit": "bun src/init.js",
-        "bclient": "bun server-client/run-client.js",
-        "bservices": "bun server-services/run-services.js",
-        "bgame": "bun server-game/run-game.js"
+        "binit": "bun src/scripts/init.js",
+        "bclient": "bun src/scripts/perpetual.js --client",
+        "bservices": "bun src/scripts/perpetual.js --services",
+        "bgame": "bun src/scripts/perpetual.js --game",
+        "cn": "lsof -t -i :13371 | xargs kill -9 && lsof -t -i :13370 | xargs kill -9 && lsof -t -i :13372 | xargs kill -9"
     },
     "dependencies": {
         "babylonjs": "3.3.0",

@@ -19901,7 +19901,7 @@
         function (BABYLON) {
             Object.defineProperty(BABYLON.Scene.prototype, "forceShowBoundingBoxes", {
                 get: function () {
-                    return this._forceShowBoundingBoxes || !1
+                    return false //this._forceShowBoundingBoxes || !1
                 },
                 set: function (value) {
                     (this._forceShowBoundingBoxes = value) && this.getBoundingBoxRenderer()
@@ -19909,7 +19909,7 @@
                 enumerable: !0,
                 configurable: !0
             }), BABYLON.Scene.prototype.getBoundingBoxRenderer = function () {
-                return this._boundingBoxRenderer || (this._boundingBoxRenderer = new BoundingBoxRenderer(this)), this._boundingBoxRenderer
+                // return this._boundingBoxRenderer || (this._boundingBoxRenderer = new BoundingBoxRenderer(this)), this._boundingBoxRenderer
             }, Object.defineProperty(BABYLON.AbstractMesh.prototype, "showBoundingBox", {
                 get: function () {
                     return this._showBoundingBox || !1
