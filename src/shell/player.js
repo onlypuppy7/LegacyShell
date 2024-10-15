@@ -21,7 +21,7 @@ let meId = -100;
 
 // [LS] Player CONSTRUCTOR
 class Player {
-    constructor (data, scene, client) {
+    constructor(data, scene, client) {
         if (client) {
             this.client = client;
             this.Collider = this.client.room.Collider;
@@ -135,7 +135,7 @@ class Player {
         this.jumpHeld = false;
         this.lastActivity = Date.now();
     };
-    changeWeaponLoadout (primaryWeaponItem, secondaryWeaponItem) {
+    changeWeaponLoadout(primaryWeaponItem, secondaryWeaponItem) {
         if (this.actor && this.weapons) {
             this.weapons[0].actor.dispose();
             this.weapons[1].actor.dispose();
@@ -148,11 +148,23 @@ class Player {
             this.weapon.actor.equip();
         };
     };
-    update (delta, resim) {
+    pickupItemPacket(playerId, kind, index, id) {
+        this.client.room.itemManager.items = this.client.room.itemManager.items.filter(i => i.id !== id);
+        this.client.room.itemManager.releaseId(id);
+
+        let pickupPacket = new Comm.Out();
+        pickupPacket.packInt8(Comm.Code.collectItem);
+        pickupPacket.packInt8(playerId);
+        pickupPacket.packInt8(kind);
+        pickupPacket.packInt8(index);
+        pickupPacket.packInt16(id);
+        return pickupPacket;
+    };
+    update(delta, resim) {
         var dx = 0;
         var dy = 0;
         var dz = 0;
-    
+
         if (!resim && this.actor && this.id == meId) {
             this.stateBuffer[this.stateIdx].controlKeys = this.controlKeys;
             this.stateBuffer[this.stateIdx].yaw = this.yaw;
@@ -169,19 +181,19 @@ class Player {
         };
 
         // devlog(this.name, this.stateIdx, this.controlKeys, this.x.toFixed(2), this.y.toFixed(2), this.z.toFixed(2), this.dx.toFixed(2), this.dy.toFixed(2), this.dz.toFixed(2), this.yaw.toFixed(2), this.pitch.toFixed(2));
-        
+
         if (this.controlKeys & CONTROL.left) {
             this.lastActivity = Date.now();
             dx -= Math.cos(this.yaw);
             dz += Math.sin(this.yaw);
         };
-        
+
         if (this.controlKeys & CONTROL.right) {
             this.lastActivity = Date.now();
             dx += Math.cos(this.yaw);
             dz -= Math.sin(this.yaw);
         };
-        
+
         if (this.controlKeys & CONTROL.up) {
             this.lastActivity = Date.now();
             if (this.climbing) {
@@ -191,7 +203,7 @@ class Player {
                 dz += Math.cos(this.yaw);
             };
         };
-        
+
         if (this.controlKeys & CONTROL.down) {
             this.lastActivity = Date.now();
             if (this.climbing) {
@@ -201,17 +213,26 @@ class Player {
                 dz -= Math.cos(this.yaw);
             };
         };
-        
+
+        if (isServer) this.client.room.itemManager.items.forEach((item) => {
+            if (
+                (Math.round(this.x * 2) / 2) == (item.x + 0.5) &&
+                Math.round(this.y) == item.y &&
+                (Math.round(this.z * 2) / 2) == (item.z + 0.5)
+            ) {
+                if (!this.collectItem(item.kind, this.weaponIdx)) return;
+                this.client.sendToAll(this.pickupItemPacket(this.id, item.kind, this.weaponIdx, item.id));
+            }
+        });
+
         if ((this.controlKeys & CONTROL.jump) && (0 < this.lastTouchedGround && Date.now() > this.lastTouchedGround + 100)) {
             this.lastActivity = Date.now();
             if (!this.jumpHeld) {
                 this.jump();
                 this.jumpHeld = true;
             };
-        } else {
-            this.jumpHeld = false;
-        };
-        
+        } else this.jumpHeld = false;
+
         if (this.climbing) {
             this.setJumping(false);
             var pdy = this.dy;
@@ -224,7 +245,7 @@ class Player {
             var cx = Math.floor(this.climbingCell.x);
             var cy = Math.floor(this.y + 1e-4);
             var cz = Math.floor(this.climbingCell.z);
-    
+
             if (0 == this.climbingCell.ry || this.climbingCell.ry, cy >= this.map.height) {
                 this.climbing = false;
             } else {
@@ -232,9 +253,9 @@ class Player {
                 if (!(cell.idx && this.mapMeshes[cell.idx].colliderType === "ladder" && cell.ry === this.climbingCell.ry)) {
                     this.y = Math.round(this.y);
                     this.climbing = false;
-                };            
+                };
             };
-    
+
             if (this.collidesWithMap()) {
                 if (0 < ndy && .3 < this.y % 1) {
                     this.y -= ndy;
@@ -247,7 +268,7 @@ class Player {
             var deltaVector = new BABYLON.Vector3(dx, dy, dz).normalize();
             var pdx = this.dx;
             var pdz = (pdy = this.dy, this.dz);
-    
+
             if (this.corrections) {
                 pdx += this.corrected.dx / 6;
                 this.jumping || (pdy += this.corrected.dy / 6);
@@ -255,15 +276,15 @@ class Player {
             };
 
             // console.log(dx, dy, dz, deltaVector, delta);
-    
+
             this.dx += .007 * deltaVector.x * delta;
             this.dz += .007 * deltaVector.z * delta;
             this.dy -= .003 * delta;
             this.dy = Math.max(-.2, this.dy);
-    
+
             var ndx = .5 * (this.dx + pdx) * delta;
             var ndz = (ndy = .5 * (this.dy + pdy) * delta, .5 * (this.dz + pdz) * delta);
-    
+
             this.moveX(ndx, delta);
             this.moveZ(ndz, delta);
             this.moveY(ndy, delta)
@@ -274,7 +295,7 @@ class Player {
                 if (0 != dx || 0 != dy || this.shield <= 0) {
                     this.disableShield();
                 };
-            };        
+            };
             var speed = Math.length3(this.dx, this.dy, this.dz);
             if (this.actor && this.id == meId) {
                 speed *= 0.75;
@@ -283,7 +304,7 @@ class Player {
                 speed *= 2;
             };
             this.bobble = (this.bobble + 7 * speed) % Math.PI2;
-            this.shotSpread += Math.floor(150 * speed * delta);        
+            this.shotSpread += Math.floor(150 * speed * delta);
             var settleFactor = Math.pow(this.weapon.subClass.accuracySettleFactor, delta);
             this.shotSpread = Math.max(this.shotSpread * settleFactor - 4 * (1 - settleFactor), 0);
             if (this.weapon) {
@@ -348,23 +369,23 @@ class Player {
             if (this.weaponSwapsQueued > 0) {
                 this.swapWeapon(this.equipWeaponIdx);
             };
-        };    
+        };
     };
-    disableShield () { //shield is NOT the powerup, it is the spawning in protection!
+    disableShield() { //shield is NOT the powerup, it is the spawning in protection!
         this.shield = 0;
         if (this.actor) { // client/server differentiation stuff
             this.actor.bodyMesh.renderOverlay = false;
             this.actor.hands.renderOverlay = false;
         };
     };
-    enableShield () {
+    enableShield() {
         this.shield = 120;
         if (this.actor) { // client/server differentiation stuff
             this.actor.bodyMesh.renderOverlay = true;
             this.actor.hands.renderOverlay = true;
         };
     };
-    resetStateBuffer () {
+    resetStateBuffer() {
         for (var i = 0; i < stateBufferSize; i++) {
             this.stateBuffer[i] = {
                 delta: 0,
@@ -384,7 +405,7 @@ class Player {
             };
         };
     };
-    moveX (ndx, delta) {
+    moveX(ndx, delta) {
         var old_x = this.x;
         this.x += ndx;
         var collide = this.collidesWithMap();
@@ -401,7 +422,7 @@ class Player {
             this.lookForLadder(collide);
         };
     };
-    moveZ (ndz, delta) { //fuck this function
+    moveZ(ndz, delta) { //fuck this function
         var old_z = this.z;
         this.z += ndz;
         var collide = this.collidesWithMap();
@@ -418,7 +439,7 @@ class Player {
             this.lookForLadder(collide); //oh yeah its just sooo simple right so easy
         }
     };
-    moveY (ndy, delta) {
+    moveY(ndy, delta) {
         var old_y = this.y;
         this.y += ndy;
         if (this.collidesWithMap()) {
@@ -433,7 +454,7 @@ class Player {
             if (0 == this.jumping) this.setJumping(true);
         };
     };
-    canJump () {
+    canJump() {
         // if (this.actor && this.id != meId) return true;
         var canJump = !this.jumping | this.climbing;
         if (!canJump) {
@@ -443,27 +464,27 @@ class Player {
         };
         return canJump;
     };
-    jump () {
+    jump() {
         if (this.climbing) {
             this.dy = 0.03;
             this.climbing = false;
             this.setJumping(true);
             return true;
         };
-        
+
         if (this.canJump()) {
             this.dy = 0.06;
             this.setJumping(true);
             return !(this.lastTouchedGround === 0);
         };
-        
+
         return false;
     };
-    setJumping (jumping) {
+    setJumping(jumping) {
         this.jumping = jumping;
         this.stateBuffer[this.stateIdx].jumping = jumping;
     };
-    changeCharacter (newClassIdx, primaryWeaponItem, secondaryWeaponItem, shellColor, hatItem, stampItem) {
+    changeCharacter(newClassIdx, primaryWeaponItem, secondaryWeaponItem, shellColor, hatItem, stampItem) {
         var itemChanged = function (oldItem, newItem) {
             return oldItem && !newItem || !oldItem && newItem || null !== oldItem && null !== newItem && oldItem.id !== newItem.id
         };
@@ -475,7 +496,7 @@ class Player {
             this.shellColor = shellColor;
             this.hatItem = hatItem;
             this.stampItem = stampItem;
-    
+
             if (this.actor) {
                 this.actor.setShellColor(shellColor);
                 if (this.id == meId) {
@@ -504,11 +525,11 @@ class Player {
                 output.packInt8(this.client.catalog.get8BitItemId(stampItem, newClassIdx));
                 this.client.sendToOthers(output, "changeCharacter");
             };
-    
+
             this.changeWeaponLoadout(primaryWeaponItem, secondaryWeaponItem)
         };
     };
-    swapWeapon (idx) {
+    swapWeapon(idx) {
         var output;
         if (this.actor && this.id != meId || this.canSwapOrReload() && idx < 2) {
             this.equipWeaponIdx = idx;
@@ -532,7 +553,7 @@ class Player {
             };
         };
     };
-    collectItem (kind, applyToWeaponIdx) {
+    collectItem(kind, applyToWeaponIdx) {
         switch (kind) {
             case ItemTypes.AMMO:
                 const ammoCollected = this.weapons[applyToWeaponIdx].collectAmmo();
@@ -558,17 +579,17 @@ class Player {
                 return false;
         };
     };
-    isSteady () {
+    isSteady() {
         return !this.weapon.subClass.readySpread ||
             5 * this.weapon.subClass.readySpread >= this.shotSpread + this.weapon.subClass.accuracy;
     };
-    isAtReady (scoped) {
+    isAtReady(scoped) {
         return !(!(this.playing && this.weapon && this.reloadCountdown <= 0 && this.swapWeaponCountdown <= 0 && this.grenadeCountdown <= 0) || this.actor && 0 != grenadePowerUp);
     };
-    canSwapOrReload () {
+    canSwapOrReload() {
         return !(!(this.playing && this.weapon && this.recoilCountdown <= 0 && this.reloadCountdown <= 0 && this.swapWeaponCountdown <= 0 && this.grenadeCountdown <= 0 && this.shotsQueued <= 0) || this.actor && 0 != grenadePowerUp)
     };
-    fire () {
+    fire() {
         if (0 < this.shield) {
             this.releaseTrigger();
         } else if (this.isAtReady() && this.rofCountdown <= 0) {
@@ -601,7 +622,7 @@ class Player {
             };
         };
     };
-    pullTrigger () {
+    pullTrigger() {
         if (1 == grenadePowerUp && me.grenadeCountdown <= 0) {
             this.cancelGrenade();
         } else if (this.isAtReady() && this.rofCountdown <= 0) {
@@ -621,17 +642,17 @@ class Player {
             };
         };
     };
-    releaseTrigger () {
+    releaseTrigger() {
         this.triggerPulled = false;
     };
-    reload () {
+    reload() {
         if (this.actor && this.id != meId) {
             this.weapon.actor.reload();
         } else if (this.weapon.ammo.rounds != this.weapon.ammo.capacity && 0 != this.weapon.ammo.store && this.canSwapOrReload()) {
             var output;
             var rounds = Math.min(Math.min(this.weapon.ammo.capacity, this.weapon.ammo.reload) - this.weapon.ammo.rounds, this.weapon.ammo.store);
             this.roundsToReload = rounds;
-            if (this.actor) { 
+            if (this.actor) {
                 this.weapon.actor.reload();
                 this.releaseTrigger();
                 (output = new Comm.Out(1)).packInt8(Comm.Code.reload);
@@ -651,7 +672,7 @@ class Player {
             };
         };
     };
-    reloaded () {
+    reloaded() {
         this.weapon.ammo.rounds += this.roundsToReload;
         if (this.actor) {
             this.id == meId && updateAmmoUi();
@@ -659,19 +680,19 @@ class Player {
             this.weapon.ammo.store -= this.roundsToReload;
         };
     };
-    queueGrenade (throwPower) {
+    queueGrenade(throwPower) {
         this.grenadesQueued++;
         this.grenadeThrowPower = Math.clamp(throwPower, 0, 1);
         this.grenadeCountdown = 20;
         this.actor || (this.grenadeCountdown *= .9);
     };
-    cancelGrenade () {
+    cancelGrenade() {
         grenadePowerUp = false;
         me.grenadeCountdown = 30;
         this.id == meId && (document.getElementById("grenadeThrowContainer").style.visibility = "hidden");
         this.actor && (this.actor.gripBone._frozen = false);
     };
-    throwGrenade () {
+    throwGrenade() {
         if (0 < this.shield) this.disableShield();
         if (this.actor) {
             var output = new Comm.Out(3);
@@ -685,14 +706,14 @@ class Player {
             this.grenadesQueued--;
             this.grenadeCountdown = 72;
             this.grenadeCountdown = 1;
-    
+
             var output;
             var rotMat = BABYLON.Matrix.RotationYawPitchRoll(this.yaw, this.pitch, 0);
             var vec = BABYLON.Matrix.Translation(0, .1, 1).multiply(rotMat).getTranslation();
             var posMat = BABYLON.Matrix.Translation(0, -.05, .2);
             var pos = (posMat = (posMat = posMat.multiply(rotMat)).add(BABYLON.Matrix.Translation(this.x, this.y + .3, this.z))).getTranslation();
             var speed = .13 * this.grenadeThrowPower + .08;
-    
+
             vec.x *= speed;
             vec.y *= speed;
             vec.z *= speed;
@@ -717,10 +738,10 @@ class Player {
             getMunitionsManager(this).throwGrenade(this, pos, vec);
         };
     };
-    resetDespawn (offset = 0) {
+    resetDespawn(offset = 0) {
         this.lastDespawn = Date.now() + offset;
     };
-    removeFromPlay () {
+    removeFromPlay() {
         this.playing = false;
         this.controlKeys = 0;
         this.shotSpread = 0;
@@ -737,7 +758,7 @@ class Player {
             };
         };
     };
-    scoreKill (killedPlayer) {
+    scoreKill(killedPlayer) {
         this.kills++;
         this.totalKills++;
         this.streak++;
@@ -754,7 +775,7 @@ class Player {
                             session: this.client.session,
                             currentKills: this.kills,
                         }, this.client.ss.config.game.services_server, this.client.ss.config.game.auth_key);
-    
+
                         var output = new Comm.Out();
                         output.packInt8U(Comm.Code.updateBalance);
                         output.packInt32U(response.currentBalance);
@@ -764,7 +785,7 @@ class Player {
             })();
         };
     };
-    hit (damage, firedPlayer, dx, dz) {
+    hit(damage, firedPlayer, dx, dz) {
         if (this.isDead() || (!this.playing)) return;
         damage = Math.ceil(damage);
         var firedPlayerId = firedPlayer ? firedPlayer.id : null;
@@ -782,7 +803,7 @@ class Player {
             output.packFloat(dx);
             output.packFloat(dz);
             this.client.sendToMe(output, "hitMe");
-    
+
             var output = new Comm.Out();
             output.packInt8U(Comm.Code.hitThem);
             output.packInt8U(this.id);
@@ -790,7 +811,7 @@ class Player {
             this.client.sendToOthers(output, "hitThem");
         };
     };
-    die (firedId) {
+    die(firedId) {
         this.score = 0;
         this.streak = 0;
         this.deaths++;
@@ -817,12 +838,12 @@ class Player {
             })();
         };
     };
-    setHp (newHp, firedId = this.id) {
+    setHp(newHp, firedId = this.id) {
         this.hp = Math.clamp(newHp, 0, 100);
 
         if (this.hp < 1) this.die(firedId);
     };
-    respawn (newPos) {
+    respawn(newPos) {
         this.x = newPos.x;
         this.y = newPos.y;
         this.z = newPos.z;
@@ -855,7 +876,7 @@ class Player {
         };
         this.enableShield();
     };
-    resetWeaponState (dontReload) {
+    resetWeaponState(dontReload) {
         this.rofCountdown = 0;
         this.shotsQueued = 0;
         this.reloadsQueued = 0;
@@ -883,10 +904,10 @@ class Player {
             this.grenadeCount = Math.max(this.grenadeCount, 1)
         };
     };
-    isDead () {
+    isDead() {
         return this.hp <= 0;
     };
-    lookForLadder (collide) {
+    lookForLadder(collide) {
         if (collide && collide.cell && this.controlKeys & CONTROL.up && "ladder" == this.mapMeshes[collide.cell.idx].colliderType) {
             var diff = Math.abs(Math.radDifference(this.yaw, collide.cell.ry));
             if (!(.75 < diff && diff < 2.391)) {
@@ -902,16 +923,16 @@ class Player {
             };
         };
     };
-    getOccupiedCell () {
+    getOccupiedCell() {
         if (this.x < 0 || this.y < 0 || this.z < 0 || this.x >= this.map.width || this.y >= this.map.height || this.z > this.map.depth) return {};
-    
+
         var cx = Math.floor(this.x);
         var cy = Math.floor(this.y + 1e-4);
         var cz = Math.floor(this.z);
-        
+
         return this.map.data[cx][cy][cz]
     };
-    collidesWithMap () {
+    collidesWithMap() {
         return this.Collider.playerCollidesWithMap(this);
     };
 };
