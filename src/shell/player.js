@@ -787,6 +787,7 @@ class Player {
     };
     hit(damage, firedPlayer, dx, dz) {
         if (this.isDead() || (!this.playing)) return;
+        if (this.team === 0 ? false : (this.team === firedPlayer.team && this.id !== firedPlayer.id)) return;
         damage = Math.ceil(damage);
         var firedPlayerId = firedPlayer ? firedPlayer.id : null;
 

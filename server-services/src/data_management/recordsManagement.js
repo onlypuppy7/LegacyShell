@@ -28,7 +28,7 @@ const exported = {
                     loadout TEXT DEFAULT '{"primaryId":[3100,3600,3400,3800],"secondaryId":[3000,3000,3000,3000],"classIdx":0,"colorIdx":0,"hatId":null,"stampId":null}',       -- Will store as JSON string
                     version INTEGER DEFAULT 1,
         
-                    upgradeProductId TEXT DEFAULT NULL,
+                    upgradeProductId INTEGER DEFAULT 0,
                     upgradeMultiplier INTEGER DEFAULT NULL,
                     upgradeAdFree BOOLEAN DEFAULT TRUE,
                     upgradeExpiryDate INTEGER DEFAULT 0,
