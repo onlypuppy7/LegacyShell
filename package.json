@@ -13,7 +13,8 @@
         "binit": "bun src/scripts/init.js",
         "bclient": "bun src/scripts/perpetual.js --client",
         "bservices": "bun src/scripts/perpetual.js --services",
-        "bgame": "bun src/scripts/perpetual.js --game"
+        "bgame": "bun src/scripts/perpetual.js --game",
+        "cn": "lsof -t -i :13371 | xargs kill -9 && lsof -t -i :13370 | xargs kill -9 && lsof -t -i :13372 | xargs kill -9"
     },
     "dependencies": {
         "babylonjs": "3.3.0",
