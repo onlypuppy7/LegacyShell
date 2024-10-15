@@ -253,11 +253,11 @@ class newRoom {
                         this.itemManager.checkPosition(x, y, z, this.map) == MAP.blank &&
                         this.itemManager.checkBelow(x, y, z, this.map) == MAP.block
                     ) this.validItemSpawns.push([x, y, z]);
-                }
-            }
-        }
+                };
+            };
+        };
         console.log('Finished loading item spawns!');
-    }
+    };
 
     spawnPacket(kind, x, y, z) {
         let data = {
@@ -266,7 +266,7 @@ class newRoom {
             x: x,
             y: y,
             z: z
-        }
+        };
 
         let spawnPacket = new Comm.Out();
         spawnPacket.packInt8(Comm.Code.spawnItem);
@@ -279,7 +279,7 @@ class newRoom {
         this.itemManager.items.push(data);
 
         return spawnPacket;
-    }
+    };
 
     spawnItems() {
         for (const dat of this.validItemSpawns) {
@@ -288,9 +288,9 @@ class newRoom {
             if (Math.floor((Math.random() * 50)) == 4) {
                 if (Math.floor((Math.random() * 5)) == 3) this.sendToAll(this.spawnPacket(1, dat[0], dat[1], dat[2]));
                 else this.sendToAll(this.spawnPacket(0, dat[0], dat[1], dat[2]));
-            }
+            };
         };
-    }
+    };
 
     getUnusedPlayerId() {
         for (let i = 0; i < this.playerLimit; i++) {
