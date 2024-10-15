@@ -235,7 +235,11 @@ initTables().then(() => {
                             }));
                             break;
                         case 'addKill':
-                            userData.currentBalance += 10;
+                            var multiplier = 1;
+                            if (userData.upgradeExpiryDate * 1000 > Date.now()) multiplier = userData.upgradeMultiplier;
+                            console.log("egg multiplier", multiplier);
+
+                            userData.currentBalance += (10 * multiplier);
                             userData.kills += 1;
                             userData.streak = Math.max(msg.currentKills, userData.streak || 0);
 

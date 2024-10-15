@@ -6,7 +6,7 @@ import ColliderConstructor from '#collider';
 import createLoop from '#looper';
 import extendMath from '#math';
 import { setSSforLoader, loadMapMeshes, buildMapData } from '#loading';
-import { TickStep, stateBufferSize, FramesBetweenSyncs } from '#constants';
+import { TickStep, stateBufferSize, FramesBetweenSyncs, GameTypes } from '#constants';
 import { MunitionsManagerConstructor } from '#munitionsManager';
 import { ItemManagerConstructor, MAP } from '#itemManager';
 import BABYLON from "babylonjs";
@@ -33,6 +33,8 @@ class newRoom {
 
         this.joinType = info.joinType;
         this.gameType = info.gameType;
+        this.gameOptions = JSON.parse(JSON.stringify(GameTypes[this.gameType].options)); //create copy of object
+        console.log("gameOptions", this.gameOptions)
         this.mapId = info.mapId;
         this.gameId = info.gameId;
         this.gameKey = info.gameKey;
@@ -76,6 +78,8 @@ class newRoom {
             this.updateLoopObject = createLoop(this.updateLoop.bind(this), TickStep);
             this.metaLoopObject = createLoop(this.metaLoop.bind(this), 2e3);
 
+            this.updateRoomDetails();
+
             this.getValidItemSpawns();
             this.spawnItems();
 
@@ -99,7 +103,15 @@ class newRoom {
         };
     };
 
-    updateLoop(delta) {
+    updateRoomDetails() {
+        ss.parentPort.postMessage([2, {
+            ready: true,
+            playerLimit: this.playerLimit,
+            playerCount: this.getPlayerCount(),
+        }]);
+    };
+
+    updateLoop (delta) {
         var currentTimeStamp = Date.now();
         this.existedFor = Date.now() - this.startTime;
 

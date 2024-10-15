@@ -50,9 +50,11 @@ class newRoomManager {
         } else if (info.joinType === Comm.Code.joinPublicGame) {
             console.log("public game");
             //this is where it gets interesting
-            let roomSelection = this.getRoomsOfJoinType(info.joinType);
+            let roomSelection = this.rooms;
+            roomSelection = this.getRoomsJoinable(roomSelection);
+            roomSelection = this.getRoomsOfJoinType(info.joinType, roomSelection);
             // console.log("joinType", info.joinType, roomSelection);
-            roomSelection = this.getRoomsOfGameType(info.gameType);
+            roomSelection = this.getRoomsOfGameType(info.gameType, roomSelection);
             // console.log("gameType", info.gameType, roomSelection);
             let remainingMapIds = [...ss.mapAvailability.public];
             roomSelection.forEach((room) => {
@@ -71,6 +73,17 @@ class newRoomManager {
         };
         console.log("fail?");
         return null;
+    };
+
+    getRoomsJoinable(selection) { //player limit, or anything else
+        const matchingRooms = [];
+        selection = selection || this.rooms;
+        for (const room of selection.values()) {
+            if ((room.ready) && room.playerCount < room.playerLimit) {
+                matchingRooms.push(room);
+            };
+        };
+        return matchingRooms;
     };
 
     getRoomsOfJoinType(joinType, selection) { //private/public
@@ -127,7 +140,7 @@ class newRoomManager {
         worker.on('message', (msg) => {
             try {
                 const [ msgType, content, wsId ] = msg;
-                const room = this.getRoom(info.gameId);
+                var room = this.getRoom(info.gameId);
                 const ws = room.wsMap.get(wsId);
     
                 switch (msgType) {
@@ -136,6 +149,11 @@ class newRoomManager {
                         break;
                     case 1: //close stuff to ws
                         ws.close(content);
+                        break;
+                    case 2: //update the room
+                        Object.assign(createdRoom, content);
+                        // console.log(room.ready, createdRoom.ready, content);
+                        // console.log(room.playerLimit, createdRoom.ready);
                         break;
                     default:
                         break;
@@ -173,6 +191,8 @@ class newRoomManager {
         let wsId = room.wsIdx++;
 
         // console.log("joining player, wsId:", wsId);
+
+        // console.log("is room ready?", room.ready);
 
         ws.removeAllListeners('message');
         ws.on('message', (content)=>{

@@ -70,9 +70,15 @@ function startServer() {
                                 console.log("roomFound", !!roomFound);
     
                                 if (roomFound) {
-                                    RoomManager.joinRoom(roomFound, msg, ws);
+                                    // console.log(roomFound.ready, roomFound.playerCount, roomFound.playerLimit);
+                                    if ((roomFound.ready) && roomFound.playerCount >= roomFound.playerLimit) {
+                                        console.log("Comm.Close.gameFull");
+                                        ws.close(Comm.Close.gameFull);
+                                    } else {
+                                        RoomManager.joinRoom(roomFound, msg, ws);
+                                    };
                                 } else {
-                                    console.log(Comm.Close.gameNotFound);
+                                    console.log("Comm.Close.gameNotFound");
                                     ws.close(Comm.Close.gameNotFound);
                                 };
                                 break

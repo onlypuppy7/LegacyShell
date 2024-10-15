@@ -28,6 +28,7 @@ class newClient {
         //
         this.session = info.session;
         await this.updateUserData();
+        // console.log(info.nickname, this.userData)
         //
         this.timeout = new TimeoutManagerConstructor();
         this.interval = new IntervalManagerConstructor();
@@ -35,7 +36,7 @@ class newClient {
         this.room = room;
         this.wsId = info.wsId;
         this.joinedTime = Date.now();
-        this.loggedIn = info.userData && info.sessionData;
+        this.loggedIn = this.userData && this.sessionData;
         //
         this.account_id = this.loggedIn ? this.userData.account_id : null; //reminder this is the ID of the actual account
         this.nickname = info.nickname; //todo check this is legal length and stuff
@@ -66,6 +67,8 @@ class newClient {
         var output = new Comm.Out(11); //if fixed for gameJoined, use 11
         this.packGameJoined(output);
         this.sendBuffer(output, "packGameJoined"); //buffer cause not clientReady
+
+        this.room.updateRoomDetails();
     };
 
     async updateLoadout (classIdx, primary_item_id, secondary_item_id, colorIdx, hatId, stampId) {
@@ -99,7 +102,7 @@ class newClient {
             classIdx: this.classIdx, // weapon class
             username: this.username,
 
-            team: 0, //info.team,
+            team: this.room.gameOptions.teamsEnabled ? ran.getRandomInt(1,2) : 0, //info.team,
 
             primaryWeaponItem: this.loadout[ItemType.Primary],
             secondaryWeaponItem: this.loadout[ItemType.Secondary],
@@ -136,6 +139,8 @@ class newClient {
 
             upgradeProductId: this.loggedIn ? this.userData.upgradeProductId : 0,
         }, this.room.scene, this);       
+
+        // console.log("upgradeProductId", this.userData.upgradeProductId, this.loggedIn ? this.userData.upgradeProductId : 0);
     };
 
     async updateUserData() {
@@ -280,8 +285,10 @@ class newClient {
                         this.player.queueGrenade(grenadeThrowPower);
                         break;
                     case Comm.Code.ping:
+                        this.pingLevelInt = Math.clamp(input.unPackInt8U(), 0, 3);
+                        console.log(this.nickname, "new pingLevelInt", this.pingLevelInt)
                         var output = new Comm.Out();
-                        output.packInt8(Comm.Code.ping);
+                        output.packInt8U(Comm.Code.ping);
                         this.sendToMe(output, "ping");
                         this.lastPingTime = Date.now();
                         break;
@@ -341,12 +348,9 @@ class newClient {
 
     setColorIdx(colorIdx) {
         let range = 6;
-        if (this.loggedIn && !this.userData.upgradeIsExpired) range = 13;
+        if (this.loggedIn && (this.userData.upgradeExpiryDate > Date.now() / 1000)) range = 13;
+        // console.log(this.userData.upgradeExpiryDate, Date.now() / 1000)
         this.colorIdx = Math.clamp(Math.floor(colorIdx), 0, range);
-    };
-
-    async setLoadout() {
-
     };
 
     packPlayer(output) {
@@ -410,6 +414,8 @@ class newClient {
         output.packFloat(this.player.dy);
         output.packFloat(this.player.dz);
         output.packInt8U(this.player.climbing ? 1 : 0);
+        output.packInt8U(this.pingLevelInt);
+        console.log(this.id, this.pingLevelInt)
 
         for (var i = 0; i < FramesBetweenSyncs; i++) {
             var idx = Math.mod(this.player.stateIdx + i - FramesBetweenSyncs, stateBufferSize);
@@ -432,7 +438,7 @@ class newClient {
         output.packInt8U(Comm.Code.gameJoined);
 
         output.packInt8U(this.id); //meId (0-17 for 18 slots)
-        output.packInt8U(0); // myTeam (0 for ffa, 1-2 for teams)
+        output.packInt8U(this.player.team); // myTeam (0 for ffa, 1-2 for teams)
         output.packInt8U(this.room.gameType); // gameType
         output.packInt16U(this.room.gameId); // gameId
         output.packInt16U(this.room.gameKey); // gameKey
