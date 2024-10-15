@@ -6,11 +6,9 @@ import ColliderConstructor from '#collider';
 import createLoop from '#looper';
 import extendMath from '#math';
 import { setSSforLoader, loadMapMeshes, buildMapData } from '#loading';
-import { TickStep, stateBufferSize, FramesBetweenSyncs } from '#constants';
+import { TickStep, stateBufferSize, FramesBetweenSyncs, GameTypes } from '#constants';
 import { MunitionsManagerConstructor } from '#munitionsManager';
-import { ItemManagerConstructor } from '#itemManager';
-//legacyshell: getting user data
-import wsrequest from '#wsrequest';
+import { ItemManagerConstructor, MAP } from '#itemManager';
 import BABYLON from "babylonjs";
 //
 
@@ -35,16 +33,20 @@ class newRoom {
 
         this.joinType = info.joinType;
         this.gameType = info.gameType;
+        this.gameOptions = JSON.parse(JSON.stringify(GameTypes[this.gameType].options)); //create copy of object
+        console.log("gameOptions", this.gameOptions)
         this.mapId = info.mapId;
         this.gameId = info.gameId;
         this.gameKey = info.gameKey;
 
         // this.items = info.items;
         this.mapJson = ss.maps[this.mapId];
-        this.playerLimit = this.mapJson.playerLimit || 18;        
+        this.playerLimit = this.mapJson.playerLimit || 18;
+        this.maxAmmo = Math.ceil(this.playerLimit * 1.5);
 
         this.players = [];
         this.clients = [];
+        this.items = {};
 
         //scene init
         this.engine = new BABYLON.NullEngine();
@@ -61,12 +63,12 @@ class newRoom {
 
         //map init
         setSSforLoader(ss, this.mapJson, this.Collider);
-        // this.validItemSpawns = [];
+        this.validItemSpawns = [];
 
         loadMapMeshes(this.scene, () => {
             ss.config.verbose && console.log("done loadMapMeshes");
             const { map, spawnPoints, mapMeshes } = buildMapData(function (str) { ss.log.error("The following map meshes were not found:\n\n" + str + "\nTry clearing your cache and reload the page!") });
-        
+
             this.map = map;
             this.spawnPoints = spawnPoints; //this is a [] from 0-2; conveniently lining up with ffa, team1, team2 (i think)
             this.mapMeshes = mapMeshes;
@@ -75,10 +77,17 @@ class newRoom {
 
             this.updateLoopObject = createLoop(this.updateLoop.bind(this), TickStep);
             this.metaLoopObject = createLoop(this.metaLoop.bind(this), 2e3);
+
+            this.updateRoomDetails();
+
+            this.getValidItemSpawns();
+            this.spawnItems();
+
+            setInterval(() => this.spawnItems(), 30000);
         });
     };
 
-    sendWsToClient (type, content, wsId) {
+    sendWsToClient(type, content, wsId) {
         const client = this.wsToClient[wsId];
         if (client) {
             switch (type) {
@@ -94,15 +103,23 @@ class newRoom {
         };
     };
 
+    updateRoomDetails() {
+        ss.parentPort.postMessage([2, {
+            ready: true,
+            playerLimit: this.playerLimit,
+            playerCount: this.getPlayerCount(),
+        }]);
+    };
+
     updateLoop (delta) {
         var currentTimeStamp = Date.now();
         this.existedFor = Date.now() - this.startTime;
-    
+
         while (this.lastTimeStamp < currentTimeStamp) { //repeat until catching up :shrug:
             this.lastTimeStamp += TickStep;
-    
+
             this.munitionsManager.update(1);
-    
+
             //i dont understand their netcode wtf
             this.players.forEach(player => {
                 // console.log("lóóp", delta, this.lastTimeStamp, currentTimeStamp, player.stateIdx, player.syncStateIdx);
@@ -111,19 +128,20 @@ class newRoom {
                     // console.log(player.x, player.y, player.z, player.controlKeys, player.stateIdx, this.serverStateIdx);
                 };
             });
-    
+
             this.serverStateIdx = Math.mod(this.serverStateIdx + 1, stateBufferSize);
 
             // console.log(this.serverStateIdx, FramesBetweenSyncs, this.serverStateIdx % FramesBetweenSyncs === 0)
-    
+
             if (this.serverStateIdx % FramesBetweenSyncs === 0) {
                 this.sync();
             };
         };
     };
 
-    metaLoop (delta) {
-        if (this.getPlayerCount() === 0 && this.existedFor > 5e3) {
+    metaLoop(fromDisconnect) {
+        // console.log("metaLoop", this.getPlayerCount(), this.existedFor, fromDisconnect);
+        if (this.getPlayerCount() === 0 && (fromDisconnect === true || this.existedFor > 5e3)) {
             this.destroy();
             return;
         };
@@ -147,14 +165,16 @@ class newRoom {
         console.log("destroy room", this.existedFor, this.gameId);
 
         //most of this is redundant now, but eh.
-        this.updateLoopObject.stop();
-        this.metaLoopObject.stop();
-        this.players = null;
-        this.clients = null;
-        this.map = null;
-        this.Collider = null;
-        this.engine = null;
-        this.scene = null;
+        try {
+            this.players = null;
+            this.clients = null;
+            this.map = null;
+            this.Collider = null;
+            this.engine = null;
+            this.scene = null;
+            this.updateLoopObject.stop();
+            this.metaLoopObject.stop();
+        } catch (error) { } //possible that some wasnt initted, or something
 
         ss.parentPort.close();
         process.exit(0);
@@ -169,18 +189,6 @@ class newRoom {
     };
 
     async joinPlayer(info) {
-        if (info.session && info.session.length > 0) {
-            const response = await wsrequest({
-                cmd: "getUser",
-                session: info.session,
-            }, ss.config.game.services_server, ss.config.game.auth_key);
-
-            info.userData = response.userData;
-            info.sessionData = response.sessionData;
-
-            console.log(info.userData);
-        };
-
         info.id = this.getUnusedPlayerId();
 
         console.log(info.wsId, "joining new player with assigned id:", info.id, info.nickname, this.getPlayerCount());
@@ -209,8 +217,8 @@ class newRoom {
         this.sendToAll(output);
 
         console.log('Client disconnected', client.id);
-        
-        this.metaLoop();
+
+        this.metaLoop(true);
     };
 
     getPlayerCount() {
@@ -236,6 +244,54 @@ class newRoom {
         };
     };
 
+    getValidItemSpawns = function () {
+        let data = this.map.data;
+        for (var x = 0; x < data.length; x++) {
+            for (var y = 0; y < data[x].length; y++) {
+                for (var z = 0; z < data[x][y].length; z++) {
+                    if (
+                        this.itemManager.checkPosition(x, y, z, this.map) == MAP.blank &&
+                        this.itemManager.checkBelow(x, y, z, this.map) == MAP.block
+                    ) this.validItemSpawns.push([x, y, z]);
+                }
+            }
+        }
+        console.log('Finished loading item spawns!');
+    }
+
+    spawnPacket(kind, x, y, z) {
+        let data = {
+            id: this.itemManager.allocateId(),
+            kind: kind,
+            x: x,
+            y: y,
+            z: z
+        }
+
+        let spawnPacket = new Comm.Out();
+        spawnPacket.packInt8(Comm.Code.spawnItem);
+        spawnPacket.packInt16(data.id);
+        spawnPacket.packInt8(data.kind);
+        spawnPacket.packFloat(data.x + 0.5);
+        spawnPacket.packFloat(data.y);
+        spawnPacket.packFloat(data.z + 0.5);
+
+        this.itemManager.items.push(data);
+
+        return spawnPacket;
+    }
+
+    spawnItems() {
+        for (const dat of this.validItemSpawns) {
+            if (this.itemManager.items.length >= this.maxAmmo) return;
+
+            if (Math.floor((Math.random() * 50)) == 4) {
+                if (Math.floor((Math.random() * 5)) == 3) this.sendToAll(this.spawnPacket(1, dat[0], dat[1], dat[2]));
+                else this.sendToAll(this.spawnPacket(0, dat[0], dat[1], dat[2]));
+            }
+        };
+    }
+
     getUnusedPlayerId() {
         for (let i = 0; i < this.playerLimit; i++) {
             var client = this.clients[i];
@@ -256,23 +312,23 @@ class newRoom {
     packAllPlayers(output) {
         this.clients.forEach(client => {
             if (client && client.clientReady) {
-                console.log("packing", client.id, client.player.name)
+                console.log("packing", client.id, client.player.name) // ayo
                 client.packPlayer(output);
             };
         });
     };
-    
+
     //semi stolen from rtw (is good code)
     sendToOne(output, fromId, toId, debug) {
         const client = this.clients[toId];
-        if (client && client.clientReady) client.sendBuffer(output,  "sendToOne: " + debug + " | from " + fromId);
+        if (client && client.clientReady) client.sendBuffer(output, "sendToOne: " + debug + " | from " + fromId);
 
         // //idk why it was done like this? there shouldnt be multiple clients with same id :<
         // this.clients.forEach(client => {
         //     if (client.clientReady && client.id === fromId) client.sendBuffer(output, "sendToOne: " + debug + " | from " + fromId);
         // });
     };
-    
+
     sendToOthers(output, fromId, debug) {
         this.clients.forEach(client => {
             if (client.clientReady && client.id !== fromId) client.sendBuffer(output, "sendToOthers: " + debug + " | from " + fromId);

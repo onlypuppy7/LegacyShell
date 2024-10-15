@@ -159,20 +159,29 @@ export var teamColors = {
     outline: [new BABYLON.Color4(1, 1, 1, 1), new BABYLON.Color4(0, .75, 1, 1), new BABYLON.Color4(1, .25, .25, 1)]
 };
 
-export var GameType = {
-    ffa: 0,
-    teams: 1
-};
-
 export var GameTypes = [
     {
         shortName: "FFA",
-        longName: "Free For All"
+        longName: "Free For All",
+        codeName: "ffa",
+        options: {
+            teamsEnabled: false,
+        }
     }, {
         shortName: "Teams",
-        longName: "Teams"
+        longName: "Teams",
+        codeName: "teams",
+        options: {
+            teamsEnabled: true,
+        }
     }
 ];
+
+//LS: dynamically create from GameTypes
+export var GameType = GameTypes.reduce((acc, gameType, index) => {
+    acc[gameType.codeName] = index;
+    return acc;
+}, {});
 
 export var CONTROL = {
     up: 1,
@@ -261,6 +270,42 @@ export var bulletHitColors = [
 export const ItemTypes = {
     AMMO: 0,
     GRENADE: 1
+};
+
+export const PingIndicators = [
+    {
+        int: 0,
+        minimumPing: 0,
+        color: "#0f0", //green
+        icon: "ping1.png"
+    },
+    {
+        int: 1,
+        minimumPing: 100,
+        color: "#ff0", //yellow
+        icon: "ping2.png"
+    },
+    {
+        int: 2,
+        minimumPing: 150,
+        color: "#f90", //orange
+        icon: "ping3.png"
+    },
+    {
+        int: 3,
+        minimumPing: 200,
+        color: "#f00", //red
+        icon: "ping4.png"
+    },
+];
+
+export function getPingLevel(pingValue) {
+    for (let i = PingIndicators.length - 1; i >= 0; i--) {
+        if (pingValue >= PingIndicators[i].minimumPing) {
+            return PingIndicators[i];
+        };
+    };
+    return PingIndicators[0];
 };
 
 export var color4White = new BABYLON.Color4(1, 1, 1, 1);

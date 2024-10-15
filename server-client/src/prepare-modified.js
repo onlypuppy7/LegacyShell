@@ -65,7 +65,7 @@ function prepareModified(ss) {
             sourceCode = sourceCode.replace(replacement.pattern, ss.misc.hashtagToString(replacement.file));
         });
 
-        if (false) { // unexposes variables to the client. see: console cracker
+        if (ss.config.client.iif) { // unexposes variables to the client. see: console cracker
             sourceCode = `(()=>{\n${sourceCode}\n})();`
         };
 

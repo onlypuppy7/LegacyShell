@@ -6,6 +6,8 @@ import { fixStringWidth } from '#stringWidth';
 import Player from '#player';
 import CatalogConstructor from '#catalog';
 import extendMath from '#math';
+//legacyshell: getting user data
+import wsrequest from '#wsrequest';
 //
 
 let ss, catalog;
@@ -18,6 +20,15 @@ function setSS(newSS) {
 
 class newClient {
     constructor(room, info) {
+        this.initClient(room, info);
+    };
+
+    async initClient(room, info) {
+        this.ss = ss;
+        //
+        this.session = info.session;
+        await this.updateUserData();
+        // console.log(info.nickname, this.userData)
         //
         this.timeout = new TimeoutManagerConstructor();
         this.interval = new IntervalManagerConstructor();
@@ -25,9 +36,7 @@ class newClient {
         this.room = room;
         this.wsId = info.wsId;
         this.joinedTime = Date.now();
-        this.userData = info.userData;
-        this.sessionData = info.sessionData;
-        this.loggedIn = info.userData && info.sessionData;
+        this.loggedIn = this.userData && this.sessionData;
         //
         this.account_id = this.loggedIn ? this.userData.account_id : null; //reminder this is the ID of the actual account
         this.nickname = info.nickname; //todo check this is legal length and stuff
@@ -42,30 +51,111 @@ class newClient {
         this.lastPingTime = Date.now();
         //
 
-        //classIdx
-        this.setClassIdx(info.classIdx);
-        //gun skins
-        this.setEquippedItem(ItemType.Primary, this.classIdx, catalog.findItemBy8BitItemId(ItemType.Primary, this.classIdx, info.primary_item_id));
-        this.setEquippedItem(ItemType.Secondary, this.classIdx, catalog.findItemBy8BitItemId(ItemType.Secondary, this.classIdx, info.secondary_item_id));
-        //cosmetics
-        this.setEquippedItem(ItemType.Hat, this.classIdx, catalog.findItemBy8BitItemId(ItemType.Hat, this.classIdx, info.hatId));
-        this.setEquippedItem(ItemType.Stamp, this.classIdx, catalog.findItemBy8BitItemId(ItemType.Stamp, this.classIdx, info.stampId));
-        this.setColorIdx(info.colorIdx);
+        this.updateLoadout(
+            info.classIdx,
+            info.primary_item_id,
+            info.secondary_item_id,
+            info.colorIdx,
+            info.hatId,
+            info.stampId
+        );
+        await this.instantiatePlayer();
+        // this.applyLoadout();
 
-        this.instantiatePlayer();
-
-        // console.log("kek", info, room);
+        this.room.registerPlayerClient(this);
         
         var output = new Comm.Out(11); //if fixed for gameJoined, use 11
         this.packGameJoined(output);
         this.sendBuffer(output, "packGameJoined"); //buffer cause not clientReady
 
-        // ws.removeAllListeners('message');
-        // ws.on('message', this.onmessage.bind(this));
-        // ws.removeAllListeners('close');
-        // ws.on('close', this.onclose.bind(this));
+        this.room.updateRoomDetails();
+    };
 
-        // console.log(!!this.room.packAllPlayers);
+    async updateLoadout (classIdx, primary_item_id, secondary_item_id, colorIdx, hatId, stampId) {
+        //classIdx
+        this.setClassIdx(classIdx);
+        //gun skins
+        this.setEquippedItem(ItemType.Primary, this.classIdx, catalog.findItemBy8BitItemId(ItemType.Primary, this.classIdx, primary_item_id));
+        this.setEquippedItem(ItemType.Secondary, this.classIdx, catalog.findItemBy8BitItemId(ItemType.Secondary, this.classIdx, secondary_item_id));
+        //cosmetics
+        this.setColorIdx(colorIdx);
+        this.setEquippedItem(ItemType.Hat, this.classIdx, catalog.findItemBy8BitItemId(ItemType.Hat, this.classIdx, hatId));
+        this.setEquippedItem(ItemType.Stamp, this.classIdx, catalog.findItemBy8BitItemId(ItemType.Stamp, this.classIdx, stampId));
+    };
+
+    applyLoadout () {
+        this.player.changeCharacter(
+            this.classIdx,
+            this.loadout[ItemType.Primary],
+            this.loadout[ItemType.Secondary],
+            this.colorIdx,
+            this.loadout[ItemType.Hat],
+            this.loadout[ItemType.Stamp],
+        );
+    };
+
+    async instantiatePlayer() {
+        this.player = new Player({
+            id: this.id,
+            uniqueId: this.account_id,
+            nickname: this.nickname,
+            classIdx: this.classIdx, // weapon class
+            username: this.username,
+
+            team: this.room.gameOptions.teamsEnabled ? ran.getRandomInt(1,2) : 0, //info.team,
+
+            primaryWeaponItem: this.loadout[ItemType.Primary],
+            secondaryWeaponItem: this.loadout[ItemType.Secondary],
+            shellColor: this.colorIdx,
+            hatItem: this.loadout[ItemType.Hat],
+            stampItem: this.loadout[ItemType.Stamp],
+
+            x: 0,
+            y: 0,
+            z: 0,
+            dx: 0,
+            dy: 0,
+            dz: 0,
+            yaw: 0,
+            pitch: 0,
+
+            score: 0,
+            kills: 0,
+            deaths: 0,
+            streak: 0,
+            totalKills: 0,
+            totalDeaths: 0,
+            bestGameStreak: 0,
+            bestOverallStreak: 0,
+
+            shield: 0,
+            hp: 100,
+
+            playing: 0,
+            weaponIdx: 0, // prim/sec: 0/1 (it's Slot in #constants)
+
+            controlKeys: 0,
+            randomSeed: 0,
+
+            upgradeProductId: this.loggedIn ? this.userData.upgradeProductId : 0,
+        }, this.room.scene, this);       
+
+        // console.log("upgradeProductId", this.userData.upgradeProductId, this.loggedIn ? this.userData.upgradeProductId : 0);
+    };
+
+    async updateUserData() {
+        var response;
+
+        if (this.session && this.session.length > 0) {
+            response = await wsrequest({
+                cmd: "getUser",
+                session: this.session,
+            }, ss.config.game.services_server, ss.config.game.auth_key);
+            // console.log(this.userData);
+        };
+
+        this.userData = response?.userData || null;
+        this.sessionData = response?.sessionData || null;
     };
 
     async onmessage(message) {
@@ -172,29 +262,22 @@ class newClient {
                         break;
                     case Comm.Code.changeCharacter:
                         var newClassIdx = input.unPackInt8U();
-                        var primaryWeaponItem = catalog.findItemBy8BitItemId(ItemType.Primary, newClassIdx, input.unPackInt8U());
-                        var secondaryWeaponItem = catalog.findItemBy8BitItemId(ItemType.Secondary, newClassIdx, input.unPackInt8U());
+                        var primaryWeaponItem = input.unPackInt8U();
+                        var secondaryWeaponItem = input.unPackInt8U();
                         var shellColor = input.unPackInt8U();
-                        var hatItem = catalog.findItemBy8BitItemId(ItemType.Hat, newClassIdx, input.unPackInt8U());
-                        var stampItem = catalog.findItemBy8BitItemId(ItemType.Stamp, newClassIdx, input.unPackInt8U());
+                        var hatId = input.unPackInt8U();
+                        var stampId = input.unPackInt8U();
 
-                        // in theory this should all be in the player thing really. todo, refactor
-                        // pretty sure if u just send bs it will accept it :shrug:
-                        // works for the minute
-
-                        this.setClassIdx(newClassIdx);
-                        //gun skins
-                        this.setEquippedItem(ItemType.Primary, this.classIdx, primaryWeaponItem);
-                        this.setEquippedItem(ItemType.Secondary, this.classIdx, secondaryWeaponItem);
-                        //cosmetics
-                        this.setEquippedItem(ItemType.Hat, this.classIdx, hatItem);
-                        this.setEquippedItem(ItemType.Stamp, this.classIdx, stampItem);
-                        this.setColorIdx(shellColor);
-
-                        console.log(newClassIdx, this.classIdx, shellColor, this.player.classIdx)
-
-                        this.player.changeCharacter(this.classIdx, primaryWeaponItem, secondaryWeaponItem, shellColor, hatItem, stampItem);
-                        console.log(this.player.classIdx);
+                        await this.updateUserData();
+                        this.updateLoadout(
+                            newClassIdx,
+                            primaryWeaponItem,
+                            secondaryWeaponItem,
+                            shellColor,
+                            hatId,
+                            stampId
+                        );
+                        this.applyLoadout();
                         break;
                     case Comm.Code.throwGrenade: 
                         var grenadeThrowPower = input.unPackFloat();
@@ -202,8 +285,10 @@ class newClient {
                         this.player.queueGrenade(grenadeThrowPower);
                         break;
                     case Comm.Code.ping:
+                        this.pingLevelInt = Math.clamp(input.unPackInt8U(), 0, 3);
+                        // console.log(this.nickname, "new pingLevelInt", this.pingLevelInt)
                         var output = new Comm.Out();
-                        output.packInt8(Comm.Code.ping);
+                        output.packInt8U(Comm.Code.ping);
                         this.sendToMe(output, "ping");
                         this.lastPingTime = Date.now();
                         break;
@@ -263,57 +348,9 @@ class newClient {
 
     setColorIdx(colorIdx) {
         let range = 6;
-        if (this.loggedIn && !this.userData.upgradeIsExpired) range = 13;
+        if (this.loggedIn && (this.userData.upgradeExpiryDate > Date.now() / 1000)) range = 13;
+        // console.log(this.userData.upgradeExpiryDate, Date.now() / 1000)
         this.colorIdx = Math.clamp(Math.floor(colorIdx), 0, range);
-    };
-
-    instantiatePlayer() {
-        this.player = new Player({
-            id: this.id,
-            uniqueId: this.account_id,
-            nickname: this.nickname,
-            classIdx: this.classIdx, // weapon class
-            username: this.username,
-
-            team: 0, //info.team,
-
-            primaryWeaponItem: this.loadout[ItemType.Primary],
-            secondaryWeaponItem: this.loadout[ItemType.Secondary],
-            shellColor: this.colorIdx,
-            hatItem: this.loadout[ItemType.Hat],
-            stampItem: this.loadout[ItemType.Stamp],
-
-            x: 15,
-            y: 5,
-            z: 5,
-            dx: 0,
-            dy: 0,
-            dz: 0,
-            yaw: 0,
-            pitch: 0,
-
-            score: 0,
-            kills: 0,
-            deaths: 0,
-            streak: 0,
-            totalKills: 0,
-            totalDeaths: 0,
-            bestGameStreak: 0,
-            bestOverallStreak: 0,
-
-            shield: 0,
-            hp: 100,
-
-            playing: 0,
-            weaponIdx: 0, // prim/sec: 0/1 (it's Slot in #constants)
-
-            controlKeys: 0,
-            randomSeed: 0,
-
-            upgradeProductId: this.loggedIn ? this.userData.upgradeProductId : 0,
-        }, this.room.scene, this);
-                    
-        this.room.registerPlayerClient(this);
     };
 
     packPlayer(output) {
@@ -354,7 +391,7 @@ class newClient {
         output.packInt8U(this.player.shield);
         output.packInt8U(this.player.hp);
         output.packInt8U(this.player.playing ? 1 : 0);
-        output.packInt8U(0); //weaponIdx
+        output.packInt8U(this.player.weaponIdx); //weaponIdx
         output.packInt8U(0); //controlKeys
         output.packInt16U(0); //randomSeed
         output.packInt8U(this.loggedIn ? this.userData.upgradeProductId : 0); //upgradeProductId
@@ -377,6 +414,8 @@ class newClient {
         output.packFloat(this.player.dy);
         output.packFloat(this.player.dz);
         output.packInt8U(this.player.climbing ? 1 : 0);
+        output.packInt8U(this.pingLevelInt);
+        // console.log(this.id, this.pingLevelInt)
 
         for (var i = 0; i < FramesBetweenSyncs; i++) {
             var idx = Math.mod(this.player.stateIdx + i - FramesBetweenSyncs, stateBufferSize);
@@ -399,7 +438,7 @@ class newClient {
         output.packInt8U(Comm.Code.gameJoined);
 
         output.packInt8U(this.id); //meId (0-17 for 18 slots)
-        output.packInt8U(0); // myTeam (0 for ffa, 1-2 for teams)
+        output.packInt8U(this.player.team); // myTeam (0 for ffa, 1-2 for teams)
         output.packInt8U(this.room.gameType); // gameType
         output.packInt16U(this.room.gameId); // gameId
         output.packInt16U(this.room.gameKey); // gameKey
