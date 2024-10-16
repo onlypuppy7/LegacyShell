@@ -40,8 +40,11 @@ function convert(m) {
 
                 if (cell.dir !== 0) block.ry = cell.dir;
 
-                let mesh = idx[cat][dec];
-
+                let mesh;
+                if (idx && idx[cat] && idx[cat][dec]) {
+                    mesh = idx[cat][dec];
+                };
+                
                 if (!mesh) console.log(n.name, cat, dec, mesh, cell);
 
                 if (!n.data[mesh]) n.data[mesh] = [];
