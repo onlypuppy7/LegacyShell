@@ -46,7 +46,7 @@ function checkExplosionCollisions (explosion) { //stolen from rtw 🥺
 
                 let damage = explosion.damage * modifier * (1 / Math.pow(delta.length() * scalingFactor, exponent));
 
-                // console.log("explosion hits", damage);
+                console.log("explosion hits", damage, "to player", player.id, player.name);
                 // console.log("who was hit?", player.id, player.name);
                 // console.log("who fired it?", explosion.player.id, explosion.player.name);
                 player.hit(damage, explosion.player, explosion.x, explosion.y);

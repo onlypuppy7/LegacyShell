@@ -305,14 +305,13 @@ class newRoom {
             });
 
             while (pool.numActive < maximum) {
-
                 var id = pool.getFreeId();
                 var pos = ran.getRandomFromList(this.validItemSpawns);
 
                 var x = pos[0] + 0.5;
                 var y = pos[1] + 0.1;
                 var z = pos[2] + 0.5;
-                
+
                 devlog("item type", i, "current active", pool.numActive, "max", maximum);
                 devlog(id, pos);
 
@@ -331,6 +330,17 @@ class newRoom {
             if (!(client || player)) return i;
         };
         return null;
+    };
+
+    getPreferredTeam() {
+        if (!this.gameOptions.teamsEnabled) {
+            return 0;
+        } else {
+            var team1Count = this.getPlayerCount(1);
+            var team2Count = this.getPlayerCount(2);
+
+            return team1Count > team2Count ? 2 : 1;
+        };
     };
 
     getPlayerClient(id) {
