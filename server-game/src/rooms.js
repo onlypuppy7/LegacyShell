@@ -6,7 +6,7 @@ import ColliderConstructor from '#collider';
 import createLoop from '#looper';
 import extendMath from '#math';
 import { setSSforLoader, loadMapMeshes, buildMapData } from '#loading';
-import { TickStep, stateBufferSize, FramesBetweenSyncs, GameTypes, MAP, ItemTypes, setSSForContants } from '#constants';
+import { TickStep, stateBufferSize, FramesBetweenSyncs, GameTypes, MAP, ItemTypes, setSSForContants, devlog } from '#constants';
 import { MunitionsManagerConstructor } from '#munitionsManager';
 import { ItemManagerConstructor } from '#itemManager';
 import BABYLON from "babylonjs";
@@ -223,11 +223,12 @@ class newRoom {
         this.metaLoop(true);
     };
 
-    getPlayerCount() {
+    getPlayerCount(team) {
         let count = 0;
         for (let i = 0; i < this.players.length; i++) {
-            if (this.players[i]) {
-                count++;
+            var player = this.players[i];
+            if (player) {
+                if (!(typeof(team) == "number" && team !== player.team)) count++;
             };
         };
         return count;
@@ -304,18 +305,19 @@ class newRoom {
             });
 
             while (pool.numActive < maximum) {
-                // console.log("item type", i, "current active", pool.numActive, "max", maximum);
 
                 var id = pool.getFreeId();
                 var pos = ran.getRandomFromList(this.validItemSpawns);
 
-                pos[0] += 0.5;
-                pos[1] += 0.1;
-                pos[2] += 0.5;
+                var x = pos[0] + 0.5;
+                var y = pos[1] + 0.1;
+                var z = pos[2] + 0.5;
                 
-                console.log(id, pos);
-                this.itemManager.spawnItem(id, i, pos[0], pos[1], pos[2]);
-                this.packSpawnItemPacket(output, id, i, pos[0], pos[1], pos[2]);
+                devlog("item type", i, "current active", pool.numActive, "max", maximum);
+                devlog(id, pos);
+
+                this.itemManager.spawnItem(id, i, x, y, z);
+                this.packSpawnItemPacket(output, id, i, x, y, z);
             };
         };
         if (output.idx > 0) this.sendToAll(output, null, "spawnItem");
