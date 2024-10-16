@@ -216,7 +216,7 @@ class Player {
                         (Math.round(this.z * 2) / 2) == (item.z)
                     ) {
                         var itemCollected = this.collectItem(i, this.weaponIdx);
-                        console.log("could collect?", itemCollected, i, this.weaponIdx);
+                        // console.log("could collect?", itemCollected, i, this.weaponIdx);
                         if (itemCollected) {
                             this.client.pickupItem(i, this.weaponIdx, item.id);
                         };
