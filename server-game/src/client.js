@@ -446,6 +446,17 @@ class newClient {
         output.packInt8U(this.room.playerLimit); // playerLimit
         output.packInt8U(0); //bool // isGameOwner
     };
+    
+    pickupItem (kind, weaponIdx, id) {
+        this.room.itemManager.collectItem(kind, id);
+
+        var output = new Comm.Out();
+        this.room.packCollectItemPacket(output, this.id, kind, weaponIdx, id)
+
+        this.sendToAll(output, "collectItem");
+
+        this.room.spawnItems();
+    };
 
     sendBuffer(output, debug) { // more direct operation, prefer this.room.sendToOne
         if (!(debug.includes("sync") || debug.includes("ping"))) console.log(this.id, output.idx, debug);
