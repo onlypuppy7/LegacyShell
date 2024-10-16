@@ -173,6 +173,7 @@ export var defaultOptions = {
         [ItemTypes.AMMO, 25, 4],
         [ItemTypes.GRENADE, 65, 5]
     ],
+    teamSwitchMaximumDifference: 0,
 };
 
 export var GameTypes = [

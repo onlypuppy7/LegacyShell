@@ -289,6 +289,15 @@ class newClient {
                         console.log("throwing a grenade", grenadeThrowPower);
                         this.player.queueGrenade(grenadeThrowPower);
                         break;
+                    case Comm.Code.switchTeam:
+                        if (this.room.gameOptions.teamsEnabled) {
+                            var totalPlayers = this.room.getPlayerCount();
+                            var originalTeamCount = this.room.getPlayerCount(this.player.team);
+                            console.log("total", totalPlayers);
+                            console.log("on your team", originalTeamCount);
+                            console.log("switching allowed", (totalPlayers - (originalTeamCount * 2)) < this.room.gameOptions.teamSwitchMaximumDifference)
+                        };
+                        break;
                     case Comm.Code.ping:
                         this.pingLevelInt = Math.clamp(input.unPackInt8U(), 0, 3);
                         // console.log(this.nickname, "new pingLevelInt", this.pingLevelInt)
