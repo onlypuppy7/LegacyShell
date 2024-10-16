@@ -135,6 +135,7 @@ class newRoomManager {
                     } catch (error) { }
                 });
             },
+            bootedIps: [],
         };
 
         worker.on('message', (msg) => {
@@ -144,16 +145,20 @@ class newRoomManager {
                 const ws = room.wsMap.get(wsId);
     
                 switch (msgType) {
-                    case 0: //send stuff to ws
+                    case Comm.Worker.send: //send stuff to ws
                         ws.send(content);
                         break;
-                    case 1: //close stuff to ws
+                    case Comm.Worker.close: //close stuff to ws
                         ws.close(content);
                         break;
-                    case 2: //update the room
+                    case Comm.Worker.updateRoom: //update the room
                         Object.assign(createdRoom, content);
                         // console.log(room.ready, createdRoom.ready, content);
                         // console.log(room.playerLimit, createdRoom.ready);
+                        break;
+                    case Comm.Worker.boot: //boot a player
+                        room.bootedIps.push(ws.ip);
+                        ws.close(Comm.Close.booted);
                         break;
                     default:
                         break;
@@ -187,27 +192,29 @@ class newRoomManager {
         return createdRoom;
     };
 
-    joinRoom(room, msg, ws) {
-        let wsId = room.wsIdx++;
-
-        // console.log("joining player, wsId:", wsId);
-
-        // console.log("is room ready?", room.ready);
-
-        ws.removeAllListeners('message');
-        ws.on('message', (content)=>{
-            room.worker.postMessage(["wsMessage", content, wsId]);
-        });
-        ws.removeAllListeners('close');
-        ws.on('close', (content)=>{
-            room.worker.postMessage(["wsClose", content, wsId]);
-        });
-        ws.wsId = wsId;
-
-        room.wsMap.set(wsId, ws);
-
-        msg.wsId = wsId;
-        room.worker.postMessage(["joinPlayer", msg]);
+    joinRoom(room, msg, ws, ip) {
+        if (room.bootedIps.includes(ip)) {
+            ws.close(Comm.Close.booted);
+        } else {
+            let wsId = room.wsIdx++;
+    
+            ws.removeAllListeners('message');
+            ws.on('message', (content)=>{
+                room.worker.postMessage(["wsMessage", content, wsId]);
+            });
+            ws.removeAllListeners('close');
+            ws.on('close', (content)=>{
+                room.worker.postMessage(["wsClose", content, wsId]);
+            });
+            ws.wsId = wsId;
+            ws.ip = ip;
+    
+            room.wsMap.set(wsId, ws);
+    
+            msg.wsId = wsId;
+            // msg.ip = ip;
+            room.worker.postMessage(["joinPlayer", msg]);
+        };
     };
 
     removeRoom(id) {

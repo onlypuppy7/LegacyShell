@@ -33,6 +33,7 @@ class Player {
             this.map = map;
         };
 
+        this.isGameOwner = false;
         this.id = data.id;
         this.uniqueId = data.uniqueId;
         this.name = data.name || data.nickname; //fyi this is a bad

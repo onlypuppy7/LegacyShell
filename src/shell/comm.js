@@ -280,7 +280,15 @@ const Comm = {
         badName: 4002,
         mainMenu: 4003,
         masterServerBusy: 4004,
-        masterServerOffline: 4005
+        masterServerOffline: 4005,
+        booted: 4006,
+    },
+
+    Worker: {
+        send: 0,
+        close: 1,
+        updateRoom: 2,
+        boot: 3,
     },
 
     /**
@@ -491,6 +499,13 @@ const Comm = {
         startReload: 48,
 
         fire: 49,
+
+        /** LEGACYSHELL ADDED
+        * 
+        * SERVER: room has a new owner set
+        * @constant {number}
+        */
+        setGameOwner: 50,
 
         /** CLIENT: used by bwd admins to look at ips and stuff (scary). 
         * @constant {number}

@@ -27,12 +27,13 @@ class newRoom {
         console.log("creating room", info.gameId);
         this.startTime = Date.now();
         this.existedFor = 0;
+        this.gameOwner = null;
 
         this.wsToClient = {};
 
         this.serverStateIdx = 0;
 
-        this.joinType = info.joinType;
+        this.joinType = info.joinType; console.log(this.joinType)
         this.gameType = info.gameType;
         this.gameOptions = JSON.parse(JSON.stringify(GameTypes[this.gameType].options)); //create copy of object
         console.log("gameOptions", this.gameOptions)
@@ -84,7 +85,6 @@ class newRoom {
             this.updateRoomDetails();
 
             this.getValidItemSpawns();
-            // this.spawnItems();
             this.spawnItemsLoopObject = createLoop(this.spawnItems.bind(this), 30e3); //just in case, i guess?
         });
     };
@@ -106,7 +106,7 @@ class newRoom {
     };
 
     updateRoomDetails() {
-        ss.parentPort.postMessage([2, {
+        ss.parentPort.postMessage([Comm.Worker.updateRoom, {
             ready: true,
             playerLimit: this.playerLimit,
             playerCount: this.getPlayerCount(),
@@ -220,6 +220,8 @@ class newRoom {
 
         console.log('Client disconnected', client.id);
 
+        this.setGameOwner();
+
         this.metaLoop(true);
     };
 
@@ -232,6 +234,50 @@ class newRoom {
             };
         };
         return count;
+    };
+
+    getOldestClient() {
+        let oldestClient = null;
+        let oldestTime = 9e99;
+        for (let i = 0; i < this.clients.length; i++) {
+            var client = this.clients[i];
+            if (client) {
+                if (client.joinedTime < oldestTime) {
+                    oldestClient = client;
+                    oldestTime = client.joinedTime;
+                };
+            };
+        };
+        return oldestClient;
+    };
+
+    packSetGameOwner (output) {
+        if (this.gameOwner) {
+            output.packInt8U(Comm.Code.setGameOwner);
+            output.packInt8U(this.gameOwner.id);
+        };
+    };
+
+    setGameOwner() {
+        devlog("pls find a new owner pls 1", this.joinType, Comm.Code.createPrivateGame);
+        if (this.joinType === Comm.Code.createPrivateGame) {
+            devlog("pls find a new owner pls 2");
+            var newOwner = this.getOldestClient();
+            if (newOwner) {
+                devlog("found new owner", newOwner.id);
+                if (this.gameOwner !== newOwner) {
+                    this.gameOwner = newOwner;
+                    var output = new Comm.Out(2);
+                    this.packSetGameOwner(output);
+                    this.sendToAll(output, null, "setGameOwner");
+                };
+                this.players.forEach((player)=>{
+                    player.isGameOwner = player.id === this.gameOwner.player.id;
+                });
+            } else {
+                devlog("didnt new owner");
+            };
+        };
     };
 
     getRandomSpawn(player) {
