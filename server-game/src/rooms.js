@@ -6,9 +6,9 @@ import ColliderConstructor from '#collider';
 import createLoop from '#looper';
 import extendMath from '#math';
 import { setSSforLoader, loadMapMeshes, buildMapData } from '#loading';
-import { TickStep, stateBufferSize, FramesBetweenSyncs, GameTypes } from '#constants';
+import { TickStep, stateBufferSize, FramesBetweenSyncs, GameTypes, MAP, ItemTypes, setSSForContants } from '#constants';
 import { MunitionsManagerConstructor } from '#munitionsManager';
-import { ItemManagerConstructor, MAP } from '#itemManager';
+import { ItemManagerConstructor } from '#itemManager';
 import BABYLON from "babylonjs";
 //
 
@@ -17,6 +17,7 @@ let ss;
 function setSS(newSS, parentPort) {
     ss = newSS;
     ClientConstructor.setSS(ss);
+    setSSForContants(ss);
     extendMath(Math);
 };
 
@@ -83,9 +84,9 @@ class newRoom {
             this.updateRoomDetails();
 
             this.getValidItemSpawns();
-            this.spawnItems();
+            // this.spawnItems();
 
-            setInterval(() => this.spawnItems(), 2000);
+            setInterval(() => this.spawnItems(), 4000);
         });
     };
 
@@ -262,37 +263,48 @@ class newRoom {
         // console.log(this.validItemSpawns);
     };
 
-    spawnPacket(kind, x, y, z) {
-        let data = {
-            id: this.itemManager.allocateId(),
-            kind: kind,
-            x: x,
-            y: y,
-            z: z
-        };
+    packSpawnPacket(output, id, kind, x, y, z) {
+        output.packInt8(Comm.Code.spawnItem);
+        output.packInt16(id);
+        output.packInt8(kind);
+        output.packFloat(x);
+        output.packFloat(y);
+        output.packFloat(z);
+    };
 
-        let spawnPacket = new Comm.Out();
-        spawnPacket.packInt8(Comm.Code.spawnItem);
-        spawnPacket.packInt16(data.id);
-        spawnPacket.packInt8(data.kind);
-        spawnPacket.packFloat(data.x + 0.5);
-        spawnPacket.packFloat(data.y + 0.1);
-        spawnPacket.packFloat(data.z + 0.5);
-
-        this.itemManager.items.push(data);
-
-        return spawnPacket;
+    packCollectItemPacket(output, playerId, kind, index, id) {
+        output.packInt8(Comm.Code.collectItem);
+        output.packInt8(playerId);
+        output.packInt8(kind);
+        output.packInt8(index);
+        output.packInt16(id);
     };
 
     spawnItems() {
-        for (const dat of this.validItemSpawns) {
-            if (this.itemManager.items.length >= this.maxAmmo) return;
-            console.log(this.itemManager.items.length, this.maxAmmo)
+        let pools = this.itemManager.pools;
+        var output = new Comm.Out();
+        for (let i = 0; i < pools.length; i++) {
+            let pool = pools[i];
+            let maximum = 0;
+            this.gameOptions.itemsEnabled.forEach((itemOptions)=>{
+                if (itemOptions[0] === i) maximum = Math.max(Math.ceil(this.mapJson.surfaceArea / itemOptions[1]), itemOptions[2]);
+            });
 
-            if (Math.floor((Math.random() * 50)) == 4) {
-                if (Math.floor((Math.random() * 5)) == 3) this.sendToAll(this.spawnPacket(1, dat[0], dat[1], dat[2]), null, "spawnItem");
-                else this.sendToAll(this.spawnPacket(0, dat[0], dat[1], dat[2]), null, "spawnItem");
+            while (pool.numActive < maximum) {
+                console.log("item type", i, "current active", pool.numActive, "max", maximum);
+
+                var id = pool.getFreeId();
+                var pos = ran.getRandomFromList(this.validItemSpawns);
+
+                pos[0] += 0.5;
+                pos[1] += 0.1;
+                pos[2] += 0.5;
+                
+                console.log(id, pos);
+                this.itemManager.spawnItem(id, i, pos[0], pos[1], pos[2]);
+                this.packSpawnPacket(output, id, i, pos[0], pos[1], pos[2]);
             };
+        if (output.idx > 0) this.sendToAll(output, null, "spawnItem");
         };
     };
 

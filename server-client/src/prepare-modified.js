@@ -41,7 +41,7 @@ function prepareModified(ss) {
         ss.log.italic("Inserting babylon into shellshock.min.js...");
         sourceCode = sourceCode.replace(/LEGACYSHELLBABYLON/g, fs.readFileSync(path.join(ss.currentDir, 'src', 'data', 'babylon.js')));
         ss.log.italic("Inserting devmode into shellshock.min.js...");
-        sourceCode = sourceCode.replace(/LEGACYSHELLDEVMODE/g, "true"); //drop in later
+        sourceCode = sourceCode.replace(/LEGACYSHELLDEVMODE/g, ss.config.devlogs ? "true" : "false");
 
         const replacements = [
             { pattern: /LEGACYSHELLCOMM/g, file: "#comm" },

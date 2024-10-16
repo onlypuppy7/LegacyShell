@@ -65,7 +65,14 @@ function extendMath (Math) {
         return Math.floor(Math.seededRandom(min, max))
     };
     Math.diff = function (a, b, threshold) {
-        return b < a ? threshold - a + b : b - a
+        return b < a ? threshold - a + b : b - a;
+    };
+    Math.shuffleArray = function (array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        };
+        return array;
     };
     return Math;
 };
