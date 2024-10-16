@@ -553,6 +553,27 @@ class Player {
             };
         };
     };
+    switchTeam(toTeam) {
+        this.team = toTeam;
+        this.score = 0;
+        this.kills = 0;
+        this.streak = 0;
+        this.bestGameStreak = 0;
+        if (isClient) {
+            for (var i = 0; i < playerLimit; i++){
+                var player = players[i];
+                console.log(player)
+                if (player && player.actor) player.actor.updateTeam();
+            };
+            rebuildPlayerList();
+        } else {
+            var output = new Comm.Out(3);
+            output.packInt8U(Comm.Code.switchTeam);
+            output.packInt8U(this.id);
+            output.packInt8U(toTeam);
+            this.client.sendToAll(output, "switchTeam");
+        };
+    };
     collectItem(kind, applyToWeaponIdx) {
         switch (kind) {
             case ItemTypes.AMMO:

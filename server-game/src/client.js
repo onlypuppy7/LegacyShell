@@ -1,7 +1,7 @@
 //legacyshell: client
 import ran from '#scrambled';
 import Comm from '#comm';
-import { ItemType, itemIdOffsets, FramesBetweenSyncs, stateBufferSize, TimeoutManagerConstructor, maxChatWidth, IntervalManagerConstructor, classes } from '#constants';
+import { ItemType, itemIdOffsets, FramesBetweenSyncs, stateBufferSize, TimeoutManagerConstructor, maxChatWidth, IntervalManagerConstructor, classes, devlog } from '#constants';
 import { fixStringWidth } from '#stringWidth';
 import Player from '#player';
 import CatalogConstructor from '#catalog';
@@ -102,7 +102,7 @@ class newClient {
             classIdx: this.classIdx, // weapon class
             username: this.username,
 
-            team: this.room.gameOptions.teamsEnabled ? ran.getRandomInt(1,2) : 0, //info.team,
+            team: this.room.getPreferredTeam(), //info.team,
 
             primaryWeaponItem: this.loadout[ItemType.Primary],
             secondaryWeaponItem: this.loadout[ItemType.Secondary],
@@ -293,9 +293,19 @@ class newClient {
                         if (this.room.gameOptions.teamsEnabled) {
                             var totalPlayers = this.room.getPlayerCount();
                             var originalTeamCount = this.room.getPlayerCount(this.player.team);
-                            console.log("total", totalPlayers);
-                            console.log("on your team", originalTeamCount);
-                            console.log("switching allowed", (totalPlayers - (originalTeamCount * 2)) < this.room.gameOptions.teamSwitchMaximumDifference)
+                            var switchAccepted = (totalPlayers - (originalTeamCount * 2)) < this.room.gameOptions.teamSwitchMaximumDifference;
+                            devlog("total", totalPlayers);
+                            devlog("on your team", originalTeamCount);
+                            devlog("switching allowed", switchAccepted);
+
+                            if (switchAccepted) {
+                                var toTeam = this.player.team === 1 ? 2 : 1;
+                                this.player.switchTeam(toTeam);
+                            } else {
+                                var output = new Comm.Out(1);
+                                output.packInt8U(Comm.Code.switchTeamFail);
+                                this.sendToMe(output, "switchTeamFail");
+                            };
                         };
                         break;
                     case Comm.Code.ping:
