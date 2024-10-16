@@ -85,8 +85,7 @@ class newRoom {
 
             this.getValidItemSpawns();
             // this.spawnItems();
-
-            setInterval(() => this.spawnItems(), 4000);
+            this.spawnItemsLoopObject = createLoop(this.spawnItems.bind(this), 30e3); //just in case, i guess?
         });
     };
 
@@ -267,9 +266,9 @@ class newRoom {
         output.packInt8(Comm.Code.spawnItem);
         output.packInt16(id);
         output.packInt8(kind);
-        output.packFloat(x);
-        output.packFloat(y);
-        output.packFloat(z);
+        output.packInt16(x*2);
+        output.packInt16(y*10);
+        output.packInt16(z*2);
     };
 
     packCollectItemPacket(output, playerId, kind, index, id) {
