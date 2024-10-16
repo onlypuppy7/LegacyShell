@@ -263,7 +263,7 @@ class newRoom {
         // console.log(this.validItemSpawns);
     };
 
-    packSpawnPacket(output, id, kind, x, y, z) {
+    packSpawnItemPacket(output, id, kind, x, y, z) {
         output.packInt8(Comm.Code.spawnItem);
         output.packInt16(id);
         output.packInt8(kind);
@@ -280,6 +280,17 @@ class newRoom {
         output.packInt16(id);
     };
 
+    packAllItems (output) {
+        let pools = this.itemManager.pools;
+        for (let i = 0; i < pools.length; i++) {
+            let pool = pools[i];
+
+            pool.forEachActive((item) => {
+                this.packSpawnItemPacket(output, item.id, i, item.x, item.y, item.z);
+            });
+        };
+    };
+
     spawnItems() {
         let pools = this.itemManager.pools;
         var output = new Comm.Out();
@@ -287,7 +298,7 @@ class newRoom {
             let pool = pools[i];
             let maximum = 0;
             this.gameOptions.itemsEnabled.forEach((itemOptions)=>{
-                if (itemOptions[0] === i) maximum = Math.max(Math.ceil(this.mapJson.surfaceArea / itemOptions[1]), itemOptions[2]);
+                if (itemOptions[0] === i) maximum = Math.clamp(Math.ceil(this.mapJson.surfaceArea / itemOptions[1]), itemOptions[2], pool.originalSize);
             });
 
             while (pool.numActive < maximum) {
@@ -302,10 +313,10 @@ class newRoom {
                 
                 console.log(id, pos);
                 this.itemManager.spawnItem(id, i, pos[0], pos[1], pos[2]);
-                this.packSpawnPacket(output, id, i, pos[0], pos[1], pos[2]);
+                this.packSpawnItemPacket(output, id, i, pos[0], pos[1], pos[2]);
             };
-        if (output.idx > 0) this.sendToAll(output, null, "spawnItem");
         };
+        if (output.idx > 0) this.sendToAll(output, null, "spawnItem");
     };
 
     getUnusedPlayerId() {

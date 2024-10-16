@@ -189,6 +189,11 @@ class newClient {
                             var output = new Comm.Out(1);
                             output.packInt8U(Comm.Code.clientReady);
                             this.sendToMe(output, "clientReady");
+
+                            
+                            var output = new Comm.Out();
+                            this.room.packAllItems(output);
+                            this.sendToMe(output, "packAllItems");
                         };
                         break;
                     case Comm.Code.sync:
