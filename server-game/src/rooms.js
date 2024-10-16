@@ -298,11 +298,14 @@ class newRoom {
             let pool = pools[i];
             let maximum = 0;
             this.gameOptions.itemsEnabled.forEach((itemOptions)=>{
-                if (itemOptions[0] === i) maximum = Math.clamp(Math.ceil(this.mapJson.surfaceArea / itemOptions[1]), itemOptions[2], pool.originalSize);
+                if (itemOptions[0] === i) {
+                    maximum = Math.ceil(this.mapJson.surfaceArea / itemOptions[1]);
+                    maximum = Math.clamp(maximum, itemOptions[2], pool.originalSize);
+                };
             });
 
             while (pool.numActive < maximum) {
-                console.log("item type", i, "current active", pool.numActive, "max", maximum);
+                // console.log("item type", i, "current active", pool.numActive, "max", maximum);
 
                 var id = pool.getFreeId();
                 var pos = ran.getRandomFromList(this.validItemSpawns);

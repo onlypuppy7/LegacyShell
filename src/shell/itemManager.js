@@ -90,13 +90,4 @@ export class ItemManagerConstructor {
     checkBelow(x, y, z, compileData) {
         return this.checkPosition(x, y - 1, z, compileData);
     };
-
-    allocateId() {
-        if (this.ids.length > 0) this.ids.shift();
-        else this.currentId++;
-    };
-
-    releaseId(id) {
-        this.ids.push(id);
-    };
 };
