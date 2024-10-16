@@ -42,7 +42,9 @@ class newRoom {
         // this.items = info.items;
         this.mapJson = ss.maps[this.mapId];
         this.playerLimit = this.mapJson.playerLimit || 18;
-        this.maxAmmo = Math.ceil(this.playerLimit * 1.5);
+        this.maxAmmo = Math.ceil(this.mapJson.surfaceArea / 25);
+        this.maxGrenades = Math.ceil(this.mapJson.surfaceArea / 65);
+        console.log("maxitems:", this.maxAmmo, this.maxGrenades)
 
         this.players = [];
         this.clients = [];
@@ -83,7 +85,7 @@ class newRoom {
             this.getValidItemSpawns();
             this.spawnItems();
 
-            setInterval(() => this.spawnItems(), 30000);
+            setInterval(() => this.spawnItems(), 2000);
         });
     };
 
@@ -257,6 +259,7 @@ class newRoom {
             };
         };
         console.log('Finished loading item spawns!');
+        // console.log(this.validItemSpawns);
     };
 
     spawnPacket(kind, x, y, z) {
@@ -273,7 +276,7 @@ class newRoom {
         spawnPacket.packInt16(data.id);
         spawnPacket.packInt8(data.kind);
         spawnPacket.packFloat(data.x + 0.5);
-        spawnPacket.packFloat(data.y);
+        spawnPacket.packFloat(data.y + 0.1);
         spawnPacket.packFloat(data.z + 0.5);
 
         this.itemManager.items.push(data);
@@ -284,10 +287,11 @@ class newRoom {
     spawnItems() {
         for (const dat of this.validItemSpawns) {
             if (this.itemManager.items.length >= this.maxAmmo) return;
+            console.log(this.itemManager.items.length, this.maxAmmo)
 
             if (Math.floor((Math.random() * 50)) == 4) {
-                if (Math.floor((Math.random() * 5)) == 3) this.sendToAll(this.spawnPacket(1, dat[0], dat[1], dat[2]));
-                else this.sendToAll(this.spawnPacket(0, dat[0], dat[1], dat[2]));
+                if (Math.floor((Math.random() * 5)) == 3) this.sendToAll(this.spawnPacket(1, dat[0], dat[1], dat[2]), null, "spawnItem");
+                else this.sendToAll(this.spawnPacket(0, dat[0], dat[1], dat[2]), null, "spawnItem");
             };
         };
     };
