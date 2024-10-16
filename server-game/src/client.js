@@ -190,9 +190,11 @@ class newClient {
                             output.packInt8U(Comm.Code.clientReady);
                             this.sendToMe(output, "clientReady");
 
-                            
+                            this.room.setGameOwner();
+
                             var output = new Comm.Out();
                             this.room.packAllItems(output);
+                            this.room.packSetGameOwner(output);
                             this.sendToMe(output, "packAllItems");
                         };
                         break;
@@ -306,6 +308,14 @@ class newClient {
                                 output.packInt8U(Comm.Code.switchTeamFail);
                                 this.sendToMe(output, "switchTeamFail");
                             };
+                        };
+                        break;
+                    case Comm.Code.bootPlayer:
+                        let id = input.unPackInt8U();
+                        let client = this.room.clients[id];
+
+                        if (this.player.isGameOwner && client && id !== this.player.id) {
+                            client.sendBootToWs();
                         };
                         break;
                     case Comm.Code.ping:
@@ -504,11 +514,15 @@ class newClient {
     };
 
     sendMsgToWs(msg) {
-        ss.parentPort.postMessage([0, msg, this.wsId]);
+        ss.parentPort.postMessage([Comm.Worker.send, msg, this.wsId]);
     };
 
     sendCloseToWs(msg) {
-        ss.parentPort.postMessage([1, msg, this.wsId]);
+        ss.parentPort.postMessage([Comm.Worker.close, msg, this.wsId]);
+    };
+
+    sendBootToWs(msg) {
+        ss.parentPort.postMessage([Comm.Worker.boot, msg, this.wsId]);
     };
 };
 

@@ -75,7 +75,7 @@ function startServer() {
                                         console.log("Comm.Close.gameFull");
                                         ws.close(Comm.Close.gameFull);
                                     } else {
-                                        RoomManager.joinRoom(roomFound, msg, ws);
+                                        RoomManager.joinRoom(roomFound, msg, ws, ip);
                                     };
                                 } else {
                                     console.log("Comm.Close.gameNotFound");
