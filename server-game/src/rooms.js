@@ -6,9 +6,10 @@ import ColliderConstructor from '#collider';
 import createLoop from '#looper';
 import extendMath from '#math';
 import { setSSforLoader, loadMapMeshes, buildMapData } from '#loading';
-import { TickStep, stateBufferSize, FramesBetweenSyncs, GameTypes, MAP, ItemTypes, setSSForContants, devlog } from '#constants';
+import { TickStep, stateBufferSize, FramesBetweenSyncs, GameTypes, MAP, ItemTypes, setSSForConstants, devlog } from '#constants';
 import { MunitionsManagerConstructor } from '#munitionsManager';
 import { ItemManagerConstructor } from '#itemManager';
+import { PermissionsConstructor } from '#permissions';
 import BABYLON from "babylonjs";
 //
 
@@ -17,7 +18,7 @@ let ss;
 function setSS(newSS, parentPort) {
     ss = newSS;
     ClientConstructor.setSS(ss);
-    setSSForContants(ss);
+    setSSForConstants(ss);
     extendMath(Math);
 };
 
@@ -64,6 +65,9 @@ class newRoom {
         //pools init
         this.munitionsManager = new MunitionsManagerConstructor(this.scene);
         this.itemManager = new ItemManagerConstructor();
+
+        //permissions
+        this.perm = new PermissionsConstructor(ss);
 
         //map init
         setSSforLoader(ss, this.mapJson, this.Collider);

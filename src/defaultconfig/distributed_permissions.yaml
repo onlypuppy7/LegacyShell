@@ -25,5 +25,5 @@ permissions: # user must have permissions above or equal to the set values.
     joinPrivateGame: 0
     createPrivateGame: 0
 
-  cmds:
-    announce: 20
+  cmds: # format: [pubs, privs, require owner in privs]
+    announce: [10, 0, true]

@@ -10,7 +10,7 @@ export const isClient = typeof (window) !== 'undefined'; //best to define once, 
 export const isServer = typeof (window) === 'undefined'; //clearer in code
 
 let ss;
-export function setSSForContants(newSS) {ss = newSS};
+export function setSSForConstants(newSS) {ss = newSS};
 
 //these are pretty damn important:
 
