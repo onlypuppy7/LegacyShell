@@ -137,7 +137,7 @@ initTables().then(() => {
         // Apparently, WS ips die after disconnect?
         // https://stackoverflow.com/questions/12444598/why-is-socket-remoteaddress-undefined-on-end-event
     
-        let ip = req.socket.remoteAddress;
+        let ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || req.connection.remoteAddress;
     
         ws.on('message', async (message) => {
             try {
