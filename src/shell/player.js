@@ -39,6 +39,7 @@ class Player {
         this.name = data.name || data.nickname; //fyi this is a bad
         this.classIdx = data.classIdx;
         this.username = data.username !== "" ? data.username : "Guest";
+        this.adminRoles = data.adminRoles;
         this.team = data.team;
         this.primaryWeaponItem = data.primaryWeaponItem;
         this.secondaryWeaponItem = data.secondaryWeaponItem;

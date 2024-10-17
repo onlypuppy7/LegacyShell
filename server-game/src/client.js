@@ -101,6 +101,7 @@ class newClient {
             nickname: this.nickname,
             classIdx: this.classIdx, // weapon class
             username: this.username,
+            adminRoles: this.loggedIn ? this.userData.adminRoles : 0,
 
             team: this.room.getPreferredTeam(), //info.team,
 
@@ -249,22 +250,26 @@ class newClient {
                         break;
                     case Comm.Code.chat:
                         var text = input.unPackString();
-                        text = fixStringWidth(text, maxChatWidth);
+                        console.log(this.player.name, "chatted:", text);
 
-                        if ("" != text && text.indexOf("<") < 0) { //todo, ratelimiting, censoring
-                            console.log(this.player.name, "chatted:", text);
-                            var output = new Comm.Out();
-                            output.packInt8U(Comm.Code.chat);
-                            output.packInt8U(this.id);
-                            output.packString(text);
-                            this.sendToOthers(output, this.id, "chat: " + text);
+                        if (text.startsWith("/")) {
+                            this.room.perm.inputCmd(this.player, text);
+                        } else {
+                            text = fixStringWidth(text, maxChatWidth);
+                            if ("" != text && text.indexOf("<") < 0) { //todo, ratelimiting, censoring
+                                var output = new Comm.Out();
+                                output.packInt8U(Comm.Code.chat);
+                                output.packInt8U(this.id);
+                                output.packString(text);
+                                this.sendToOthers(output, this.id, "chat: " + text);
+                            };
                         };
                         break;
                     case Comm.Code.reload: 
                         this.player.reload();
                         break;
                     case Comm.Code.swapWeapon: 
-                        var idx = input.unPackInt8();
+                        var idx = input.unPackInt8U();
                         this.player.swapWeapon(idx);
                         break;
                     case Comm.Code.changeCharacter:
@@ -296,9 +301,9 @@ class newClient {
                             var totalPlayers = this.room.getPlayerCount();
                             var originalTeamCount = this.room.getPlayerCount(this.player.team);
                             var switchAccepted = (totalPlayers - (originalTeamCount * 2)) < this.room.gameOptions.teamSwitchMaximumDifference;
-                            devlog("total", totalPlayers);
-                            devlog("on your team", originalTeamCount);
-                            devlog("switching allowed", switchAccepted);
+                            // devlog("total", totalPlayers);
+                            // devlog("on your team", originalTeamCount);
+                            // devlog("switching allowed", switchAccepted);
 
                             if (switchAccepted) {
                                 var toTeam = this.player.team === 1 ? 2 : 1;
@@ -314,7 +319,7 @@ class newClient {
                         let id = input.unPackInt8U();
                         let client = this.room.clients[id];
 
-                        if (this.player.isGameOwner && client && id !== this.player.id) {
+                        if (this.room.perm.cmds.mod.boot.checkPermissions(this.player) && client && id !== this.player.id) {
                             client.sendBootToWs();
                         };
                         break;
@@ -395,6 +400,7 @@ class newClient {
         output.packString(this.nickname);
         output.packInt8U(this.classIdx);
         output.packString(this.username);
+        output.packInt8U(this.player.adminRoles);
 
         output.packInt8U(this.player.team);
 

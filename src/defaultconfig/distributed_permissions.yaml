@@ -26,4 +26,8 @@ permissions: # user must have permissions above or equal to the set values.
     createPrivateGame: 0
 
   cmds: # format: [pubs/bypass owner, privs, require owner in privs]
-    announce: [10, 0, true]
+    announce: [10, 10, false] # mod required
+
+    notify: [10, 0, true] # mod required in pub, or owner in priv
+    roomLimit: [10, 0, true]
+    boot: [10, 0, true]
