@@ -13,6 +13,7 @@ const exported = {
         ss = newSS;
     },
     createSession: async (user_id, ip_address) => {
+        ss.config.verbose && ss.log.info("reason for session deletion: new created "+user_id+", "+session_id);
         exported.deleteAllSessionsForUser(user_id);
     
         const session_id = crypto.randomBytes(32).toString('hex');
@@ -46,6 +47,7 @@ const exported = {
             ss.config.verbose && console.log(session, ip_address);
     
             if (session.ip_address !== ip_address && !readOnly) {
+                ss.config.verbose && ss.log.info("reason for session deletion: ip mismatch "+user_id+", "+session_id);
                 await exported.deleteAllSessionsForUser(session.user_id);
                 return null;
             };
