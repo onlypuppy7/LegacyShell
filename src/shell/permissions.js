@@ -23,7 +23,7 @@ export class PermissionsConstructor {
             this.ranksEnum[this.rankName[i]] = Number(i);
         });
 
-        this.commands = {};
+        this.cmds = {};
         
         new Command(this, {
             name: "announce",
@@ -56,8 +56,8 @@ export class PermissionsConstructor {
 
 class Command {
     constructor(context, { name, category, description, permissionLevel, inputType, executeClient, executeServer }) {
-        if (!context.commands[category]) context.commands[category] = {};
-        context.commands[category][name] = this;
+        if (!context.cmds[category]) context.cmds[category] = {};
+        context.cmds[category][name] = this;
         this.ctx = context; //get room w it or something
 
         this.name = name;
@@ -77,10 +77,7 @@ class Command {
                 opts = !!opts;
                 break;
             case "number": //["number", min, max, step]
-                opts = Number(opts);
-                if (typeof(this.inputType[1]) == "number") opts = Math.max(this.inputType[1], opts);
-                if (typeof(this.inputType[2]) == "number") opts = Math.min(this.inputType[2], opts);
-                if (typeof(this.inputType[3]) == "number") opts = Math.round(opts / this.inputType[3]) * this.inputType[3];
+                opts = formatNumber(opts, this.inputType);
                 break;
             default:
                 break;
@@ -115,4 +112,12 @@ class Command {
         else if (isPrivate && (privsPerm && (requireOwner ? isGameOwner : true))) return true;
         else return false;
     };
+};
+
+function formatNumber (input, params) {
+    input = Number(input);
+    if (typeof(params[1]) == "number") input = Math.max(params[1], input);
+    if (typeof(params[2]) == "number") input = Math.min(params[2], input);
+    if (typeof(params[3]) == "number") input = Math.round(input / params[3]) * params[3];
+    return input;
 };
