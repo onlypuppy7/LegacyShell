@@ -67,7 +67,7 @@ class newRoom {
         this.itemManager = new ItemManagerConstructor();
 
         //permissions
-        this.perm = new PermissionsConstructor(ss);
+        this.perm = new PermissionsConstructor(ss, this);
 
         //map init
         setSSforLoader(ss, this.mapJson, this.Collider);
@@ -313,21 +313,27 @@ class newRoom {
         // console.log(this.validItemSpawns);
     };
 
+    packNotificationPacket(output, text, timeoutTime) {
+        output.packInt8U(Comm.Code.notification);
+        output.packString(text);
+        output.packInt8U(timeoutTime);
+    };
+
     packSpawnItemPacket(output, id, kind, x, y, z) {
-        output.packInt8(Comm.Code.spawnItem);
-        output.packInt16(id);
-        output.packInt8(kind);
-        output.packInt16(x*2);
-        output.packInt16(y*10);
-        output.packInt16(z*2);
+        output.packInt8U(Comm.Code.spawnItem);
+        output.packInt16U(id);
+        output.packInt8U(kind);
+        output.packInt16U(x*2);
+        output.packInt16U(y*10);
+        output.packInt16U(z*2);
     };
 
     packCollectItemPacket(output, playerId, kind, index, id) {
-        output.packInt8(Comm.Code.collectItem);
-        output.packInt8(playerId);
-        output.packInt8(kind);
-        output.packInt8(index);
-        output.packInt16(id);
+        output.packInt8U(Comm.Code.collectItem);
+        output.packInt8U(playerId);
+        output.packInt8U(kind);
+        output.packInt8U(index);
+        output.packInt16U(id);
     };
 
     packAllItems (output) {
@@ -355,7 +361,6 @@ class newRoom {
             });
 
             while (pool.numActive < maximum) {
-                var id = pool.getFreeId();
                 var pos = ran.getRandomFromList(this.validItemSpawns);
 
                 var x = pos[0] + 0.5;
@@ -363,10 +368,10 @@ class newRoom {
                 var z = pos[2] + 0.5;
 
                 devlog("item type", i, "current active", pool.numActive, "max", maximum);
-                devlog(id, pos);
+                // devlog(id, pos);
 
-                this.itemManager.spawnItem(id, i, x, y, z);
-                this.packSpawnItemPacket(output, id, i, x, y, z);
+                var item = this.itemManager.spawnItem(null, i, x, y, z);
+                this.packSpawnItemPacket(output, item.id, i, x, y, z);
             };
         };
         if (output.idx > 0) this.sendToAll(output, null, "spawnItem");

@@ -31,7 +31,10 @@ export class ItemManagerConstructor {
     };
 
     spawnItem(id, kind, x, y, z) {
-        var item = this.pools[kind].retrieve(id);
+        var pool = this.pools[kind]
+        id = typeof(id) === "number" ? id : pool.getFreeId();
+        var item = pool.retrieve(id);
+        
         if (isServer) {
             item.x = x;
             item.y = y;

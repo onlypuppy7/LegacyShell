@@ -52,6 +52,26 @@ export class PermissionsConstructor {
             }
         });
     };
+
+    inputCmd (player, text) {
+        console.log(player, text);
+
+        if (text.startsWith("/")) text = text.replace("/", "");
+
+        var category, name;
+        [category, text] = splitFirst(text, " ");
+        [name, text] = splitFirst(text, " ");
+
+        this.parseCmd(player, category, name, text);
+    };
+
+    parseCmd (player, category, name, opts) {
+        if (this.cmds && this.cmds[category] && this.cmds[category][name]) {
+            const cmd = this.cmds[category][name];
+            console.log(opts, cmd);
+            cmd.execute(player, opts);
+        };
+    };
 };
 
 class Command {
@@ -91,6 +111,8 @@ class Command {
             } else {
                 this.executeServer(opts);
             };
+        } else if (isClient) {
+            console.log("Insufficient permissions for this command. (add a thing to the chatbox)");
         } else {
             console.log("Insufficient permissions for this command.");
         };
@@ -120,4 +142,17 @@ function formatNumber (input, params) {
     if (typeof(params[2]) == "number") input = Math.min(params[2], input);
     if (typeof(params[3]) == "number") input = Math.round(input / params[3]) * params[3];
     return input;
+};
+
+function splitFirst(str, delimiter) {
+    const index = str.indexOf(delimiter);
+    
+    if (index === -1) { //return full if delimiter is borked
+        return [str, ''];
+    };
+    
+    const firstPart = str.slice(0, index);
+    const rest = str.slice(index + delimiter.length);
+    
+    return [firstPart, rest];
 };
