@@ -19,7 +19,7 @@ const exported = {
         const expires_at = Math.floor(Date.now() / 1000) + (60 * (ss.config.services.session_expiry_time || 180));
     
         try {
-            ss.config.verbose && ss.log.bgBlue("services: Writing to DB: create new session "+user_id);
+            ss.config.verbose && ss.log.bgBlue("services: Writing to DB: create new session "+user_id+", "+session_id);
             await ss.runQuery(`
                 INSERT INTO sessions (session_id, user_id, ip_address, expires_at)
                 VALUES (?, ?, ?, ?)
@@ -30,7 +30,7 @@ const exported = {
             return null;
         };
     },
-    retrieveSession: async (session_id, ip_address) => {
+    retrieveSession: async (session_id, ip_address, readOnly) => {
         try {
             ss.config.verbose && ss.log.bgCyan("services: Reading from DB: get session for session_id " + session_id);
     
@@ -45,7 +45,7 @@ const exported = {
     
             ss.config.verbose && console.log(session, ip_address);
     
-            if (session.ip_address !== ip_address) {
+            if (session.ip_address !== ip_address && !readOnly) {
                 await exported.deleteAllSessionsForUser(session.user_id);
                 return null;
             };

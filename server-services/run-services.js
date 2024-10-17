@@ -177,7 +177,7 @@ initTables().then(() => {
                 let sessionData, userData;
 
                 if (msg.session) {
-                    sessionData = await sess.retrieveSession(msg.session, ip);
+                    sessionData = await sess.retrieveSession(msg.session, ip, msg.auth_key);
                     try {
                         // console.log(sessionData);
                         console.log(sessionData.expires_at, (Math.floor(Date.now() / 1000)));
