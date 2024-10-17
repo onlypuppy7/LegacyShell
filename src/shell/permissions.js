@@ -30,8 +30,22 @@ export class PermissionsConstructor {
             category: "misc",
             description: "Announces a message to all players.",
             permissionLevel: this.perms.announce || [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
+            inputType: ["string"],
             executeClient: (opts) => {
                 console.log(`Announcement: ${opts}`);
+            },
+            executeServer: (opts) => {
+                // this.ss.broadcast(`Announcement: ${opts}`);
+            }
+        });
+        new Command(this, {
+            name: "limit",
+            category: "room",
+            description: "Set the max player limit.",
+            permissionLevel: this.perms.announce || [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
+            inputType: ["number", 1, 50, 1],
+            executeClient: (opts) => {
+                console.log(`setting new player limit: ${opts}`);
             },
             executeServer: (opts) => {
                 // this.ss.broadcast(`Announcement: ${opts}`);
@@ -41,7 +55,7 @@ export class PermissionsConstructor {
 };
 
 class Command {
-    constructor(context, { name, category, description, permissionLevel, executeClient, executeServer }) {
+    constructor(context, { name, category, description, permissionLevel, inputType, executeClient, executeServer }) {
         if (!context.commands[category]) context.commands[category] = {};
         context.commands[category][name] = this;
         this.ctx = context; //get room w it or something
@@ -50,12 +64,31 @@ class Command {
         this.category = category;
         this.description = description;
         this.permissionLevel = permissionLevel;
+        this.inputType = inputType;
         this.executeClient = executeClient; //to execute on the client (immediately)
         this.executeServer = executeServer; //to execute on the server side (when received)
     };
 
     execute(player, opts) {
-        if (this.ctx.checkPermissions(player)) {
+        switch (this.inputType[0]) {
+            case "string": //leave as is
+                break;
+            case "bool": //its a bool
+                opts = !!opts;
+                break;
+            case "number": //["number", min, max, step]
+                opts = Number(opts);
+                if (typeof(this.inputType[1]) == "number") opts = Math.max(this.inputType[1], opts);
+                if (typeof(this.inputType[2]) == "number") opts = Math.min(this.inputType[2], opts);
+                if (typeof(this.inputType[3]) == "number") opts = Math.round(opts / this.inputType[3]) * this.inputType[3];
+                break;
+            default:
+                break;
+        };
+
+        console.log(opts);
+
+        if (this.checkPermissions(player)) {
             if (isClient) {
                 this.executeClient(opts);
             } else {
