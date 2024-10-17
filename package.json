@@ -45,6 +45,7 @@
         "#loading": "./src/shell/loading.js",
         "#math": "./src/shell/math.js",
         "#munitionsManager": "./src/shell/munitionsManager.js",
+        "#permissions": "./src/shell/permissions.js",
         "#player": "./src/shell/player.js",
         "#pool": "./src/shell/pool.js",
         "#stringWidth": "./src/shell/stringWidth.js",

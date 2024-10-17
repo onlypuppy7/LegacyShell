@@ -182,6 +182,7 @@ class newRoomManager {
         worker.postMessage(["setSS", {
             maps: ss.maps,
             items: ss.items,
+            permissions: ss.permissions,
         }]);
 
         worker.postMessage(["createRoom", info]);

@@ -210,6 +210,8 @@ initTables().then(() => {
                         distributed_client: ss.config.distributed_client,
                         distributed_game: ss.config.distributed_game,
 
+                        permissions: ss.config.distributed_permissions,
+
                         nugget_interval: ss.config.services.nugget_interval,
                         servicesMeta: {
                             versionEnum: ss.versionEnum,

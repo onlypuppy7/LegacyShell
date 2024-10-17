@@ -167,6 +167,9 @@ async function connectWebSocket(retryCount = 0) {
             
                     configInfo = { ...configInfo, ...configInfo.distributed_all };
                     delete configInfo.distributed_all;
+            
+                    ss = { ...ss, permissions: configInfo.permissions };
+                    delete configInfo.permissions;
         
                     ss.config.game = { ...ss.config.game, ...configInfo };
         
@@ -188,6 +191,7 @@ async function connectWebSocket(retryCount = 0) {
                     };
         
                     retrieved = true;
+                    // console.log(ss.permissions);
                     startServer();
                 } else {
                     if ((configInfo.servicesMeta.startTime > ss.config.game.servicesMeta.startTime) && ss.isPerpetual) {

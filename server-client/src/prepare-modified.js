@@ -42,6 +42,8 @@ function prepareModified(ss) {
         sourceCode = sourceCode.replace(/LEGACYSHELLBABYLON/g, fs.readFileSync(path.join(ss.currentDir, 'src', 'data', 'babylon.js')));
         ss.log.italic("Inserting devmode into shellshock.min.js...");
         sourceCode = sourceCode.replace(/LEGACYSHELLDEVMODE/g, ss.config.devlogs ? "true" : "false");
+        ss.log.italic("Inserting permissions into shellshock.min.js...");
+        sourceCode = sourceCode.replace(/LEGACYSHELLPERMSCONFIG/g, JSON.stringify(ss.permissions));
 
         const replacements = [
             { pattern: /LEGACYSHELLCOMM/g, file: "#comm" },
@@ -58,6 +60,7 @@ function prepareModified(ss) {
             { pattern: /LEGACYSHELLPOOL/g, file: "#pool" },
             { pattern: /LEGACYSHELLMUNITIONSMANAGER/g, file: "#munitionsManager" },
             { pattern: /LEGACYSHELLITEMMANAGER/g, file: "#itemManager" },
+            { pattern: /LEGACYSHELLPERMISSIONS/g, file: "#permissions" },
         ];
         
         replacements.forEach(replacement => {
