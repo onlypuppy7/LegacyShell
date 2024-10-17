@@ -141,7 +141,7 @@ const exported = {
         try {
             if (["Hats", "Stamps"].includes(item_class) && item_id === null) return true;
             const item = await ss.recs.getItemData(item_id, true);
-            console.log(userData.ownedItemIds, item_id, item_class, userData.ownedItemIds.includes(item_id), item.item_class == item_class, userData.ownedItemIds.includes(item_id) && item.item_class == item_class);
+            // console.log(userData.ownedItemIds, item_id, item_class, userData.ownedItemIds.includes(item_id), item.item_class == item_class, userData.ownedItemIds.includes(item_id) && item.item_class == item_class);
             if (userData.ownedItemIds.includes(item_id) && item.item_class == item_class) return true;
             return false;
         } catch (error) {
