@@ -47,7 +47,7 @@ const exported = {
             ss.config.verbose && console.log(session, ip_address);
     
             if (session.ip_address !== ip_address && !readOnly) {
-                ss.config.verbose && ss.log.info("reason for session deletion: ip mismatch "+user_id+", "+session_id);
+                ss.config.verbose && ss.log.info("reason for session deletion: ip mismatch "+session_id);
                 await exported.deleteAllSessionsForUser(session.user_id);
                 return null;
             };
