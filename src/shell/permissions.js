@@ -13,7 +13,7 @@ export class PermissionsConstructor {
             this.ss = newSS;
             this.room = room;
             permsConfig = this.ss.permissions;
-        }
+        };
 
         this.perms = permsConfig.permissions;
         this.rankName = permsConfig.ranks;
@@ -55,10 +55,10 @@ class Command {
     };
 
     execute(player, opts) {
-        if (this.checkPermissions(player)) {
+        if (this.ctx.checkPermissions(player)) {
             if (isClient) {
                 this.executeClient(opts);
-            } else if (context === 'server') {
+            } else {
                 this.executeServer(opts);
             };
         } else {
@@ -67,9 +67,19 @@ class Command {
     };
 
     checkPermissions(player) {
-        var joinType = isClient ? joinType : this.ctx.room.joinType;
-        var isPrivate = joinType !== Comm.Code.joinPrivateGame;
-        var isGameOwner = player.isGameOwner;
-        console.log(joinType, isPrivate, isGameOwner);
+        var thisJoinType = isClient ? joinType : this.ctx.room.joinType;
+        var isPrivate = thisJoinType !== Comm.Code.joinPublicGame;
+        var isGameOwner = !!player.isGameOwner;
+        var adminRoles = player.adminRoles || 0;
+
+        var bypassingPerm = adminRoles >= this.permissionLevel[0];
+        var privsPerm     = adminRoles >= this.permissionLevel[1];
+        var requireOwner  = this.permissionLevel[2];
+
+        // console.log(thisJoinType, isPrivate, isGameOwner);
+
+        if (bypassingPerm) return true;
+        else if (isPrivate && (privsPerm && (requireOwner ? isGameOwner : true))) return true;
+        else return false;
     };
 };
