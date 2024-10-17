@@ -28,33 +28,65 @@ export class PermissionsConstructor {
         new Command(this, {
             name: "announce",
             category: "misc",
-            description: "Announces a message to all players.",
-            permissionLevel: this.perms.announce || [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
+            description: "Announces a message to all players across all games.",
+            permissionLevel: this.perms.announce || [this.ranksEnum.Moderator, this.ranksEnum.Moderator, false],
             inputType: ["string"],
             executeClient: (opts) => {
                 console.log(`Announcement: ${opts}`);
             },
             executeServer: (opts) => {
-                // this.ss.broadcast(`Announcement: ${opts}`);
+                // this.room(`Announcement: ${opts}`);
+            }
+        });
+        new Command(this, {
+            name: "notify",
+            category: "misc",
+            description: "Announces a message to all players.",
+            permissionLevel: this.perms.notify || [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
+            inputType: ["string"],
+            executeClient: (opts) => {
+                console.log(`notifying rn: ${opts}`);
+            },
+            executeServer: (opts) => {
+                console.log("holy shit lois server code", opts);
+                this.room.notify(opts, 5);
+                // this.room(`Announcement: ${opts}`);
             }
         });
         new Command(this, {
             name: "limit",
             category: "room",
             description: "Set the max player limit.",
-            permissionLevel: this.perms.announce || [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
+            permissionLevel: this.perms.roomlimit || [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
             inputType: ["number", 1, 50, 1],
             executeClient: (opts) => {
-                console.log(`setting new player limit: ${opts}`);
+                devlog(`setting new player limit: ${opts}`);
             },
             executeServer: (opts) => {
-                // this.ss.broadcast(`Announcement: ${opts}`);
+                this.room.playerLimit = opts;
+                this.room.updateRoomDetails();
+                this.room.notify(`Player limit has been set to: ${opts}`, 5);
             }
+        });
+        new Command(this, {
+            name: "boot",
+            category: "mod",
+            description: "Boot problematic players.",
+            permissionLevel: this.perms.boot || [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
+            inputType: ["number", 0, 50, 1],
+            executeClient: (opts) => {
+                var player = players[opts];
+                if (player) {
+                    bootPlayer(player.id, player.uniqueId);
+                    devlog(`booting player: ${opts}`);
+                };
+            },
+            executeServer: (opts) => { }
         });
     };
 
     inputCmd (player, text) {
-        console.log(player, text);
+        // console.log(player, text);
 
         if (text.startsWith("/")) text = text.replace("/", "");
 
@@ -68,7 +100,7 @@ export class PermissionsConstructor {
     parseCmd (player, category, name, opts) {
         if (this.cmds && this.cmds[category] && this.cmds[category][name]) {
             const cmd = this.cmds[category][name];
-            console.log(opts, cmd);
+            // console.log(opts, cmd);
             cmd.execute(player, opts);
         };
     };
@@ -103,7 +135,7 @@ class Command {
                 break;
         };
 
-        console.log(opts);
+        // console.log(opts);
 
         if (this.checkPermissions(player)) {
             if (isClient) {
@@ -119,6 +151,10 @@ class Command {
     };
 
     checkPermissions(player) {
+        player = player || (isClient && me) || null;
+
+        if (!player) return false;
+
         var thisJoinType = isClient ? joinType : this.ctx.room.joinType;
         var isPrivate = thisJoinType !== Comm.Code.joinPublicGame;
         var isGameOwner = !!player.isGameOwner;

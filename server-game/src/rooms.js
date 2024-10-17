@@ -85,8 +85,7 @@ class newRoom {
 
             this.updateLoopObject = createLoop(this.updateLoop.bind(this), TickStep);
             this.metaLoopObject = createLoop(this.metaLoop.bind(this), 2e3);
-
-            this.updateRoomDetails();
+            this.updateRoomDetailsLoopObject = createLoop(this.updateRoomDetails.bind(this), 30e3);
 
             this.getValidItemSpawns();
             this.spawnItemsLoopObject = createLoop(this.spawnItems.bind(this), 30e3); //just in case, i guess?
@@ -313,10 +312,16 @@ class newRoom {
         // console.log(this.validItemSpawns);
     };
 
-    packNotificationPacket(output, text, timeoutTime) {
+    packNotificationPacket(output, text, timeoutTime = 3) {
         output.packInt8U(Comm.Code.notification);
         output.packString(text);
         output.packInt8U(timeoutTime);
+    };
+
+    notify(text, timeoutTime = 5) {
+        var output = new Comm.Out();
+        this.packNotificationPacket(output, text, 5);
+        this.sendToAll(output, "notification");
     };
 
     packSpawnItemPacket(output, id, kind, x, y, z) {
