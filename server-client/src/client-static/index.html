@@ -1581,6 +1581,7 @@
                 onkeydown="extern.onChatKeyDown(event)"
                 onkeyup="extern.onChatKeyUp(event)"
                 onclick="extern.onChatClick(event)"
+                autocomplete="off"
                 style="
         display: none;
         color: #ff0;
@@ -1588,6 +1589,8 @@
         left: 1em;
         width: 30%
     "></input>
+
+            <div id="autocomplete-dialog" class="hidden"></div>
 
             <!-- Kill ticker -->
             <div id="killTicker" class="chat" style="
