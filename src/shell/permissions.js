@@ -1,5 +1,5 @@
 // legacyshell: permissions
-import { isClient } from "#constants";
+import { isClient, maxServerSlots } from "#constants";
 import Comm from '#comm';
 //
 
@@ -58,7 +58,7 @@ export class PermissionsConstructor {
             category: "room",
             description: "Set the max player limit.",
             permissionLevel: this.perms.roomlimit || [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
-            inputType: ["number", 1, 50, 1],
+            inputType: ["number", 1, maxServerSlots, 1],
             executeClient: (opts) => {
                 devlog(`setting new player limit: ${opts}`);
             },
@@ -73,7 +73,7 @@ export class PermissionsConstructor {
             category: "mod",
             description: "Boot problematic players.",
             permissionLevel: this.perms.boot || [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
-            inputType: ["number", 0, 50, 1],
+            inputType: ["number", 0, maxServerSlots - 1, 1],
             executeClient: (opts) => {
                 var player = players[opts];
                 if (player) {

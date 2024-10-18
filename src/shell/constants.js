@@ -260,6 +260,8 @@ export var weaponStats = {
 export const maxChatWidth = 280;
 export var maxChatCount = 6; //max amount of messages to be displayed at once (default 6)
 
+export const maxServerSlots = 50; //not the default, just the highest you think you can manage
+
 export var shellColors = ["#ffffff", "#c4e3e8", "#e2bc8b", "#d48e52", "#cb6d4b", "#8d3213", "#5e260f", "#e70a0a", "#aa24ce", "#f17ff9", "#FFD700", "#33a4ea", "#3e7753", "#66dd33"];
 
 export var flashColors = [new BABYLON.Color3(1, 1, 0), new BABYLON.Color3(0, .5, 1), new BABYLON.Color3(1, 0, 0)];
