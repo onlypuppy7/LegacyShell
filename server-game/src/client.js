@@ -36,7 +36,6 @@ class newClient {
         this.room = room;
         this.wsId = info.wsId;
         this.joinedTime = Date.now();
-        this.loggedIn = this.userData && this.sessionData;
         //
         this.account_id = this.loggedIn ? this.userData.account_id : null; //reminder this is the ID of the actual account
         this.nickname = info.nickname; //todo check this is legal length and stuff
@@ -157,6 +156,8 @@ class newClient {
 
         this.userData = response?.userData || null;
         this.sessionData = response?.sessionData || null;
+        
+        this.loggedIn = this.userData && this.sessionData;
     };
 
     async onmessage(message) {
