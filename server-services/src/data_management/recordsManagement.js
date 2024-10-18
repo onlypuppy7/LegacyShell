@@ -238,7 +238,7 @@ const exported = {
                 item.item_data = JSON.parse(item.item_data);
                 return item;
             } else {
-                console.log('Item not found');
+                console.log('Item not found', item_id);
                 return null;
             };
         } catch (error) {
