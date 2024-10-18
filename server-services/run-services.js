@@ -180,8 +180,8 @@ initTables().then(() => {
                     sessionData = await sess.retrieveSession(msg.session, ip, msg.auth_key);
                     try {
                         // console.log(sessionData);
-                        console.log(sessionData.expires_at, (Math.floor(Date.now() / 1000)));
-                        if (sessionData && (sessionData.expires_at > (Math.floor(Date.now() / 1000)))) {
+                        // console.log(sessionData.expires_at, (Math.floor(Date.now() / 1000)));
+                        if (sessionData && sessionData?.expires_at && (sessionData.expires_at > (Math.floor(Date.now() / 1000)))) {
                             userData = await accs.getUserData(sessionData.user_id, true);
                         };
                     } catch (error) {
