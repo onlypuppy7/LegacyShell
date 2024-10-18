@@ -507,6 +507,13 @@ const Comm = {
         */
         setGameOwner: 50,
 
+        /** LEGACYSHELL ADDED
+        * 
+        * SERVER: transfer player to another room
+        * @constant {number}
+        */
+        warp: 51,
+
         /** CLIENT: used by bwd admins to look at ips and stuff (scary). 
         * @constant {number}
         */

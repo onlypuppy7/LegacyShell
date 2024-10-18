@@ -48,7 +48,6 @@ export class PermissionsConstructor {
                 console.log(`notifying rn: ${opts}`);
             },
             executeServer: (opts) => {
-                console.log("holy shit lois server code", opts);
                 this.room.notify(opts, 5);
                 // this.room(`Announcement: ${opts}`);
             }
@@ -66,6 +65,33 @@ export class PermissionsConstructor {
                 this.room.playerLimit = opts;
                 this.room.updateRoomDetails();
                 this.room.notify(`Player limit has been set to: ${opts}`, 5);
+            }
+        });
+        new Command(this, {
+            name: "warp",
+            category: "room",
+            description: "Change to another room.",
+            permissionLevel: this.perms.warp || [this.ranksEnum.Guest, this.ranksEnum.Guest, false],
+            inputType: ["string"],
+            executeClient: (opts) => {
+                if (opts.length > 5) joinGame(opts);
+            },
+            executeServer: (opts) => { }
+        });
+        new Command(this, {
+            name: "warpall",
+            category: "room",
+            description: "Transfer all players to another room.",
+            permissionLevel: this.perms.warpall || [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
+            inputType: ["string"],
+            executeClient: (opts) => { },
+            executeServer: (opts) => {
+                if (opts.length > 5) {
+                    var output = new Comm.Out();
+                    output.packInt8U(Comm.Code.warp);
+                    output.packString(opts);
+                    this.room.sendToAll(output, "warp");
+                };
             }
         });
         new Command(this, {
