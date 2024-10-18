@@ -11,6 +11,7 @@ import { MunitionsManagerConstructor } from '#munitionsManager';
 import { ItemManagerConstructor } from '#itemManager';
 import { PermissionsConstructor } from '#permissions';
 import BABYLON from "babylonjs";
+import { censor } from "#censor";
 //
 
 let ss;
@@ -66,8 +67,9 @@ class newRoom {
         this.munitionsManager = new MunitionsManagerConstructor(this.scene);
         this.itemManager = new ItemManagerConstructor();
 
-        //permissions
+        //permissions, censor
         this.perm = new PermissionsConstructor(ss, this);
+        this.censor = censor;
 
         //map init
         setSSforLoader(ss, this.mapJson, this.Collider);

@@ -256,7 +256,7 @@ class newClient {
                         if ("" != text) {
                             if (text.startsWith("/")) {
                                 this.room.perm.inputCmd(this.player, text);
-                            } else { //todo, ratelimiting, censoring
+                            } else if (!this.room.censor.detect(text, true)) { //todo, ratelimiting
                                 text = fixStringWidth(text, maxChatWidth);
 
                                 var output = new Comm.Out();
