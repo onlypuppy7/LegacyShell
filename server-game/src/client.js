@@ -250,7 +250,7 @@ class newClient {
                         break;
                     case Comm.Code.chat:
                         var text = input.unPackString();
-                        text.replaceAll("<", "(");
+                        text = text.replaceAll("<", "(");
                         console.log(this.player.name, "chatted:", text);
 
                         if ("" != text) {

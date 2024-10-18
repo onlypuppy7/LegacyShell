@@ -13,12 +13,28 @@ export const censor = { //old isBadWord function
         [["z"], "2"],
     ],
     banned_words: [
-        "african",
         "kneegro",
-        "school shoot",
-        "terrorist",
         "卐",
         "卍",
+        "kike",
+        "killblacks",
+        "murderblacks",
+        "hitler",
+        "fag",
+        "rapewom",
+        "rapegir",
+        "spic",
+        "chink",
+        "nigga",
+        "nigge",
+        "nibbe",
+        "nigga",
+        "nibba",
+    ],
+    eighteen_words: [
+        "african",
+        "schoolshoot",
+        "terrorist",
         "queer",
         "dick",
         "wank",
@@ -29,7 +45,6 @@ export const censor = { //old isBadWord function
         "nuts",
         "nutz",
         "jew",
-        "kike",
         "retar",
         "autis",
         "downss",
@@ -52,36 +67,23 @@ export const censor = { //old isBadWord function
         "pussy",
         "buttsex",
         "fux",
-        "butthoie",
+        "butthole",
         "anal",
         "anus",
-        "killblacks",
-        "murderblacks",
-        "hitler",
         "wetback",
         "agina",
         "gay",
         "asshole",
         "suck",
         "jew",
-        "spic",
-        "chink",
-        "nigga",
-        "nigge",
-        "nibbe",
-        "nigga",
-        "nibba",
         "shit",
         "bitch",
         "fuck",
         "cunt",
         "kkk",
         "whore",
-        "fag",
         "twat",
         "peni",
-        "rapewom",
-        "rapegir",
         "rapist",
         "raper",
         "rapin",
@@ -105,6 +107,12 @@ export const censor = { //old isBadWord function
         });
         this.banned_words = new_banned;
 
+        let new_eighteen = [];
+        this.eighteen_words.forEach(word => {
+            new_eighteen.push(this.parse(word));
+        });
+        this.eighteen_words = new_eighteen;
+
         let new_allowed = [];
         this.allowed_words.forEach(word => {
             new_allowed.push(this.parse(word));
@@ -120,14 +128,19 @@ export const censor = { //old isBadWord function
         });
         return str;
     },
-    check_banned: function (str) {
+    check_banned: function (str, allow18) {
         let result = false;
         this.banned_words.forEach(word => {
             if (str.includes(word)) result = true;
         });
+        if (!allow18) {
+            this.eighteen_words.forEach(word => {
+                if (str.includes(word)) result = true;
+            });
+        };
         return result;
     },
-    detect: function (word) {
+    detect: function (word, allow18) {
         var str = (" " + word + " ").toLowerCase().replace(/[^a-zA-Z0-9|!\|@|$|;|¡]/g, "");
     
         str = this.parse(str, true);
@@ -139,10 +152,10 @@ export const censor = { //old isBadWord function
         var i1 = str.search(/( 94y | cum| 455 )/);
 
         str = str.replace(/ /g, "");
-        var i2 = this.check_banned(str);
+        var i2 = this.check_banned(str, allow18);
         
         str = str.replace(/(.)(?=\1)/g, ""); //remove duplicate chars eg fuuuck -> fuck
-        var i3 = this.check_banned(str);
+        var i3 = this.check_banned(str, allow18);
     
         return i1 > -1 || i2 || i3;
     },
