@@ -321,8 +321,9 @@ class newRoom {
     };
 
     notify(text, timeoutTime = 5) {
+        text = text.replaceAll("<", "(");
         var output = new Comm.Out();
-        this.packNotificationPacket(output, text, 5);
+        this.packNotificationPacket(output, text, timeoutTime);
         this.sendToAll(output, "notification");
     };
 
