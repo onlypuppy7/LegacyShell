@@ -291,6 +291,12 @@ const Comm = {
         boot: 3,
     },
 
+    Chat: {
+        user: 0,
+        cmd: 1,
+        blocked: 2,
+    },
+
     /**
      * Communication codes for game actions and events.
      * @enum {number}
