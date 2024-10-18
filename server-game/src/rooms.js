@@ -327,6 +327,13 @@ class newRoom {
         this.sendToAll(output, "notification");
     };
 
+    packChat(output, text, id = 255, chatType = Comm.Chat.user) {
+        output.packInt8U(Comm.Code.chat);
+        output.packInt8U(chatType);
+        output.packInt8U(id);
+        output.packString(text);
+    };
+
     packSpawnItemPacket(output, id, kind, x, y, z) {
         output.packInt8U(Comm.Code.spawnItem);
         output.packInt16U(id);

@@ -137,6 +137,7 @@ class Command {
         if (!context.cmds[category]) context.cmds[category] = {};
         context.cmds[category][name] = this;
         this.ctx = context; //get room w it or something
+        this.room = this.ctx.room;
 
         this.name = name;
         this.category = category;
@@ -169,10 +170,15 @@ class Command {
             } else {
                 this.executeServer(opts);
             };
+            return true;
         } else if (isClient) {
-            console.log("Insufficient permissions for this command. (add a thing to the chatbox)");
+            addChat("Insufficient permissions.", null, Comm.Chat.cmd);
+            return false;
         } else {
-            console.log("Insufficient permissions for this command.");
+            var output = new Comm.Out();
+            this.room.packChat(output, "Insufficient permissions (yes, really!)", 255, Comm.Chat.cmd);
+            player.client.sendToMe(output, "chat");
+            return false;
         };
     };
 
@@ -181,7 +187,7 @@ class Command {
 
         if (!player) return false;
 
-        var thisJoinType = isClient ? joinType : this.ctx.room.joinType;
+        var thisJoinType = isClient ? joinType : this.room.joinType;
         var isPrivate = thisJoinType !== Comm.Code.joinPublicGame;
         var isGameOwner = !!player.isGameOwner;
         var adminRoles = player.adminRoles || 0;

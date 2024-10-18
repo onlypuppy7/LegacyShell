@@ -259,11 +259,8 @@ class newClient {
                                 this.room.perm.inputCmd(this.player, text);
                             } else if (!this.room.censor.detect(text, true)) { //todo, ratelimiting
                                 text = fixStringWidth(text, maxChatWidth);
-
+                                this.room.packChat(output, text, this.id, Comm.Chat.user);
                                 var output = new Comm.Out();
-                                output.packInt8U(Comm.Code.chat);
-                                output.packInt8U(this.id);
-                                output.packString(text);
                                 this.sendToOthers(output, this.id, "chat: " + text);
                             };
                         };
