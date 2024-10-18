@@ -250,13 +250,15 @@ class newClient {
                         break;
                     case Comm.Code.chat:
                         var text = input.unPackString();
+                        text.replaceAll("<", "(");
                         console.log(this.player.name, "chatted:", text);
 
-                        if (text.startsWith("/")) {
-                            this.room.perm.inputCmd(this.player, text);
-                        } else {
-                            text = fixStringWidth(text, maxChatWidth);
-                            if ("" != text && text.indexOf("<") < 0) { //todo, ratelimiting, censoring
+                        if ("" != text) {
+                            if (text.startsWith("/")) {
+                                this.room.perm.inputCmd(this.player, text);
+                            } else { //todo, ratelimiting, censoring
+                                text = fixStringWidth(text, maxChatWidth);
+
                                 var output = new Comm.Out();
                                 output.packInt8U(Comm.Code.chat);
                                 output.packInt8U(this.id);
