@@ -1578,7 +1578,10 @@
     "></div>
 
             <input id="chatIn" class="chat" maxlength=64 tabindex=-1 placeholder="Press TAB to exit"
-                onkeydown="extern.onChatKeyDown(event)" style="
+                onkeydown="extern.onChatKeyDown(event)"
+                onkeyup="extern.onChatKeyUp(event)"
+                onclick="extern.onChatClick(event)"
+                style="
         display: none;
         color: #ff0;
         bottom: 1em;
