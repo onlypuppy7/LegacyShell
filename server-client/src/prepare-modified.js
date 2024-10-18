@@ -39,7 +39,7 @@ function prepareModified(ss) {
         ss.log.italic("Inserting map jsons into shellshock.min.js...");
         sourceCode = sourceCode.replace(/LEGACYSHELLMINMAPS/g, ss.cache.maps); //akshually
         ss.log.italic("Inserting babylon into shellshock.min.js...");
-        sourceCode = sourceCode.replace(/LEGACYSHELLBABYLON/g, fs.readFileSync(path.join(ss.currentDir, 'src', 'data', 'babylon.js')));
+        sourceCode = sourceCode.replace(/LEGACYSHELLBABYLON/g, `${fs.readFileSync(path.join(ss.currentDir, 'src', 'data', 'babylon.js'))}\n${ss.config.client.iif ? "" : fs.readFileSync(path.join(ss.currentDir, 'src', 'data', 'babylonexporter.js')) && ""}`);
         ss.log.italic("Inserting devmode into shellshock.min.js...");
         sourceCode = sourceCode.replace(/LEGACYSHELLDEVMODE/g, ss.config.devlogs ? "true" : "false");
         ss.log.italic("Inserting permissions into shellshock.min.js...");
