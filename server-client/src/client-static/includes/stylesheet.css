@@ -720,8 +720,6 @@ button > h1 {
     font-size: 0.5em;
     left: 2em;
     width: fit-content;
-    max-height: 10em; /* To restrict the height of the dialog */
-    overflow-y: auto;
 }
 
 #autocomplete-dialog div {
