@@ -62,7 +62,7 @@ class newClient {
         // this.applyLoadout();
 
         this.room.registerPlayerClient(this);
-        
+
         var output = new Comm.Out(11); //if fixed for gameJoined, use 11
         this.packGameJoined(output);
         this.sendBuffer(output, "packGameJoined"); //buffer cause not clientReady
@@ -138,7 +138,7 @@ class newClient {
             randomSeed: 0,
 
             upgradeProductId: this.loggedIn ? this.userData.upgradeProductId : 0,
-        }, this.room.scene, this);       
+        }, this.room.scene, this);
 
         // console.log("upgradeProductId", this.userData.upgradeProductId, this.loggedIn ? this.userData.upgradeProductId : 0);
     };
@@ -156,7 +156,7 @@ class newClient {
 
         this.userData = response?.userData || null;
         this.sessionData = response?.sessionData || null;
-        
+
         this.loggedIn = this.userData && this.sessionData;
     };
 
@@ -179,15 +179,15 @@ class newClient {
                             this.clientReady = true;
 
                             // console.log()
-    
+
                             var output = new Comm.Out();
                             this.room.packAllPlayers(output);
                             this.sendToMe(output, "packAllPlayers");
-                    
+
                             var output = new Comm.Out();
                             this.packPlayer(output);
                             this.sendToAll(output, "packThisPlayer (ready/joined)");
-                    
+
                             var output = new Comm.Out(1);
                             output.packInt8U(Comm.Code.clientReady);
                             this.sendToMe(output, "clientReady");
@@ -234,7 +234,7 @@ class newClient {
                         break;
                     case Comm.Code.requestRespawn:
                         if (Date.now() >= (this.player.lastDespawn + 5000) && !this.player.playing) {
-                            const spawnPoint = this.room.getRandomSpawn(this.player);
+                            const spawnPoint = this.room.getBestSpawn(this.player);
 
                             this.player.respawn(spawnPoint);
 
@@ -265,10 +265,10 @@ class newClient {
                             };
                         };
                         break;
-                    case Comm.Code.reload: 
+                    case Comm.Code.reload:
                         this.player.reload();
                         break;
-                    case Comm.Code.swapWeapon: 
+                    case Comm.Code.swapWeapon:
                         var idx = input.unPackInt8U();
                         this.player.swapWeapon(idx);
                         break;
@@ -291,7 +291,7 @@ class newClient {
                         );
                         this.applyLoadout();
                         break;
-                    case Comm.Code.throwGrenade: 
+                    case Comm.Code.throwGrenade:
                         var grenadeThrowPower = input.unPackFloat();
                         console.log("throwing a grenade", grenadeThrowPower);
                         this.player.queueGrenade(grenadeThrowPower);
@@ -357,7 +357,7 @@ class newClient {
             && this.userData // player has an account
             && (item.exclusive_for_class === classIdx || ItemType.Hat === itemType || ItemType.Stamp === itemType) && (item.item_type_id === itemType) // item is valid
             && this.userData.ownedItemIds.includes(item.id) // item is owned
-        ) { 
+        ) {
             itemId = item.id;
         } else { // no account, no skins! go screw yourself.
             switch (itemType) {
@@ -486,7 +486,7 @@ class newClient {
         output.packInt8U(this.room.playerLimit); // playerLimit
         output.packInt8U(0); //bool // isGameOwner
     };
-    
+
     pickupItem (kind, weaponIdx, id) {
         this.room.itemManager.collectItem(kind, id);
 
