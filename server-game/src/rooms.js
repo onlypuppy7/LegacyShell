@@ -298,6 +298,42 @@ class newRoom {
         };
     };
 
+    getBestSpawn(player){
+      if (this.getPlayerCount() < 2) return this.getRandomSpawn(player);
+      const list = this.spawnPoints[player.team];
+      let best = false, bestDistance = -1; //bestDistance should be as big as possible
+      list.forEach((spwn) => {
+        const spawnPos = new BABYLON.Vector3(spwn.x, spwn.y, spwn.z);
+        let smallestDistance = -1;
+        this.players.forEach((play)=>{
+          if (
+            (player.team !== 0 && play.team === player.team) ||//team check
+            !play.playing ||//playing check
+            play.isDead() //is playing
+          ) return;
+          const playPos = new BABYLON.Vector3(play.x, play.y, play.z);
+          const dist = BABYLON.Vector3.Distance(spawnPos, playPos);
+          console.log("dist: " + dist);
+          if (dist < smallestDistance || smallestDistance === -1) smallestDistance = dist;
+        });
+        if(smallestDistance > bestDistance || bestDistance ===-1){ //kinda unneccesary bc -1 will always be smaller rhan smallestDistance but eh
+          best = spwn;
+          bestDistance = smallestDistance;
+        }
+      });
+
+      console.log(bestDistance);
+
+      if (bestDistance === -1) return this.getRandomSpawn(player);
+      return {
+        x: best.x + 0.5,
+        y: best.y,
+        z: best.z + 0.5,
+        yaw: Math.random() * Math.PI2,
+        pitch: 0,
+      };
+    }
+
     getValidItemSpawns = function () {
         let data = this.map.data;
         for (var x = 0; x < data.length; x++) {
