@@ -313,7 +313,6 @@ class newRoom {
           ) return;
           const playPos = new BABYLON.Vector3(play.x, play.y, play.z);
           const dist = BABYLON.Vector3.Distance(spawnPos, playPos);
-          console.log("dist: " + dist);
           if (dist < smallestDistance || smallestDistance === -1) smallestDistance = dist;
         });
         if(smallestDistance > bestDistance || bestDistance ===-1){ //kinda unneccesary bc -1 will always be smaller rhan smallestDistance but eh
@@ -321,8 +320,6 @@ class newRoom {
           bestDistance = smallestDistance;
         }
       });
-
-      console.log(bestDistance);
 
       if (bestDistance === -1) return this.getRandomSpawn(player);
       return {
