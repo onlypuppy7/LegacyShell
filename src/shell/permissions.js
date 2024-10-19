@@ -24,8 +24,11 @@ export class PermissionsConstructor {
         });
 
         this.cmds = {};
+        this.cmdsByIdentifier = {};
         
+
         new Command(this, {
+            identifier: "announce",
             name: "announce",
             category: "misc",
             description: "Announces a message to all players across all games.",
@@ -39,6 +42,7 @@ export class PermissionsConstructor {
             }
         });
         new Command(this, {
+            identifier: "notify",
             name: "notify",
             category: "misc",
             description: "Announces a message to all players.",
@@ -53,10 +57,11 @@ export class PermissionsConstructor {
             }
         });
         new Command(this, {
+            identifier: "roomLimit",
             name: "limit",
             category: "room",
             description: "Set the max player limit.",
-            permissionLevel: this.perms.roomlimit || [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
+            permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
             inputType: ["number", 1, maxServerSlots, 1],
             executeClient: (opts) => {
                 devlog(`setting new player limit: ${opts}`);
@@ -68,10 +73,11 @@ export class PermissionsConstructor {
             }
         });
         new Command(this, {
+            identifier: "warp",
             name: "warp",
             category: "room",
             description: "Change to another room.",
-            permissionLevel: this.perms.warp || [this.ranksEnum.Guest, this.ranksEnum.Guest, false],
+            permissionLevel: [this.ranksEnum.Guest, this.ranksEnum.Guest, false],
             inputType: ["string"],
             executeClient: (opts) => {
                 if (opts.length > 5) joinGame(opts);
@@ -79,10 +85,11 @@ export class PermissionsConstructor {
             executeServer: (opts) => { }
         });
         new Command(this, {
+            identifier: "warpall",
             name: "warpall",
             category: "room",
             description: "Transfer all players to another room.",
-            permissionLevel: this.perms.warpall || [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
+            permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
             inputType: ["string"],
             executeClient: (opts) => { },
             executeServer: (opts) => {
@@ -95,10 +102,11 @@ export class PermissionsConstructor {
             }
         });
         new Command(this, {
+            identifier: "boot",
             name: "boot",
             category: "mod",
             description: "Boot problematic players.",
-            permissionLevel: this.perms.boot || [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
+            permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
             inputType: ["number", 0, maxServerSlots - 1, 1],
             executeClient: (opts) => {
                 var player = players[opts];
@@ -153,12 +161,22 @@ export class PermissionsConstructor {
 
         return result;
     };
+
+    searchCmd (identifier) {
+        return this.cmdsByIdentifier[identifier] || false;
+    };
+
+    searchPermission (identifier, player) {
+        var cmd = this.searchCmd(identifier);
+        return cmd ? cmd.checkPermissions(player) : false;
+    };
 };
 
 class Command {
-    constructor(context, { name, category, description, permissionLevel, inputType, executeClient, executeServer }) {
+    constructor(context, { identifier, name, category, description, permissionLevel, inputType, executeClient, executeServer }) {
         if (!context.cmds[category]) context.cmds[category] = {};
         context.cmds[category][name] = this;
+        context.cmdsByIdentifier[identifier] = this;
 
         this.ctx = context; //get room w it or something
         this.room = this.ctx.room;
@@ -166,10 +184,11 @@ class Command {
         this.ctx.cmds = alphabetiseObjectKeys(this.ctx.cmds); //nyes
         this.ctx.cmds[category] = alphabetiseObjectKeys(this.ctx.cmds[category]);
 
+        this.identifier = identifier;
         this.name = name;
         this.category = category;
         this.description = description;
-        this.permissionLevel = permissionLevel;
+        this.permissionLevel = this?.ctx?.perms?.cmds[identifier] || permissionLevel;
         this.inputType = inputType;
         this.executeClient = executeClient; //to execute on the client (immediately)
         this.executeServer = executeServer; //to execute on the server side (when received)
