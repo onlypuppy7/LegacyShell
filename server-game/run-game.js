@@ -64,7 +64,7 @@ function startServer() {
                                 msg.uuid = input.unPackInt32U();
                                 //additional stuff provided they are signed in
                                 msg.session = input.unPackString(); //technically this is all thats rlly needed tbh
-        
+
                                 ss.config.verbose && console.log(msg, Comm.Convert(msg.joinType), Comm.Convert(msg.gameType));
         
                                 let roomFound = RoomManager.searchRooms(msg);
