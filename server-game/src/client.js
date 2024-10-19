@@ -37,9 +37,10 @@ class newClient {
         this.wsId = info.wsId;
         this.joinedTime = Date.now();
         //
+        this.uuid = info.uuid || Math.randomInt(1,4294967295);
         this.account_id = this.loggedIn ? this.userData.account_id : null; //reminder this is the ID of the actual account
         this.nickname = info.nickname; //todo check this is legal length and stuff
-        this.username = this.loggedIn ? this.userData.username : "";
+        this.username = this.loggedIn ? this.userData.username : "Guest_"+this.getRandomAsciiChars(5);
         this.id = info.id; //place in list
         this.classIdx = info.classIdx;
         //
@@ -529,6 +530,26 @@ class newClient {
 
     sendBootToWs(msg) {
         ss.parentPort.postMessage([Comm.Worker.boot, msg, this.wsId]);
+    };
+
+    getRandomAsciiChars(count) {
+        Math.seed = this.uuid;
+
+        const charTypes = [
+          { min: 65, max: 90 },  // A-Z
+          { min: 97, max: 122 }, // a-z
+          { min: 48, max: 57 },  // 0-9
+        ];
+        let result = '';
+      
+        for (let i = 0; i < count; i++) {
+          const randomTypeIndex = Math.seededRandomInt(0, charTypes.length - 1);
+          const randomType = charTypes[randomTypeIndex];
+          const randomCode = Math.seededRandomInt(randomType.min, randomType.max);
+          result += String.fromCharCode(randomCode);
+        };
+      
+        return result;
     };
 };
 

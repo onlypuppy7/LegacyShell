@@ -152,6 +152,7 @@ class newRoomManager {
                         ws.close(content);
                         break;
                     case Comm.Worker.updateRoom: //update the room
+                        console.log(content);
                         Object.assign(createdRoom, content);
                         // console.log(room.ready, createdRoom.ready, content);
                         // console.log(room.playerLimit, createdRoom.ready);
@@ -194,8 +195,11 @@ class newRoomManager {
     };
 
     joinRoom(room, msg, ws, ip) {
+        console.log(room.uuids, (msg.uuid))
         if (room.bootedIps.includes(ip)) {
             ws.close(Comm.Close.booted);
+        } else if (room.uuids && room.uuids.includes(msg.uuid)) {
+            ws.close(Comm.Close.masterServerBusy);
         } else {
             let wsId = room.wsIdx++;
     
