@@ -1,6 +1,6 @@
 //legacyshell: string width
 import { isClient } from '#constants';
-import { createCanvas } from 'canvas';
+import { createCanvas } from '@napi-rs/canvas';
 //
 
 //(server-only-start)
