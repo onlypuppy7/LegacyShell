@@ -33,11 +33,13 @@ class Player {
             this.map = map;
         };
 
+        this.isGameOwner = false;
         this.id = data.id;
         this.uniqueId = data.uniqueId;
         this.name = data.name || data.nickname; //fyi this is a bad
         this.classIdx = data.classIdx;
         this.username = data.username !== "" ? data.username : "Guest";
+        this.adminRoles = data.adminRoles;
         this.team = data.team;
         this.primaryWeaponItem = data.primaryWeaponItem;
         this.secondaryWeaponItem = data.secondaryWeaponItem;
@@ -148,18 +150,6 @@ class Player {
             this.weapon.actor.equip();
         };
     };
-    pickupItemPacket(playerId, kind, index, id) {
-        this.client.room.itemManager.items = this.client.room.itemManager.items.filter(i => i.id !== id);
-        this.client.room.itemManager.releaseId(id);
-
-        let pickupPacket = new Comm.Out();
-        pickupPacket.packInt8(Comm.Code.collectItem);
-        pickupPacket.packInt8(playerId);
-        pickupPacket.packInt8(kind);
-        pickupPacket.packInt8(index);
-        pickupPacket.packInt16(id);
-        return pickupPacket;
-    };
     update(delta, resim) {
         var dx = 0;
         var dy = 0;
@@ -214,16 +204,28 @@ class Player {
             };
         };
 
-        if (isServer) this.client.room.itemManager.items.forEach((item) => {
-            if (
-                (Math.round(this.x * 2) / 2) == (item.x + 0.5) &&
-                Math.round(this.y) == item.y &&
-                (Math.round(this.z * 2) / 2) == (item.z + 0.5)
-            ) {
-                if (!this.collectItem(item.kind, this.weaponIdx)) return;
-                this.client.sendToAll(this.pickupItemPacket(this.id, item.kind, this.weaponIdx, item.id));
-            }
-        });
+        if (isServer) {
+            let itemManager = this.client.room.itemManager;
+            let pools = itemManager.pools;
+
+            for (let i = 0; i < pools.length; i++) {
+                let pool = pools[i];
+
+                pool.forEachActive((item) => {
+                    if ( //collision
+                        (Math.round(this.x * 2) / 2) == (item.x) &&
+                        Math.round(this.y) == Math.round(item.y) &&
+                        (Math.round(this.z * 2) / 2) == (item.z)
+                    ) {
+                        var itemCollected = this.collectItem(i, this.weaponIdx);
+                        // console.log("could collect?", itemCollected, i, this.weaponIdx);
+                        if (itemCollected) {
+                            this.client.pickupItem(i, this.weaponIdx, item.id);
+                        };
+                    };
+                })
+            };
+        };
 
         if ((this.controlKeys & CONTROL.jump) && (0 < this.lastTouchedGround && Date.now() > this.lastTouchedGround + 100)) {
             this.lastActivity = Date.now();
@@ -551,6 +553,27 @@ class Player {
                 output.packInt8(idx);
                 this.client.sendToOthers(output.buffer, this.id);
             };
+        };
+    };
+    switchTeam(toTeam) {
+        this.team = toTeam;
+        this.score = 0;
+        this.kills = 0;
+        this.streak = 0;
+        this.bestGameStreak = 0;
+        if (isClient) {
+            for (var i = 0; i < playerLimit; i++){
+                var player = players[i];
+                console.log(player)
+                if (player && player.actor) player.actor.updateTeam();
+            };
+            rebuildPlayerList();
+        } else {
+            var output = new Comm.Out(3);
+            output.packInt8U(Comm.Code.switchTeam);
+            output.packInt8U(this.id);
+            output.packInt8U(toTeam);
+            this.client.sendToAll(output, "switchTeam");
         };
     };
     collectItem(kind, applyToWeaponIdx) {

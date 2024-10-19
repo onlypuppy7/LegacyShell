@@ -1572,19 +1572,25 @@
 
             <!-- Chat -->
             <div id="chatOut" class="chat" style="
-        display: none;
-        bottom: 2.5em;
-        left: 1em;
-    "></div>
+                display: none;
+                bottom: 2.5em;
+                left: 1em;
+            "></div>
 
             <input id="chatIn" class="chat" maxlength=64 tabindex=-1 placeholder="Press TAB to exit"
-                onkeydown="extern.onChatKeyDown(event)" style="
-        display: none;
-        color: #ff0;
-        bottom: 1em;
-        left: 1em;
-        width: 30%
-    "></input>
+                onkeydown="extern.onChatKeyDown(event)"
+                onkeyup="extern.onChatKeyUp(event)"
+                onclick="extern.onChatClick(event)"
+                autocomplete="off"
+                style="
+                display: none;
+                color: #ff0;
+                bottom: 1em;
+                left: 1em;
+                width: 30%">
+            </input>
+
+            <div id="autocomplete-dialog" class="hidden"></div>
 
             <!-- Kill ticker -->
             <div id="killTicker" class="chat" style="
@@ -1692,6 +1698,13 @@
                     <div><input class="ss_checkbox" id="enableChat" type="checkbox"
                             onclick="extern.setCheckOption(this)">
                         <div class="label">Enable chat</div>
+                    </div>
+
+                    <div id="extraChat">
+                        <div><input class="ss_checkbox" id="enable18Chat" type="checkbox"
+                            onclick="extern.setCheckOption(this)">
+                        <div class="label">Allow 18+ chat</div>
+                        </div>
                     </div>
 
                     <div><input class="ss_checkbox" id="autoDetail" type="checkbox"

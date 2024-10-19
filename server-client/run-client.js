@@ -139,16 +139,20 @@ async function connectWebSocket(retryCount = 0) {
             
                     configInfo = { ...configInfo, ...configInfo.distributed_all };
                     delete configInfo.distributed_all;
+            
+                    ss = { ...ss, permissions: configInfo.permissions };
+                    delete configInfo.permissions;
         
                     ss.config.client = { ...ss.config.client, ...configInfo };
         
                     delete configInfo.login;
+                    delete configInfo.permissions;
         
                     ss.distributed_config = yaml.dump(configInfo, { indent: 4 }); //this is for later usage displaying for all to see
             
                     ss.config.verbose && ss.log.info(`\n${ss.distributed_config}`);
         
-                    // console.log(ss.config);
+                    // console.log(ss.permissions);
             
                     retrieved = true;
                     startServer();

@@ -29,7 +29,8 @@ Pool.prototype.retrieve = function (id) {
         var obj = this.objects[i];
         if (!obj.active) return this.idx = i, this.numActive++, obj.active = true, obj
     } while (i != this.idx);
-    return this.expand(this.originalSize), this.retrieve()
+    this.expand(this.originalSize);
+    return this.retrieve();
 };
 Pool.prototype.recycle = function (obj) {
     obj.active = false, this.numActive--;
@@ -39,4 +40,14 @@ Pool.prototype.forEachActive = function (fn) {
         var obj = this.objects[i];
         true === obj.active && fn(obj, i)
     };
+};
+Pool.prototype.getFreeId = function () {
+    for (var i = 0; i < this.size; i++) {
+        var obj = this.objects[i];
+        if (!obj.active) {
+            return obj.id;
+        };
+    };
+    this.expand(this.originalSize);
+    return this.objects[this.size - this.originalSize].id;
 };

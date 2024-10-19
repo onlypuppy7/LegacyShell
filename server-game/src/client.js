@@ -1,7 +1,7 @@
 //legacyshell: client
 import ran from '#scrambled';
 import Comm from '#comm';
-import { ItemType, itemIdOffsets, FramesBetweenSyncs, stateBufferSize, TimeoutManagerConstructor, maxChatWidth, IntervalManagerConstructor, classes } from '#constants';
+import { ItemType, itemIdOffsets, FramesBetweenSyncs, stateBufferSize, TimeoutManagerConstructor, maxChatWidth, IntervalManagerConstructor, classes, devlog } from '#constants';
 import { fixStringWidth } from '#stringWidth';
 import Player from '#player';
 import CatalogConstructor from '#catalog';
@@ -36,7 +36,6 @@ class newClient {
         this.room = room;
         this.wsId = info.wsId;
         this.joinedTime = Date.now();
-        this.loggedIn = this.userData && this.sessionData;
         //
         this.account_id = this.loggedIn ? this.userData.account_id : null; //reminder this is the ID of the actual account
         this.nickname = info.nickname; //todo check this is legal length and stuff
@@ -101,8 +100,9 @@ class newClient {
             nickname: this.nickname,
             classIdx: this.classIdx, // weapon class
             username: this.username,
+            adminRoles: this.loggedIn ? this.userData.adminRoles : 0,
 
-            team: this.room.gameOptions.teamsEnabled ? ran.getRandomInt(1,2) : 0, //info.team,
+            team: this.room.getPreferredTeam(), //info.team,
 
             primaryWeaponItem: this.loadout[ItemType.Primary],
             secondaryWeaponItem: this.loadout[ItemType.Secondary],
@@ -156,6 +156,8 @@ class newClient {
 
         this.userData = response?.userData || null;
         this.sessionData = response?.sessionData || null;
+        
+        this.loggedIn = this.userData && this.sessionData;
     };
 
     async onmessage(message) {
@@ -189,6 +191,13 @@ class newClient {
                             var output = new Comm.Out(1);
                             output.packInt8U(Comm.Code.clientReady);
                             this.sendToMe(output, "clientReady");
+
+                            this.room.setGameOwner();
+
+                            var output = new Comm.Out();
+                            this.room.packAllItems(output);
+                            this.room.packSetGameOwner(output);
+                            this.sendToMe(output, "packAllItems");
                         };
                         break;
                     case Comm.Code.sync:
@@ -242,22 +251,25 @@ class newClient {
                         break;
                     case Comm.Code.chat:
                         var text = input.unPackString();
-                        text = fixStringWidth(text, maxChatWidth);
+                        text = text.replaceAll("<", "(");
+                        console.log(this.player.name, "chatted:", text);
 
-                        if ("" != text && text.indexOf("<") < 0) { //todo, ratelimiting, censoring
-                            console.log(this.player.name, "chatted:", text);
-                            var output = new Comm.Out();
-                            output.packInt8U(Comm.Code.chat);
-                            output.packInt8U(this.id);
-                            output.packString(text);
-                            this.sendToOthers(output, this.id, "chat: " + text);
+                        if ("" != text) {
+                            if (text.startsWith("/")) {
+                                this.room.perm.inputCmd(this.player, text);
+                            } else if (!this.room.censor.detect(text, true)) { //todo, ratelimiting
+                                text = fixStringWidth(text, maxChatWidth);
+                                this.room.packChat(output, text, this.id, Comm.Chat.user);
+                                var output = new Comm.Out();
+                                this.sendToOthers(output, this.id, "chat: " + text);
+                            };
                         };
                         break;
                     case Comm.Code.reload: 
                         this.player.reload();
                         break;
                     case Comm.Code.swapWeapon: 
-                        var idx = input.unPackInt8();
+                        var idx = input.unPackInt8U();
                         this.player.swapWeapon(idx);
                         break;
                     case Comm.Code.changeCharacter:
@@ -283,6 +295,33 @@ class newClient {
                         var grenadeThrowPower = input.unPackFloat();
                         console.log("throwing a grenade", grenadeThrowPower);
                         this.player.queueGrenade(grenadeThrowPower);
+                        break;
+                    case Comm.Code.switchTeam:
+                        if (this.room.gameOptions.teamsEnabled) {
+                            var totalPlayers = this.room.getPlayerCount();
+                            var originalTeamCount = this.room.getPlayerCount(this.player.team);
+                            var switchAccepted = (totalPlayers - (originalTeamCount * 2)) < this.room.gameOptions.teamSwitchMaximumDifference;
+                            // devlog("total", totalPlayers);
+                            // devlog("on your team", originalTeamCount);
+                            // devlog("switching allowed", switchAccepted);
+
+                            if (switchAccepted) {
+                                var toTeam = this.player.team === 1 ? 2 : 1;
+                                this.player.switchTeam(toTeam);
+                            } else {
+                                var output = new Comm.Out(1);
+                                output.packInt8U(Comm.Code.switchTeamFail);
+                                this.sendToMe(output, "switchTeamFail");
+                            };
+                        };
+                        break;
+                    case Comm.Code.bootPlayer:
+                        let id = input.unPackInt8U();
+                        let client = this.room.clients[id];
+
+                        if (this.room.perm.cmds.mod.boot.checkPermissions(this.player) && client && id !== this.player.id) {
+                            client.sendBootToWs();
+                        };
                         break;
                     case Comm.Code.ping:
                         this.pingLevelInt = Math.clamp(input.unPackInt8U(), 0, 3);
@@ -361,6 +400,7 @@ class newClient {
         output.packString(this.nickname);
         output.packInt8U(this.classIdx);
         output.packString(this.username);
+        output.packInt8U(this.player.adminRoles);
 
         output.packInt8U(this.player.team);
 
@@ -446,6 +486,17 @@ class newClient {
         output.packInt8U(this.room.playerLimit); // playerLimit
         output.packInt8U(0); //bool // isGameOwner
     };
+    
+    pickupItem (kind, weaponIdx, id) {
+        this.room.itemManager.collectItem(kind, id);
+
+        var output = new Comm.Out();
+        this.room.packCollectItemPacket(output, this.id, kind, weaponIdx, id)
+
+        this.sendToAll(output, "collectItem");
+
+        this.room.spawnItems();
+    };
 
     sendBuffer(output, debug) { // more direct operation, prefer this.room.sendToOne
         if (!(debug.includes("sync") || debug.includes("ping"))) console.log(this.id, output.idx, debug);
@@ -469,11 +520,15 @@ class newClient {
     };
 
     sendMsgToWs(msg) {
-        ss.parentPort.postMessage([0, msg, this.wsId]);
+        ss.parentPort.postMessage([Comm.Worker.send, msg, this.wsId]);
     };
 
     sendCloseToWs(msg) {
-        ss.parentPort.postMessage([1, msg, this.wsId]);
+        ss.parentPort.postMessage([Comm.Worker.close, msg, this.wsId]);
+    };
+
+    sendBootToWs(msg) {
+        ss.parentPort.postMessage([Comm.Worker.boot, msg, this.wsId]);
     };
 };
 

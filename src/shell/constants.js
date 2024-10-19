@@ -9,12 +9,21 @@ import { Eggk47, DozenGauge, CSG1, RPEGG, Cluck9mm } from "#guns";
 export const isClient = typeof (window) !== 'undefined'; //best to define once, or something
 export const isServer = typeof (window) === 'undefined'; //clearer in code
 
+let ss;
+export function setSSForConstants(newSS) {ss = newSS};
+
 //these are pretty damn important:
+
+export const fps = 60;
+
+export const renderLoopStep = 1e3 / fps;
 
 /**
 * do not change! this is basically how many updates per second. change this and you will change the speed of the game!
  */
-export const fps = 60;
+export const ticksPerSecond = fps;
+
+export const gameDelta = fps / ticksPerSecond;
 
 /**
 * you can change this, it will affect the next variable (which is actually used)
@@ -26,12 +35,12 @@ export const syncsPerSecond = 10;
 /**
 * how many statebuffers to pack at once. in theory, it will be less smoother the higher it is, but demands better latency.
  */
-export var FramesBetweenSyncs = Math.ceil(fps / syncsPerSecond);
+export var FramesBetweenSyncs = Math.ceil(ticksPerSecond / syncsPerSecond);
 
 /**
 * the interval at which the game should process it's logic. don't change this value (unless u like things being screwed up, i guess)
  */
-export var TickStep = 1000 / fps;
+export var TickStep = 1000 / ticksPerSecond;
 
 /**
  * how many states should be stored. to calc how long it will last for: TickStep * stateBufferSize.
@@ -159,13 +168,26 @@ export var teamColors = {
     outline: [new BABYLON.Color4(1, 1, 1, 1), new BABYLON.Color4(0, .75, 1, 1), new BABYLON.Color4(1, .25, .25, 1)]
 };
 
+export const ItemTypes = {
+    AMMO: 0,
+    GRENADE: 1
+};
+
+export var defaultOptions = {
+    teamsEnabled: false,
+    itemsEnabled: [ //itemType enum, spawn per how much surface area, minimum
+        [ItemTypes.AMMO, 25, 4],
+        [ItemTypes.GRENADE, 65, 5]
+    ],
+    teamSwitchMaximumDifference: 0,
+};
+
 export var GameTypes = [
     {
         shortName: "FFA",
         longName: "Free For All",
         codeName: "ffa",
         options: {
-            teamsEnabled: false,
         }
     }, {
         shortName: "Teams",
@@ -177,7 +199,15 @@ export var GameTypes = [
     }
 ];
 
-//LS: dynamically create from GameTypes
+//fill in defaults where not present (makes the thing above cleaner)
+GameTypes.forEach(gameType => {
+    gameType.options = {
+        ...defaultOptions,
+        ...gameType.options,
+    };
+});
+
+//LS: dynamically create from GameTypes (compatability and also lazy xdd)
 export var GameType = GameTypes.reduce((acc, gameType, index) => {
     acc[gameType.codeName] = index;
     return acc;
@@ -190,6 +220,20 @@ export var CONTROL = {
     right: 8,
     jump: 16,
     fire: 32
+};
+
+export const MAP = {
+    blank: 0,
+    ground: 1,
+    block: 2,
+    column: 3,
+    halfBlock: 4,
+    ramp: 5,
+    ladder: 6,
+    tank: 7,
+    lowWall: 8,
+    todo3: 9,
+    barrier: 10
 };
 
 export var weaponStats = {
@@ -220,6 +264,9 @@ export var weaponStats = {
 };
 
 export const maxChatWidth = 280;
+export var maxChatCount = 6; //max amount of messages to be displayed at once (default 6)
+
+export const maxServerSlots = 50; //not the default, just the highest you think you can manage
 
 export var shellColors = ["#ffffff", "#c4e3e8", "#e2bc8b", "#d48e52", "#cb6d4b", "#8d3213", "#5e260f", "#e70a0a", "#aa24ce", "#f17ff9", "#FFD700", "#33a4ea", "#3e7753", "#66dd33"];
 
@@ -266,11 +313,6 @@ export var bulletHitColors = [
         color: new BABYLON.Color4(.7, .7, .7, 0)
     }
 ];
-
-export const ItemTypes = {
-    AMMO: 0,
-    GRENADE: 1
-};
 
 export const PingIndicators = [
     {
@@ -423,19 +465,19 @@ export const getTimestamp = (noBrackets) => {
 export const devlog = function (...args) {
     if (isServer) {
         console.log(...args);
-    } else if (devmode) {
+    } else if (devmode || ss?.config?.devlogs) {
         console.log(getTimestamp(), "LS_DEVLOG", ...args);
     };
 };
 
 export const clientlog = function (...args) {
-    if (isClient && devmode) {
+    if (isClient && devmode || ss?.config?.devlogs) {
         console.log(getTimestamp(), "LS_CLN_LOG", ...args);
     };
 };
 
 export const serverlog = function (...args) {
-    if (isServer && devmode) {
+    if (isServer) {
         console.log(getTimestamp(), "LS_SRV_LOG", ...args);
     };
 };

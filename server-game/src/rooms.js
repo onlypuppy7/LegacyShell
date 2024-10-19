@@ -6,10 +6,12 @@ import ColliderConstructor from '#collider';
 import createLoop from '#looper';
 import extendMath from '#math';
 import { setSSforLoader, loadMapMeshes, buildMapData } from '#loading';
-import { TickStep, stateBufferSize, FramesBetweenSyncs, GameTypes } from '#constants';
+import { TickStep, stateBufferSize, FramesBetweenSyncs, GameTypes, MAP, ItemTypes, setSSForConstants, devlog } from '#constants';
 import { MunitionsManagerConstructor } from '#munitionsManager';
-import { ItemManagerConstructor, MAP } from '#itemManager';
+import { ItemManagerConstructor } from '#itemManager';
+import { PermissionsConstructor } from '#permissions';
 import BABYLON from "babylonjs";
+import { censor } from "#censor";
 //
 
 let ss;
@@ -17,6 +19,7 @@ let ss;
 function setSS(newSS, parentPort) {
     ss = newSS;
     ClientConstructor.setSS(ss);
+    setSSForConstants(ss);
     extendMath(Math);
 };
 
@@ -26,12 +29,13 @@ class newRoom {
         console.log("creating room", info.gameId);
         this.startTime = Date.now();
         this.existedFor = 0;
+        this.gameOwner = null;
 
         this.wsToClient = {};
 
         this.serverStateIdx = 0;
 
-        this.joinType = info.joinType;
+        this.joinType = info.joinType; console.log(this.joinType)
         this.gameType = info.gameType;
         this.gameOptions = JSON.parse(JSON.stringify(GameTypes[this.gameType].options)); //create copy of object
         console.log("gameOptions", this.gameOptions)
@@ -42,7 +46,9 @@ class newRoom {
         // this.items = info.items;
         this.mapJson = ss.maps[this.mapId];
         this.playerLimit = this.mapJson.playerLimit || 18;
-        this.maxAmmo = Math.ceil(this.playerLimit * 1.5);
+        this.maxAmmo = Math.ceil(this.mapJson.surfaceArea / 25);
+        this.maxGrenades = Math.ceil(this.mapJson.surfaceArea / 65);
+        console.log("maxitems:", this.maxAmmo, this.maxGrenades)
 
         this.players = [];
         this.clients = [];
@@ -61,6 +67,10 @@ class newRoom {
         this.munitionsManager = new MunitionsManagerConstructor(this.scene);
         this.itemManager = new ItemManagerConstructor();
 
+        //permissions, censor
+        this.perm = new PermissionsConstructor(ss, this);
+        this.censor = censor;
+
         //map init
         setSSforLoader(ss, this.mapJson, this.Collider);
         this.validItemSpawns = [];
@@ -77,13 +87,10 @@ class newRoom {
 
             this.updateLoopObject = createLoop(this.updateLoop.bind(this), TickStep);
             this.metaLoopObject = createLoop(this.metaLoop.bind(this), 2e3);
-
-            this.updateRoomDetails();
+            this.updateRoomDetailsLoopObject = createLoop(this.updateRoomDetails.bind(this), 30e3);
 
             this.getValidItemSpawns();
-            this.spawnItems();
-
-            setInterval(() => this.spawnItems(), 30000);
+            this.spawnItemsLoopObject = createLoop(this.spawnItems.bind(this), 30e3); //just in case, i guess?
         });
     };
 
@@ -104,7 +111,7 @@ class newRoom {
     };
 
     updateRoomDetails() {
-        ss.parentPort.postMessage([2, {
+        ss.parentPort.postMessage([Comm.Worker.updateRoom, {
             ready: true,
             playerLimit: this.playerLimit,
             playerCount: this.getPlayerCount(),
@@ -218,17 +225,64 @@ class newRoom {
 
         console.log('Client disconnected', client.id);
 
+        this.setGameOwner();
+
         this.metaLoop(true);
     };
 
-    getPlayerCount() {
+    getPlayerCount(team) {
         let count = 0;
         for (let i = 0; i < this.players.length; i++) {
-            if (this.players[i]) {
-                count++;
+            var player = this.players[i];
+            if (player) {
+                if (!(typeof(team) == "number" && team !== player.team)) count++;
             };
         };
         return count;
+    };
+
+    getOldestClient() {
+        let oldestClient = null;
+        let oldestTime = 9e99;
+        for (let i = 0; i < this.clients.length; i++) {
+            var client = this.clients[i];
+            if (client) {
+                if (client.joinedTime < oldestTime) {
+                    oldestClient = client;
+                    oldestTime = client.joinedTime;
+                };
+            };
+        };
+        return oldestClient;
+    };
+
+    packSetGameOwner (output) {
+        if (this.gameOwner) {
+            output.packInt8U(Comm.Code.setGameOwner);
+            output.packInt8U(this.gameOwner.id);
+        };
+    };
+
+    setGameOwner() {
+        devlog("pls find a new owner pls 1", this.joinType, Comm.Code.createPrivateGame);
+        if (this.joinType === Comm.Code.createPrivateGame) {
+            devlog("pls find a new owner pls 2");
+            var newOwner = this.getOldestClient();
+            if (newOwner) {
+                devlog("found new owner", newOwner.id);
+                if (this.gameOwner !== newOwner) {
+                    this.gameOwner = newOwner;
+                    var output = new Comm.Out(2);
+                    this.packSetGameOwner(output);
+                    this.sendToAll(output, null, "setGameOwner");
+                };
+                this.players.forEach((player)=>{
+                    player.isGameOwner = player.id === this.gameOwner.player.id;
+                });
+            } else {
+                devlog("didnt new owner");
+            };
+        };
     };
 
     getRandomSpawn(player) {
@@ -253,44 +307,90 @@ class newRoom {
                         this.itemManager.checkPosition(x, y, z, this.map) == MAP.blank &&
                         this.itemManager.checkBelow(x, y, z, this.map) == MAP.block
                     ) this.validItemSpawns.push([x, y, z]);
-                }
-            }
-        }
+                };
+            };
+        };
         console.log('Finished loading item spawns!');
-    }
+        // console.log(this.validItemSpawns);
+    };
 
-    spawnPacket(kind, x, y, z) {
-        let data = {
-            id: this.itemManager.allocateId(),
-            kind: kind,
-            x: x,
-            y: y,
-            z: z
-        }
+    packNotificationPacket(output, text, timeoutTime = 3) {
+        output.packInt8U(Comm.Code.notification);
+        output.packString(text);
+        output.packInt8U(timeoutTime);
+    };
 
-        let spawnPacket = new Comm.Out();
-        spawnPacket.packInt8(Comm.Code.spawnItem);
-        spawnPacket.packInt16(data.id);
-        spawnPacket.packInt8(data.kind);
-        spawnPacket.packFloat(data.x + 0.5);
-        spawnPacket.packFloat(data.y);
-        spawnPacket.packFloat(data.z + 0.5);
+    notify(text, timeoutTime = 5) {
+        text = text.replaceAll("<", "(");
+        var output = new Comm.Out();
+        this.packNotificationPacket(output, text, timeoutTime);
+        this.sendToAll(output, "notification");
+    };
 
-        this.itemManager.items.push(data);
+    packChat(output, text, id = 255, chatType = Comm.Chat.user) {
+        output.packInt8U(Comm.Code.chat);
+        output.packInt8U(chatType);
+        output.packInt8U(id);
+        output.packString(text);
+    };
 
-        return spawnPacket;
-    }
+    packSpawnItemPacket(output, id, kind, x, y, z) {
+        output.packInt8U(Comm.Code.spawnItem);
+        output.packInt16U(id);
+        output.packInt8U(kind);
+        output.packInt16U(x*2);
+        output.packInt16U(y*10);
+        output.packInt16U(z*2);
+    };
+
+    packCollectItemPacket(output, playerId, kind, index, id) {
+        output.packInt8U(Comm.Code.collectItem);
+        output.packInt8U(playerId);
+        output.packInt8U(kind);
+        output.packInt8U(index);
+        output.packInt16U(id);
+    };
+
+    packAllItems (output) {
+        let pools = this.itemManager.pools;
+        for (let i = 0; i < pools.length; i++) {
+            let pool = pools[i];
+
+            pool.forEachActive((item) => {
+                this.packSpawnItemPacket(output, item.id, i, item.x, item.y, item.z);
+            });
+        };
+    };
 
     spawnItems() {
-        for (const dat of this.validItemSpawns) {
-            if (this.itemManager.items.length >= this.maxAmmo) return;
+        let pools = this.itemManager.pools;
+        var output = new Comm.Out();
+        for (let i = 0; i < pools.length; i++) {
+            let pool = pools[i];
+            let maximum = 0;
+            this.gameOptions.itemsEnabled.forEach((itemOptions)=>{
+                if (itemOptions[0] === i) {
+                    maximum = Math.ceil(this.mapJson.surfaceArea / itemOptions[1]);
+                    maximum = Math.clamp(maximum, itemOptions[2], pool.originalSize);
+                };
+            });
 
-            if (Math.floor((Math.random() * 50)) == 4) {
-                if (Math.floor((Math.random() * 5)) == 3) this.sendToAll(this.spawnPacket(1, dat[0], dat[1], dat[2]));
-                else this.sendToAll(this.spawnPacket(0, dat[0], dat[1], dat[2]));
-            }
+            while (pool.numActive < maximum) {
+                var pos = ran.getRandomFromList(this.validItemSpawns);
+
+                var x = pos[0] + 0.5;
+                var y = pos[1] + 0.1;
+                var z = pos[2] + 0.5;
+
+                devlog("item type", i, "current active", pool.numActive, "max", maximum);
+                // devlog(id, pos);
+
+                var item = this.itemManager.spawnItem(null, i, x, y, z);
+                this.packSpawnItemPacket(output, item.id, i, x, y, z);
+            };
         };
-    }
+        if (output.idx > 0) this.sendToAll(output, null, "spawnItem");
+    };
 
     getUnusedPlayerId() {
         for (let i = 0; i < this.playerLimit; i++) {
@@ -300,6 +400,17 @@ class newRoom {
             if (!(client || player)) return i;
         };
         return null;
+    };
+
+    getPreferredTeam() {
+        if (!this.gameOptions.teamsEnabled) {
+            return 0;
+        } else {
+            var team1Count = this.getPlayerCount(1);
+            var team2Count = this.getPlayerCount(2);
+
+            return team1Count > team2Count ? 2 : 1;
+        };
     };
 
     getPlayerClient(id) {
