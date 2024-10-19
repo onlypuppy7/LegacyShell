@@ -120,15 +120,38 @@ export class PermissionsConstructor {
         [category, text] = splitFirst(text, " ");
         [name, text] = splitFirst(text, " ");
 
-        this.parseCmd(player, category, name, text);
+        return this.parseCmd(player, category, name, text);
     };
 
     parseCmd (player, category, name, opts) {
         if (this.cmds && this.cmds[category] && this.cmds[category][name]) {
             const cmd = this.cmds[category][name];
             // console.log(opts, cmd);
-            cmd.execute(player, opts);
+            return cmd.execute(player, opts);
         };
+        return false;
+    };
+
+    getAvailableCmds (player) {
+        let result = {};
+        result.structure = {}
+        result.cats = [];
+
+        Object.keys(this.cmds).forEach(cat => {
+            var category = this.cmds[cat];
+            Object.keys(category).forEach(name => {
+                var cmd = category[name];
+                if (cmd.checkPermissions(player)) {
+                    if (!result.structure[cat]) {
+                        result.structure[cat] = [];
+                        result.cats.push(cat);
+                    };
+                    result.structure[cat].push(name);
+                };
+            });
+        });
+
+        return result;
     };
 };
 
@@ -136,8 +159,12 @@ class Command {
     constructor(context, { name, category, description, permissionLevel, inputType, executeClient, executeServer }) {
         if (!context.cmds[category]) context.cmds[category] = {};
         context.cmds[category][name] = this;
+
         this.ctx = context; //get room w it or something
         this.room = this.ctx.room;
+
+        this.ctx.cmds = alphabetiseObjectKeys(this.ctx.cmds); //nyes
+        this.ctx.cmds[category] = alphabetiseObjectKeys(this.ctx.cmds[category]);
 
         this.name = name;
         this.category = category;
@@ -164,22 +191,23 @@ class Command {
 
         // console.log(opts);
 
-        if (this.checkPermissions(player)) {
+        var permitted = this.checkPermissions(player);
+
+        if (permitted) {
             if (isClient) {
                 this.executeClient(opts);
             } else {
                 this.executeServer(opts);
             };
-            return true;
         } else if (isClient) {
             addChat("Insufficient permissions.", null, Comm.Chat.cmd);
-            return false;
         } else {
             var output = new Comm.Out();
             this.room.packChat(output, "Insufficient permissions (yes, really!)", 255, Comm.Chat.cmd);
             player.client.sendToMe(output, "chat");
-            return false;
         };
+
+        return permitted;
     };
 
     checkPermissions(player) {
@@ -223,4 +251,8 @@ function splitFirst(str, delimiter) {
     const rest = str.slice(index + delimiter.length);
     
     return [firstPart, rest];
+};
+
+function alphabetiseObjectKeys(obj) {
+    return Object.keys(obj).sort().reduce((acc, key) => (acc[key] = obj[key], acc), {});
 };
