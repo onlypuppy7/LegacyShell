@@ -111,10 +111,16 @@ class newRoom {
     };
 
     updateRoomDetails() {
+        var details = this.getPlayerCount(undefined, true);
+
+        console.log(details);
+
         ss.parentPort.postMessage([Comm.Worker.updateRoom, {
             ready: true,
             playerLimit: this.playerLimit,
-            playerCount: this.getPlayerCount(),
+            playerCount: details.count,
+            usernames: details.usernames,
+            uuids: details.uuids,
         }]);
     };
 
@@ -230,15 +236,21 @@ class newRoom {
         this.metaLoop(true);
     };
 
-    getPlayerCount(team) {
+    getPlayerCount(team, extraDetails) {
         let count = 0;
+        let uuids = [];
+        let usernames = [];
         for (let i = 0; i < this.players.length; i++) {
             var player = this.players[i];
             if (player) {
-                if (!(typeof(team) == "number" && team !== player.team)) count++;
+                if (!(typeof(team) == "number" && team !== player.team)) {
+                    count++;
+                    uuids.push(player.client.uuid);
+                    usernames.push(player.client.username);
+                };
             };
         };
-        return count;
+        return extraDetails ? {count, uuids, usernames} : count;
     };
 
     getOldestClient() {

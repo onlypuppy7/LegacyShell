@@ -26,7 +26,7 @@ export class PermissionsConstructor {
         this.cmds = {};
         this.cmdsByIdentifier = {};
         
-
+        //misc
         new Command(this, {
             identifier: "announce",
             name: "announce",
@@ -56,6 +56,26 @@ export class PermissionsConstructor {
                 // this.room(`Announcement: ${opts}`);
             }
         });
+
+        //mod
+        new Command(this, {
+            identifier: "boot",
+            name: "boot",
+            category: "mod",
+            description: "Boot problematic players.",
+            permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
+            inputType: ["number", 0, maxServerSlots - 1, 1],
+            executeClient: (opts) => {
+                var player = players[opts];
+                if (player) {
+                    bootPlayer(player.id, player.uniqueId);
+                    devlog(`booting player: ${opts}`);
+                };
+            },
+            executeServer: (opts) => { }
+        });
+
+        //room
         new Command(this, {
             identifier: "roomLimit",
             name: "limit",
@@ -100,22 +120,6 @@ export class PermissionsConstructor {
                     this.room.sendToAll(output, "warp");
                 };
             }
-        });
-        new Command(this, {
-            identifier: "boot",
-            name: "boot",
-            category: "mod",
-            description: "Boot problematic players.",
-            permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
-            inputType: ["number", 0, maxServerSlots - 1, 1],
-            executeClient: (opts) => {
-                var player = players[opts];
-                if (player) {
-                    bootPlayer(player.id, player.uniqueId);
-                    devlog(`booting player: ${opts}`);
-                };
-            },
-            executeServer: (opts) => { }
         });
     };
 
