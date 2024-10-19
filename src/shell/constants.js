@@ -14,10 +14,16 @@ export function setSSForConstants(newSS) {ss = newSS};
 
 //these are pretty damn important:
 
+export const fps = 60;
+
+export const renderLoopStep = 1e3 / fps;
+
 /**
 * do not change! this is basically how many updates per second. change this and you will change the speed of the game!
  */
-export const fps = 60;
+export const ticksPerSecond = fps;
+
+export const gameDelta = fps / ticksPerSecond;
 
 /**
 * you can change this, it will affect the next variable (which is actually used)
@@ -29,12 +35,12 @@ export const syncsPerSecond = 10;
 /**
 * how many statebuffers to pack at once. in theory, it will be less smoother the higher it is, but demands better latency.
  */
-export var FramesBetweenSyncs = Math.ceil(fps / syncsPerSecond);
+export var FramesBetweenSyncs = Math.ceil(ticksPerSecond / syncsPerSecond);
 
 /**
 * the interval at which the game should process it's logic. don't change this value (unless u like things being screwed up, i guess)
  */
-export var TickStep = 1000 / fps;
+export var TickStep = 1000 / ticksPerSecond;
 
 /**
  * how many states should be stored. to calc how long it will last for: TickStep * stateBufferSize.
