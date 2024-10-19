@@ -319,7 +319,7 @@ class newClient {
                         let id = input.unPackInt8U();
                         let client = this.room.clients[id];
 
-                        if (this.room.perm.cmds.mod.boot.checkPermissions(this.player) && client && id !== this.player.id) {
+                        if (this.room.perm.searchPermission("boot", this.player) && client && id !== this.player.id) {
                             client.sendBootToWs();
                         };
                         break;
