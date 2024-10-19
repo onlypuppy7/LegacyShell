@@ -713,6 +713,29 @@ button > h1 {
         0em .1em .2em #000;
 }
 
+#autocomplete-dialog {
+    position: absolute;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 1000;
+    font-size: 0.5em;
+    left: 2em;
+    width: fit-content;
+}
+
+#autocomplete-dialog div {
+    padding: 0.2em;
+    cursor: pointer;
+    color: white; /* Default color */
+}
+
+#autocomplete-dialog div.highlight {
+    color: yellow; /* Highlighted item */
+}
+
+.hidden {
+    display: none;
+}
+
 .friendCode {
 	position: absolute; 
 	top: -10em;

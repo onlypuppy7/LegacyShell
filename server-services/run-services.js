@@ -137,7 +137,7 @@ initTables().then(() => {
         // Apparently, WS ips die after disconnect?
         // https://stackoverflow.com/questions/12444598/why-is-socket-remoteaddress-undefined-on-end-event
     
-        let ip = req.socket.remoteAddress;
+        let ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || req.connection.remoteAddress;
     
         ws.on('message', async (message) => {
             try {
@@ -177,11 +177,11 @@ initTables().then(() => {
                 let sessionData, userData;
 
                 if (msg.session) {
-                    sessionData = await sess.retrieveSession(msg.session, ip);
+                    sessionData = await sess.retrieveSession(msg.session, ip, msg.auth_key);
                     try {
                         // console.log(sessionData);
-                        console.log(sessionData.expires_at, (Math.floor(Date.now() / 1000)));
-                        if (sessionData && (sessionData.expires_at > (Math.floor(Date.now() / 1000)))) {
+                        // console.log(sessionData.expires_at, (Math.floor(Date.now() / 1000)));
+                        if (sessionData && sessionData?.expires_at && (sessionData.expires_at > (Math.floor(Date.now() / 1000)))) {
                             userData = await accs.getUserData(sessionData.user_id, true);
                         };
                     } catch (error) {
@@ -209,6 +209,8 @@ initTables().then(() => {
                         distributed_all: ss.config.distributed_all,
                         distributed_client: ss.config.distributed_client,
                         distributed_game: ss.config.distributed_game,
+
+                        permissions: ss.config.distributed_permissions,
 
                         nugget_interval: ss.config.services.nugget_interval,
                         servicesMeta: {

@@ -390,6 +390,7 @@
 
             <div style="position: absolute; left: 1em; top: 2.5em;">
                 <span class="button" id="generate" onclick="extern.onGeneratePressed()">Generate</span>
+                <span class="button" id="generateLegacy" onclick="extern.onLegacyGeneratePressed()">GenerateLegacy</span>
 
                 <span class="button" id="cleanup" onclick="extern.cleanup()"
                     title="Eliminates tiles that are not visible">Cleanup</span>
@@ -473,7 +474,7 @@
 
                 <div style="text-align: center; margin-top: 1em">
                     <span class="button"
-                        onclick="extern.closeDialog('confirmGenerate'); openDialog('generateMap')">Yes</span>
+                        onclick="extern.closeDialog('confirmGenerate'); extern.openDialog('generateMap')">Yes</span>
                     <span class="button" onclick="extern.closeDialog('confirmGenerate')">No</span>
                 </div>
             </div>
@@ -503,6 +504,44 @@
                 <div style="text-align: center; margin-top: 1em">
                     <span class="button" onclick="extern.closeDialog('generateMap'); extern.randomMap()">Generate</span>
                     <span class="button" onclick="extern.closeDialog('generateMap')">Cancel</span>
+                </div>
+            </div>
+
+            <!-- Generate map confirmation -->
+            <div id="confirmLegacyGenerate" class="dialog box">
+                <h1>Generate Map</h1>
+                <hr>
+                <p>This will erase the current map,<br>and cannot be undone. Proceed?</p>
+
+                <div style="text-align: center; margin-top: 1em">
+                    <span class="button"
+                        onclick="extern.closeDialog('confirmLegacyGenerate'); extern.openDialog('generateLegacyMap')">Yes</span>
+                    <span class="button" onclick="extern.closeDialog('confirmLegacyGenerate')">No</span>
+                </div>
+            </div>
+
+            <div id="generateLegacyMap" class="dialog box">
+                <h1>Generate Legacy Map</h1>
+                <hr>
+                <p>Generates a map with the old algorithm</p><br>
+                <table>
+                    <tr>
+                        <style>
+                            td {
+                                padding-right: 0.5em;
+                                text-align: center;
+                            }
+                        </style>
+                        <td>Width<br><input id="generateLegacyWidth" type="text" placeholder="7-50" size="4"></input></td>
+                        <td>Depth<br><input id="generateLegacyDepth" type="text" placeholder="7-50" size="4"></input></td>
+                        <td>Height<br><input id="generateLegacyHeight" type="text" placeholder="2-50" size="4"></input></td>
+                        <td>Seed<br><input id="generateLegacySeed" type="text" size="20"></input></td>
+                    </tr>
+                </table>
+
+                <div style="text-align: center; margin-top: 1em">
+                    <span class="button" onclick="extern.closeDialog('generateLegacyMap'); extern.randomLegacyMap()">GenerateLegacy</span>
+                    <span class="button" onclick="extern.closeDialog('generateLegacyMap')">Cancel</span>
                 </div>
             </div>
 
