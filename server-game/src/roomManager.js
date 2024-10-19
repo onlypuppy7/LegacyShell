@@ -200,6 +200,8 @@ class newRoomManager {
             ws.close(Comm.Close.booted);
         } else if (room.uuids && room.uuids.includes(msg.uuid)) {
             ws.close(Comm.Close.masterServerBusy);
+        } else if (msg.session !== "" && room.sessions && room.sessions.includes(msg.session)) {
+            ws.close(Comm.Close.masterServerBusy);
         } else {
             let wsId = room.wsIdx++;
     
