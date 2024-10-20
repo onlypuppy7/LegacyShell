@@ -1,5 +1,4 @@
 //legacyshell: client
-import ran from '#scrambled';
 import misc from '#misc';
 import Comm from '#comm';
 import { ItemType, itemIdOffsets, FramesBetweenSyncs, stateBufferSize, TimeoutManagerConstructor, maxChatWidth, IntervalManagerConstructor, classes, devlog } from '#constants';
