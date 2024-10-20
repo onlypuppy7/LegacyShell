@@ -74,6 +74,56 @@ function extendMath (Math) {
         };
         return array;
     };
+    
+    //scrambled functions from sfbt
+    Math.getRandomInt = function (min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    };
+    
+    Math.getRandomChance = function (chance) {
+        return (Math.random() <= chance);
+    };
+    
+    Math.getRandomChar = function () {
+        const characters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        return (characters)[Math.getRandomInt(0, characters.length - 1)];
+    };
+    
+    Math.getRandomCode = function (long) {
+        long = long || 7;
+        const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        return Array.from({ length: long }, () => (characters)[Math.getRandomInt(0, characters.length - 1)]).join('');
+    };
+    
+    Math.getScrambled = function (min, max) {
+        min = min || 6;
+        max = max || 12;
+        return Array.from({ length: Math.getRandomInt(min, max) }, () => getRandomChar()).join('');
+    };
+    
+    Math.getRandomBool = function () {
+        return Math.getRandomInt(1, 2) == 1;
+    };
+    
+    Math.getRandomName = function (moreRandom) {
+        var name, num;
+        var n1 = ["Captain", "Lord", "Supreme", "Master", "Pro", "Noob"];
+        var n2 = ["Egg", "Yolk", "Shell", "Cluck", "Chick", "Bird"];
+        do {
+            num = Math.getRandomInt(1, 99);
+        } while (num == 69);
+        if (Math.getRandomInt(0, 2) == 0) {
+            name = n1[Math.getRandomInt(0, n1.length - 1)] + (getRandomBool() && moreRandom ? " " : "") + n2[Math.getRandomInt(0, n2.length - 1)] + (getRandomBool() && moreRandom ? " " : "") + (getRandomBool() && moreRandom ? " " : num);
+        } else {
+            name = n2[Math.getRandomInt(0, n2.length - 1)] + (getRandomBool() && moreRandom ? " " : "") + n1[Math.getRandomInt(0, n1.length - 1)] + (getRandomBool() && moreRandom ? " " : "") + (getRandomBool() && moreRandom ? " " : num);
+        };
+        if (getRandomBool() && moreRandom) name = name.toLowerCase();
+        return name;
+    };
+
+    Math.getRandomFromList = function (list) {
+        return list[Math.getRandomInt(0, list.length - 1)];
+    };
     return Math;
 };
 
