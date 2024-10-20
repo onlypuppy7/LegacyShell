@@ -1,5 +1,4 @@
 //legacyshell: room
-import ran from '#scrambled';
 import ClientConstructor from '#client';
 import Comm from '#comm';
 import ColliderConstructor from '#collider';
@@ -111,10 +110,17 @@ class newRoom {
     };
 
     updateRoomDetails() {
+        this.details = this.getPlayerCount(undefined, true);
+
+        // devlog(details);
+
         ss.parentPort.postMessage([Comm.Worker.updateRoom, {
             ready: true,
             playerLimit: this.playerLimit,
-            playerCount: this.getPlayerCount(),
+            playerCount: this.details.count,
+            usernames: this.details.usernames,
+            uuids: this.details.uuids,
+            sessions: this.details.sessions,
         }]);
     };
 
@@ -230,15 +236,25 @@ class newRoom {
         this.metaLoop(true);
     };
 
-    getPlayerCount(team) {
+    getPlayerCount(team, extraDetails) {
         let count = 0;
+        let uuids = [];
+        let usernames = [];
+        let sessions = [];
+
         for (let i = 0; i < this.players.length; i++) {
             var player = this.players[i];
             if (player) {
-                if (!(typeof(team) == "number" && team !== player.team)) count++;
+                if (!(typeof(team) == "number" && team !== player.team)) {
+                    count++;
+                    uuids.push(player.client.uuid);
+                    sessions.push(player.client.session);
+                    usernames.push(player.client.username);
+                };
             };
         };
-        return count;
+        
+        return extraDetails ? {count, uuids, usernames} : count;
     };
 
     getOldestClient() {
@@ -287,7 +303,7 @@ class newRoom {
 
     getRandomSpawn(player) {
         const list = this.spawnPoints[player.team];
-        const pos = ran.getRandomFromList(list);
+        const pos = Math.getRandomFromList(list);
 
         return {
             x: pos.x + 0.5,
@@ -409,7 +425,7 @@ class newRoom {
             });
 
             while (pool.numActive < maximum) {
-                var pos = ran.getRandomFromList(this.validItemSpawns);
+                var pos = Math.getRandomFromList(this.validItemSpawns);
 
                 var x = pos[0] + 0.5;
                 var y = pos[1] + 0.1;

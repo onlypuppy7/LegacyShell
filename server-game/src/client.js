@@ -1,5 +1,5 @@
 //legacyshell: client
-import ran from '#scrambled';
+import misc from '#misc';
 import Comm from '#comm';
 import { ItemType, itemIdOffsets, FramesBetweenSyncs, stateBufferSize, TimeoutManagerConstructor, maxChatWidth, IntervalManagerConstructor, classes, devlog } from '#constants';
 import { fixStringWidth } from '#stringWidth';
@@ -37,11 +37,19 @@ class newClient {
         this.wsId = info.wsId;
         this.joinedTime = Date.now();
         //
+        this.uuid = info.uuid || Math.randomInt(1,4294967295);
         this.account_id = this.loggedIn ? this.userData.account_id : null; //reminder this is the ID of the actual account
         this.nickname = info.nickname; //todo check this is legal length and stuff
-        this.username = this.loggedIn ? this.userData.username : "";
+        this.username = this.loggedIn ? this.userData.username : "Guest_"+misc.getRandomAsciiChars(5, this.uuid);
         this.id = info.id; //place in list
         this.classIdx = info.classIdx;
+
+        console.log(this.room.details.usernames, this.username);
+        if (this?.room?.details?.usernames && this.room.details.usernames.includes(this.username)) {
+            devlog("reject this silly mf", this.username);
+            this.sendCloseToWs(Comm.Close.masterServerBusy);
+            return;
+        };
         //
         this.loadout = {};
         this.colorIdx = 0;
@@ -259,8 +267,8 @@ class newClient {
                                 this.room.perm.inputCmd(this.player, text);
                             } else if (!this.room.censor.detect(text, true)) { //todo, ratelimiting
                                 text = fixStringWidth(text, maxChatWidth);
-                                this.room.packChat(output, text, this.id, Comm.Chat.user);
                                 var output = new Comm.Out();
+                                this.room.packChat(output, text, this.id, Comm.Chat.user);
                                 this.sendToOthers(output, this.id, "chat: " + text);
                             };
                         };
@@ -319,7 +327,7 @@ class newClient {
                         let id = input.unPackInt8U();
                         let client = this.room.clients[id];
 
-                        if (this.room.perm.cmds.mod.boot.checkPermissions(this.player) && client && id !== this.player.id) {
+                        if (this.room.perm.searchPermission("boot", this.player) && client && id !== this.player.id) {
                             client.sendBootToWs();
                         };
                         break;

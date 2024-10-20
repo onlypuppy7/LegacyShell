@@ -61,9 +61,10 @@ function startServer() {
                                 msg.hatId = input.unPackInt8U(); //ignore if not logged in (+999)
                                 msg.stampId = input.unPackInt8U(); //ignore if not logged in (+1999)
                                 msg.nickname = input.unPackString(); //NOT the username!
+                                msg.uuid = input.unPackInt32U();
                                 //additional stuff provided they are signed in
                                 msg.session = input.unPackString(); //technically this is all thats rlly needed tbh
-        
+
                                 ss.config.verbose && console.log(msg, Comm.Convert(msg.joinType), Comm.Convert(msg.gameType));
         
                                 let roomFound = RoomManager.searchRooms(msg);

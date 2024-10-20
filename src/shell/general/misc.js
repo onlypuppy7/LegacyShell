@@ -8,9 +8,11 @@ import WebSocket, { WebSocketServer } from 'ws';
 //legacyshell: dirname resolving
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import extendMath from '#math';
 //
 
 let ss; //trollage. access it later.
+extendMath(Math);
 
 const misc = {
     getLastSavedTimestamp: function (filePath) {
@@ -142,6 +144,25 @@ const misc = {
         } catch (error) {
             return "//fucking failed! "+hashtag;
         };
+    },
+    getRandomAsciiChars: function (count, uuid) {
+        Math.seed = uuid;
+
+        const charTypes = [
+          { min: 65, max: 90 },  // A-Z
+          { min: 97, max: 122 }, // a-z
+          { min: 48, max: 57 },  // 0-9
+        ];
+        let result = '';
+      
+        for (let i = 0; i < count; i++) {
+          const randomTypeIndex = Math.seededRandomInt(0, charTypes.length - 1);
+          const randomType = charTypes[randomTypeIndex];
+          const randomCode = Math.seededRandomInt(randomType.min, randomType.max);
+          result += String.fromCharCode(randomCode);
+        };
+      
+        return result;
     },
 };
 

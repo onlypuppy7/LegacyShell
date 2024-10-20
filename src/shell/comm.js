@@ -96,7 +96,7 @@ const Comm = {
             this.buffer[this.idx + 2] = val >> 16 & 255;
             this.buffer[this.idx + 3] = val >> 24 & 255;
             this.idx += 4;
-        }
+        };
 
         /** 
          * Pack an unsigned 32-bit integer (4 bytes).
@@ -104,7 +104,7 @@ const Comm = {
          */
         packInt32U(val) {
             this.packInt32(val);
-        }
+        };
 
         /** 
          * Pack a radian (as unsigned, 2 bytes).
@@ -211,7 +211,8 @@ const Comm = {
         unPackInt32U() {
             const i = this.idx;
             this.idx += 4;
-            return this.buffer[i] + (this.buffer[i + 1] << 8) + (this.buffer[i + 2] << 16) + (this.buffer[i + 3] << 24);
+
+            return (this.buffer[i] | (this.buffer[i + 1] << 8) | (this.buffer[i + 2] << 16) | (this.buffer[i + 3] << 24)) >>> 0;
         }
 
         /** 
@@ -219,7 +220,7 @@ const Comm = {
          * @returns {number} - The unpacked value. Range: -2147483648 to 2147483647.
          */
         unPackInt32() {
-            return (this.unPackInt32U() + 2147483648) % 4294967296 - 2147483648;
+            return this.unPackInt32U() | 0; // Convert to signed integer
         }
 
         /** 
