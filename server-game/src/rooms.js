@@ -1,5 +1,4 @@
 //legacyshell: room
-import ran from '#scrambled';
 import ClientConstructor from '#client';
 import Comm from '#comm';
 import ColliderConstructor from '#collider';
@@ -304,7 +303,7 @@ class newRoom {
 
     getRandomSpawn(player) {
         const list = this.spawnPoints[player.team];
-        const pos = ran.getRandomFromList(list);
+        const pos = Math.getRandomFromList(list);
 
         return {
             x: pos.x + 0.5,
@@ -426,7 +425,7 @@ class newRoom {
             });
 
             while (pool.numActive < maximum) {
-                var pos = ran.getRandomFromList(this.validItemSpawns);
+                var pos = Math.getRandomFromList(this.validItemSpawns);
 
                 var x = pos[0] + 0.5;
                 var y = pos[1] + 0.1;

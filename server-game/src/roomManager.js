@@ -1,8 +1,8 @@
 //legacyshell: roomManager
-import ran from '#scrambled';
 import Comm from '#comm';
 import { Worker } from 'worker_threads';
 import misc from '#misc';
+import extendMath from '#math';
 //
 
 const id_length = 3; //btw you cant just modify this without also adjusting the client's code. do you ever NEED to modify this? no. just have it static.
@@ -18,6 +18,7 @@ let ss;
 
 function setSS(newSS) {
     ss = newSS;
+    extendMath(Math);
 };
 
 class newRoomManager {
@@ -61,14 +62,14 @@ class newRoomManager {
                 remainingMapIds = remainingMapIds.filter(mapId => mapId !== room.mapId);
             });
             // console.log("remainingMapIds", remainingMapIds);
-            let createNew = (roomSelection.length === 0 && 1) || (ran.getRandomChance(0.1) && 2) || false; //create new, if no rooms OR in the case where some maps are not taken
+            let createNew = (roomSelection.length === 0 && 1) || (Math.getRandomChance(0.1) && 2) || false; //create new, if no rooms OR in the case where some maps are not taken
             console.log("createNew", createNew, roomSelection.length);
             if (createNew) {
-                info.mapId = ran.getRandomFromList(remainingMapIds);
+                info.mapId = Math.getRandomFromList(remainingMapIds);
                 console.log("<3", info.mapId, info.mapId && ss.maps[info.mapId].name, remainingMapIds)
                 return this.createRoom(info);
             } else {
-                return ran.getRandomFromList(roomSelection);
+                return Math.getRandomFromList(roomSelection);
             };
         };
         console.log("fail?");
@@ -109,12 +110,12 @@ class newRoomManager {
     };
 
     getRandomID() {
-        return ran.getRandomInt(1, highestRoomID); //not 0. pain in the ass. 0 == false type shit
+        return Math.getRandomInt(1, highestRoomID); //not 0. pain in the ass. 0 == false type shit
     };
 
     createRoom(info) {
         info.gameId = this.getUnusedID();
-        // info.gameKey = ran.getRandomInt(10, Math.pow(36, 2) - 10);
+        // info.gameKey = Math.getRandomInt(10, Math.pow(36, 2) - 10);
         info.gameKey = 784;
         const worker = new Worker(new URL('./worker.js', import.meta.url));
 
