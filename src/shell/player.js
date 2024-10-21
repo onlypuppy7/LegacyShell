@@ -136,6 +136,20 @@ class Player {
         this.resetDespawn(-5000);
         this.jumpHeld = false;
         this.lastActivity = Date.now();
+        this.scale = 1;
+    };
+    changeScale (newScale) {
+        devlog("setting scale:", newScale)
+        this.scale = newScale;
+        if (this.actor) {
+            this.actor.mesh.scaling.set(newScale, newScale, newScale);
+            // this.actor.bodyMesh.position.y = 0.32 * newScale;
+        };
+        if (isServer) {
+            var output = new Comm.Out(3);
+            this.client.packScale(output);
+            this.client.sendToAll(output, "setScale");
+        };
     };
     changeWeaponLoadout(primaryWeaponItem, secondaryWeaponItem) {
         if (this.actor && this.weapons) {

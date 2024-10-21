@@ -443,6 +443,14 @@ class newClient {
         output.packInt8U(0); //controlKeys
         output.packInt16U(0); //randomSeed
         output.packInt8U(this.loggedIn ? this.userData.upgradeProductId : 0); //upgradeProductId
+
+        if (this.player.scale !== 1) this.packScale(output);
+    };
+
+    packScale(output) {
+        output.packInt8U(Comm.Code.setScale);
+        output.packInt8U(this.id);
+        output.packInt8U(this.player.scale * 10);
     };
 
     packSync(output) {

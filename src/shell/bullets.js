@@ -89,6 +89,7 @@ Bullet.origin = new BABYLON.Vector3;
 Bullet.direction = new BABYLON.Vector3;
 Bullet.fire = function (player, pos, dir, weaponClass) {
     // console.log(!!player.client.room);
+    pos.y = pos.y;
     getMunitionsManager(player).bulletPool.retrieve().fireThis(player, pos, dir, weaponClass)
 };
 Bullet.prototype.fireThis = function (player, pos, dir, weaponClass) {
@@ -182,14 +183,14 @@ Bullet.prototype.collidesWithPlayer = function (player, point) {
         tv1.normalize();
 
         tv2.x = player.x - point.x; //point is the position on the egg that the bullet lands
-        tv2.y = player.y + .32 - point.y; // +0.32, the supposed center
+        tv2.y = player.y + (0.32 * player.scale) - point.y; // +0.32, the supposed center
         tv2.z = player.z - point.z;
         tv2.normalize();
 
         var dist = BABYLON.Vector3.Cross(tv1, tv2).length();
 
         var dot = -BABYLON.Vector3.Dot(tv1, tv2) * 0.9 + 0.1;
-        let damageMod = 2;
+        let damageMod = this.player.scale * (2 / player.scale);
         // var damage = this.damage * Math.pow(dot, damageExp + Math.pow(dot, damageExp) * damageMod);
         var damage = this.damage * Math.pow(dot, damageExp) * damageMod;
 
