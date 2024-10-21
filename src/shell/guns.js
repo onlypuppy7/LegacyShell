@@ -38,7 +38,7 @@ Gun.prototype.fire = function (sendToAll) {
 
         var spreadMat = BABYLON.Matrix.RotationYawPitchRoll((Math.random() - .5) * spread, (Math.random() - .5) * spread, (Math.random() - .5) * spread);
         var posMat = (dir = (dirMat = dirMat.multiply(spreadMat)).getTranslation(), BABYLON.Matrix.Translation(0, .1, 0));
-        var pos = (posMat = (posMat = posMat.multiply(rotMat)).add(BABYLON.Matrix.Translation(this.player.x, this.player.y + (.3 * this.player.scale), this.player.z))).getTranslation();
+        var pos = (posMat = (posMat = posMat.multiply(rotMat)).add(BABYLON.Matrix.Translation(this.player.x, this.player.y - 0.04 + (.38 * this.player.scale), this.player.z))).getTranslation();
 
         Math.seed = Math.randomInt(0, 256);
         pos.x = Math.floor(300 * pos.x) / 300;
