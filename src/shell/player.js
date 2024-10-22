@@ -748,7 +748,7 @@ class Player {
             var rotMat = BABYLON.Matrix.RotationYawPitchRoll(this.yaw, this.pitch, 0);
             var vec = BABYLON.Matrix.Translation(0, .1, 1).multiply(rotMat).getTranslation();
             var posMat = BABYLON.Matrix.Translation(0, -.05, .2);
-            var pos = (posMat = (posMat = posMat.multiply(rotMat)).add(BABYLON.Matrix.Translation(this.x, this.y + .3, this.z))).getTranslation();
+            var pos = (posMat = (posMat = posMat.multiply(rotMat)).add(BABYLON.Matrix.Translation(this.x, this.y + Math.max(0.25, 0.3 * this.scale), this.z))).getTranslation();
             var speed = .13 * this.grenadeThrowPower + .08;
 
             vec.x *= speed;

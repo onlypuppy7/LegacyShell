@@ -232,6 +232,7 @@ class newRoom {
         console.log('Client disconnected', client.id);
 
         this.setGameOwner();
+        this.updateRoomDetails();
 
         this.metaLoop(true);
     };

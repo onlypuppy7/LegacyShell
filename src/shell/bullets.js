@@ -42,7 +42,7 @@ function checkExplosionCollisions (explosion) { //stolen from rtw 🥺
                 const scalingFactor = 0.7; //linear
                 const exponent = 2; //exponential
 
-                const modifier = 0.5;
+                const modifier = player.scale * (0.5 / explosion.player.scale);
 
                 let damage = explosion.damage * modifier * (1 / Math.pow(delta.length() * scalingFactor, exponent));
 
@@ -305,7 +305,7 @@ Grenade.v4 = new BABYLON.Vector3;
 Grenade.matrix = new BABYLON.Matrix;
 Grenade.prototype.update = function (delta) {
     if (this.ttl <= 0) {
-        console.log(new BABYLON.Vector3(this.x, this.y, this.z));
+        // console.log(new BABYLON.Vector3(this.x, this.y, this.z));
         if (getMunitionsManager().grenadePool.recycle(this), this.actor) {
             addExplosion(this.x, this.y, this.z, this.damage, this.radius);
             var pos = new BABYLON.Vector3(this.x, this.y, this.z);
