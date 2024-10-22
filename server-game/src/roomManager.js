@@ -153,7 +153,7 @@ class newRoomManager {
                         ws.close(content);
                         break;
                     case Comm.Worker.updateRoom: //update the room
-                        console.log(content);
+                        // console.log("updateRoom received", content);
                         Object.assign(createdRoom, content);
                         // console.log(room.ready, createdRoom.ready, content);
                         // console.log(room.playerLimit, createdRoom.ready);
