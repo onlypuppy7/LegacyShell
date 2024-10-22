@@ -62,7 +62,7 @@ export class PermissionsConstructor {
             category: "misc",
             description: "Sets scaling for your egg.",
             permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
-            inputType: ["number", 0.1, 10, 0.1],
+            inputType: ["number", 0.1, 25, 0.1],
             executeClient: (player, opts) => {
                 me.changeScale(opts);
             },

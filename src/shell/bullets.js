@@ -29,7 +29,7 @@ function checkExplosionCollisions (explosion) { //stolen from rtw 🥺
             //if()
         });
 
-        let maxRange = 3;
+        let maxRange = 2 + Math.max(1, player.scale);
         // console.log("explosion0", nearestWall, delta.length(), maxRange);
         // console.log(new BABYLON.Vector3(state.x, state.y, state.z), new BABYLON.Vector3(player.x, player.y, player.z));
 
@@ -40,9 +40,9 @@ function checkExplosionCollisions (explosion) { //stolen from rtw 🥺
 
                 //bigger = falls off quicker
                 const scalingFactor = 0.7; //linear
-                const exponent = 2; //exponential
+                const exponent = 2 / Math.max(player.scale / 10, 1); //exponential
 
-                const modifier = player.scale * (0.5 / explosion.player.scale);
+                const modifier = explosion.player.scale * (0.5 / Math.min(player.scale, 5));
 
                 let damage = explosion.damage * modifier * (1 / Math.pow(delta.length() * scalingFactor, exponent));
 
