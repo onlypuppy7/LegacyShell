@@ -9,6 +9,8 @@
 import { TransformNode, Vector3 } from "babylonjs";
 import { Howl, Howler } from "howler";
 
+
+const APOLLO_LOG = true;
 /**
  * list of sounds that have been loaded in.
  * @type {Howl{}}
@@ -16,6 +18,7 @@ import { Howl, Howler } from "howler";
 const sounds = {};
 const APOLLO_EMERGENCY_FALLBACK_SOUND = new Howl({
   src: "https://github.com/TheRealSeq/Media/raw/50fd01317c6740c76d610a7f544a3f9c353777e8/Apollo/fallBack.mp3",
+  onload: function () { if (APOLLO_LOG) console.log("APOLLO: fallback loaded!"); }
 }); //if this doesn't load, all hope is lost...
 
 /**
@@ -92,7 +95,7 @@ class Emitter {
   /**
    * @type {SoundInstance[]}
    */
-  playingSounds;
+  //playingSounds;
 
   /**
    * creates a new Emitter and attaches it to a given TransformNode.
@@ -121,7 +124,8 @@ class Emitter {
     const id = sound.play();
     const instance = new SoundInstance(sound, id);
     this.playingSounds.push(instance);
-    sound.on("end", this.#onSoundEnd, id);
+    sound.on("end", this.#onSoundEnd.bind(this), id);
+    //console.log(this.playingSounds.bind(this));
     this.#instanceSyncWithMaster(instance);
     sound.volume(1, id);
     //FIXME: this might cause problems...
@@ -132,6 +136,7 @@ class Emitter {
    * @param {SoundInstance} inst - the instance to sync.
    */
   #instanceSyncWithMaster(inst) {
+    if (this.is2D || !this.parent) return;
     inst.howl.pos(pos.x, pos.y, pos.z, inst.id);
     //FIXME: this will likely break, bc Babs coord system does not seem to mach howler's. (z forward/backward wrong). Want to fix that once I get to actually hear it though
   }
@@ -141,9 +146,10 @@ class Emitter {
    *@param {String} id - called by the howl, id of the stopped sound.
    */
   #onSoundEnd(id) {
+    console.log(this.playingSounds);
     this.playingSounds.forEach((snd) => {
       if (snd.id === id) {
-        this.playingSounds = this.playingSounds.splice(
+        this.playingSounds.splice(
           this.playingSounds.indexOf(snd),
           1,
         );
