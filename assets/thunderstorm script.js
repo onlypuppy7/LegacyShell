@@ -53,39 +53,41 @@ wetMaterial.reflectionTexture.level = .5; // Adjust reflection intensity
 // Apply the material to the mapMesh
 mapMesh.material = wetMaterial;
 
-var skyboxName = "thunderstorm",
-skybox = BABYLON.MeshBuilder.CreateBox("skyBox", {
-    size: 100
-}, gameScene);
-skybox.infiniteDistance = true;
-skyboxMaterial = new BABYLON.StandardMaterial("skyBox", gameScene);
-skyboxMaterial.backFaceCulling = false, skyboxMaterial.fogEnabled = false;
-skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture("img/skyboxes/" + skyboxName + "/skybox", gameScene);
-skyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE, skyboxMaterial.diffuseColor = new BABYLON.Color3(0, 0, 0), skyboxMaterial.specularColor = new BABYLON.Color3(0, 0, 0), skybox.material = skyboxMaterial
+setSkybox("thunderstorm");
 
 gameScene.texturesEnabled = false;
 gameScene.fogColor = new BABYLON.Color4(0, 0, 0, 1);
 gameScene.fogDensity = .5;
+
+mapMesh.overlayAlpha = 0.1;
+mapMesh.overlayColor = {r: 1, g: 1, b: 1};
+mapMesh.renderOverlay = false;
 
 Sounds.rain.play();
 
 window.addEventListener('keydown', function(event) {
     if (event.key === '[') {
         gameScene.fogDensity = .1;
+        skybox.rotation.y = Math.PI2 * 2 * Math.random();
         gameScene.texturesEnabled = true;
+        mapMesh.renderOverlay = true;
         setTimeout(() => {
             Sounds.thunder.play();
         }, 250);
         setTimeout(() => {
             gameScene.fogDensity = .5;
+            mapMesh.renderOverlay = false;
             gameScene.texturesEnabled = false;
         }, 100);
         setTimeout(() => {
             gameScene.fogDensity = .1;
+            skybox.rotation.y = Math.PI2 * 2 * Math.random();
+            mapMesh.renderOverlay = true;
             gameScene.texturesEnabled = true;
         }, 200);
         setTimeout(() => {
             gameScene.fogDensity = .5;
+            mapMesh.renderOverlay = false;
             gameScene.texturesEnabled = false;
         }, 400);
     }
