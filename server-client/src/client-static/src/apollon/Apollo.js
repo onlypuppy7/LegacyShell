@@ -52,8 +52,16 @@ function getSound(name) {
  */
 class SoundInstance {
   //is this class unneccesary? Kinda. Would it be less clean without it? ye, kinda.
-  constructor(hawl, id) {
-    this.hawl = hawl;
+  /**
+  * @type {Howl}
+  */
+  howl;
+  /**
+  * @type {String}
+  */
+  id; //prob isnt even a String but WHO CARES!!!
+  constructor(howl, id) {
+    this.howl = howl;
     this.id = id;
   }
 }
@@ -117,12 +125,25 @@ class Emitter {
     //TODO: finish
   }
 
-  #onSoundEnd(id) {}
+  #onSoundEnd(id) {
+    this.playingSounds.forEach((snd) => {
+      if (snd.id === id) {
+        this.playingSounds = this.playingSounds.splice(
+          this.playingSounds.indexOf(snd),
+          1,
+        );
+      }
+    });
+  }
 
   /**
    * update the currently playing sound's positions.
    */
   update() {
-    this.playingSounds.forEach((id) => {});
+    const pos = this.parent.getAbsolutePosition();
+    this.playingSounds.forEach((inst) => {
+      inst.howl.
+      //TODO: do this
+    });
   }
 }
