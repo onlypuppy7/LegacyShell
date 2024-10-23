@@ -136,16 +136,19 @@ class Player {
         this.resetDespawn(-5000);
         this.jumpHeld = false;
         this.lastActivity = Date.now();
-        this.scale = 1;
+        this.changeScale(1, true);
     };
-    changeScale (newScale) {
-        devlog("setting scale:", newScale)
+    changeScale (newScale, init) {
+        // devlog("setting scale:", newScale);
         this.scale = newScale;
         if (this.actor) {
             this.actor.mesh.scaling.set(newScale, newScale, newScale);
+
+            var scale = Math.max(newScale, 0.15); //prevents NaN
+            this.actor.playbackRate = 1.16107 - (0.239878 * Math.log((2.20821 * scale) - 0.251099)); //number
             // this.actor.bodyMesh.position.y = 0.32 * newScale;
         };
-        if (isServer) {
+        if (isServer && !init) {
             var output = new Comm.Out(3);
             this.client.packScale(output);
             this.client.sendToAll(output, "setScale");
