@@ -128,6 +128,12 @@ class Emitter {
     //console.log(this.playingSounds.bind(this));
     this.#instanceSyncWithMaster(instance);
     sound.volume(1, id);
+    sound.pannerAttr({
+            panningModel: 'HRTF',
+            refDistance: 0.8,
+            rolloffFactor: 2.5,
+            distanceModel: 'exponential'
+          }, instance.id);
     //FIXME: this might cause problems...
   }
 
@@ -136,8 +142,11 @@ class Emitter {
    * @param {SoundInstance} inst - the instance to sync.
    */
   #instanceSyncWithMaster(inst) {
-    if (this.is2D || !this.parent) return;
-    inst.howl.pos(pos.x, pos.y, pos.z, inst.id);
+    if (this.is2D || !this.parent || !inst ||!inst.howl) return;
+    const nP = this.parent.getAbsolutePosition();
+    console.log("playing sound at the following pos:");
+    console.log(nP);
+    inst.howl.pos(nP.x*100, nP.y*100, nP.z*100, inst.id);
     //FIXME: this will likely break, bc Babs coord system does not seem to mach howler's. (z forward/backward wrong). Want to fix that once I get to actually hear it though
   }
 
@@ -162,7 +171,6 @@ class Emitter {
    */
   update() {
     /**@type {Vector3} */
-    const pos = this.parent.getAbsolutePosition();
     this.playingSounds.forEach((inst) => {
       this.#instanceSyncWithMaster(inst);
     });
