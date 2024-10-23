@@ -60,8 +60,10 @@ function prepareModified(ss) {
             { pattern: /LEGACYSHELLMUNITIONSMANAGER/g, file: "#munitionsManager" },
             { pattern: /LEGACYSHELLITEMMANAGER/g, file: "#itemManager" },
             { pattern: /LEGACYSHELLPERMISSIONS/g, file: "#permissions" },
+            { pattern: /LEGACYSHELLAPOLLO/g, file: "#apollo" },
+
         ];
-        
+
         replacements.forEach(replacement => {
             ss.log.italic(`Inserting ${replacement.file.replace("#", "")}.js into shellshock.min.js...`);
             sourceCode = sourceCode.replace(replacement.pattern, ss.misc.hashtagToString(replacement.file));
@@ -94,7 +96,7 @@ function prepareModified(ss) {
         ss.log.italic("Inserting babylon into shellshock.min.js...");
         sourceCode = sourceCode.replace(/LEGACYSHELLBABYLON/g, `\n${fs.readFileSync(path.join(ss.currentDir, 'src', 'data', 'babylon.js'))}\n`);
         console.log(`Saved shellshock.min.js to ${destinationShellJsPath}`);
-        
+
         fs.writeFileSync(destinationShellJsPath, sourceCode, 'utf8');
 
         let fileBuffer = fs.readFileSync(destinationShellJsPath);
