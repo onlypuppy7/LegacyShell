@@ -257,7 +257,8 @@ Rocket.prototype.explode = function () {
     if (this.actor) {
         addExplosion(this.x, this.y, this.z, this.damage, this.radius);
         var pos = new BABYLON.Vector3(this.x, this.y, this.z);
-        this.actor.explodeSound.setPosition(pos), this.actor.explodeSound.play()
+        this.actor.explodeSound.setPosition(pos);
+        this.actor.explodeSound.play();
     } else checkExplosionCollisions(this);
     this.remove()
 };
