@@ -122,11 +122,24 @@ class Emitter {
     const instance = new SoundInstance(sound, id);
     this.playingSounds.push(instance);
     sound.on("end", this.#onSoundEnd, id);
+    this.#instanceSyncWithMaster(instance);
     sound.volume(1, id);
     //FIXME: this might cause problems...
-    //TODO: finish
   }
 
+  /**
+   * syncs a given instance's position with that of this Emitter's master (parent).
+   * @param {SoundInstance} inst - the instance to sync.
+   */
+  #instanceSyncWithMaster(inst) {
+    inst.howl.pos(pos.x, pos.y, pos.z, inst.id);
+    //FIXME: this will likely break, bc Babs coord system does not seem to mach howler's. (z forward/backward wrong). Want to fix that once I get to actually hear it though
+  }
+
+  /**
+   *internal func to handle sound end, removes the instance.
+   *@param {String} id - called by the howl, id of the stopped sound.
+   */
   #onSoundEnd(id) {
     this.playingSounds.forEach((snd) => {
       if (snd.id === id) {
@@ -145,8 +158,7 @@ class Emitter {
     /**@type {Vector3} */
     const pos = this.parent.getAbsolutePosition();
     this.playingSounds.forEach((inst) => {
-      inst.howl.pos(pos.x, pos.y, pos.z, inst.id);
-      //FIXME: this will likely break, bc Babs coord system does not seem to mach howler's. (z forward/backward wrong). Want to fix that once I get to actually hear it though
+      this.#instanceSyncWithMaster(inst);
     });
   }
 }
