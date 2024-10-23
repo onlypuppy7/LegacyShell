@@ -6,7 +6,7 @@
 
 //https://github.com/goldfire/howler.js
 //https://howlerjs.com
-import { TransformNode } from "babylonjs";
+import { TransformNode, Vector3 } from "babylonjs";
 import { Howl, Howler } from "howler";
 
 /**
@@ -53,12 +53,12 @@ function getSound(name) {
 class SoundInstance {
   //is this class unneccesary? Kinda. Would it be less clean without it? ye, kinda.
   /**
-  * @type {Howl}
-  */
+   * @type {Howl}
+   */
   howl;
   /**
-  * @type {String}
-  */
+   * @type {String}
+   */
   id; //prob isnt even a String but WHO CARES!!!
   constructor(howl, id) {
     this.howl = howl;
@@ -122,6 +122,8 @@ class Emitter {
     const instance = new SoundInstance(sound, id);
     this.playingSounds.push(instance);
     sound.on("end", this.#onSoundEnd, id);
+    sound.volume(1, id);
+    //FIXME: this might cause problems...
     //TODO: finish
   }
 
@@ -140,10 +142,11 @@ class Emitter {
    * update the currently playing sound's positions.
    */
   update() {
+    /**@type {Vector3} */
     const pos = this.parent.getAbsolutePosition();
     this.playingSounds.forEach((inst) => {
-      inst.howl.
-      //TODO: do this
+      inst.howl.pos(pos.x, pos.y, pos.z, inst.id);
+      //FIXME: this will likely break, bc Babs coord system does not seem to mach howler's. (z forward/backward wrong). Want to fix that once I get to actually hear it though
     });
   }
 }
