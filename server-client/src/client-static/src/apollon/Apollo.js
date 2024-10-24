@@ -71,20 +71,63 @@ class SoundInstance {
 }
 
 function apolloTest(){
-  console.log("apolloTest():");
-  APOLLO_EMERGENCY_FALLBACK_SOUND.volume(0);
-  APOLLO_EMERGENCY_FALLBACK_SOUND.pos(50, 50, 50);
-  const ip = APOLLO_EMERGENCY_FALLBACK_SOUND.play();
-  APOLLO_EMERGENCY_FALLBACK_SOUND.volume(1, ip);
-  APOLLO_EMERGENCY_FALLBACK_SOUND.volume(1);
-  Howler.pos(44, 44, 44);
-  APOLLO_EMERGENCY_FALLBACK_SOUND.
-  APOLLO_EMERGENCY_FALLBACK_SOUND.pos(5, 1, 9, ip);
-  console.log(APOLLO_EMERGENCY_FALLBACK_SOUND.pos(ip));
+  // Create a Howl object with spatial properties
+          var sound = new Howl({
+              src: ['https://github.com/TheRealSeq/Media/raw/50fd01317c6740c76d610a7f544a3f9c353777e8/Apollo/fallBack.mp3'],
+              html5: true,  // Use HTML5 Audio for better streaming
+              volume: 1.0,
+              loop: false,
+              preload: true,
+              // Add spatial plugin settings
+              sprite: {
+                  start: [0, 5000] // Play first 5 seconds as an example
+              },
+              onload: function() {
+                  console.log('Sound loaded successfully.');
+                  playWithSpatialSettings();
+              },
+              onplay: function() {
+                  console.log('Sound is now playing.');
+              },
+              onend: function() {
+                  console.log('Sound has finished playing.');
+              }
+          });
 
+          // Function to play sound with different spatial settings
+          function playWithSpatialSettings() {
+              // Test 1: Normal playback (no spatial effect)
+              console.log('Test 1: Playing sound normally.');
+              sound.play('start');
+
+              setTimeout(function() {
+                  // Test 2: Spatial effect - sound positioned to the left
+                  console.log('Test 2: Playing sound with spatial effect (left).');
+                  sound.pos(-1, 0, 0); // Position sound to the left
+                  sound.play('start');
+              }, 6000); // Wait for 6 seconds before next test
+
+              setTimeout(function() {
+                  // Test 3: Spatial effect - sound positioned to the right
+                  console.log('Test 3: Playing sound with spatial effect (right).');
+                  sound.pos(1, 0, 0); // Position sound to the right
+                  sound.play('start');
+              }, 12000); // Wait for another 6 seconds
+
+              setTimeout(function() {
+                  // Test 4: Spatial effect - sound positioned behind
+                  console.log('Test 4: Playing sound with spatial effect (behind).');
+                  sound.pos(0, 0, -1); // Position sound behind
+                  sound.play('start');
+              }, 18000);
+          }
 }
 window.apolloTest = apolloTest;
 
+/**
+* update the position from where sounds are being heard. Bound to cam in shellshock.min.js.
+* @param {Vector3} newPos - the position to set the listener position to.
+*/
 function updateListener(newPos){
   Howler.pos(newPos.x, newPos.y, newPos.z);
 }
@@ -128,8 +171,8 @@ class Emitter {
     this.emitterVolume = 1;
     this.playingSounds = [];
 
-    console.log("emitter parent:");
-    console.log(this.parent);
+    //console.log("emitter parent:");
+    //console.log(this.parent);
 
     //sub to render update bab thing
     if (this.parent) {
@@ -177,11 +220,11 @@ class Emitter {
     if (this.is2D || !this.parent || !inst ||!inst.howl) return;
     /**@type {Vector3} */
     const nP = this.parent.getAbsolutePosition();
-    console.log("playing sound at the following pos:");
-    console.log(nP);
+    //console.log("playing sound at the following pos:");
+    //console.log(nP);
     inst.howl.pos(nP.x, nP.y, nP.z, inst.id);
     //inst.howl.pos = [nP.x, nP.y, nP.z];
-    console.log(inst.howl.pos(inst.id));
+    //console.log(inst.howl.pos(inst.id));
     //FIXME: this will likely break, bc Babs coord system does not seem to mach howler's. (z forward/backward wrong). Want to fix that once I get to actually hear it though
   }
 
