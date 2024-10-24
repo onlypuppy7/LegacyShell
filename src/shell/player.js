@@ -595,7 +595,6 @@ class Player {
         if (isClient) {
             for (var i = 0; i < playerLimit; i++){
                 var player = players[i];
-                console.log(player)
                 if (player && player.actor) player.actor.updateTeam();
             };
             rebuildPlayerList();
