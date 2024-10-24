@@ -17,7 +17,6 @@ const APOLLO_LOG = true;
 const sounds = {};
 const APOLLO_EMERGENCY_FALLBACK_SOUND = new Howl({
   src: "https://github.com/TheRealSeq/Media/raw/50fd01317c6740c76d610a7f544a3f9c353777e8/Apollo/fallBack.mp3",
-  //volume: 0,
   spatial: true,
   onload: function () { if (APOLLO_LOG) console.log("APOLLO: fallback loaded!"); }
 }); //if this doesn't load, all hope is lost...
@@ -61,7 +60,7 @@ class SoundInstance {
    */
   howl;
   /**
-   * @type {String}
+   * @type {number}
    */
   id; //prob isnt even a String but WHO CARES!!!
   constructor(howl, id) {
@@ -74,11 +73,11 @@ function apolloTest(){
   // Create a Howl object with spatial properties
           var sound = new Howl({
               src: ['https://github.com/TheRealSeq/Media/raw/50fd01317c6740c76d610a7f544a3f9c353777e8/Apollo/fallBack.mp3'],
-              html5: true,  // Use HTML5 Audio for better streaming
+              html5: false,
               volume: 1.0,
               loop: false,
               preload: true,
-              // Add spatial plugin settings
+              spatial: true,  // Enable spatial sound
               sprite: {
                   start: [0, 5000] // Play first 5 seconds as an example
               },
@@ -96,31 +95,31 @@ function apolloTest(){
 
           // Function to play sound with different spatial settings
           function playWithSpatialSettings() {
-              // Test 1: Normal playback (no spatial effect)
-              console.log('Test 1: Playing sound normally.');
-              sound.play('start');
+                      // Test 1: Normal playback (no spatial effect)
+                      console.log('Test 1: Playing sound normally.');
+                      sound.play('start');
 
-              setTimeout(function() {
-                  // Test 2: Spatial effect - sound positioned to the left
-                  console.log('Test 2: Playing sound with spatial effect (left).');
-                  sound.pos(-1, 0, 0); // Position sound to the left
-                  sound.play('start');
-              }, 6000); // Wait for 6 seconds before next test
+                      setTimeout(function() {
+                          // Test 2: Spatial effect - sound positioned to the left
+                          console.log('Test 2: Playing sound with spatial effect (left).');
+                          sound.pos(-5, 0, 0); // Position sound to the left
+                          sound.play('start');
+                      }, 6000); // Wait for 6 seconds before next test
 
-              setTimeout(function() {
-                  // Test 3: Spatial effect - sound positioned to the right
-                  console.log('Test 3: Playing sound with spatial effect (right).');
-                  sound.pos(1, 0, 0); // Position sound to the right
-                  sound.play('start');
-              }, 12000); // Wait for another 6 seconds
+                      setTimeout(function() {
+                          // Test 3: Spatial effect - sound positioned to the right
+                          console.log('Test 3: Playing sound with spatial effect (right).');
+                          sound.pos(5, 0, 0); // Position sound to the right
+                          sound.play('start');
+                      }, 12000); // Wait for another 6 seconds
 
-              setTimeout(function() {
-                  // Test 4: Spatial effect - sound positioned behind
-                  console.log('Test 4: Playing sound with spatial effect (behind).');
-                  sound.pos(0, 0, -1); // Position sound behind
-                  sound.play('start');
-              }, 18000);
-          }
+                      setTimeout(function() {
+                          // Test 4: Spatial effect - sound positioned behind
+                          console.log('Test 4: Playing sound with spatial effect (behind).');
+                          sound.pos(0, 0, -5); // Position sound behind
+                          sound.play('start');
+                      }, 18000);
+                  }
 }
 window.apolloTest = apolloTest;
 
@@ -170,10 +169,6 @@ class Emitter {
     this.is2D = !parent;
     this.emitterVolume = 1;
     this.playingSounds = [];
-
-    //console.log("emitter parent:");
-    //console.log(this.parent);
-
     //sub to render update bab thing
     if (this.parent) {
       this.parent.onBeforeRenderObservable.add(this.update.bind(this));
@@ -199,8 +194,6 @@ class Emitter {
     const instance = new SoundInstance(sound, id);
     this.playingSounds.push(instance);
     sound.on("end", this.#onSoundEnd.bind(this), id);
-    //console.log(this.playingSounds.bind(this));
-    //sound.pos(Howler.pos-1, Howler.pos, Howler.pos);
     this.#instanceSyncWithMaster(instance);
     sound.volume(1, id);
     sound.pannerAttr({
@@ -220,11 +213,7 @@ class Emitter {
     if (this.is2D || !this.parent || !inst ||!inst.howl) return;
     /**@type {Vector3} */
     const nP = this.parent.getAbsolutePosition();
-    //console.log("playing sound at the following pos:");
-    //console.log(nP);
     inst.howl.pos(nP.x, nP.y, nP.z, inst.id);
-    //inst.howl.pos = [nP.x, nP.y, nP.z];
-    //console.log(inst.howl.pos(inst.id));
     //FIXME: this will likely break, bc Babs coord system does not seem to mach howler's. (z forward/backward wrong). Want to fix that once I get to actually hear it though
   }
 
