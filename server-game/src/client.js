@@ -320,6 +320,7 @@ class newClient {
                                 var output = new Comm.Out(1);
                                 output.packInt8U(Comm.Code.switchTeamFail);
                                 this.sendToMe(output, "switchTeamFail");
+                                devlog("switching failed", this.player.team, totalPlayers, originalTeamCount);
                             };
                         };
                         break;
@@ -515,7 +516,7 @@ class newClient {
     };
 
     sendBuffer(output, debug) { // more direct operation, prefer this.room.sendToOne
-        if (!(debug.includes("sync") || debug.includes("ping"))) console.log(this.id, output.idx, debug);
+        if (!(debug.includes("sync") || debug.includes("ping"))) console.log(this.id, debug, output.idx);
         this.sendMsgToWs(output.buffer);
     };
 
