@@ -1,8 +1,7 @@
 //sound system for LegacyShell
 
 //so, quick TLDR on what needs to be done/not done or how stuff works
-//currently, the Emitter update function needs to be called in the render fun
-//FIXME: find a way to make it dynamically attach to a parent mesh, like bab does
+//FIXME: test the new attachment way.
 
 //https://github.com/goldfire/howler.js
 //https://howlerjs.com
@@ -18,6 +17,8 @@ const APOLLO_LOG = true;
 const sounds = {};
 const APOLLO_EMERGENCY_FALLBACK_SOUND = new Howl({
   src: "https://github.com/TheRealSeq/Media/raw/50fd01317c6740c76d610a7f544a3f9c353777e8/Apollo/fallBack.mp3",
+  //volume: 0,
+  spatial: true,
   onload: function () { if (APOLLO_LOG) console.log("APOLLO: fallback loaded!"); }
 }); //if this doesn't load, all hope is lost...
 
@@ -69,6 +70,25 @@ class SoundInstance {
   }
 }
 
+function apolloTest(){
+  console.log("apolloTest():");
+  APOLLO_EMERGENCY_FALLBACK_SOUND.volume(0);
+  APOLLO_EMERGENCY_FALLBACK_SOUND.pos(50, 50, 50);
+  const ip = APOLLO_EMERGENCY_FALLBACK_SOUND.play();
+  APOLLO_EMERGENCY_FALLBACK_SOUND.volume(1, ip);
+  APOLLO_EMERGENCY_FALLBACK_SOUND.volume(1);
+  Howler.pos(44, 44, 44);
+  APOLLO_EMERGENCY_FALLBACK_SOUND.
+  APOLLO_EMERGENCY_FALLBACK_SOUND.pos(5, 1, 9, ip);
+  console.log(APOLLO_EMERGENCY_FALLBACK_SOUND.pos(ip));
+
+}
+window.apolloTest = apolloTest;
+
+function updateListener(newPos){
+  Howler.pos(newPos.x, newPos.y, newPos.z);
+}
+
 /**
 emitters can be imagined like a loudspeaker. They play sounds at their location with their set parameters.
 */
@@ -107,8 +127,19 @@ class Emitter {
     this.is2D = !parent;
     this.emitterVolume = 1;
     this.playingSounds = [];
+
+    console.log("emitter parent:");
+    console.log(this.parent);
+
+    //sub to render update bab thing
+    if (this.parent) {
+      this.parent.onBeforeRenderObservable.add(this.update.bind(this));
+    }
   }
 
+  /**
+  * @deprecated
+  */
   static updateAll() {
     this.activeEmitters.forEach((em) => {
       em.update();
@@ -126,6 +157,7 @@ class Emitter {
     this.playingSounds.push(instance);
     sound.on("end", this.#onSoundEnd.bind(this), id);
     //console.log(this.playingSounds.bind(this));
+    //sound.pos(Howler.pos-1, Howler.pos, Howler.pos);
     this.#instanceSyncWithMaster(instance);
     sound.volume(1, id);
     sound.pannerAttr({
@@ -143,10 +175,13 @@ class Emitter {
    */
   #instanceSyncWithMaster(inst) {
     if (this.is2D || !this.parent || !inst ||!inst.howl) return;
+    /**@type {Vector3} */
     const nP = this.parent.getAbsolutePosition();
     console.log("playing sound at the following pos:");
     console.log(nP);
-    inst.howl.pos(nP.x*100, nP.y*100, nP.z*100, inst.id);
+    inst.howl.pos(nP.x, nP.y, nP.z, inst.id);
+    //inst.howl.pos = [nP.x, nP.y, nP.z];
+    console.log(inst.howl.pos(inst.id));
     //FIXME: this will likely break, bc Babs coord system does not seem to mach howler's. (z forward/backward wrong). Want to fix that once I get to actually hear it though
   }
 
@@ -170,8 +205,8 @@ class Emitter {
    * update the currently playing sound's positions.
    */
   update() {
-    /**@type {Vector3} */
     this.playingSounds.forEach((inst) => {
+      if (!inst.howl.playing(inst.id)) return;
       this.#instanceSyncWithMaster(inst);
     });
   }
