@@ -25,8 +25,9 @@ const APOLLO_EMERGENCY_FALLBACK_SOUND = new Howl({
  * @param {String} src - the source of the media.
  * @param {String} name - the name of the sound.
  */
-function loadSound(src, name) {
-  let snd = new Howl({ src }); //create howl object
+function loadSound(src, name, onLoadingComplete) {
+  if(APOLLO_LOG) console.log(`APOLLO: loadSound() called for ${name} via ${src} `);
+  let snd = new Howl({ src , onload: onLoadingComplete}); //create howl object
   if (sounds[name])
     console.warn(
       `APOLLO: loadSound() called for ${name}, but sound ${name} already exists. Sound will be overwritten!`,
