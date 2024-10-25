@@ -277,6 +277,8 @@ const exported = {
             const maps = await ss.getAll(`SELECT * FROM maps`);
     
             if (maps) {
+                var i = 0;
+
                 return maps.map(map => { // yes, m a p
                     if (!retainSensitive) {
                         delete map.dateCreated;
@@ -289,6 +291,7 @@ const exported = {
                     map.render = JSON.parse(map.render);
                     map.extents = JSON.parse(map.extents);
                     map.modes = JSON.parse(map.modes);
+                    map.id = i++;
                     return map;
                 });
             } else {
