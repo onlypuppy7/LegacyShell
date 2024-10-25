@@ -58,11 +58,6 @@ export var GameTypes = [
                 0.4, //team1
                 2, //team2
             ],
-            speedModifier: [
-                1, //ffa
-                1, //team1
-                2, //team2
-            ],
             gravityModifier: [
                 1, //ffa
                 1, //team1
