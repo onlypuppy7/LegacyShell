@@ -26,7 +26,7 @@ const APOLLO_EMERGENCY_FALLBACK_SOUND = new Howl({
  * @param {String} name - the name of the sound.
  */
 function loadSound(src, name) {
-  let snd = new Howl({ src, volume: 0 }); //create howl object
+  let snd = new Howl({ src }); //create howl object
   if (sounds[name])
     console.warn(
       `APOLLO: loadSound() called for ${name}, but sound ${name} already exists. Sound will be overwritten!`,
@@ -119,7 +119,7 @@ class Emitter {
     this.emitterVolume = 1;
     this.playingSounds = [];
     //sub to render update bab thing
-    if (this.parent) {
+    if (this.parent && !this.is2D) {
       this.parent.onBeforeRenderObservable.add(this.update.bind(this));
     }
   }
@@ -170,7 +170,14 @@ class Emitter {
    *@param {String} id - called by the howl, id of the stopped sound.
    */
   #onSoundEnd(id) {
-    console.log(this.playingSounds);
+    this.#removeInstanceById(id);
+  }
+
+  /**
+   * removes a sound instance from this emitter's tracked instances based on ID
+   * @param {number} id - the id of the emitter to remove
+   */
+  #removeInstanceById(id){
     this.playingSounds.forEach((snd) => {
       if (snd.id === id) {
         this.playingSounds.splice(
@@ -179,6 +186,7 @@ class Emitter {
         );
       }
     });
+    if(APOLLO_LOG) console.log(`APOLLO: after removeInstanceById (called with param ${id}): new array: ${this.playingSounds} (${this.playingSounds.length})`);
   }
 
   /**
@@ -186,7 +194,10 @@ class Emitter {
    */
   update() {
     this.playingSounds.forEach((inst) => {
-      if (!inst.howl.playing(inst.id)) return;
+      if (!inst.howl.playing(inst.id)) {
+        this.#removeInstanceById(inst.id);
+        return;
+      }
       this.#instanceSyncWithMaster(inst);
     });
   }
