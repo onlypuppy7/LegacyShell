@@ -201,7 +201,7 @@ class Emitter {
     sound.on("end", this.#onSoundEnd.bind(this), id);
     this.#instanceSyncWithMaster(instance);
     if(rate) sound.rate(rate, instance.id);
-    sound.volume(1, id);
+    sound.volume(this.emitterVolume, id);
     //FIXME: make this feel more like the original LS values
     sound.pannerAttr(APOLLO_GLOBAL_PANNER_ATTRB, instance.id);
   }
