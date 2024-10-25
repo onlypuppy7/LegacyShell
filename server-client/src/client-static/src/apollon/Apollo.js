@@ -114,13 +114,15 @@ function updateListener(newPos, newRotFront, newRotUp){
  * @param {String} name - name of the sound whose play is desired.
  * @param {Vector3} pos - position of the sound's playback. AUTOMATICALLY ADAPTED TO HOWLER'S COORDINATE SYSTEM!
  */
-function playSoundIndependent(name, pos){
+function playSoundIndependent(name, pos, rate){
   const p2 = translateVec(pos);
   const sound = getSound(name);
   const id = sound.play();
   sound.volume(1, id);
   sound.pannerAttr(APOLLO_GLOBAL_PANNER_ATTRB, id);
   sound.pos(p2.x, p2.y, p2.z, id);
+  if(rate) sound.rate(rate, id);
+
 }
 
 /**
