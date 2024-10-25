@@ -612,7 +612,9 @@ class Player {
                 const ammoCollected = this.weapons[applyToWeaponIdx].collectAmmo();
                 if (ammoCollected) {
                     if (this.actor) {
-                        Sounds.ammo.play();
+
+                        playSoundIndependent2D("ammo");
+                        //Sounds.ammo.play();
                         updateAmmoUi();
                     };
                     return true;
@@ -622,7 +624,8 @@ class Player {
                 if (this.grenadeCount < this.grenadeCapacity) {
                     this.grenadeCount++;
                     if (this.actor) {
-                        Sounds.ammo.play();
+                        playSoundIndependent2D("ammo");
+                        //Sounds.ammo.play();
                         updateAmmoUi();
                     };
                     return true;
