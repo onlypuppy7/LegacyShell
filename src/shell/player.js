@@ -27,10 +27,12 @@ class Player {
             this.Collider = this.client.room.Collider;
             this.mapMeshes = this.client.room.mapMeshes;
             this.map = this.client.room.map;
+            this.gameOptions = this.client.room.gameOptions;
         } else {
             this.Collider = Collider;
             this.mapMeshes = mapMeshes;
             this.map = map;
+            this.gameOptions = gameOptions;
         };
 
         this.isGameOwner = false;
@@ -136,7 +138,13 @@ class Player {
         this.resetDespawn(-5000);
         this.jumpHeld = false;
         this.lastActivity = Date.now();
-        this.changeScale(1, true);
+
+        this.setDefaultModifiers(true);
+    };
+    setDefaultModifiers(init) {
+        this.gravityModifier = this.gameOptions.gravityModifier[this.team];
+        this.speedModifier = this.gameOptions.speedModifier[this.team];
+        this.changeScale(this.gameOptions.scale[this.team], init);
     };
     changeScale (newScale, init) {
         // devlog("setting scale:", newScale);
@@ -256,11 +264,13 @@ class Player {
             this.setJumping(false);
             var pdy = this.dy;
             if (this.corrections) {
-                pdy += this.corrected.dy / 6, this.corrections--
+                pdy += this.corrected.dy / 6;
+                this.corrections--
             };
             this.dy += .014 * dy * delta;
             var ndy = .5 * (this.dy + pdy) * delta;
-            this.y += ndy, this.dy *= Math.pow(.5, delta);
+            this.y += ndy;
+            this.dy *= Math.pow(.5, delta);
             var cx = Math.floor(this.climbingCell.x);
             var cy = Math.floor(this.y + 1e-4);
             var cz = Math.floor(this.climbingCell.z);
@@ -298,14 +308,14 @@ class Player {
 
             this.dx += .007 * deltaVector.x * delta;
             this.dz += .007 * deltaVector.z * delta;
-            this.dy -= .003 * delta;
-            this.dy = Math.max(-.2, this.dy);
+            this.dy -= .003 * delta * (this.gravityModifier || 1);
+            this.dy = Math.clamp(this.dy, -.2, .2);
 
             var ndx = .5 * (this.dx + pdx) * delta;
             var ndz = (ndy = .5 * (this.dy + pdy) * delta, .5 * (this.dz + pdz) * delta);
 
-            this.moveX(ndx, delta);
-            this.moveZ(ndz, delta);
+            this.moveX(ndx * this.speedModifier, delta);
+            this.moveZ(ndz * this.speedModifier, delta);
             this.moveY(ndy, delta)
         };
         if (!resim) {
@@ -468,7 +478,8 @@ class Player {
                 };
                 this.setJumping(false);
             };
-            this.y = old_y, this.dy *= .5;
+            this.y = old_y;
+            this.dy *= .5;
         } else {
             if (0 == this.jumping) this.setJumping(true);
         };
@@ -578,10 +589,12 @@ class Player {
         this.kills = 0;
         this.streak = 0;
         this.bestGameStreak = 0;
+
+        this.setDefaultModifiers();
+
         if (isClient) {
             for (var i = 0; i < playerLimit; i++){
                 var player = players[i];
-                console.log(player)
                 if (player && player.actor) player.actor.updateTeam();
             };
             rebuildPlayerList();
