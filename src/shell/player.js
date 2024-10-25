@@ -181,6 +181,11 @@ class Player {
         var dy = 0;
         var dz = 0;
 
+        if (this.y < -3 && isServer && this.hp > 0) {
+            devlog("[player fell out of the world]");
+            this.hit(10000, this, 0, 0);
+        };
+
         if (!resim && this.actor && this.id == meId) {
             this.stateBuffer[this.stateIdx].controlKeys = this.controlKeys;
             this.stateBuffer[this.stateIdx].yaw = this.yaw;
