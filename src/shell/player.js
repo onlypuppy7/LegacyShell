@@ -1,6 +1,7 @@
 //legacyshell: player
 import BABYLON from "babylonjs";
-import { stateBufferSize, isClient, isServer, CONTROL, devlog, ItemTypes } from '#constants';
+import { stateBufferSize, isClient, isServer, CONTROL, devlog } from '#constants';
+import { ItemTypes } from '#gametypes';
 import { getMunitionsManager } from '#bullets';
 import Comm from '#comm';
 //legacyshell: adding kills and deaths (literally tracking ur every move the government is watching yuo)
@@ -27,10 +28,12 @@ class Player {
             this.Collider = this.client.room.Collider;
             this.mapMeshes = this.client.room.mapMeshes;
             this.map = this.client.room.map;
+            this.gameOptions = this.client.room.gameOptions;
         } else {
             this.Collider = Collider;
             this.mapMeshes = mapMeshes;
             this.map = map;
+            this.gameOptions = gameOptions;
         };
 
         this.isGameOwner = false;
@@ -136,6 +139,29 @@ class Player {
         this.resetDespawn(-5000);
         this.jumpHeld = false;
         this.lastActivity = Date.now();
+
+        this.setDefaultModifiers(true);
+    };
+    setDefaultModifiers(init) {
+        this.gravityModifier = this.gameOptions.gravityModifier[this.team];
+        this.speedModifier = this.gameOptions.speedModifier[this.team];
+        this.changeScale(this.gameOptions.scale[this.team], init);
+    };
+    changeScale (newScale, init) {
+        // devlog("setting scale:", newScale);
+        this.scale = newScale;
+        if (this.actor) {
+            this.actor.mesh.scaling.set(newScale, newScale, newScale);
+
+            var scale = Math.max(newScale, 0.15); //prevents NaN
+            this.actor.playbackRate = 1.16107 - (0.239878 * Math.log((2.20821 * scale) - 0.251099)); //number
+            // this.actor.bodyMesh.position.y = 0.32 * newScale;
+        };
+        if (isServer && !init) {
+            var output = new Comm.Out(3);
+            this.client.packScale(output);
+            this.client.sendToAll(output, "setScale");
+        };
     };
     changeWeaponLoadout(primaryWeaponItem, secondaryWeaponItem) {
         if (this.actor && this.weapons) {
@@ -154,6 +180,11 @@ class Player {
         var dx = 0;
         var dy = 0;
         var dz = 0;
+
+        if (this.y < -3 && isServer && this.hp > 0) {
+            devlog("[player fell out of the world]");
+            this.hit(10000, this, 0, 0);
+        };
 
         if (!resim && this.actor && this.id == meId) {
             this.stateBuffer[this.stateIdx].controlKeys = this.controlKeys;
@@ -239,11 +270,13 @@ class Player {
             this.setJumping(false);
             var pdy = this.dy;
             if (this.corrections) {
-                pdy += this.corrected.dy / 6, this.corrections--
+                pdy += this.corrected.dy / 6;
+                this.corrections--
             };
             this.dy += .014 * dy * delta;
             var ndy = .5 * (this.dy + pdy) * delta;
-            this.y += ndy, this.dy *= Math.pow(.5, delta);
+            this.y += ndy;
+            this.dy *= Math.pow(.5, delta);
             var cx = Math.floor(this.climbingCell.x);
             var cy = Math.floor(this.y + 1e-4);
             var cz = Math.floor(this.climbingCell.z);
@@ -281,14 +314,14 @@ class Player {
 
             this.dx += .007 * deltaVector.x * delta;
             this.dz += .007 * deltaVector.z * delta;
-            this.dy -= .003 * delta;
-            this.dy = Math.max(-.2, this.dy);
+            this.dy -= .003 * delta * (this.gravityModifier || 1);
+            this.dy = Math.clamp(this.dy, -.2, .2);
 
             var ndx = .5 * (this.dx + pdx) * delta;
             var ndz = (ndy = .5 * (this.dy + pdy) * delta, .5 * (this.dz + pdz) * delta);
 
-            this.moveX(ndx, delta);
-            this.moveZ(ndz, delta);
+            this.moveX(ndx * this.speedModifier, delta);
+            this.moveZ(ndz * this.speedModifier, delta);
             this.moveY(ndy, delta)
         };
         if (!resim) {
@@ -451,7 +484,8 @@ class Player {
                 };
                 this.setJumping(false);
             };
-            this.y = old_y, this.dy *= .5;
+            this.y = old_y;
+            this.dy *= .5;
         } else {
             if (0 == this.jumping) this.setJumping(true);
         };
@@ -561,10 +595,12 @@ class Player {
         this.kills = 0;
         this.streak = 0;
         this.bestGameStreak = 0;
+
+        this.setDefaultModifiers();
+
         if (isClient) {
             for (var i = 0; i < playerLimit; i++){
                 var player = players[i];
-                console.log(player)
                 if (player && player.actor) player.actor.updateTeam();
             };
             rebuildPlayerList();
@@ -582,7 +618,9 @@ class Player {
                 const ammoCollected = this.weapons[applyToWeaponIdx].collectAmmo();
                 if (ammoCollected) {
                     if (this.actor) {
-                        Sounds.ammo.play();
+
+                        playSoundIndependent2D("ammo");
+                        //Sounds.ammo.play();
                         updateAmmoUi();
                     };
                     return true;
@@ -592,7 +630,8 @@ class Player {
                 if (this.grenadeCount < this.grenadeCapacity) {
                     this.grenadeCount++;
                     if (this.actor) {
-                        Sounds.ammo.play();
+                        playSoundIndependent2D("ammo");
+                        //Sounds.ammo.play();
                         updateAmmoUi();
                     };
                     return true;
@@ -734,7 +773,7 @@ class Player {
             var rotMat = BABYLON.Matrix.RotationYawPitchRoll(this.yaw, this.pitch, 0);
             var vec = BABYLON.Matrix.Translation(0, .1, 1).multiply(rotMat).getTranslation();
             var posMat = BABYLON.Matrix.Translation(0, -.05, .2);
-            var pos = (posMat = (posMat = posMat.multiply(rotMat)).add(BABYLON.Matrix.Translation(this.x, this.y + .3, this.z))).getTranslation();
+            var pos = (posMat = (posMat = posMat.multiply(rotMat)).add(BABYLON.Matrix.Translation(this.x, this.y + Math.max(0.25, 0.3 * this.scale), this.z))).getTranslation();
             var speed = .13 * this.grenadeThrowPower + .08;
 
             vec.x *= speed;

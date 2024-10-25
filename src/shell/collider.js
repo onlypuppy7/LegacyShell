@@ -56,6 +56,7 @@ class ColliderConstructor {
         this.ray = new BABYLON.Ray(BABYLON.Vector3.Zero(), BABYLON.Vector3.Zero(), 1);
         this.matrix = new BABYLON.Matrix();
 
+        this.scene = scene;
         this.setUp = 1;
     };
 
@@ -78,8 +79,25 @@ class ColliderConstructor {
     }
 
     playerCollidesWithMap(player) {
-        return this.meshCollidesWithMap(this.playerCollisionMesh, player);
-    }
+        var scale = player.scale || 1;
+        // devlog("SCALE", player.id, player.scale, scale);
+        // this.playerCollisionMesh.scaling.set(scale, scale, scale);
+
+        if ((!player.playerCollisionMesh) || (scale !== player.playerCollisionMesh.lastScale)) {
+            // devlog("creating new playerCollisionMesh, scale @", scale);
+
+            player.playerCollisionMesh = BABYLON.MeshBuilder.CreateBox("pc", {
+                size: 0.5 * scale,
+                height: 0.6 * scale
+            }, player.scene);
+            player.playerCollisionMesh.position.y = 0.3 * scale;
+            player.playerCollisionMesh.bakeCurrentTransformIntoVertices();
+            player.playerCollisionMesh.setEnabled(false);
+            player.playerCollisionMesh.lastScale = scale;
+        };
+
+        return this.meshCollidesWithMap(player.playerCollisionMesh, player);
+    };
 
     meshCollidesWithMap(mesh, pos) {
         var cellsChecked = {};
@@ -88,7 +106,7 @@ class ColliderConstructor {
             var cx = Math.floor(pos.x + bbox.vectors[i].x),
                 cy = Math.floor(pos.y + bbox.vectors[i].y),
                 cz = Math.floor(pos.z + bbox.vectors[i].z);
-            if (cx < 0 || cx >= map.width || cz < 0 || cz >= map.depth || cy < 0) return true;
+            if (cx < 0 || cx >= map.width || cz < 0 || cz >= map.depth) return true; // || cy < 0
             var checkId = cx + 1e3 * cy + 1e6 * cz;
             if (cy < map.height && !cellsChecked[checkId]) {
                 var res = this.meshCollidesWithCell(mesh, pos, cx, cy, cz);
@@ -100,6 +118,7 @@ class ColliderConstructor {
     }
 
     meshCollidesWithCell(mesh, pos, cx, cy, cz, ignoreSoft) {
+        if (!map.data[cx] || !map.data[cx][cy] || !map.data[cx][cy][cz]) return false;
         var cell = map.data[cx][cy][cz];
         if (cell.idx) {
             var mapMesh = mapMeshes[cell.idx];
@@ -296,7 +315,10 @@ class ColliderConstructor {
     };
 
     rayCollidesWithPlayer(origin, direction, proj) {
-        for (var fromTeam = proj ? proj.player.team : null, fromId = proj ? proj.player.id : null, i = 0; i < playerLimit; i++) {
+        var fromTeam = proj ? proj.player.team : null;
+        var fromId = proj ? proj.player.id : null;
+        
+        for (var i = 0; i < playerLimit; i++) {
             var player = players[i];
             if (player && player.playing && player.id != fromId && (0 == player.team || player.team != fromTeam)) {
                 this.ray.origin.copyFrom(origin);
@@ -316,10 +338,10 @@ class ColliderConstructor {
             m = this.v1;
         p.copyFrom(ray.origin);
         d.copyFrom(ray.direction);
-        c.set(player.x, player.y + 0.32, player.z);
+        c.set(player.x, player.y + (0.32 * player.scale), player.z);
         p.subtractToRef(c, m);
         var b = BABYLON.Vector3.Dot(m, d);
-        if (0 < (c = BABYLON.Vector3.Dot(m, m) - 0.140625) && 0 < b) return false;
+        if (0 < (c = BABYLON.Vector3.Dot(m, m) - (0.140625 * player.scale)) && 0 < b) return false;
         var discr = b * b - c;
         if (discr < 0) return false;
         var t = -b - Math.sqrt(discr);

@@ -168,51 +168,6 @@ export var teamColors = {
     outline: [new BABYLON.Color4(1, 1, 1, 1), new BABYLON.Color4(0, .75, 1, 1), new BABYLON.Color4(1, .25, .25, 1)]
 };
 
-export const ItemTypes = {
-    AMMO: 0,
-    GRENADE: 1
-};
-
-export var defaultOptions = {
-    teamsEnabled: false,
-    itemsEnabled: [ //itemType enum, spawn per how much surface area, minimum
-        [ItemTypes.AMMO, 25, 4],
-        [ItemTypes.GRENADE, 65, 5]
-    ],
-    teamSwitchMaximumDifference: 0,
-};
-
-export var GameTypes = [
-    {
-        shortName: "FFA",
-        longName: "Free For All",
-        codeName: "ffa",
-        options: {
-        }
-    }, {
-        shortName: "Teams",
-        longName: "Teams",
-        codeName: "teams",
-        options: {
-            teamsEnabled: true,
-        }
-    }
-];
-
-//fill in defaults where not present (makes the thing above cleaner)
-GameTypes.forEach(gameType => {
-    gameType.options = {
-        ...defaultOptions,
-        ...gameType.options,
-    };
-});
-
-//LS: dynamically create from GameTypes (compatability and also lazy xdd)
-export var GameType = GameTypes.reduce((acc, gameType, index) => {
-    acc[gameType.codeName] = index;
-    return acc;
-}, {});
-
 export var CONTROL = {
     up: 1,
     down: 2,
