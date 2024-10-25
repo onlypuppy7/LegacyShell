@@ -40,6 +40,7 @@
         "#collider": "./src/shell/collider.js",
         "#comm": "./src/shell/comm.js",
         "#constants": "./src/shell/constants.js",
+        "#gametypes": "./src/shell/gametypes.js",
         "#guns": "./src/shell/guns.js",
         "#itemManager": "./src/shell/itemManager.js",
         "#loading": "./src/shell/loading.js",
