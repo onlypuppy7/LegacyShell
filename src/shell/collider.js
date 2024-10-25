@@ -106,7 +106,7 @@ class ColliderConstructor {
             var cx = Math.floor(pos.x + bbox.vectors[i].x),
                 cy = Math.floor(pos.y + bbox.vectors[i].y),
                 cz = Math.floor(pos.z + bbox.vectors[i].z);
-            if (cx < 0 || cx >= map.width || cz < 0 || cz >= map.depth || cy < 0) return true;
+            if (cx < 0 || cx >= map.width || cz < 0 || cz >= map.depth) return true; // || cy < 0
             var checkId = cx + 1e3 * cy + 1e6 * cz;
             if (cy < map.height && !cellsChecked[checkId]) {
                 var res = this.meshCollidesWithCell(mesh, pos, cx, cy, cz);
@@ -118,6 +118,7 @@ class ColliderConstructor {
     }
 
     meshCollidesWithCell(mesh, pos, cx, cy, cz, ignoreSoft) {
+        if (!map.data[cx] || !map.data[cx][cy] || !map.data[cx][cy][cz]) return false;
         var cell = map.data[cx][cy][cz];
         if (cell.idx) {
             var mapMesh = mapMeshes[cell.idx];
