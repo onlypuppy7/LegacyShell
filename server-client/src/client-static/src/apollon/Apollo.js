@@ -64,7 +64,7 @@ function getSound(name) {
 }
 
 
-window.APOLLO_MULTIPLIERS = [1, -1, -1];
+window.APOLLO_MULTIPLIERS = [-1, -1, -1];
 
 /**
  * 
