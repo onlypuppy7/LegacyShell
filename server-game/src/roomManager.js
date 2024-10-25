@@ -3,6 +3,7 @@ import Comm from '#comm';
 import { Worker } from 'worker_threads';
 import misc from '#misc';
 import extendMath from '#math';
+import { GameTypes, getMapPool } from '#gametypes';
 //
 
 const id_length = 3; //btw you cant just modify this without also adjusting the client's code. do you ever NEED to modify this? no. just have it static.
@@ -114,6 +115,8 @@ class newRoomManager {
     };
 
     createRoom(info) {
+        info.mapId
+
         info.gameId = this.getUnusedID();
         // info.gameKey = Math.getRandomInt(10, Math.pow(36, 2) - 10);
         info.gameKey = 784;

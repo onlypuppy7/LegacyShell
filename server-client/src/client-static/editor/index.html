@@ -250,10 +250,6 @@
             }
         </style>
 
-        <script>
-            var skyboxFolders = ["default", "moonbase", "night", "whimsical"];
-        </script>
-
         <script src="js/mapEdit.js?1715283082"></script>
     </head>
 
@@ -440,14 +436,22 @@
                 <li>Move: W/A/S/D or I/J/K/L keys
 
                     <h3 style="margin-top: 1em">Drawing</h3>
-                <li>LMB: Draw, RMB/Backspace: Delete, MMB/Space: Rotate
+                <li>LMB: Draw
+                <li>RMB/Backspace: Delete
                 <li>Number keys: Select cell category. Press same key to cycle through styles.
                 <li>Shift: Hold to activate eye-dropper tool.
                 <li>R: Toggle rotation randomization of drawn cells.
+                <li>B: Set sun light direction.
+                <li>E: Open block menu.
+
+                    <h3 style="margin-top: 1em">Rotations</h3>
+                <li>MMB/Space: Rotate on the Y axis.
+                <li>X: Rotate on the X axis.
+                <li>Z: Rotate on the Z axis.
 
                     <h3 style="margin-top: 1em">Editing</h3>
                 <li>Arrow keys: Move entire map. Hold Shift to move map up/down.
-                <li>Ctrl-Z: Undo (only one level; be careful!)
+                <li>Ctrl-Z: Undo (15 levels, go nuts!)
 
                     <div style="text-align: center; margin-top: 1em">
                         <span class="button" onclick="extern.closeDialog('help');">OK</span>
