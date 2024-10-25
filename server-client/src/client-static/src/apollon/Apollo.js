@@ -1,8 +1,5 @@
 //sound system for LegacyShell
 
-//so, quick TLDR on what needs to be done/not done or how stuff works
-//FIXME: test the new attachment way.
-
 //https://github.com/goldfire/howler.js
 //https://howlerjs.com
 import { TransformNode, Vector3 } from "babylonjs";
@@ -63,7 +60,9 @@ function getSound(name) {
   return sounds[name];
 }
 
-
+/**
+ * the sound's location will get multiplied by these vars. Negate for panning changes. Testing only!
+ */
 window.APOLLO_MULTIPLIERS = [-1, -1, -1];
 
 /**
@@ -202,7 +201,6 @@ class Emitter {
     this.#instanceSyncWithMaster(instance);
     if(rate) sound.rate(rate, instance.id);
     sound.volume(this.emitterVolume, id);
-    //FIXME: make this feel more like the original LS values
     sound.pannerAttr(APOLLO_GLOBAL_PANNER_ATTRB, instance.id);
   }
 
@@ -221,7 +219,7 @@ class Emitter {
         refDistance: 1,
         maxDistance: 1, 
       }, inst.id);
-      //FIXME: this is a hack!
+      //FIXME:? this is a hack! Is it?
     }
     if (!this.parent) return;
     /**@type {Vector3} */
