@@ -180,6 +180,21 @@ export var defaultOptions = {
         [ItemTypes.GRENADE, 65, 5]
     ],
     teamSwitchMaximumDifference: 0,
+    scale: [
+        1, //ffa
+        1, //team1
+        1, //team2
+    ],
+    speedModifier: [
+        1, //ffa
+        1, //team1
+        1, //team2
+    ],
+    gravityModifier: [
+        1, //ffa
+        1, //team1
+        1, //team2
+    ],
 };
 
 export var GameTypes = [
@@ -187,14 +202,39 @@ export var GameTypes = [
         shortName: "FFA",
         longName: "Free For All",
         codeName: "ffa",
+        mapPool: "ffa", //the pool of maps to use. helps with avoiding having to assign game types to maps retroactively when making a new game mode
         options: {
         }
     }, {
         shortName: "Teams",
         longName: "Teams",
         codeName: "teams",
+        mapPool: "teams",
         options: {
             teamsEnabled: true,
+        }
+    }, {
+        shortName: "Scale",
+        longName: "Scale Shift",
+        codeName: "scale",
+        mapPool: "scale",
+        options: {
+            teamsEnabled: true,
+            scale: [
+                1, //ffa
+                0.4, //team1
+                2, //team2
+            ],
+            speedModifier: [
+                1, //ffa
+                1, //team1
+                2, //team2
+            ],
+            gravityModifier: [
+                1, //ffa
+                1, //team1
+                0.5, //team2
+            ],
         }
     }
 ];
