@@ -248,6 +248,10 @@
 
         <!-- legacyshell libs (not bloat) -->
         <script src="https://cdn.jsdelivr.net/npm/js-sha256@0.9.0/src/sha256.min.js"></script>
+            <!-- legacyshell sound thing -->
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
+
+
 
         <!-- bloat vv TODO remove this bs -->
         <!-- <script src="https://cdn.onesignal.com/sdks/OneSignalSDK.js" async=""></script>
@@ -312,14 +316,14 @@
             aiptag.cmd.player = aiptag.cmd.player || [];
         </script> -->
 
-        <!-- Firebase (BLOAT) 
+        <!-- Firebase (BLOAT)
         <script>var firebase</script>
         <script src="https://www.gstatic.com/firebasejs/4.11.0/firebase.js"></script>
         <script src="https://cdn.firebase.com/libs/firebaseui/2.7.0/firebaseui.js"></script>
         <link type="text/css" rel="stylesheet" href="https://cdn.firebase.com/libs/firebaseui/2.7.0/firebaseui.css" />
         -->
 
-        <!-- Facebook Pixel Code (GLOWING BLOAT) 
+        <!-- Facebook Pixel Code (GLOWING BLOAT)
         <script>
             // !function (f, b, e, v, n, t, s) {
             //     if (f.fbq) return; n = f.fbq = function () {
@@ -374,7 +378,7 @@
                 <li>Updates to some particle effects
             </ul>
         </div>
-        
+
         <!-- Config -->
         <div id="config" class="hideme">
             <ul style="list-style-type: none; padding-left: 0; margin: 0;">
@@ -1877,7 +1881,7 @@
                 <button id="previewCodeAcceptButton" class="ssbutton green" style="width: 10em; display: inline-block;"
                     onclick="extern.redeemCode()">YES!</button>
             </div>
-        
+
             <div id="redeemCodeResult" class="redeemCodeDialog roundedBorder" style="
         left: 50%; top: 45%;
         transform: translate(-50%, -50%);
@@ -1954,9 +1958,9 @@
 	    <div id="buyPass" class="buyPassItem roundCorners">
 	        <h1>GOLDEN CHICKEN</h1>
 	        <h2>ONLY $9.99!</h2>
-	        
+
 			<img src="img/ico_chicken.png" alt="GOLD CHICKEN" height="150" />
-			
+
 			<div id="buyPassDetails" class="roundCorners">
 				<ul>
 					<li>MORE EGGSHELL <span class="text_red">C</span><span class="text_orange">O</span><span class="text_white">L</span><span class="text_darkgreen">O</span><span class="text_darkblue">R</span><span class="text_purple">S</span>!</li>

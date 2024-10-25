@@ -320,6 +320,7 @@ class newClient {
                                 var output = new Comm.Out(1);
                                 output.packInt8U(Comm.Code.switchTeamFail);
                                 this.sendToMe(output, "switchTeamFail");
+                                devlog("switching failed", this.player.team, totalPlayers, originalTeamCount);
                             };
                         };
                         break;
@@ -443,6 +444,14 @@ class newClient {
         output.packInt8U(0); //controlKeys
         output.packInt16U(0); //randomSeed
         output.packInt8U(this.loggedIn ? this.userData.upgradeProductId : 0); //upgradeProductId
+
+        if (this.player.scale !== 1) this.packScale(output);
+    };
+
+    packScale(output) {
+        output.packInt8U(Comm.Code.setScale);
+        output.packInt8U(this.id);
+        output.packInt8U(this.player.scale * 10);
     };
 
     packSync(output) {
@@ -507,7 +516,7 @@ class newClient {
     };
 
     sendBuffer(output, debug) { // more direct operation, prefer this.room.sendToOne
-        if (!(debug.includes("sync") || debug.includes("ping"))) console.log(this.id, output.idx, debug);
+        if (!(debug.includes("sync") || debug.includes("ping"))) console.log(this.id, debug, output.idx);
         this.sendMsgToWs(output.buffer);
     };
 

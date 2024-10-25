@@ -40,6 +40,7 @@
         "#collider": "./src/shell/collider.js",
         "#comm": "./src/shell/comm.js",
         "#constants": "./src/shell/constants.js",
+        "#gametypes": "./src/shell/gametypes.js",
         "#guns": "./src/shell/guns.js",
         "#itemManager": "./src/shell/itemManager.js",
         "#loading": "./src/shell/loading.js",
@@ -57,6 +58,7 @@
         "#accountManagement": "./server-services/src/data_management/accountManagement.js",
         "#recordsManagement": "./server-services/src/data_management/recordsManagement.js",
         "#sessionManagement": "./server-services/src/data_management/sessionManagement.js",
-        "#ratelimit": "./server-services/src/ratelimit.js"
+        "#ratelimit": "./server-services/src/ratelimit.js",
+        "#apollo" : "./server-client/src/client-static/src/apollon/Apollo.js"
     }
 }

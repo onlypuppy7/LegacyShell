@@ -32,12 +32,12 @@ export class PermissionsConstructor {
             name: "announce",
             category: "misc",
             description: "Announces a message to all players across all games.",
-            permissionLevel: this.perms.announce || [this.ranksEnum.Moderator, this.ranksEnum.Moderator, false],
+            permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Moderator, false],
             inputType: ["string"],
-            executeClient: (opts) => {
+            executeClient: (player, opts) => {
                 console.log(`Announcement: ${opts}`);
             },
-            executeServer: (opts) => {
+            executeServer: (player, opts) => {
                 // this.room(`Announcement: ${opts}`);
             }
         });
@@ -46,14 +46,28 @@ export class PermissionsConstructor {
             name: "notify",
             category: "misc",
             description: "Announces a message to all players.",
-            permissionLevel: this.perms.notify || [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
+            permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
             inputType: ["string"],
-            executeClient: (opts) => {
+            executeClient: (player, opts) => {
                 console.log(`notifying rn: ${opts}`);
             },
-            executeServer: (opts) => {
+            executeServer: (player, opts) => {
                 this.room.notify(opts, 5);
                 // this.room(`Announcement: ${opts}`);
+            }
+        });
+        new Command(this, {
+            identifier: "scaleMe",
+            name: "scaleMe",
+            category: "misc",
+            description: "Sets scaling for your egg.",
+            permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
+            inputType: ["number", 0.1, 25, 0.1],
+            executeClient: (player, opts) => {
+                me.changeScale(opts);
+            },
+            executeServer: (player, opts) => {
+                player.changeScale(opts);
             }
         });
 
@@ -65,14 +79,14 @@ export class PermissionsConstructor {
             description: "Boot problematic players.",
             permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
             inputType: ["number", 0, maxServerSlots - 1, 1],
-            executeClient: (opts) => {
+            executeClient: (player, opts) => {
                 var player = players[opts];
                 if (player) {
                     bootPlayer(player.id, player.uniqueId);
                     devlog(`booting player: ${opts}`);
                 };
             },
-            executeServer: (opts) => { }
+            executeServer: (player, opts) => { }
         });
 
         //room
@@ -83,10 +97,10 @@ export class PermissionsConstructor {
             description: "Set the max player limit.",
             permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
             inputType: ["number", 1, maxServerSlots, 1],
-            executeClient: (opts) => {
+            executeClient: (player, opts) => {
                 devlog(`setting new player limit: ${opts}`);
             },
-            executeServer: (opts) => {
+            executeServer: (player, opts) => {
                 this.room.playerLimit = opts;
                 this.room.updateRoomDetails();
                 this.room.notify(`Player limit has been set to: ${opts}`, 5);
@@ -99,10 +113,10 @@ export class PermissionsConstructor {
             description: "Change to another room.",
             permissionLevel: [this.ranksEnum.Guest, this.ranksEnum.Guest, false],
             inputType: ["string"],
-            executeClient: (opts) => {
+            executeClient: (player, opts) => {
                 if (opts.length > 5) joinGame(opts);
             },
-            executeServer: (opts) => { }
+            executeServer: (player, opts) => { }
         });
         new Command(this, {
             identifier: "warpall",
@@ -111,8 +125,8 @@ export class PermissionsConstructor {
             description: "Transfer all players to another room.",
             permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
             inputType: ["string"],
-            executeClient: (opts) => { },
-            executeServer: (opts) => {
+            executeClient: (player, opts) => { },
+            executeServer: (player, opts) => {
                 if (opts.length > 5) {
                     var output = new Comm.Out();
                     output.packInt8U(Comm.Code.warp);
@@ -218,9 +232,9 @@ class Command {
 
         if (permitted) {
             if (isClient) {
-                this.executeClient(opts);
+                this.executeClient(player, opts);
             } else {
-                this.executeServer(opts);
+                this.executeServer(player, opts);
             };
         } else if (isClient) {
             addChat("Insufficient permissions.", null, Comm.Chat.cmd);

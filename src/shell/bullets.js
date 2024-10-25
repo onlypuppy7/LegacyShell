@@ -29,7 +29,10 @@ function checkExplosionCollisions (explosion) { //stolen from rtw 🥺
             //if()
         });
 
-        let maxRange = 3;
+        let scale = player.id === explosion.player.id ? 1 : player.scale;
+        // console.log("scale???", scale, player.id, explosion.player.id, player.scale);
+
+        let maxRange = 2 + Math.max(1, scale);
         // console.log("explosion0", nearestWall, delta.length(), maxRange);
         // console.log(new BABYLON.Vector3(state.x, state.y, state.z), new BABYLON.Vector3(player.x, player.y, player.z));
 
@@ -40,15 +43,16 @@ function checkExplosionCollisions (explosion) { //stolen from rtw 🥺
 
                 //bigger = falls off quicker
                 const scalingFactor = 0.7; //linear
-                const exponent = 2; //exponential
+                const exponent = 2 / Math.max(scale / 10, 1); //exponential
 
-                const modifier = 0.5;
+                const modifier = explosion.player.scale * (0.5 / Math.min(scale, 5));
 
                 let damage = explosion.damage * modifier * (1 / Math.pow(delta.length() * scalingFactor, exponent));
 
                 console.log("explosion hits", damage, "to player", player.id, player.name);
                 // console.log("who was hit?", player.id, player.name);
                 // console.log("who fired it?", explosion.player.id, explosion.player.name);
+                // console.log(scalingFactor, exponent, modifier, damage);
                 player.hit(damage, explosion.player, explosion.x, explosion.y);
             };
         };
@@ -89,6 +93,7 @@ Bullet.origin = new BABYLON.Vector3;
 Bullet.direction = new BABYLON.Vector3;
 Bullet.fire = function (player, pos, dir, weaponClass) {
     // console.log(!!player.client.room);
+    pos.y = pos.y;
     getMunitionsManager(player).bulletPool.retrieve().fireThis(player, pos, dir, weaponClass)
 };
 Bullet.prototype.fireThis = function (player, pos, dir, weaponClass) {
@@ -182,14 +187,14 @@ Bullet.prototype.collidesWithPlayer = function (player, point) {
         tv1.normalize();
 
         tv2.x = player.x - point.x; //point is the position on the egg that the bullet lands
-        tv2.y = player.y + .32 - point.y; // +0.32, the supposed center
+        tv2.y = player.y + (0.32 * player.scale) - point.y; // +0.32, the supposed center
         tv2.z = player.z - point.z;
         tv2.normalize();
 
         var dist = BABYLON.Vector3.Cross(tv1, tv2).length();
 
         var dot = -BABYLON.Vector3.Dot(tv1, tv2) * 0.9 + 0.1;
-        let damageMod = 2;
+        let damageMod = this.player.scale * (2 / player.scale);
         // var damage = this.damage * Math.pow(dot, damageExp + Math.pow(dot, damageExp) * damageMod);
         var damage = this.damage * Math.pow(dot, damageExp) * damageMod;
 
@@ -252,14 +257,17 @@ Rocket.prototype.explode = function () {
     if (this.actor) {
         addExplosion(this.x, this.y, this.z, this.damage, this.radius);
         var pos = new BABYLON.Vector3(this.x, this.y, this.z);
-        this.actor.explodeSound.setPosition(pos), this.actor.explodeSound.play()
+        playSoundIndependent(this.actor.explodeSound, pos);
+        //this.actor.explodeSound.setPosition(pos);
+        //this.actor.explodeSound.play();
     } else checkExplosionCollisions(this);
     this.remove()
 };
 Rocket.prototype.poof = function () {
     if (this.actor) {
         var pos = new BABYLON.Vector3(this.x, this.y, this.z);
-        this.actor.poofSound.setPosition(pos), this.actor.poofSound.play();
+        //this.actor.poofSound.setPosition(pos), this.actor.poofSound.play();
+        playSoundIndependent(this.actor.poofSound, pos);
         for (var i = 0; i < 10; i++) {
             var dx = .2 * Math.random() - .1,
                 dy = .2 * Math.random() - .1,
@@ -304,11 +312,14 @@ Grenade.v4 = new BABYLON.Vector3;
 Grenade.matrix = new BABYLON.Matrix;
 Grenade.prototype.update = function (delta) {
     if (this.ttl <= 0) {
-        console.log(new BABYLON.Vector3(this.x, this.y, this.z));
+        // console.log(new BABYLON.Vector3(this.x, this.y, this.z));
         if (getMunitionsManager().grenadePool.recycle(this), this.actor) {
             addExplosion(this.x, this.y, this.z, this.damage, this.radius);
+            //what the fuck puppy don't just place audio code here grrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr
             var pos = new BABYLON.Vector3(this.x, this.y, this.z);
-            this.actor.explodeSound.setPosition(pos), this.actor.explodeSound.play(), this.actor.remove()
+            playSoundIndependent(this.actor.explodeSound, pos);
+            //this.actor.explodeSound.setPosition(pos), this.actor.explodeSound.play(), 
+            this.actor.remove();
         } else checkExplosionCollisions(this);
     } else {
         var pdx = this.dx;
