@@ -1,6 +1,7 @@
 //legacyshell: player
 import BABYLON from "babylonjs";
-import { stateBufferSize, isClient, isServer, CONTROL, devlog, ItemTypes } from '#constants';
+import { stateBufferSize, isClient, isServer, CONTROL, devlog } from '#constants';
+import { ItemTypes } from '#gametypes';
 import { getMunitionsManager } from '#bullets';
 import Comm from '#comm';
 //legacyshell: adding kills and deaths (literally tracking ur every move the government is watching yuo)

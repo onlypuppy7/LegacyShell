@@ -1,6 +1,7 @@
 //legacyshell: item manager
 import { Pool } from "#pool";
-import { isClient, isServer, ItemTypes, MAP } from '#constants';
+import { isClient, isServer, MAP } from '#constants';
+import { ItemTypes } from '#gametypes';
 //
 
 export class ItemManagerConstructor {

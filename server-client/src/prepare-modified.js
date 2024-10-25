@@ -23,12 +23,22 @@ function prepareModified(ss) {
     const sourceHtmlPath = path.join(ss.currentDir, 'src', 'client-static', 'index.html');
     const destinationHtmlPath = path.join(ss.currentDir, 'store', 'client-modified', 'index.html');
 
+    const sourceEditorJsPath = path.join(ss.currentDir, 'src', 'client-static', 'editor', 'js', 'mapEdit.js');
+    const destinationEditorJsPath = path.join(ss.currentDir, 'store', 'client-modified', 'editor', 'js', 'mapEdit.js');
+
+    const skyboxesPath = path.join(ss.currentDir, 'src', 'client-static', 'img', 'skyboxes');
+
     const hashes = {};
 
-    const destinationJsDir = path.dirname(destinationShellJsPath);
-    if (!fs.existsSync(destinationJsDir)) {
-        fs.mkdirSync(destinationJsDir, { recursive: true });
+    function checkAndCreateDir (dir) {
+        const dirPath = path.dirname(dir);
+        if (!fs.existsSync(dirPath)) {
+            fs.mkdirSync(dirPath, { recursive: true });
+        };
     };
+
+    checkAndCreateDir(destinationShellJsPath);
+    checkAndCreateDir(destinationEditorJsPath);
 
     try {
         let sourceCode = fs.readFileSync(sourceShellJsPath, 'utf8');
@@ -49,6 +59,7 @@ function prepareModified(ss) {
             { pattern: /LEGACYSHELLPLAYERCONSTRUCTOR/g, file: "#player" },
             { pattern: /LEGACYSHELLCATALOG/g, file: "#catalog" },
             { pattern: /LEGACYSHELLCONSTANTS/g, file: "#constants" },
+            { pattern: /LEGACYSHELLGAMETYPES/g, file: "#gametypes" },
             { pattern: /LEGACYSHELLCOLLIDER/g, file: "#collider" },
             { pattern: /LEGACYSHELLMATHEXTENSIONS/g, file: "#math" },
             { pattern: /LEGACYSHELLBULLETS/g, file: "#bullets" },
@@ -130,6 +141,13 @@ function prepareModified(ss) {
 
         fs.writeFileSync(destinationHtmlPath, htmlContent, 'utf8');
         console.log(`index.html copied and modified to ${destinationHtmlPath}`);
+
+        let mapEditorJs = fs.readFileSync(sourceEditorJsPath, 'utf8');
+        mapEditorJs = mapEditorJs.replace(/LEGACYSHELLGAMETYPES/g, ss.misc.hashtagToString("gametypes"));
+        mapEditorJs = mapEditorJs.replace(/LEGACYSHELLSKYBOXES/g, JSON.stringify(fs.readdirSync(skyboxesPath)));
+
+        fs.writeFileSync(destinationEditorJsPath, mapEditorJs, 'utf8');
+        console.log(`mapEdit.js copied and modified to ${destinationEditorJsPath}`);
 
         delete ss.cache; //MEMORY LEAK FUCKING MI-Mi-mi-MITIGATED!!!
     } catch (error) {
