@@ -58,6 +58,7 @@
         "#accountManagement": "./server-services/src/data_management/accountManagement.js",
         "#recordsManagement": "./server-services/src/data_management/recordsManagement.js",
         "#sessionManagement": "./server-services/src/data_management/sessionManagement.js",
-        "#ratelimit": "./server-services/src/ratelimit.js"
+        "#ratelimit": "./server-services/src/ratelimit.js",
+        "#apollo" : "./server-client/src/client-static/src/apollon/Apollo.js"
     }
 }
