@@ -34,6 +34,14 @@ const APOLLO_EMERGENCY_FALLBACK_SOUND = new Howl({
 }); //if this doesn't load, all hope is lost...
 
 /**
+ * just an interface for Howler.volume. If 0, sound is muted automatically. No need to suspend the sound engine 
+ * @param {number} vol - the new volume, from 0-1 afaik
+ */
+function apolloSetVolume(vol){
+  Howler.volume(vol);
+}
+
+/**
  * loads a sound from a given source and saves it under the given name.
  * @param {String} src - the source of the media.
  * @param {String} name - the name of the sound.
