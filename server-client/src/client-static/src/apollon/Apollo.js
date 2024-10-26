@@ -6,7 +6,7 @@ import { TransformNode, Vector3 } from "babylonjs";
 import { Howl, Howler } from "howler";
 
 
-const APOLLO_VERSION = 1;
+const APOLLO_VERSION = 2;
 
 const APOLLO_LOG = true;
 const APOLLO_GLOBAL_PANNER_ATTRB /*= {
@@ -82,13 +82,15 @@ function loadSoundsFromList(list, onComplete) {
  * @returns {Howl} the sound, or the fallback sound.
  */
 function getSound(name) {
-  if (!sounds[name]) {
+  let sName = name;
+  if (!sounds[sName]) {
     console.error(
-      `APOLLO: getSound() called for ${name}, but ${name} does not exist! Returning fallback...`,
+      `APOLLO: getSound() called for ${sName}, but ${sName} does not exist! Returning fallback...`,
     );
     return APOLLO_EMERGENCY_FALLBACK_SOUND;
   }
-  return sounds[name];
+  if(sounds[sName].isCue) sName = sounds[sName].getSound();
+  return sounds[sName];
 }
 
 /**
@@ -295,4 +297,58 @@ class Emitter {
       this.#instanceSyncWithMaster(inst);
     });
   }
+}
+
+/**
+ * a Cue is a collection of multiple sounds. Playing an object of this class will play a sound from its collection. What sound should be played is chosen by the selectSound function. Default is random.
+ * all of a cue's sounds are placed in CUES.${this.name}.${index}.
+ */
+class Cue{
+  /**
+   * the names of this object's sounds.
+   * @type {String[]}
+   */
+  sounds = [];
+  name = "DEFAULTCUENAME";
+  isCue = true; //ye this might not be the cleanest way to do this but it works..
+
+  constructor(name, srcs){
+    this.name = name;
+    if(srcs) srcs.forEach(src=>this.addSound(src));
+  }
+
+  selectSound = function(){
+    return this.sounds[Math.floor(Math.random()*this.sounds.length)];
+  }
+
+  /**
+   * adds a sound to this cue. Will load it too.
+   * @param {String} src -  the source url of the desired sound. 
+   */
+  addSound(src){
+    const index = this.sounds.length;
+    this.sounds[index] = "RESERVED"; //reserve the index. Prob not needed but MAYBE for async stuff
+    const sName = `CUE.${this.name}.${index}`;
+    const that = this;
+    loadSound(src, sName, function(){
+      that.sounds[index] = sName;
+    });
+  }
+
+  /**
+   * gets the sound selected by the funtion. DO NOT OVERRIDE THIS FUNCTION FOR CUSTOM SELECTION, OVERWRITE selectSound.
+   * @returns {String} the selected sound name.
+   */
+  getSound() {
+    if(this.sounds.length<1){
+      console.error(`APOLLO: getSound() called on a sound cue, but queue is empty! Returning fallback...`);
+      return ""; //fallbac
+    }
+    if(!this.selectSound){
+      console.warn(`APOLLO: a sound cue does not have a selectSound function, returning elem 0.`);
+      return this.sounds[0];
+    }
+    return this.selectSound();
+  }
+
 }
