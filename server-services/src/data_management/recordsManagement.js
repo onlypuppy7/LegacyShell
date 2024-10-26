@@ -156,9 +156,9 @@ const exported = {
                 surfaceArea INTEGER DEFAULT 0,
                 extents TEXT DEFAULT '{"x":{"max":0,"min":10000},"y":{"max":0,"min":10000},"z":{"max":0,"min":10000},"width":-9999,"height":-9999,"depth":-9999}',
                 skybox TEXT DEFAULT '',
-                modes TEXT DEFAULT '{"FFA":true,"Teams":true}', --NOT USED!
-                availability TEXT DEFAULT 'both', --NOT USED!
-                numPlayers INTEGER DEFAULT 18, --NOT USED!
+                modes TEXT DEFAULT '{"FFA":true,"Teams":true}',
+                availability TEXT DEFAULT 'both',
+                numPlayers INTEGER DEFAULT 18,
         
                 dateCreated INTEGER DEFAULT (strftime('%s', 'now')),
                 dateModified INTEGER DEFAULT (strftime('%s', 'now'))
