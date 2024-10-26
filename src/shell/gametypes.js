@@ -94,3 +94,49 @@ export var GameType = GameTypes.reduce((acc, gameType, index) => {
 export var getMapPool = function (maps, mapPool) {
     return maps.filter(map => (!map.modes) || map.modes[mapPool]);
 };
+        
+export function getMapsByAvailability(maps, availability) {
+    let mapAvailability = {
+        public: [],
+        private: [],
+        both: []
+    };
+
+    for (let i = 0; i < maps.length; i++) {
+        let map = maps[i];
+        switch (map.availability) {
+            case "public":
+                mapAvailability.public.push(map);
+                break;
+            case "private":
+                mapAvailability.private.push(map);
+                break;
+            case "both":
+                mapAvailability.public.push(map);
+                mapAvailability.private.push(map);
+                mapAvailability.both.push(map);
+                break;
+        };
+    };
+
+    if (availability) {
+        mapAvailability = mapAvailability[availability];
+    };
+
+    return mapAvailability;
+};
+
+export function convertMapListToIds(maps) {
+    if (Array.isArray(maps)) {
+        return maps.map(map => map.id);
+    } else if (typeof maps === "object") {
+        Object.keys(maps).forEach(key => {
+            maps[key] = maps[key].map(map => map.id);
+        });
+        return maps;
+    };
+};
+
+export function getMapsByAvailabilityAsInts(maps, availability) { //great name btw not too long at all
+    return convertMapListToIds(getMapsByAvailability(maps, availability));
+};
