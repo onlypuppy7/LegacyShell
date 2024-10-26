@@ -6,7 +6,7 @@ import { TransformNode, Vector3 } from "babylonjs";
 import { Howl, Howler } from "howler";
 
 
-const APOLLO_VERSION = 3;
+const APOLLO_VERSION = 4;
 
 const APOLLO_LOG = true;
 const APOLLO_GLOBAL_PANNER_ATTRB /*= {
@@ -22,6 +22,16 @@ const APOLLO_GLOBAL_PANNER_ATTRB /*= {
   maxDistance: 100,
   refDistance: 1
 }
+
+/**
+ * array of forbidden sound names. Checked in setSound().
+ * format is sound: message
+ */
+const APOLLO_FORBIDDEN = {
+  "": "blank name. Most likely a mistake.",
+  "reserved": "RESERVED should play fallback to indicate failure. Used by SoundCues before a sound has been loaded."
+};
+
 /**
  * list of sounds that have been loaded in.
  * @type {Howl{}}
@@ -58,6 +68,7 @@ function loadSound(src, name, onLoadingComplete) {
  * @param {Howl} val - the new value. Can be Cue too!
  */
 function setSound(name, val){
+  if(APOLLO_FORBIDDEN[name.toLowerCase()]) console.error(`APOLLO: trying to load a forbidden sound ${name}! (${APOLLO_FORBIDDEN[name.toLowerCase()]})`); //yk what? let's continue anyway. We said that unintended behavior might be bc of this, and devs are notified about doing a bad bad 
   if (sounds[name])
     console.warn(
       `APOLLO: loadSound() called for ${name}, but sound ${name} already exists. Sound will be overwritten!`,
