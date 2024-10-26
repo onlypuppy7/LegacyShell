@@ -379,3 +379,5 @@ class Cue{
   }
 
 }
+
+console.log(`APOLLO: Welcome to Apollo v${APOLLO_VERSION}!`);
