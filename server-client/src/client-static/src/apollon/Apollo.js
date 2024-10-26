@@ -6,6 +6,8 @@ import { TransformNode, Vector3 } from "babylonjs";
 import { Howl, Howler } from "howler";
 
 
+const APOLLO_VERSION = 1;
+
 const APOLLO_LOG = true;
 const APOLLO_GLOBAL_PANNER_ATTRB /*= {
   panningModel: 'HRTF',
@@ -29,6 +31,15 @@ const APOLLO_EMERGENCY_FALLBACK_SOUND = new Howl({
   src: "sound/fallBack.mp3",
   onload: function () { if (APOLLO_LOG) console.log("APOLLO: fallback loaded!"); }
 }); //if this doesn't load, all hope is lost...
+
+/**
+ * just an interface for Howler.volume. If 0, sound is muted automatically. No need to suspend the sound engine 
+ * @param {number} vol - the new volume, from 0-1 afaik
+ */
+function apolloSetVolume(vol){
+  if(APOLLO_LOG) console.log(`APOLLO: setting Howler volume to ${vol}, as requested.`);
+  Howler.volume(vol);
+}
 
 /**
  * loads a sound from a given source and saves it under the given name.
