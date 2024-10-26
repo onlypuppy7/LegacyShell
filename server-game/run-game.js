@@ -10,6 +10,7 @@ import wsrequest from '#wsrequest';
 import WebSocket, { WebSocketServer } from 'ws';
 import Comm from '#comm';
 import rm from './src/roomManager.js';
+import { getMapsByAvailabilityAsInts } from '#gametypes';
 //
 
 let ss = misc.instantiateSS(import.meta, process.argv);
@@ -173,23 +174,8 @@ async function connectWebSocket(retryCount = 0) {
                     delete configInfo.permissions;
         
                     ss.config.game = { ...ss.config.game, ...configInfo };
-        
-                    for (let i = 0; i < ss.maps.length; i++) {
-                        let map = ss.maps[i];
-                        switch (map.availability) {
-                            case "public":
-                                ss.mapAvailability.public.push(i);
-                                break;
-                            case "private":
-                                ss.mapAvailability.private.push(i);
-                                break;
-                            case "both":
-                                ss.mapAvailability.public.push(i);
-                                ss.mapAvailability.private.push(i);
-                                ss.mapAvailability.both.push(i);
-                                break;
-                        };
-                    };
+
+                    ss.mapAvailability = getMapsByAvailabilityAsInts(ss.maps);
         
                     retrieved = true;
                     // console.log(ss.permissions);
