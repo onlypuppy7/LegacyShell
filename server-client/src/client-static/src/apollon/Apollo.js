@@ -35,6 +35,7 @@ const APOLLO_EMERGENCY_FALLBACK_SOUND = new Howl({
  * @param {number} vol - the new volume, from 0-1 afaik
  */
 function apolloSetVolume(vol){
+  if(APOLLO_LOG) console.log(`APOLLO: setting Howler volume to ${vol}, as requested.`);
   Howler.volume(vol);
 }
 
