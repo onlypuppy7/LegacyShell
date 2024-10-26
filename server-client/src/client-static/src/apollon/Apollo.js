@@ -6,6 +6,8 @@ import { TransformNode, Vector3 } from "babylonjs";
 import { Howl, Howler } from "howler";
 
 
+const APOLLO_VERSION = 1;
+
 const APOLLO_LOG = true;
 const APOLLO_GLOBAL_PANNER_ATTRB /*= {
   panningModel: 'HRTF',
