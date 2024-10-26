@@ -1,4 +1,3 @@
-
 #define FOGMODE_NONE 0.
 #define FOGMODE_EXP 1.
 #define FOGMODE_EXP2 2.
@@ -19,6 +18,7 @@ uniform vec3 colorMult;
 uniform vec4 outlineColor;
 uniform sampler2D textureSampler;
 uniform vec2 stampOffset;
+uniform vec3 sunColor;
 
 // Varying
 varying vec4 vPositionFromLight;
@@ -102,6 +102,7 @@ void main(void)
     #endif
 
     color.rgb *= max(max(0., -vNormal.y * 0.4), dot(vNormal, normalize(vec3(.2, 1., .1)) * 1.) + 0.4);
+    color.rgb *= sunColor;
     //color.rgb *= max(0., dot(vNormal, normalize(vec3(-.2, 1., -.1))) + 0.4);
 
     #ifdef FLASH
