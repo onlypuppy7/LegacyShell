@@ -1,8 +1,5 @@
 //sound system for LegacyShell
 
-//so, quick TLDR on what needs to be done/not done or how stuff works
-//FIXME: test the new attachment way.
-
 //https://github.com/goldfire/howler.js
 //https://howlerjs.com
 import { TransformNode, Vector3 } from "babylonjs";
@@ -47,7 +44,7 @@ function apolloSetVolume(vol){
  * @param {String} name - the name of the sound.
  */
 function loadSound(src, name, onLoadingComplete) {
-  if(APOLLO_LOG) console.log(`APOLLO: loadSound() called for ${name} via ${src} `);
+  if (APOLLO_LOG) console.log(`APOLLO: loadSound() called for ${name} via ${src} `);
   let snd = new Howl({ src , onload: onLoadingComplete}); //create howl object
   if (sounds[name])
     console.warn(
@@ -55,6 +52,26 @@ function loadSound(src, name, onLoadingComplete) {
     );
   sounds[name] = snd;
 }
+
+/**
+ * loads a list of sounds from a given list.
+ * @param {Array} list - the list of sounds to load. each entry should be an array with the first element being the source and the second being the name.
+ * @param {Function} onComplete - the function to call when all sounds have been loaded.
+ * @returns {void}
+ * @example loadSoundsFromList([["sound/1.mp3", "sound1"], ["sound/2.mp3", "sound2"]], () => console.log("all sounds loaded!"));
+ */
+function loadSoundsFromList(list, onComplete) {
+  var loadsComplete = 0;
+
+  function catComplete() {
+      list.length == ++loadsComplete && onComplete();
+  };
+
+  for (var i = 0; i < list.length; i++) {
+      var sound = list[i];
+      loadSound(sound[0], sound[1], catComplete);
+  };
+};
 
 /**
  * safe way of getting Howl object from the sounds storage. Will return fallback if the sound does not exist.
@@ -71,8 +88,10 @@ function getSound(name) {
   return sounds[name];
 }
 
-
-window.APOLLO_MULTIPLIERS = [1, -1, -1];
+/**
+ * the sound's location will get multiplied by these vars. Negate for panning changes. Testing only!
+ */
+window.APOLLO_MULTIPLIERS = [-1, -1, -1];
 
 /**
  * 
@@ -210,7 +229,6 @@ class Emitter {
     this.#instanceSyncWithMaster(instance);
     if(rate) sound.rate(rate, instance.id);
     sound.volume(this.emitterVolume, id);
-    //FIXME: make this feel more like the original LS values
     sound.pannerAttr(APOLLO_GLOBAL_PANNER_ATTRB, instance.id);
   }
 
@@ -229,7 +247,7 @@ class Emitter {
         refDistance: 1,
         maxDistance: 1, 
       }, inst.id);
-      //FIXME: this is a hack!
+      //FIXME:? this is a hack! Is it?
     }
     if (!this.parent) return;
     /**@type {Vector3} */
