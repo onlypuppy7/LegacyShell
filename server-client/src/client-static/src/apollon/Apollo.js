@@ -6,7 +6,7 @@ import { TransformNode, Vector3 } from "babylonjs";
 import { Howl, Howler } from "howler";
 
 
-const APOLLO_VERSION = 1;
+const APOLLO_VERSION = 4;
 
 const APOLLO_LOG = true;
 const APOLLO_GLOBAL_PANNER_ATTRB /*= {
@@ -22,6 +22,16 @@ const APOLLO_GLOBAL_PANNER_ATTRB /*= {
   maxDistance: 100,
   refDistance: 1
 }
+
+/**
+ * array of forbidden sound names. Checked in setSound().
+ * format is sound: message
+ */
+const APOLLO_FORBIDDEN = {
+  "": "blank name. Most likely a mistake.",
+  "reserved": "RESERVED should play fallback to indicate failure. Used by SoundCues before a sound has been loaded."
+};
+
 /**
  * list of sounds that have been loaded in.
  * @type {Howl{}}
@@ -49,13 +59,30 @@ function apolloSetVolume(vol){
 function loadSound(src, name, onLoadingComplete) {
   if (APOLLO_LOG) console.log(`APOLLO: loadSound() called for ${name} via ${src} `);
   let snd = new Howl({ src , onload: onLoadingComplete}); //create howl object
+  setSound(name, snd);
+}
+
+/**
+ * set a sound. This includes the warns and errors for overwriting.
+ * @param {String} name - name of the sound
+ * @param {Howl} val - the new value. Can be Cue too!
+ */
+function setSound(name, val){
+  if(APOLLO_FORBIDDEN[name.toLowerCase()]) console.error(`APOLLO: trying to load a forbidden sound ${name}! (${APOLLO_FORBIDDEN[name.toLowerCase()]})`); //yk what? let's continue anyway. We said that unintended behavior might be bc of this, and devs are notified about doing a bad bad 
   if (sounds[name])
     console.warn(
       `APOLLO: loadSound() called for ${name}, but sound ${name} already exists. Sound will be overwritten!`,
     );
-  sounds[name] = snd;
+  sounds[name] = val;
 }
 
+function loadCue(name, srcs){
+  if (APOLLO_LOG) console.log(`APOLLO: loadCue() called for ${name} via ${srcs} `);
+  const cue = new Cue(name, srcs);
+  setSound(name, cue);
+}
+
+//wait there is @example? Cool!
 /**
  * loads a list of sounds from a given list.
  * @param {Array} list - the list of sounds to load. each entry should be an array with the first element being the source and the second being the name.
@@ -82,13 +109,15 @@ function loadSoundsFromList(list, onComplete) {
  * @returns {Howl} the sound, or the fallback sound.
  */
 function getSound(name) {
-  if (!sounds[name]) {
+  let sName = name;
+  if (!sounds[sName]) {
     console.error(
-      `APOLLO: getSound() called for ${name}, but ${name} does not exist! Returning fallback...`,
+      `APOLLO: getSound() called for ${sName}, but ${sName} does not exist! Returning fallback...`,
     );
     return APOLLO_EMERGENCY_FALLBACK_SOUND;
   }
-  return sounds[name];
+  if(sounds[sName].isCue) sName = sounds[sName].getSound();
+  return sounds[sName];
 }
 
 /**
@@ -296,3 +325,59 @@ class Emitter {
     });
   }
 }
+
+/**
+ * a Cue is a collection of multiple sounds. Playing an object of this class will play a sound from its collection. What sound should be played is chosen by the selectSound function. Default is random.
+ * all of a cue's sounds are placed in CUES.${this.name}.${index}.
+ */
+class Cue{
+  /**
+   * the names of this object's sounds.
+   * @type {String[]}
+   */
+  sounds = [];
+  name = "DEFAULTCUENAME";
+  isCue = true; //ye this might not be the cleanest way to do this but it works..
+
+  constructor(name, srcs){
+    this.name = name;
+    if(srcs) srcs.forEach(src=>this.addSound(src));
+  }
+
+  selectSound = function(){
+    return this.sounds[Math.floor(Math.random()*this.sounds.length)];
+  }
+
+  /**
+   * adds a sound to this cue. Will load it too.
+   * @param {String} src -  the source url of the desired sound. 
+   */
+  addSound(src){
+    const index = this.sounds.length;
+    this.sounds[index] = "RESERVED"; //reserve the index. Prob not needed but MAYBE for async stuff
+    const sName = `CUE.${this.name}.${index}`;
+    const that = this;
+    loadSound(src, sName, function(){
+      that.sounds[index] = sName;
+    });
+  }
+
+  /**
+   * gets the sound selected by the funtion. DO NOT OVERRIDE THIS FUNCTION FOR CUSTOM SELECTION, OVERWRITE selectSound.
+   * @returns {String} the selected sound name.
+   */
+  getSound() {
+    if(this.sounds.length<1){
+      console.error(`APOLLO: getSound() called on a sound cue, but queue is empty! Returning fallback...`);
+      return ""; //fallbac
+    }
+    if(!this.selectSound){
+      console.warn(`APOLLO: a sound cue does not have a selectSound function, returning elem 0.`);
+      return this.sounds[0];
+    }
+    return this.selectSound();
+  }
+
+}
+
+console.log(`APOLLO: Welcome to Apollo v${APOLLO_VERSION}!`);
