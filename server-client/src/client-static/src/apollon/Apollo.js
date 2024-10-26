@@ -6,7 +6,7 @@ import { TransformNode, Vector3 } from "babylonjs";
 import { Howl, Howler } from "howler";
 
 
-const APOLLO_VERSION = 2;
+const APOLLO_VERSION = 3;
 
 const APOLLO_LOG = true;
 const APOLLO_GLOBAL_PANNER_ATTRB /*= {
@@ -49,13 +49,29 @@ function apolloSetVolume(vol){
 function loadSound(src, name, onLoadingComplete) {
   if (APOLLO_LOG) console.log(`APOLLO: loadSound() called for ${name} via ${src} `);
   let snd = new Howl({ src , onload: onLoadingComplete}); //create howl object
+  setSound(name, snd);
+}
+
+/**
+ * set a sound. This includes the warns and errors for overwriting.
+ * @param {String} name - name of the sound
+ * @param {Howl} val - the new value. Can be Cue too!
+ */
+function setSound(name, val){
   if (sounds[name])
     console.warn(
       `APOLLO: loadSound() called for ${name}, but sound ${name} already exists. Sound will be overwritten!`,
     );
-  sounds[name] = snd;
+  sounds[name] = val;
 }
 
+function loadCue(name, srcs){
+  if (APOLLO_LOG) console.log(`APOLLO: loadCue() called for ${name} via ${srcs} `);
+  const cue = new Cue(name, srcs);
+  setSound(name, cue);
+}
+
+//wait there is @example? Cool!
 /**
  * loads a list of sounds from a given list.
  * @param {Array} list - the list of sounds to load. each entry should be an array with the first element being the source and the second being the name.
