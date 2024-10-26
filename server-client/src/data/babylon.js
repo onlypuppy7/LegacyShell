@@ -37878,4 +37878,4 @@ BABYLON.TransformNode.prototype.disposeOfSounds = function () {
             sound && (sound.detachFromMesh(), sound.dispose())
         }
     for (var children = this.getChildTransformNodes(), i = 0; i < children.length; i++) children[i].disposeOfSounds()
-};
+}//; //will be inserted by minifier, keeping it will crash!
