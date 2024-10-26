@@ -108,13 +108,13 @@ function prepareModified(ss) {
         const standardVertexShader = fs.readFileSync(path.join(ss.rootDir, 'src', 'shaders', 'standardVertexShader.glsl'), 'utf8')
             // .replace(/\n/g, '\\n')
             // .replace(/ {4}/g, '\\t');
-        sourceCode = sourceCode.replace(/LEGACYSHELLSTANDARDVERTEXSHADER/g, `\n${standardVertexShader}\n`);
+        sourceCode = sourceCode.replace(/LEGACYSHELLSTANDARDVERTEXSHADER/g, `\n\`${standardVertexShader}\n\``);
         
         ss.log.italic("Inserting standardPixelShader into shellshock.min.js...");
         const standardPixelShader = fs.readFileSync(path.join(ss.rootDir, 'src', 'shaders', 'standardPixelShader.glsl'), 'utf8')
             // .replace(/\n/g, '\\n')
             // .replace(/ {4}/g, '\\t');
-        sourceCode = sourceCode.replace(/LEGACYSHELLSTANDARDPIXELSHADER/g, `\n${standardPixelShader}\n`);
+        sourceCode = sourceCode.replace(/LEGACYSHELLSTANDARDPIXELSHADER/g, `\n\`${standardPixelShader}\n\``);
 
         ss.log.italic("Inserting babylon into shellshock.min.js...");
         sourceCode = sourceCode.replace(/LEGACYSHELLBABYLON/g, `\n${fs.readFileSync(path.join(ss.currentDir, 'src', 'data', 'babylon.js'))}\n`);
