@@ -146,6 +146,7 @@ class Player {
         this.gravityModifier = this.gameOptions.gravityModifier[this.team];
         this.speedModifier = this.gameOptions.speedModifier[this.team];
         this.changeScale(this.gameOptions.scale[this.team], init);
+        this.regenModifier = this.gameOptions.regenModifier[this.team] || 1;
     };
     changeScale (newScale, init) {
         // devlog("setting scale:", newScale);
@@ -346,7 +347,7 @@ class Player {
                 this.weapon.update(delta)
             };
             if (0 < this.hp && this.playing) {
-                this.setHp(Math.min(100, this.hp + .05 * delta)); //regenning, you can put `* -2` or something here to simulate hunger, or something
+                this.setHp(Math.min(100, this.hp + .05 * delta * this.regenModifier)); //regenning, you can put `* -2` or something here to simulate hunger, or something
             };
             if (0 < this.swapWeaponCountdown) {
                 this.shotSpread = this.weapon.subClass.shotSpreadIncrement;

@@ -28,6 +28,11 @@ export var defaultOptions = {
         1, //team1
         1, //team2
     ],
+    regenModifier: [
+        1, //ffa
+        1, //team1
+        1, //team2
+    ],
 };
 
 export var GameTypes = [
@@ -63,6 +68,12 @@ export var GameTypes = [
                 1, //team1
                 0.5, //team2
             ],
+            regenModifier: [
+                1, //ffa
+                2, //team1
+                0.25, //team2
+            ],
+            teamSwitchMaximumDifference: 1,
         }
     }
 ];
