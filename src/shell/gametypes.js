@@ -91,8 +91,18 @@ export var GameType = GameTypes.reduce((acc, gameType, index) => {
     return acc;
 }, {});
 
-export var getMapPool = function (maps, mapPool) {
-    return maps.filter(map => (!map.modes) || map.modes[mapPool]);
+export var getMapPool = function (mapsList, mapPool, maps) {
+    let generatedMapPool = [];
+    mapsList.forEach(map => {
+        var thisMap = map;
+        if (typeof map === "number") {
+            thisMap = maps[map];
+        };
+        if (thisMap?.modes && thisMap.modes[mapPool]) {
+            generatedMapPool.push(map);
+        };
+    });
+    return generatedMapPool;
 };
         
 export function getMapsByAvailability(maps, availability) {

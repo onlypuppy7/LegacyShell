@@ -10,7 +10,7 @@ import wsrequest from '#wsrequest';
 import WebSocket, { WebSocketServer } from 'ws';
 import Comm from '#comm';
 import rm from './src/roomManager.js';
-import { getMapsByAvailabilityAsInts } from '#gametypes';
+import { getMapsByAvailabilityAsInts, GameTypes, getMapPool } from '#gametypes';
 //
 
 let ss = misc.instantiateSS(import.meta, process.argv);
@@ -65,6 +65,8 @@ function startServer() {
                                 msg.uuid = input.unPackInt32U();
                                 //additional stuff provided they are signed in
                                 msg.session = input.unPackString(); //technically this is all thats rlly needed tbh
+
+                                msg.gameType = GameTypes[msg.gameType] ? msg.gameType : 0;
 
                                 ss.config.verbose && console.log(msg, Comm.Convert(msg.joinType), Comm.Convert(msg.gameType));
         
