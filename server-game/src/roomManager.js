@@ -42,8 +42,14 @@ class newRoomManager {
     };
 
     searchRooms(info) {
+        var thisGameType = GameTypes[info.gameType];
+        var mapPool = thisGameType.mapPool;
+
         if (info.joinType === Comm.Code.createPrivateGame) {
             console.log("create game?");
+            let remainingMapIds = [...ss.mapAvailability.private];
+            remainingMapIds = getMapPool(remainingMapIds, mapPool, ss.maps);
+            info.mapId = remainingMapIds[info.mapId] ? info.mapId : Math.getRandomFromList(remainingMapIds);
             return this.createRoom(info);
         } else if (info.joinType === Comm.Code.joinPrivateGame) {
             if (info.gameId && info.gameId > 0) {
@@ -59,6 +65,8 @@ class newRoomManager {
             roomSelection = this.getRoomsOfGameType(info.gameType, roomSelection);
             // console.log("gameType", info.gameType, roomSelection);
             let remainingMapIds = [...ss.mapAvailability.public];
+            remainingMapIds = getMapPool(remainingMapIds, mapPool, ss.maps);
+            console.log(info.gameType, mapPool, remainingMapIds);
             roomSelection.forEach((room) => {
                 remainingMapIds = remainingMapIds.filter(mapId => mapId !== room.mapId);
             });
