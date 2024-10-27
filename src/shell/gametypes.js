@@ -39,7 +39,7 @@ export var GameTypes = [
     {
         shortName: "FFA",
         longName: "Free For All",
-        codeName: "ffa",
+        codeName: "ffa", //used for creation of GameType enum
         mapPool: "FFA", //the pool of maps to use. helps with avoiding having to assign game types to maps retroactively when making a new game mode
         options: {
         }
@@ -147,7 +147,7 @@ export function getMapsByAvailability(maps, availability) {
     return mapAvailability;
 };
 
-export function convertMapListToIds(maps) {
+export function convertMapListToIds(maps) { //support for both object and array
     if (Array.isArray(maps)) {
         return maps.map(map => map.id);
     } else if (typeof maps === "object") {
