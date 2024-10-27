@@ -11,7 +11,7 @@
     "ambient": "#000000",
     "fog": {
         "density": 0.01,
-        "color": "#FFFFFF"
+        "color": "#FF7070"
     },
     "data": {
         "nature.ground_01.full": [{
@@ -5065,12 +5065,13 @@
         }, {
             "x": 17,
             "y": 2,
-            "z": 17,
-            "ry": 3
+            "z": 9,
+            "ry": 2
         }, {
             "x": 17,
-            "y": 3,
-            "z": 9
+            "y": 2,
+            "z": 17,
+            "ry": 3
         }, {
             "x": 17,
             "y": 3,
@@ -5114,6 +5115,11 @@
             "x": 18,
             "y": 2,
             "z": 6
+        }, {
+            "x": 18,
+            "y": 2,
+            "z": 9,
+            "ry": 2
         }, {
             "x": 18,
             "y": 2,
@@ -5166,11 +5172,6 @@
             "y": 3,
             "z": 6,
             "ry": 2
-        }, {
-            "x": 18,
-            "y": 3,
-            "z": 9,
-            "ry": 3
         }, {
             "x": 18,
             "y": 3,
@@ -6578,7 +6579,8 @@
         }, {
             "x": 3,
             "y": 2,
-            "z": 10
+            "z": 11,
+            "ry": 2
         }, {
             "x": 4,
             "y": 4,
@@ -6699,7 +6701,7 @@
             "ry": 2
         }, {
             "x": 17,
-            "y": 2,
+            "y": 3,
             "z": 9,
             "ry": 2
         }, {
@@ -6713,7 +6715,7 @@
             "ry": 2
         }, {
             "x": 18,
-            "y": 2,
+            "y": 3,
             "z": 9,
             "ry": 2
         }, {
@@ -6751,41 +6753,12 @@
             "z": 18,
             "ry": 2
         }, {
-            "x": 18,
-            "y": 7,
-            "z": 13,
-            "ry": 1
-        }, {
-            "x": 18,
-            "y": 7,
-            "z": 14,
-            "ry": 1
-        }, {
-            "x": 18,
-            "y": 7,
-            "z": 15,
-            "ry": 1
-        }, {
-            "x": 18,
-            "y": 7,
-            "z": 16,
-            "ry": 1
-        }, {
-            "x": 18,
-            "y": 7,
-            "z": 17,
-            "ry": 1
-        }, {
             "x": 19,
             "y": 6,
             "z": 8
         }, {
             "x": 19,
             "y": 6,
-            "z": 12
-        }, {
-            "x": 19,
-            "y": 7,
             "z": 12
         }, {
             "x": 20,
@@ -6811,10 +6784,6 @@
             "rx": 1,
             "ry": 1
         }, {
-            "x": 20,
-            "y": 7,
-            "z": 12
-        }, {
             "x": 21,
             "y": 2,
             "z": 22,
@@ -6827,10 +6796,6 @@
         }, {
             "x": 21,
             "y": 6,
-            "z": 12
-        }, {
-            "x": 21,
-            "y": 7,
             "z": 12
         }, {
             "x": 22,
@@ -7453,6 +7418,11 @@
             "x": 15,
             "y": 2,
             "z": 2,
+            "ry": 3
+        }, {
+            "x": 17,
+            "y": 2,
+            "z": 10,
             "ry": 3
         }, {
             "x": 19,
@@ -8342,7 +8312,7 @@
             "rz": 1
         }]
     },
-    "palette": ["generic.concrete.full", "generic.brown-block.full", "generic.metal-ladder.ladder", "castle.red-banner.none", "castle.brick.full", "castle.brick-small.aabb", "SPECIAL.barrier.full.verysoft", "shipyard.container-blue.full", "nature.ground_02.full", "generic.propane-tank.obb"],
+    "palette": ["generic.concrete.full", "generic.bars.aabb", "generic.metal-ladder.ladder", "town.street.full", "castle.brick.full", "castle.brick-small.aabb", "SPECIAL.barrier.full.verysoft", "shipyard.container-blue.full", "nature.ground_02.full", "generic.propane-tank.obb"],
     "render": {
         "pointLightIntensity": 0.5
     },
@@ -8350,7 +8320,7 @@
     "height": 11,
     "depth": 27,
     "name": "Smallville",
-    "surfaceArea": 925,
+    "surfaceArea": 924,
     "extents": {
         "x": {
             "max": 41,
