@@ -716,7 +716,6 @@ button > h1 {
 #autocomplete-dialog {
     position: absolute;
     background: rgba(0, 0, 0, 0.6);
-    z-index: 1000;
     font-size: 0.5em;
     left: 2em;
     width: fit-content;
@@ -725,11 +724,40 @@ button > h1 {
 #autocomplete-dialog div {
     padding: 0.2em;
     cursor: pointer;
-    color: white; /* Default color */
+    color: white;
 }
 
 #autocomplete-dialog div.highlight {
-    color: yellow; /* Highlighted item */
+    color: yellow;
+}
+
+#command-info-dialog {
+    position: absolute;
+    display: none;
+    left: 18em;
+    bottom: 1.2em;
+    background-color: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    border: 1px solid #ff0;
+    padding: 10px;
+    border-radius: 2px;
+}
+
+.command-info h1 {
+    margin: 0;
+    font-size: 1.5em;
+}
+
+.command-info p {
+    margin: 0;
+}
+
+.command-info p.command-description {
+    color: yellow;
+}
+
+.command-info p.command-example {
+    color: #888888;
 }
 
 .hidden {
