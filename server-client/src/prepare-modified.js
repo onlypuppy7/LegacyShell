@@ -152,6 +152,7 @@ function prepareModified(ss) {
         htmlContent = htmlContent.replace(/LEGACYSHELLSYNCURL/g, ss.config.client.sync_server);
         htmlContent = htmlContent.replace(/LEGACYSHELLCLIENTURL/g, ss.config.client.this_url);
         htmlContent = htmlContent.replace(/LEGACYSHELLCONFIG/g, ss.distributed_config.replace(/\n/g, '<br>'));
+        htmlContent = htmlContent.replace(/LEGACYSHELLFAQ/g, fs.readFileSync(path.join(ss.currentDir, 'src', 'client-static', 'faq.html'), 'utf8'));
 
         fs.writeFileSync(destinationHtmlPath, htmlContent, 'utf8');
         console.log(`index.html copied and modified to ${destinationHtmlPath}`);
