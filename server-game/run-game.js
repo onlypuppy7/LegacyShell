@@ -112,7 +112,8 @@ function startServer() {
         };
     });
 
-    console.log('WebSocket server is running on ws://localhost:' + port);
+    ss.config.game.closed && ss.log.bgRed('Server is running in closed mode.');
+    ss.log.success('WebSocket server is running on ws://localhost:' + port);
 };
 
 //all this is retrieving the config:

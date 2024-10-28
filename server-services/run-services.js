@@ -581,6 +581,7 @@ initTables().then(() => {
         ws.on('close', () => ss.log.dim('Client disconnected'));
         ws.on('error', (error) => console.error(`WebSocket error: ${error}`));
     });
-    
-    console.log('WebSocket server is running on ws://localhost:' + port);
+
+    ss.config.distributed_all.closed && ss.log.bgRed('Server is running in closed mode.');
+    ss.log.success('WebSocket server is running on ws://localhost:' + port);
 });
