@@ -27,7 +27,21 @@ function startServer() {
         const app = express();
         const port = ss.config.client.port || 13370;
 
-        if (!ss.config.client.closed) {
+        if (ss.config.client.closed) {
+            app.use(express.static(path.join(ss.currentDir, 'src', 'client-closed')));
+
+            app.use((req, res, next) => {
+                if (req.path !== '/closed') {
+                    res.redirect('/closed');
+                } else {
+                    next();
+                };
+            });
+        } else {
+            app.use(express.static(path.join(ss.currentDir, 'store', 'client-modified')));
+            app.use(express.static(path.join(ss.rootDir, 'src', 'shared-static')));
+            app.use(express.static(path.join(ss.currentDir, 'src', 'client-static')));
+
             retrieved = 2;
             try {
                 ss.log.blue('Generating modified files (eg minifying shellshock.min.js)...');
@@ -36,27 +50,21 @@ function startServer() {
                 console.error('Modification failed:', error);
                 process.exit(1);
             };
-        
+
             try {
                 if (ss.config.client.login.enabled) {
                     app.use(checkPassword);
                 };
-        
-                app.use(express.static(path.join(ss.currentDir, 'store', 'client-modified'))); // server-client\store\client-modified
-                app.use(express.static(path.join(ss.rootDir, 'src', 'shared-static'))); // src\shared-static
-                app.use(express.static(path.join(ss.currentDir, 'src', 'client-static'))); // server-client\src\client-static
             } catch (error) {
                 console.log("Starting client server failed:", error);
                 // process.exit(1);
-            }
-        } else {
-            app.use(express.static(path.join(ss.currentDir, 'src', 'client-closed'))); // server-client\src\client-static
+            };
         };
-    
+
         app.get('/discord', (req, res) => {
             res.redirect('https://discord.gg/' + ss.config.client.discordServer);
         });
-    
+
         app.listen(port, () => {
             ss.log.success(`Server is running on http://localhost:${port}`);
         });
