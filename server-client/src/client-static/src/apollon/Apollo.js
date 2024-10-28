@@ -7,7 +7,8 @@ import { Howl, Howler } from "howler";
 
 const APOLLO_VERSION = 5;
 
-const APOLLO_LOG = true;
+const APOLLO_LOG = devmode;
+
 const APOLLO_GLOBAL_PANNER_ATTRB =
   /*= {
   panningModel: 'HRTF',

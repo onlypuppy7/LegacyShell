@@ -32,6 +32,7 @@ export class PermissionsConstructor {
             name: "announce",
             category: "misc",
             description: "Announces a message to all players across all games.",
+            example: "WASSUP",
             permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Moderator, false],
             inputType: ["string"],
             executeClient: (player, opts) => {
@@ -46,6 +47,7 @@ export class PermissionsConstructor {
             name: "notify",
             category: "misc",
             description: "Announces a message to all players.",
+            example: "wassup",
             permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
             inputType: ["string"],
             executeClient: (player, opts) => {
@@ -61,6 +63,7 @@ export class PermissionsConstructor {
             name: "scaleMe",
             category: "misc",
             description: "Sets scaling for your egg.",
+            example: "1.5",
             permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
             inputType: ["number", 0.1, 25, 0.1],
             executeClient: (player, opts) => {
@@ -77,6 +80,7 @@ export class PermissionsConstructor {
             name: "boot",
             category: "mod",
             description: "Boot problematic players.",
+            example: "@onlypuppy7",
             permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
             inputType: ["number", 0, maxServerSlots - 1, 1],
             executeClient: (player, opts) => {
@@ -95,6 +99,7 @@ export class PermissionsConstructor {
             name: "limit",
             category: "room",
             description: "Set the max player limit.",
+            example: "18",
             permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
             inputType: ["number", 1, maxServerSlots, 1],
             executeClient: (player, opts) => {
@@ -111,6 +116,7 @@ export class PermissionsConstructor {
             name: "warp",
             category: "room",
             description: "Change to another room.",
+            example: "0SXLLS",
             permissionLevel: [this.ranksEnum.Guest, this.ranksEnum.Guest, false],
             inputType: ["string"],
             executeClient: (player, opts) => {
@@ -123,6 +129,7 @@ export class PermissionsConstructor {
             name: "warpall",
             category: "room",
             description: "Transfer all players to another room.",
+            example: "0SXLLS",
             permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
             inputType: ["string"],
             executeClient: (player, opts) => { },
@@ -191,7 +198,7 @@ export class PermissionsConstructor {
 };
 
 class Command {
-    constructor(context, { identifier, name, category, description, permissionLevel, inputType, executeClient, executeServer }) {
+    constructor(context, { identifier, name, category, description, example, usage, permissionLevel, inputType, executeClient, executeServer }) {
         if (!context.cmds[category]) context.cmds[category] = {};
         context.cmds[category][name] = this;
         context.cmdsByIdentifier[identifier] = this;
@@ -206,6 +213,18 @@ class Command {
         this.name = name;
         this.category = category;
         this.description = description;
+        this.example = example;
+
+        var generatedUsage;
+        if (inputType[0] == "string") {
+            generatedUsage = "string";
+        } else if (inputType[0] == "bool") {
+            generatedUsage = "true/false";
+        } else if (inputType[0] == "number") {
+            generatedUsage = `number (${inputType[1]}-${inputType[2]}, step ${inputType[3]})`;
+        };
+
+        this.usage = usage || generatedUsage;
         this.permissionLevel = this?.ctx?.perms?.cmds[identifier] || permissionLevel;
         this.inputType = inputType;
         this.executeClient = executeClient; //to execute on the client (immediately)
