@@ -31,7 +31,7 @@ function startServer() {
             app.use(express.static(path.join(ss.currentDir, 'src', 'client-closed')));
 
             app.use((req, res, next) => {
-                if (req.path !== '/closed') {
+                if (req.path !== '/closed' && req.path !== '/discord') {
                     res.redirect('/closed');
                 } else {
                     next();
@@ -43,6 +43,15 @@ function startServer() {
             app.use(express.static(path.join(ss.currentDir, 'store', 'client-modified')));
             app.use(express.static(path.join(ss.rootDir, 'src', 'shared-static')));
             app.use(express.static(path.join(ss.currentDir, 'src', 'client-static')));
+
+            app.use((req, res, next) => {
+                console.log(req.path);
+                if (req.path.includes("closed")) {
+                    res.redirect('/');
+                } else {
+                    next();
+                };
+            });
 
             retrieved = 2;
             try {
