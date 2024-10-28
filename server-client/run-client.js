@@ -37,6 +37,8 @@ function startServer() {
                     next();
                 };
             });
+
+            ss.log.bgRed('Server is running in closed mode.');
         } else {
             app.use(express.static(path.join(ss.currentDir, 'store', 'client-modified')));
             app.use(express.static(path.join(ss.rootDir, 'src', 'shared-static')));
