@@ -81,6 +81,7 @@ export class PermissionsConstructor {
             category: "mod",
             description: "Boot problematic players.",
             example: "@onlypuppy7",
+            autocomplete: "@",
             permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
             inputType: ["number", 0, maxServerSlots - 1, 1],
             executeClient: (player, opts) => {
@@ -191,6 +192,10 @@ export class PermissionsConstructor {
         return this.cmdsByIdentifier[identifier] || false;
     };
 
+    searchCmdByCategory (category, name) {
+        return this.cmds[category] && this.cmds[category][name] || false;
+    };
+
     searchPermission (identifier, player) {
         var cmd = this.searchCmd(identifier);
         return cmd ? cmd.checkPermissions(player) : false;
@@ -198,7 +203,7 @@ export class PermissionsConstructor {
 };
 
 class Command {
-    constructor(context, { identifier, name, category, description, example, usage, permissionLevel, inputType, executeClient, executeServer }) {
+    constructor(context, { identifier, name, category, description, example, usage, autocomplete, permissionLevel, inputType, executeClient, executeServer }) {
         if (!context.cmds[category]) context.cmds[category] = {};
         context.cmds[category][name] = this;
         context.cmdsByIdentifier[identifier] = this;
@@ -214,6 +219,7 @@ class Command {
         this.category = category;
         this.description = description;
         this.example = example;
+        this.autocomplete = autocomplete || "";
 
         var generatedUsage;
         if (inputType[0] == "string") {

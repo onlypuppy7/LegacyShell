@@ -734,7 +734,7 @@ button > h1 {
 #command-info-dialog {
     position: absolute;
     display: none;
-    left: 18em;
+    left: calc(30% + 2em);
     bottom: 1.2em;
     background-color: rgba(0, 0, 0, 0.6);
     color: #fff;

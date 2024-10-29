@@ -1,10 +1,6 @@
 //legacyshell: gametypes
+import { ItemTypes } from '#items';
 //
-
-export const ItemTypes = {
-    AMMO: 0,
-    GRENADE: 1
-};
 
 export var defaultOptions = {
     teamsEnabled: false,
