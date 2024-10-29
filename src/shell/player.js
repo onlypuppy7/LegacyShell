@@ -155,15 +155,18 @@ class Player {
             this.actor.mesh.scaling.set(newScale, newScale, newScale);
 
             var scale = Math.max(newScale, 0.15); //prevents NaN
-            this.actor.playbackRate = 1.16107 - (0.239878 * Math.log((2.20821 * scale) - 0.251099)); //number
+            this.actor.playbackRate = 1.16107 - (0.239878 * Math.log((2.20821 * scale) - 0.251099)); //hm yes, this is a good formula
             // this.actor.bodyMesh.position.y = 0.32 * newScale;
         };
-        if (isServer && !init) {
-            var output = new Comm.Out(3);
-            this.client.packScale(output);
-            this.client.sendToAll(output, "setScale");
-        };
+        sendModifiers(init);
     };
+    sendModifiers(init) {
+        if (isServer && !init) {
+            var output = new Comm.Out();
+            this.client.packModifiers(output);
+            this.client.sendToAll(output, "setModifiers");
+        };
+    }
     changeWeaponLoadout(primaryWeaponItem, secondaryWeaponItem) {
         if (this.actor && this.weapons) {
             this.weapons[0].actor.dispose();

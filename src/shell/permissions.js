@@ -35,10 +35,10 @@ export class PermissionsConstructor {
             example: "WASSUP",
             permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Moderator, false],
             inputType: ["string"],
-            executeClient: (player, opts) => {
+            executeClient: (player, opts, mentions) => {
                 console.log(`Announcement: ${opts}`);
             },
-            executeServer: (player, opts) => {
+            executeServer: (player, opts, mentions) => {
                 // this.room(`Announcement: ${opts}`);
             }
         });
@@ -50,27 +50,41 @@ export class PermissionsConstructor {
             example: "wassup",
             permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
             inputType: ["string"],
-            executeClient: (player, opts) => {
+            executeClient: (player, opts, mentions) => {
                 console.log(`notifying rn: ${opts}`);
             },
-            executeServer: (player, opts) => {
+            executeServer: (player, opts, mentions) => {
                 this.room.notify(opts, 5);
                 // this.room(`Announcement: ${opts}`);
             }
         });
         new Command(this, {
-            identifier: "scaleMe",
-            name: "scaleMe",
+            identifier: "scale",
+            name: "scale",
             category: "misc",
-            description: "Sets scaling for your egg.",
+            description: "Sets scaling for players.",
             example: "1.5",
+            autocomplete: "@",
+            usage: "[@mention] number (0.1-25, step 0.1)",
             permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
             inputType: ["number", 0.1, 25, 0.1],
-            executeClient: (player, opts) => {
-                me.changeScale(opts);
+            executeClient: (player, opts, mentions) => {
+                mentions.forEach(mention => {
+                    mention.forEach(player => {
+                        if (player) {
+                            player.changeScale(opts);
+                        };
+                    });
+                });
             },
-            executeServer: (player, opts) => {
-                player.changeScale(opts);
+            executeServer: (player, opts, mentions) => {
+                mentions.forEach(mention => {
+                    mention.forEach(player => {
+                        if (player) {
+                            player.changeScale(opts);
+                        };
+                    });
+                });
             }
         });
 
@@ -82,16 +96,20 @@ export class PermissionsConstructor {
             description: "Boot problematic players.",
             example: "@onlypuppy7",
             autocomplete: "@",
+            usage: "[@mention] (multiple mentions supported)",
             permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
-            inputType: ["number", 0, maxServerSlots - 1, 1],
-            executeClient: (player, opts) => {
-                var player = players[opts];
-                if (player) {
-                    bootPlayer(player.id, player.uniqueId);
-                    devlog(`booting player: ${opts}`);
-                };
+            inputType: ["string"], //0, maxServerSlots - 1, 1
+            executeClient: (player, opts, mentions) => {
+                mentions.forEach(mention => {
+                    mention.forEach(player => {
+                        if (player) {
+                            bootPlayer(player.id, player.username);
+                            devlog(`booting player: ${opts}`);
+                        };
+                    });
+                });
             },
-            executeServer: (player, opts) => { }
+            executeServer: (player, opts, mentions) => { }
         });
 
         //room
@@ -103,10 +121,10 @@ export class PermissionsConstructor {
             example: "18",
             permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
             inputType: ["number", 1, maxServerSlots, 1],
-            executeClient: (player, opts) => {
+            executeClient: (player, opts, mentions) => {
                 devlog(`setting new player limit: ${opts}`);
             },
-            executeServer: (player, opts) => {
+            executeServer: (player, opts, mentions) => {
                 this.room.playerLimit = opts;
                 this.room.updateRoomDetails();
                 this.room.notify(`Player limit has been set to: ${opts}`, 5);
@@ -120,10 +138,10 @@ export class PermissionsConstructor {
             example: "0SXLLS",
             permissionLevel: [this.ranksEnum.Guest, this.ranksEnum.Guest, false],
             inputType: ["string"],
-            executeClient: (player, opts) => {
+            executeClient: (player, opts, mentions) => {
                 if (opts.length > 5) joinGame(opts);
             },
-            executeServer: (player, opts) => { }
+            executeServer: (player, opts, mentions) => { }
         });
         new Command(this, {
             identifier: "warpall",
@@ -133,8 +151,8 @@ export class PermissionsConstructor {
             example: "0SXLLS",
             permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
             inputType: ["string"],
-            executeClient: (player, opts) => { },
-            executeServer: (player, opts) => {
+            executeClient: (player, opts, mentions) => { },
+            executeServer: (player, opts, mentions) => {
                 if (opts.length > 5) {
                     var output = new Comm.Out();
                     output.packInt8U(Comm.Code.warp);
@@ -237,29 +255,77 @@ class Command {
         this.executeServer = executeServer; //to execute on the server side (when received)
     };
 
-    execute(player, opts) {
+    execute(player, rawInput) {
+        var opts = rawInput;
+        var parts = rawInput.split(" ");
+
+        opts = parts.filter(part => !part.startsWith("@"));
+
         switch (this.inputType[0]) {
             case "string": //leave as is
                 break;
             case "bool": //its a bool
-                opts = !!opts;
+                if (opts == "true" || opts == "1") opts = true;
+                else if (opts == "false" || opts == "0") opts = false;
+                opts = !!removedMentions;
                 break;
             case "number": //["number", min, max, step]
-                opts = formatNumber(opts, this.inputType);
+            opts = formatNumber(opts, this.inputType);
                 break;
             default:
                 break;
         };
 
-        // console.log(opts);
+        console.log(rawInput, opts);
 
         var permitted = this.checkPermissions(player);
 
         if (permitted) {
+            var mentions = [];
+    
+            var playersList = isClient ? players : this.room.players;
+            var mePlayer = isClient ? me : player;
+    
+            parts.forEach(part => {
+                console.log("part", part, playersList, mePlayer);
+                if (part.startsWith("@")) {
+                    switch (part) {
+                        case "@m":
+                            mentions.push([mePlayer]);
+                            break;
+                        case "@a":
+                            mentions.push(playersList);
+                            break;
+                        case "@t":
+                            var mention = [];
+                            playersList.forEach(player => {
+                                if (player.team == mePlayer.team) mention.push(player);
+                            });
+                            mentions.push(mention);
+                            break;
+                        case "@o":
+                            var mention = [];
+                            playersList.forEach(player => {
+                                if (player.team != mePlayer.team) mention.push(player);
+                            });
+                            mentions.push(mention);
+                            break;
+                        default:
+                            var username = part.slice(1);
+                            playersList.forEach(player => {
+                                if (player.username == username) mentions.push([player]);
+                            });
+                        break;
+                    };
+                };
+            });
+
+            console.log(mentions);
+
             if (isClient) {
-                this.executeClient(player, opts);
+                this.executeClient(player, opts, mentions);
             } else {
-                this.executeServer(player, opts);
+                this.executeServer(player, opts, mentions);
             };
         } else if (isClient) {
             addChat("Insufficient permissions.", null, Comm.Chat.cmd);

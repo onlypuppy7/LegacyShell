@@ -747,6 +747,8 @@ https://www.youtube.com/watch?v=pATHiYbGYuo (version in title)
 
 ## [0.14.6](https://web.archive.org/web/20181016210713/https://shellshock.io/) | 16 - 18 Oct 2018
 
+~~https://www.youtube.com/watch?v=SeGee7jHKIM~~
+
 ## [0.14.7](https://web.archive.org/web/20181019183046/https://shellshock.io/) | 19 Oct - 1 Nov 2018
 
 ~~*https://www.youtube.com/watch?v=dqaNPqbhD7U*~~

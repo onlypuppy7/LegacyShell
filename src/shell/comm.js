@@ -526,7 +526,7 @@ const Comm = {
         * SERVER: set scale of a player
         * @constant {number}
         */
-        setScale: 52,
+        setModifiers: 52,
 
         /** CLIENT: used by bwd admins to look at ips and stuff (scary). 
         * @constant {number}
