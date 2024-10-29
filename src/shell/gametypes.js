@@ -6,7 +6,8 @@ export var defaultOptions = {
     teamsEnabled: false,
     itemsEnabled: [ //itemType enum, spawn per how much surface area, minimum
         [ItemTypes.AMMO, 25, 4],
-        [ItemTypes.GRENADE, 65, 5]
+        [ItemTypes.GRENADE, 65, 5],
+        // [ItemTypes.HEALTH, 45, 5],
     ],
     teamSwitchMaximumDifference: 0,
     scale: [
