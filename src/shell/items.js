@@ -48,14 +48,39 @@ export const AllItems = [
         mesh: "ammo",
         name: "Ammo",
         actor: ItemActor,
-        poolSize: 100
+        poolSize: 100,
+        collect: function (player, applyToWeaponIdx) {
+            const ammoCollected = player.weapons[applyToWeaponIdx].collectAmmo();
+            if (ammoCollected) {
+                if (player.actor) {
+                    playSoundIndependent2D("ammo");
+                    //Sounds.ammo.play();
+                    updateAmmoUi();
+                };
+                return true;
+            };
+            return false;
+        }
     },
     {
         codeName: "GRENADE",
         mesh: "grenadeItem",
         name: "Grenade",
         actor: ItemActor,
-        poolSize: 20
+        poolSize: 20,
+        collect: function (player, applyToWeaponIdx) {
+            console.log("collecting grenade");
+            if (player.grenadeCount < player.grenadeCapacity) {
+                player.grenadeCount++;
+                if (player.actor) {
+                    playSoundIndependent2D("ammo");
+                    //Sounds.ammo.play();
+                    updateAmmoUi();
+                };
+                return true;
+            };
+            return false;
+        }
     }
 ];
 

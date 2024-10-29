@@ -515,7 +515,7 @@ class newClient {
         this.room.spawnItems();
     };
 
-    sendBuffer(output, debug) { // more direct operation, prefer this.room.sendToOne
+    sendBuffer(output, debug) { // more direct operation, preferred to use this.room.sendToOne
         if (!(debug.includes("sync") || debug.includes("ping"))) console.log(this.id, debug, output.idx);
         this.sendMsgToWs(output.buffer);
     };
