@@ -26,42 +26,11 @@ export class PermissionsConstructor {
         this.cmds = {};
         this.cmdsByIdentifier = {};
         
-        //misc
-        new Command(this, {
-            identifier: "announce",
-            name: "announce",
-            category: "misc",
-            description: "Announces a message to all players across all games.",
-            example: "WASSUP",
-            permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Moderator, false],
-            inputType: ["string"],
-            executeClient: (player, opts, mentions) => {
-                console.log(`Announcement: ${opts}`);
-            },
-            executeServer: (player, opts, mentions) => {
-                // this.room(`Announcement: ${opts}`);
-            }
-        });
-        new Command(this, {
-            identifier: "notify",
-            name: "notify",
-            category: "misc",
-            description: "Announces a message to all players.",
-            example: "wassup",
-            permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
-            inputType: ["string"],
-            executeClient: (player, opts, mentions) => {
-                console.log(`notifying rn: ${opts}`);
-            },
-            executeServer: (player, opts, mentions) => {
-                this.room.notify(opts, 5);
-                // this.room(`Announcement: ${opts}`);
-            }
-        });
+        //change
         new Command(this, {
             identifier: "scale",
             name: "scale",
-            category: "misc",
+            category: "change",
             description: "Sets scaling for players.",
             example: "1.5",
             autocomplete: "@",
@@ -110,6 +79,37 @@ export class PermissionsConstructor {
                 });
             },
             executeServer: (player, opts, mentions) => { }
+        });
+        new Command(this, {
+            identifier: "announce",
+            name: "announce",
+            category: "mod",
+            description: "Announces a message to all players across all games.",
+            example: "WASSUP",
+            permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Moderator, false],
+            inputType: ["string"],
+            executeClient: (player, opts, mentions) => {
+                console.log(`Announcement: ${opts}`);
+            },
+            executeServer: (player, opts, mentions) => {
+                // this.room(`Announcement: ${opts}`);
+            }
+        });
+        new Command(this, {
+            identifier: "notify",
+            name: "notify",
+            category: "mod",
+            description: "Announces a message to all players.",
+            example: "wassup",
+            permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
+            inputType: ["string"],
+            executeClient: (player, opts, mentions) => {
+                console.log(`notifying rn: ${opts}`);
+            },
+            executeServer: (player, opts, mentions) => {
+                this.room.notify(opts, 5);
+                // this.room(`Announcement: ${opts}`);
+            }
         });
 
         //room
