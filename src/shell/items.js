@@ -51,15 +51,14 @@ export const AllItems = [
         poolSize: 100,
         collect: function (player, applyToWeaponIdx) {
             const ammoCollected = player.weapons[applyToWeaponIdx].collectAmmo();
-            if (ammoCollected) {
-                if (player.actor) {
-                    playSoundIndependent2D("ammo");
-                    //Sounds.ammo.play();
-                    updateAmmoUi();
-                };
-                return true;
+            if (!ammoCollected) return false;
+
+            if (player.actor) {
+                playSoundIndependent2D("ammo");
+                //Sounds.ammo.play();
+                updateAmmoUi();
             };
-            return false;
+            return true;
         }
     },
     {
@@ -69,17 +68,30 @@ export const AllItems = [
         actor: ItemActor,
         poolSize: 20,
         collect: function (player, applyToWeaponIdx) {
-            console.log("collecting grenade");
-            if (player.grenadeCount < player.grenadeCapacity) {
-                player.grenadeCount++;
-                if (player.actor) {
-                    playSoundIndependent2D("ammo");
-                    //Sounds.ammo.play();
-                    updateAmmoUi();
-                };
-                return true;
+            if (player.grenadeCount >= player.grenadeCapacity) return false;
+
+            player.grenadeCount++;
+            if (player.actor) {
+                playSoundIndependent2D("ammo");
+                //Sounds.ammo.play();
+                updateAmmoUi();
             };
-            return false;
+            return true;
+        }
+    },
+    {
+        codeName: "HEALTH",
+        mesh: "healthpack.alt",
+        name: "Health Pack",
+        actor: ItemActor,
+        poolSize: 50,
+        collect: function (player, applyToWeaponIdx) {
+            if (player.hp === 100) return false
+            player.setHp(player.hp + 50);
+            if (player.actor) {
+                playSoundIndependent2D("ammo");
+            };
+            return true;
         }
     }
 ];
