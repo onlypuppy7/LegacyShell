@@ -102,7 +102,7 @@ function loadCue(name, srcs) {
  * @returns {void}
  * @example loadSoundsFromList([["sound/1.mp3", "sound1"], ["sound/2.mp3", "sound2"]], () => console.log("all sounds loaded!"));
  */
-function loadSoundsFromList(list, onComplete) {
+function loadSoundsFromList(list, onComplete) { //i hate this formatting, delete the code NOW or I will kill you
   var loadsComplete = 0;
 
   function catComplete() {
