@@ -43,6 +43,7 @@
         "#gametypes": "./src/shell/gametypes.js",
         "#guns": "./src/shell/guns.js",
         "#itemManager": "./src/shell/itemManager.js",
+        "#items": "./src/shell/items.js",
         "#loading": "./src/shell/loading.js",
         "#math": "./src/shell/math.js",
         "#munitionsManager": "./src/shell/munitionsManager.js",

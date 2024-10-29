@@ -1,28 +1,15 @@
 //legacyshell: item manager
 import { Pool } from "#pool";
 import { isClient, isServer, MAP } from '#constants';
-import { ItemTypes } from '#gametypes';
+import { ItemTypes, ItemConstructors } from '#items';
 //
 
 export class ItemManagerConstructor {
     constructor() {
-        class dummyObject {
-            constructor() {
-                // this.mesh = {};
-                // this.mesh.position = {};
-            };
-            remove () {
-                console.log("definitely removed ;)");
-            };
-        };
-
-        if (isClient) this.Constructors = [AmmoActor, GrenadeItemActor];
-        else this.Constructors = [dummyObject, dummyObject];
-
-        this.pools = [
-            new Pool(() => { return new this.Constructors[ItemTypes.AMMO] }, 100),
-            new Pool(() => { return new this.Constructors[ItemTypes.GRENADE] }, 20)
-        ];
+        this.pools = [];
+        ItemConstructors.forEach((itemConstructor) => {
+            this.pools.push(new Pool(() => { return new itemConstructor[0]() }, itemConstructor[1]));
+        });
     };
 
     update(delta) {

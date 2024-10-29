@@ -72,6 +72,7 @@ function prepareModified(ss) {
             { pattern: /LEGACYSHELLITEMMANAGER/g, file: "#itemManager" },
             { pattern: /LEGACYSHELLPERMISSIONS/g, file: "#permissions" },
             { pattern: /LEGACYSHELLAPOLLO/g, file: "#apollo" },
+            { pattern: /LEGACYSHELLPICKUPS/g, file: "#items" },
         ];
 
         replacements.forEach(replacement => {

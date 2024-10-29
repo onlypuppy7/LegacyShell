@@ -1,7 +1,7 @@
 //legacyshell: player
 import BABYLON from "babylonjs";
 import { stateBufferSize, isClient, isServer, CONTROL, devlog } from '#constants';
-import { ItemTypes } from '#gametypes';
+import { ItemTypes } from '#items';
 import { getMunitionsManager } from '#bullets';
 import Comm from '#comm';
 //legacyshell: adding kills and deaths (literally tracking ur every move the government is watching yuo)
@@ -619,7 +619,6 @@ class Player {
                 const ammoCollected = this.weapons[applyToWeaponIdx].collectAmmo();
                 if (ammoCollected) {
                     if (this.actor) {
-
                         playSoundIndependent2D("ammo");
                         //Sounds.ammo.play();
                         updateAmmoUi();
@@ -639,7 +638,7 @@ class Player {
                 };
                 return false;
             default:
-                return false;
+                return true;
         };
     };
     isSteady() {
