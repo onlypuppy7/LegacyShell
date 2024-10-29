@@ -1,14 +1,14 @@
 //legacyshell: item manager
 import { Pool } from "#pool";
 import { isClient, isServer, MAP } from '#constants';
-import { ItemTypes, ItemConstructors } from '#items';
+import { ItemTypes, AllItems } from '#items';
 //
 
 export class ItemManagerConstructor {
     constructor() {
         this.pools = [];
-        ItemConstructors.forEach((itemConstructor) => {
-            this.pools.push(new Pool(() => { return new itemConstructor[0]() }, itemConstructor[1]));
+        AllItems.forEach((item) => {
+            this.pools.push(new Pool(() => { return new item.actor(item) }, item.poolSize));
         });
     };
 
