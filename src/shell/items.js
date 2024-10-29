@@ -1,44 +1,41 @@
 //legacyshell: items
+import { isServer } from "#constants";
 //
 
-import { isServer } from "#constants";
-
 // [LS] ItemActor CONSTRUCTOR
-function ItemActor(kind) {
-    this.kind = kind;
-    this.scene = gameScene;
-};
-ItemActor.prototype.update = function (delta) {
-    this.mesh.rotation.y += .03 * delta
-};
-ItemActor.prototype.remove = function () {
-    this.mesh.setEnabled(false)
+export class ItemActor {
+    constructor(item) {
+        this.kind = item.id;
+        this.scene = gameScene;
+
+        this.mesh = this.scene.getMeshByName(item.mesh).createInstance("");
+        this.mesh.setEnabled(false);
+        shadowGen && shadowGen.getShadowMap().renderList.push(this.mesh)
+    };
+    update(delta) {
+        this.mesh.rotation.y += .03 * delta;
+    };
+    remove() {
+        this.mesh.setEnabled(false);
+    };
 };
 
-// [LS] AmmoActor CONSTRUCTOR
-function AmmoActor() {
-    ItemActor.call(this, ItemTypes.AMMO);
-    this.mesh = this.scene.getMeshByName("ammo").createInstance("");
-    this.mesh.setEnabled(false);
-    shadowGen && shadowGen.getShadowMap().renderList.push(this.mesh)
-};
-AmmoActor.prototype = Object.create(ItemActor.prototype);
-AmmoActor.prototype.constructor = ItemActor;
+//example code below for different anims
 
-// [LS] GrenadeItemActor CONSTRUCTOR
-function GrenadeItemActor() {
-    ItemActor.call(this, ItemTypes.GRENADE);
-    this.mesh = this.scene.getMeshByName("grenadeItem").createInstance("");
-    this.mesh.setEnabled(false);
-    shadowGen && shadowGen.getShadowMap().renderList.push(this.mesh)
-};
-GrenadeItemActor.prototype = Object.create(ItemActor.prototype);
-GrenadeItemActor.constructor = ItemActor;
+// export class altItemActor extends ItemActor {
+//     constructor(item) {
+//         super(item);
+//     };
+
+//     update(delta) {
+//         this.mesh.rotation.x += .03 * delta;
+//         this.mesh.rotation.y += .01 * delta;
+//         this.mesh.rotation.z += .05 * delta;
+//     };
+// };
 
 export class dummyItem {
     constructor() {
-        // this.mesh = {};
-        // this.mesh.position = {};
     };
     remove () {
         console.log("definitely removed ;)");
@@ -47,27 +44,29 @@ export class dummyItem {
 
 export const AllItems = [
     {
-        name: "Ammo",
         codeName: "AMMO",
-        actor: AmmoActor,
+        mesh: "ammo",
+        name: "Ammo",
+        actor: ItemActor,
         poolSize: 100
     },
     {
-        name: "Grenade",
         codeName: "GRENADE",
-        actor: GrenadeItemActor,
+        mesh: "grenadeItem",
+        name: "Grenade",
+        actor: ItemActor,
         poolSize: 20
     }
 ];
 
 export const ItemTypes = {};
 
-export const ItemConstructors = [];
+// export const ItemConstructors = [];
 
 AllItems.forEach((item, index) => {
     ItemTypes[item.codeName] = index;
     if (isServer) item.actor = dummyItem;
-    ItemConstructors.push([item.actor, item.poolSize]);
+    // ItemConstructors.push([item.actor, item.poolSize, item]);
     item.id = index;
 });
 
