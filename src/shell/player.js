@@ -1,7 +1,7 @@
 //legacyshell: player
 import BABYLON from "babylonjs";
 import { stateBufferSize, isClient, isServer, CONTROL, devlog } from '#constants';
-import { ItemTypes } from '#items';
+import { ItemTypes, AllItems } from '#items';
 import { getMunitionsManager } from '#bullets';
 import Comm from '#comm';
 //legacyshell: adding kills and deaths (literally tracking ur every move the government is watching yuo)
@@ -614,32 +614,7 @@ class Player {
         };
     };
     collectItem(kind, applyToWeaponIdx) {
-        switch (kind) {
-            case ItemTypes.AMMO:
-                const ammoCollected = this.weapons[applyToWeaponIdx].collectAmmo();
-                if (ammoCollected) {
-                    if (this.actor) {
-                        playSoundIndependent2D("ammo");
-                        //Sounds.ammo.play();
-                        updateAmmoUi();
-                    };
-                    return true;
-                };
-                return false;
-            case ItemTypes.GRENADE:
-                if (this.grenadeCount < this.grenadeCapacity) {
-                    this.grenadeCount++;
-                    if (this.actor) {
-                        playSoundIndependent2D("ammo");
-                        //Sounds.ammo.play();
-                        updateAmmoUi();
-                    };
-                    return true;
-                };
-                return false;
-            default:
-                return true;
-        };
+        return AllItems[kind].collect(this, applyToWeaponIdx);
     };
     isSteady() {
         return !this.weapon.subClass.readySpread ||
