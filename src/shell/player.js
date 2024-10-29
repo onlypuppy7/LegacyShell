@@ -1,6 +1,6 @@
 //legacyshell: player
 import BABYLON from "babylonjs";
-import { stateBufferSize, isClient, isServer, CONTROL, devlog } from '#constants';
+import { stateBufferSize, isClient, isServer, CONTROL, devlog, serverlog } from '#constants';
 import { ItemTypes, AllItems } from '#items';
 import { getMunitionsManager } from '#bullets';
 import Comm from '#comm';
@@ -143,10 +143,12 @@ class Player {
         this.setDefaultModifiers(true);
     };
     setDefaultModifiers(init) {
-        this.gravityModifier = this.gameOptions.gravityModifier[this.team];
-        this.speedModifier = this.gameOptions.speedModifier[this.team];
-        this.changeScale(this.gameOptions.scale[this.team], init);
-        this.regenModifier = this.gameOptions.regenModifier[this.team] || 1;
+        this.changeModifiers({
+            gravityModifier: this.gameOptions.gravityModifier[this.team] || 1,
+            speedModifier: this.gameOptions.speedModifier[this.team] || 1,
+            regenModifier: this.gameOptions.regenModifier[this.team] || 1,
+            scale: this.gameOptions.scale[this.team]
+        }, init);
     };
     changeScale (newScale, init) {
         // devlog("setting scale:", newScale);
@@ -158,7 +160,14 @@ class Player {
             this.actor.playbackRate = 1.16107 - (0.239878 * Math.log((2.20821 * scale) - 0.251099)); //hm yes, this is a good formula
             // this.actor.bodyMesh.position.y = 0.32 * newScale;
         };
-        sendModifiers(init);
+        this.sendModifiers(init);
+    };
+    changeModifiers(modifiers, init) { //a little disorganized but it works for this purpose
+        if (modifiers.gravityModifier !== undefined) this.gravityModifier = modifiers.gravityModifier;
+        if (modifiers.speedModifier !== undefined) this.speedModifier = modifiers.speedModifier;
+        if (modifiers.regenModifier !== undefined) this.regenModifier = modifiers.regenModifier;
+        if (modifiers.scale !== undefined) this.changeScale(modifiers.scale, init);
+        this.sendModifiers(init);
     };
     sendModifiers(init) {
         if (isServer && !init) {
@@ -206,6 +215,8 @@ class Player {
         };
 
         // devlog(this.name, this.stateIdx, this.controlKeys, this.x.toFixed(2), this.y.toFixed(2), this.z.toFixed(2), this.dx.toFixed(2), this.dy.toFixed(2), this.dz.toFixed(2), this.yaw.toFixed(2), this.pitch.toFixed(2));
+
+        // serverlog(this.weapon.ammo.rounds, this.weapon.ammo.store);
 
         if (this.controlKeys & CONTROL.left) {
             this.lastActivity = Date.now();
@@ -697,12 +708,21 @@ class Player {
                 this.releaseTrigger();
                 (output = new Comm.Out(1)).packInt8(Comm.Code.reload);
                 wsSend(output, "reload");
-                this.weapon.ammo.store -= rounds;
+                // this.weapon.ammo.store -= rounds;
             } else { //yay server code
                 output = new Comm.Out(2, true);
-                output.packInt8(Comm.Code.reload);
-                output.packInt8(this.id);
+                output.packInt8U(Comm.Code.reload);
+                output.packInt8U(this.id);
                 this.client.sendToOthers(output.buffer, this.id, "reload");
+
+                output = new Comm.Out();
+                output.packInt8U(Comm.Code.reload);
+                output.packInt8U(this.id);
+                output.packInt8U(this.weapon.ammo.rounds);
+                output.packInt8U(this.weapon.ammo.store);
+                output.packInt8U(this.roundsToReload);
+                this.client.sendToMe(output, "reload");
+
                 this.reloadsQueued--;
             };
             if (this.weapon.ammo.rounds == 0) {
@@ -713,11 +733,11 @@ class Player {
         };
     };
     reloaded() {
+        console.log("reloaded", this.roundsToReload);
         this.weapon.ammo.rounds += this.roundsToReload;
+        this.weapon.ammo.store -= this.roundsToReload;
         if (this.actor) {
             this.id == meId && updateAmmoUi();
-        } else {
-            this.weapon.ammo.store -= this.roundsToReload;
         };
     };
     queueGrenade(throwPower) {
