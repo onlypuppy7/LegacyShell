@@ -363,8 +363,12 @@ class newRoom {
                 };
             };
         };
-        console.log('Finished loading item spawns!');
+
         // console.log(this.validItemSpawns);
+        this.validItemSpawns = Math.shuffleArray(this.validItemSpawns);
+        // console.log(this.validItemSpawns);
+
+        console.log('Finished loading item spawns!');
     };
 
     packNotificationPacket(output, text, timeoutTime = 3) {
@@ -429,7 +433,7 @@ class newRoom {
             });
 
             while (pool.numActive < maximum) {
-                var pos = Math.getRandomFromList(this.validItemSpawns);
+                var pos = this.getItemSpawnFromQueue();
 
                 var x = pos[0] + 0.5;
                 var y = pos[1] + 0.1;
@@ -443,6 +447,12 @@ class newRoom {
             };
         };
         if (output.idx > 0) this.sendToAll(output, null, "spawnItem");
+    };
+
+    getItemSpawnFromQueue() {
+        var pos = this.validItemSpawns[0];
+        this.validItemSpawns.push(this.validItemSpawns.shift());
+        return pos;
     };
 
     getUnusedPlayerId() {
