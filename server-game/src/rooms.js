@@ -351,7 +351,7 @@ class newRoom {
         };
     };
 
-    getValidItemSpawns = function () {
+    getValidItemSpawns = function () { 
         let data = this.map.data;
         for (var x = 0; x < data.length; x++) {
             for (var y = 0; y < data[x].length; y++) {
@@ -449,7 +449,7 @@ class newRoom {
         if (output.idx > 0) this.sendToAll(output, null, "spawnItem");
     };
 
-    getItemSpawnFromQueue() {
+    getItemSpawnFromQueue() { //this is a queue, so it will rotate the positions
         var pos = this.validItemSpawns[0];
         this.validItemSpawns.push(this.validItemSpawns.shift());
         return pos;
