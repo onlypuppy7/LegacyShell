@@ -43,9 +43,27 @@ class newRoomManager {
 
     searchRooms(info) {
         var thisGameType = GameTypes[info.gameType];
+
+        let roomSelection = this.rooms;
+        if (info.joinType === Comm.Code.joinPublicGame) {
+            roomSelection = this.getRoomsJoinable(roomSelection);
+            roomSelection = this.getRoomsOfJoinType(info.joinType, roomSelection);
+            if (!thisGameType) {
+                thisGameType = Math.getRandomFromList(this.getAllActiveGameTypes(roomSelection));
+                if (!thisGameType) {
+                    thisGameType = Math.getRandomFromList(GameTypes);
+                };
+                info.gameType = thisGameType.value;
+            };
+        };
+
         var mapPool = thisGameType.mapPool;
 
         if (info.joinType === Comm.Code.createPrivateGame) {
+            if (!thisGameType) {
+                thisGameType = Math.getRandomFromList(GameTypes);
+                info.gameType = thisGameType.value;
+            };
             console.log("create game?");
             let remainingMapIds = [...ss.mapAvailability.private];
             remainingMapIds = getMapPool(remainingMapIds, mapPool, ss.maps);
@@ -58,9 +76,6 @@ class newRoomManager {
         } else if (info.joinType === Comm.Code.joinPublicGame) {
             console.log("public game");
             //this is where it gets interesting
-            let roomSelection = this.rooms;
-            roomSelection = this.getRoomsJoinable(roomSelection);
-            roomSelection = this.getRoomsOfJoinType(info.joinType, roomSelection);
             // console.log("joinType", info.joinType, roomSelection);
             roomSelection = this.getRoomsOfGameType(info.gameType, roomSelection);
             // console.log("gameType", info.gameType, roomSelection);
@@ -85,9 +100,8 @@ class newRoomManager {
         return null;
     };
 
-    getRoomsJoinable(selection) { //player limit, or anything else
+    getRoomsJoinable(selection = this.rooms) { //player limit, or anything else
         const matchingRooms = [];
-        selection = selection || this.rooms;
         for (const room of selection.values()) {
             if ((room.ready) && room.playerCount < room.playerLimit) {
                 matchingRooms.push(room);
@@ -96,9 +110,8 @@ class newRoomManager {
         return matchingRooms;
     };
 
-    getRoomsOfJoinType(joinType, selection) { //private/public
+    getRoomsOfJoinType(joinType, selection = this.rooms) { //private/public
         const matchingRooms = [];
-        selection = selection || this.rooms;
         for (const room of selection.values()) {
             if (room.joinType === joinType) {
                 matchingRooms.push(room);
@@ -107,15 +120,25 @@ class newRoomManager {
         return matchingRooms;
     };
 
-    getRoomsOfGameType(gameType, selection) { //gamemode
+    getRoomsOfGameType(gameType, selection = this.rooms) { //gamemode
         const matchingRooms = [];
-        selection = selection || this.rooms;
         for (const room of selection.values()) {
             if (room.gameType === gameType) {
                 matchingRooms.push(room);
             };
         };
         return matchingRooms;
+    };
+
+    getAllActiveGameTypes(selection = this.rooms) {
+        const gameTypes = [];
+        for (const room of selection.values()) {
+            var roomGameType = GameTypes[room.gameType];
+            if (!gameTypes.includes(roomGameType)) {
+                gameTypes.push(roomGameType);
+            };
+        };
+        return gameTypes;
     };
 
     getRandomID() {

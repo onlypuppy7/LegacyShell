@@ -66,7 +66,7 @@ function startServer() {
                                 //additional stuff provided they are signed in
                                 msg.session = input.unPackString(); //technically this is all thats rlly needed tbh
 
-                                msg.gameType = GameTypes[msg.gameType] ? msg.gameType : 0;
+                                // msg.gameType = GameTypes[msg.gameType] ? msg.gameType : 0;
 
                                 ss.config.verbose && console.log(msg, Comm.Convert(msg.joinType), Comm.Convert(msg.gameType));
         
