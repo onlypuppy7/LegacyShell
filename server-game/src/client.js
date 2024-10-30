@@ -263,7 +263,9 @@ class newClient {
                         text = text.replaceAll("<", "(");
                         console.log(this.player.name, "chatted:", text);
 
-                        if ("" != text) {
+                        if (this.player.chatLineCap <= 0 && this.player.chatLineCap >= -1) {
+                            this.notify("You are sending messages too quickly. Please wait a moment.");
+                        } else if ("" != text) {
                             if (text.startsWith("/")) {
                                 this.room.perm.inputCmd(this.player, text);
                             } else if (!this.room.censor.detect(text, true)) { //todo, ratelimiting
@@ -281,6 +283,8 @@ class newClient {
                                 };
                             };
                         };
+
+                        this.player.chatLineCap--;
                         break;
                     case Comm.Code.reload:
                         this.player.reload();

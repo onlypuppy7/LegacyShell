@@ -5,7 +5,7 @@ import ColliderConstructor from '#collider';
 import createLoop from '#looper';
 import extendMath from '#math';
 import { setSSforLoader, loadMapMeshes, buildMapData } from '#loading';
-import { TickStep, stateBufferSize, FramesBetweenSyncs, MAP, setSSForConstants, devlog } from '#constants';
+import { TickStep, stateBufferSize, FramesBetweenSyncs, MAP, setSSForConstants, devlog, chatCooldown } from '#constants';
 import { GameTypes } from '#gametypes';
 import { ItemTypes } from '#items';
 import { MunitionsManagerConstructor } from '#munitionsManager';
@@ -139,6 +139,7 @@ class newRoom {
             this.players.forEach(player => {
                 // console.log("lóóp", delta, this.lastTimeStamp, currentTimeStamp, player.stateIdx, player.syncStateIdx);
                 while (player.stateIdx !== player.syncStateIdx) {
+                    player.chatLineCap = Math.min(player.chatLineCap + 1 / (chatCooldown * 4), 3); //3 lines per second (idk why 4 works)
                     player.update(1);
                     // console.log(player.x, player.y, player.z, player.controlKeys, player.stateIdx, this.serverStateIdx);
                 };
