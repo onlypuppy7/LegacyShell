@@ -49,6 +49,7 @@
         "#munitionsManager": "./src/shell/munitionsManager.js",
         "#permissions": "./src/shell/permissions.js",
         "#player": "./src/shell/player.js",
+        "#plugins": "./src/shell/plugins.js",
         "#pool": "./src/shell/pool.js",
         "#stringWidth": "./src/shell/stringWidth.js",
         "#prepare-modified": "./server-client/src/prepare-modified.js",

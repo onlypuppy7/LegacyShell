@@ -9,6 +9,8 @@ import WebSocket, { WebSocketServer } from 'ws';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import extendMath from '#math';
+//legacyshell: plugins
+import PluginManager from '#plugins';
 //
 
 let ss; //trollage. access it later.
@@ -133,6 +135,8 @@ const misc = {
         ss = {
             ...ss,
             packageJson: JSON.parse(fs.readFileSync(path.join(ss.rootDir, 'package.json'), 'utf8')),
+            plugins: new PluginManager(ss),
+            pluginsDir: path.join(ss.rootDir, 'plugins'),
             versionEnum: Number(fs.readFileSync(path.join(ss.rootDir, 'versionEnum.txt'), 'utf8')),
             versionHash: fs.readFileSync(path.join(ss.rootDir, 'versionHash.txt'), 'utf8').slice(0,7),
             isPerpetual: argv[2] === "--perpetual",
