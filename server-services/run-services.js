@@ -340,6 +340,21 @@ initTables().then(() => {
                                     ws.send(JSON.stringify({ error: 'Invalid username.' }));
                                     return;
                                 };
+                                var reserved = [
+                                    'admin',
+                                    'moderator',
+                                    'guest',
+                                    'unknown',
+                                    'player',
+                                    'undefined'
+                                ];
+                                reserved.forEach(reservedName => {
+                                    if (msg.username.toLowerCase().includes(reservedName)) {
+                                        ws.send(JSON.stringify({ error: 'Reserved username: '+reservedName }));
+                                        return;
+                                    };
+                                });
+
                                 if (!(/^[a-f0-9]{64}$/i).test(msg.password)) {
                                     standardError(ws);
                                     return;
