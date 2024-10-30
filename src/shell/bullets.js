@@ -108,9 +108,9 @@ Bullet.prototype.fireThis = function (player, pos, dir, weaponClass) {
     this.dz = Bullet.direction.z * weaponClass.velocity;
 
     this.weaponClass = weaponClass;
-    this.damage = weaponClass.damage;
+    this.damage = weaponClass.damage * player.scale * player.damageModifier;
     this.active = true;
-    this.range = weaponClass.range;
+    this.range = weaponClass.range; 
     this.velocity = weaponClass.velocity;
     var res = Collider.rayCollidesWithMap(pos, dir, Collider.projectileCollidesWithCell.bind(Collider));
     res && (this.actor && this.end.copyFrom(res.pick.pickedPoint), this.range = BABYLON.Vector3.Distance(pos, res.pick.pickedPoint)), this.actor && this.actor.fire()
@@ -194,7 +194,7 @@ Bullet.prototype.collidesWithPlayer = function (player, point) {
         var dist = BABYLON.Vector3.Cross(tv1, tv2).length();
 
         var dot = -BABYLON.Vector3.Dot(tv1, tv2) * 0.9 + 0.1;
-        let damageMod = this.player.scale * (2 / player.scale);
+        let damageMod = 2;
         // var damage = this.damage * Math.pow(dot, damageExp + Math.pow(dot, damageExp) * damageMod);
         var damage = this.damage * Math.pow(dot, damageExp) * damageMod;
 

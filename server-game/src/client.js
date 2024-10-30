@@ -3,6 +3,7 @@ import misc from '#misc';
 import Comm from '#comm';
 import { ItemType, itemIdOffsets, FramesBetweenSyncs, stateBufferSize, TimeoutManagerConstructor, maxChatWidth, IntervalManagerConstructor, classes, devlog } from '#constants';
 import { fixStringWidth } from '#stringWidth';
+import { parseMentions } from '#permissions';
 import Player from '#player';
 import CatalogConstructor from '#catalog';
 import extendMath from '#math';
@@ -268,8 +269,16 @@ class newClient {
                             } else if (!this.room.censor.detect(text, true)) { //todo, ratelimiting
                                 text = fixStringWidth(text, maxChatWidth);
                                 var output = new Comm.Out();
-                                this.room.packChat(output, text, this.id, Comm.Chat.user);
-                                this.sendToOthers(output, this.id, "chat: " + text);
+                                if (text.startsWith("@")) {
+                                    var mentions = parseMentions(text, this);
+                                    this.room.packChat(output, text, this.id, Comm.Chat.whisper);
+                                    mentions[0].forEach(player => {
+                                        if (player !== this.player) this.sendToOne(output, player.id, "chat: " + text);
+                                    });
+                                } else {
+                                    this.room.packChat(output, text, this.id, Comm.Chat.user);
+                                    this.sendToOthers(output, this.id, "chat: " + text);
+                                };
                             };
                         };
                         break;
@@ -457,6 +466,9 @@ class newClient {
         output.packInt8(this.player.regenModifier * 10); //range: -12.8 to 12.7
         output.packInt8(this.player.speedModifier * 10); //range: -12.8 to 12.7
         output.packInt8(this.player.gravityModifier * 10); //range: -12.8 to 12.7
+        output.packInt8(this.player.damageModifier * 10); //range: -12.8 to 12.7
+        output.packInt8(this.player.resistanceModifier * 10); //range: -12.8 to 12.7
+        output.packInt8(this.player.jumpBoostModifier * 10); //range: -12.8 to 12.7
     };
 
     packSync(output) {
@@ -507,6 +519,19 @@ class newClient {
         output.packInt8U(this.room.mapId); // mapIdx
         output.packInt8U(this.room.playerLimit); // playerLimit
         output.packInt8U(0); //bool // isGameOwner
+    };
+
+    packNotificationPacket(output, text, timeoutTime = 3) {
+        output.packInt8U(Comm.Code.notification);
+        output.packString(text);
+        output.packInt8U(timeoutTime);
+    };
+
+    notify(text, timeoutTime = 5) {
+        text = text.replaceAll("<", "(");
+        var output = new Comm.Out();
+        this.packNotificationPacket(output, text, timeoutTime);
+        this.sendToMe(output, "notification");
     };
 
     pickupItem (kind, weaponIdx, id) {

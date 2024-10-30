@@ -28,31 +28,156 @@ export class PermissionsConstructor {
         
         //change
         new Command(this, {
+            identifier: "gravityModifier",
+            name: "gravity",
+            category: "change",
+            description: "Sets gravity for players.",
+            example: "0.5",
+            autocomplete: "@",
+            usage: "[@mention] number (-12 to 12, step 0.1)",
+            permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
+            inputType: ["number", -12, 12, 0.1],
+            executeClient: (player, opts, mentions) => {
+                forEachMentionInMentions(mentions, () => {
+                    player.changeModifiers({gravityModifier: opts});
+                });
+            },
+            executeServer: (player, opts, mentions) => {
+                forEachMentionInMentions(mentions, () => {
+                    player.changeModifiers({gravityModifier: opts});
+                    player.client.notify(`Your gravity has been set to: ${opts}`, 5);
+                });
+            }
+        });
+        new Command(this, {
+            identifier: "speedModifier",
+            name: "speed",
+            category: "change",
+            description: "Sets speed for players.",
+            example: "3",
+            autocomplete: "@",
+            usage: "[@mention] number (-12 to 12, step 0.1)",
+            permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
+            inputType: ["number", -12, 12, 0.1],
+            executeClient: (player, opts, mentions) => {
+                forEachMentionInMentions(mentions, () => {
+                    player.changeModifiers({speedModifier: opts});
+                });
+            },
+            executeServer: (player, opts, mentions) => {
+                forEachMentionInMentions(mentions, () => {
+                    player.changeModifiers({speedModifier: opts});
+                    player.client.notify(`Your speed has been set to: ${opts}`, 5);
+                });
+            }
+        });
+        new Command(this, {
+            identifier: "regenModifier",
+            name: "regen",
+            category: "change",
+            description: "Sets regen rate for players.",
+            example: "0.5",
+            autocomplete: "@",
+            usage: "[@mention] number (-12 to 12, step 0.1)",
+            permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
+            inputType: ["number", -12, 12, 0.1],
+            executeClient: (player, opts, mentions) => {
+                forEachMentionInMentions(mentions, () => {
+                    player.changeModifiers({regenModifier: opts});
+                });
+            },
+            executeServer: (player, opts, mentions) => {
+                forEachMentionInMentions(mentions, () => {
+                    player.changeModifiers({regenModifier: opts});
+                    player.client.notify(`Your regeb rate has been set to: ${opts}`, 5);
+                });
+            }
+        });
+        new Command(this, {
+            identifier: "damageModifier",
+            name: "damage",
+            category: "change",
+            description: "Sets damage modifiers for players.",
+            example: "0.5",
+            autocomplete: "@",
+            usage: "[@mention] number (-12 to 12, step 0.1)",
+            permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
+            inputType: ["number", -12, 12, 0.1],
+            executeClient: (player, opts, mentions) => {
+                forEachMentionInMentions(mentions, () => {
+                    player.changeModifiers({damageModifier: opts});
+                });
+            },
+            executeServer: (player, opts, mentions) => {
+                forEachMentionInMentions(mentions, () => {
+                    player.changeModifiers({damageModifier: opts});
+                    player.client.notify(`Your damage modifier has been set to: ${opts}`, 5);
+                });
+            }
+        });
+        new Command(this, {
+            identifier: "resistanceModifier",
+            name: "resistance",
+            category: "change",
+            description: "Sets resistance modifiers for players.",
+            example: "0.5",
+            autocomplete: "@",
+            usage: "[@mention] number (-12 to 12, step 0.1)",
+            permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
+            inputType: ["number", -12, 12, 0.1],
+            executeClient: (player, opts, mentions) => {
+                forEachMentionInMentions(mentions, () => {
+                    player.changeModifiers({resistanceModifier: opts});
+                });
+            },
+            executeServer: (player, opts, mentions) => {
+                forEachMentionInMentions(mentions, () => {
+                    player.changeModifiers({resistanceModifier: opts});
+                    player.client.notify(`Your resistance modifier has been set to: ${opts}`, 5);
+                });
+            }
+        });
+        new Command(this, {
+            identifier: "jumpBoostModifier",
+            name: "jumpBoost",
+            category: "change",
+            description: "Sets jump boost for players.",
+            example: "0.5",
+            autocomplete: "@",
+            usage: "[@mention] number (-12 to 12, step 0.1)",
+            permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
+            inputType: ["number", -12, 12, 0.1],
+            executeClient: (player, opts, mentions) => {
+                forEachMentionInMentions(mentions, () => {
+                    player.changeModifiers({jumpBoostModifier: opts});
+                });
+            },
+            executeServer: (player, opts, mentions) => {
+                forEachMentionInMentions(mentions, () => {
+                    player.changeModifiers({jumpBoostModifier: opts});
+                    player.client.notify(`Your jump boost modifier has been set to: ${opts}`, 5);
+                });
+            }
+        });
+        new Command(this, {
             identifier: "scale",
             name: "scale",
             category: "change",
             description: "Sets scaling for players.",
             example: "1.5",
             autocomplete: "@",
-            usage: "[@mention] number (0.1-25, step 0.1)",
+            usage: "[@mention] number (0.1 to 25, step 0.1)",
             permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
             inputType: ["number", 0.1, 25, 0.1],
             executeClient: (player, opts, mentions) => {
-                mentions.forEach(mention => {
-                    mention.forEach(player => {
-                        if (player) {
-                            player.changeScale(opts);
-                        };
-                    });
+                forEachMentionInMentions(mentions, () => {
+                    player.changeScale(opts);
                 });
             },
             executeServer: (player, opts, mentions) => {
-                mentions.forEach(mention => {
-                    mention.forEach(player => {
-                        if (player) {
-                            player.changeScale(opts);
-                        };
-                    });
+                forEachMentionInMentions(mentions, () => {
+                    player.changeScale(opts);
+                    player.client.notify(`Your scaling has been set to: ${opts}`, 5);
                 });
             }
         });
@@ -69,13 +194,9 @@ export class PermissionsConstructor {
             permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
             inputType: ["string"], //0, maxServerSlots - 1, 1
             executeClient: (player, opts, mentions) => {
-                mentions.forEach(mention => {
-                    mention.forEach(player => {
-                        if (player) {
-                            bootPlayer(player.id, player.username);
-                            devlog(`booting player: ${opts}`);
-                        };
-                    });
+                forEachMentionInMentions(mentions, () => {
+                    bootPlayer(player.id, player.username);
+                    devlog(`booting player: ${opts}`);
                 });
             },
             executeServer: (player, opts, mentions) => { }
@@ -108,7 +229,6 @@ export class PermissionsConstructor {
             },
             executeServer: (player, opts, mentions) => {
                 this.room.notify(opts, 5);
-                // this.room(`Announcement: ${opts}`);
             }
         });
 
@@ -245,7 +365,7 @@ class Command {
         } else if (inputType[0] == "bool") {
             generatedUsage = "true/false";
         } else if (inputType[0] == "number") {
-            generatedUsage = `number (${inputType[1]}-${inputType[2]}, step ${inputType[3]})`;
+            generatedUsage = `number (${inputType[1]} to ${inputType[2]}, step ${inputType[3]})`;
         };
 
         this.usage = usage || generatedUsage;
@@ -281,44 +401,7 @@ class Command {
         var permitted = this.checkPermissions(player);
 
         if (permitted) {
-            var mentions = [];
-    
-            var playersList = isClient ? players : this.room.players;
-            var mePlayer = isClient ? me : player;
-    
-            parts.forEach(part => {
-                console.log("part", part, playersList, mePlayer);
-                if (part.startsWith("@")) {
-                    switch (part) {
-                        case "@m":
-                            mentions.push([mePlayer]);
-                            break;
-                        case "@a":
-                            mentions.push(playersList);
-                            break;
-                        case "@t":
-                            var mention = [];
-                            playersList.forEach(player => {
-                                if (player.team == mePlayer.team) mention.push(player);
-                            });
-                            mentions.push(mention);
-                            break;
-                        case "@o":
-                            var mention = [];
-                            playersList.forEach(player => {
-                                if (player.team != mePlayer.team) mention.push(player);
-                            });
-                            mentions.push(mention);
-                            break;
-                        default:
-                            var username = part.slice(1);
-                            playersList.forEach(player => {
-                                if (player.username == username) mentions.push([player]);
-                            });
-                        break;
-                    };
-                };
-            });
+            var mentions = parseMentions(parts, this);
 
             console.log(mentions);
 
@@ -383,4 +466,56 @@ function splitFirst(str, delimiter) {
 
 function alphabetiseObjectKeys(obj) {
     return Object.keys(obj).sort().reduce((acc, key) => (acc[key] = obj[key], acc), {});
+};
+
+function forEachMentionInMentions (mentions, callback) {
+    mentions.forEach(mention => {
+        mention.forEach(player => {
+            if (player) callback(player);
+        });
+    });
+};
+
+export function parseMentions (parts, context) {
+    var mentions = [];
+
+    var playersList = isClient ? players : context.room.players;
+    var mePlayer = isClient ? me : context.player || player;
+
+    if (typeof parts == "string") parts = parts.split(" ");
+
+    parts.forEach(part => {
+        if (part.startsWith("@")) {
+            switch (part) {
+                case "@m":
+                    mentions.push([mePlayer]);
+                    break;
+                case "@a":
+                    mentions.push(playersList);
+                    break;
+                case "@t":
+                    var mention = [];
+                    playersList.forEach(player => {
+                        if (player.team == mePlayer.team) mention.push(player);
+                    });
+                    mentions.push(mention);
+                    break;
+                case "@o":
+                    var mention = [];
+                    playersList.forEach(player => {
+                        if (player.team != mePlayer.team) mention.push(player);
+                    });
+                    mentions.push(mention);
+                    break;
+                default:
+                    var username = part.slice(1);
+                    playersList.forEach(player => {
+                        if (player.username == username) mentions.push([player]);
+                    });
+                break;
+            };
+        };
+    });
+
+    return mentions;
 };

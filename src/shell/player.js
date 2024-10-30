@@ -147,6 +147,9 @@ class Player {
             gravityModifier: this.gameOptions.gravityModifier[this.team] || 1,
             speedModifier: this.gameOptions.speedModifier[this.team] || 1,
             regenModifier: this.gameOptions.regenModifier[this.team] || 1,
+            damageModifier: this.gameOptions.damageModifier[this.team] || 1,
+            resistanceModifier: this.gameOptions.resistanceModifier[this.team] || 1,
+            jumpBoostModifier: this.gameOptions.jumpBoostModifier[this.team] || 1,
             scale: this.gameOptions.scale[this.team]
         }, init);
     };
@@ -166,6 +169,9 @@ class Player {
         if (modifiers.gravityModifier !== undefined) this.gravityModifier = modifiers.gravityModifier;
         if (modifiers.speedModifier !== undefined) this.speedModifier = modifiers.speedModifier;
         if (modifiers.regenModifier !== undefined) this.regenModifier = modifiers.regenModifier;
+        if (modifiers.damageModifier !== undefined) this.damageModifier = modifiers.damageModifier;
+        if (modifiers.resistanceModifier !== undefined) this.resistanceModifier = modifiers.resistanceModifier;
+        if (modifiers.jumpBoostModifier !== undefined) this.jumpBoostModifier = modifiers.jumpBoostModifier;
         if (modifiers.scale !== undefined) this.changeScale(modifiers.scale, init);
         this.sendModifiers(init);
     };
@@ -524,7 +530,7 @@ class Player {
         };
 
         if (this.canJump()) {
-            this.dy = 0.06;
+            this.dy = 0.06 * this.jumpBoostModifier;
             this.setJumping(true);
             return !(this.lastTouchedGround === 0);
         };
@@ -848,10 +854,12 @@ class Player {
     hit (damage, firedPlayer, dx, dz) {
         if (this.isDead() || (!this.playing)) return;
         if (this.team === 0 ? false : (this.team === firedPlayer.team && this.id !== firedPlayer.id)) return;
-        damage = Math.ceil(damage);
+
+        damage = Math.ceil((damage / this.resistanceModifier) / this.scale);
+        
         var firedPlayerId = firedPlayer ? firedPlayer.id : null;
 
-        if (damage > this.hp) { //no powerup so whatever
+        if (damage > this.hp) { //no powerups in this version so whatever
             this.die(firedPlayerId);
             firedPlayer.scoreKill(this);
         } else {
