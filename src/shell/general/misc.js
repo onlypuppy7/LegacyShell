@@ -45,9 +45,11 @@ const misc = {
         ss = {
             currentDir: path.resolve(ogDirname),
             rootDir: path.join(path.resolve(miscDirname), '..', '..', '..'),
+            log,
         };
 
         if (!noConfig) {
+            const defaultConfigPath = path.join(ss.rootDir, 'src', 'defaultconfig');
             const configFolderPath = path.join(ss.rootDir, 'store', 'config');
             if (!fs.existsSync(configFolderPath)) {
                 console.log("Config folder not found, make sure you have run the init script first... 'npm run init'");
@@ -73,9 +75,30 @@ const misc = {
     
                 try {
                     const data = fs.readFileSync(filePath, 'utf8');
+                    const defaultData = fs.readFileSync(path.join(defaultConfigPath, file), 'utf8');
                     try {
                         const yamlData = yaml.load(data);
-                        config[name] = yamlData;
+                        const yamlDefaultData = yaml.load(defaultData);
+
+                        if (yamlDefaultData) {
+                            config[name] = { //overwrite default with custom
+                                ...yamlDefaultData,
+                                ...yamlData
+                            };
+
+                            //iterate through default and notify user of anything missing in custom config
+                            for (const key in yamlDefaultData) {
+                                if (typeof yamlDefaultData[key] === "object") {
+                                    for (const subKey in yamlDefaultData[key]) {
+                                        if (yamlData[key] === undefined || yamlData[key][subKey] === undefined) {
+                                            ss.log.error(`Missing key ${key}.${subKey} in ${file}, using default value.`);
+                                        };
+                                    };
+                                } else if (yamlData[key] === undefined) {
+                                    ss.log.error(`Missing key ${key} in ${file}, using default value.`);
+                                };
+                            };
+                        };
                     } catch (parseError) {
                         console.error(`Error parsing YAML in ${file}:`, parseError);
                         process.exit(1);
@@ -106,7 +129,6 @@ const misc = {
             packageJson: JSON.parse(fs.readFileSync(path.join(ss.rootDir, 'package.json'), 'utf8')),
             versionEnum: Number(fs.readFileSync(path.join(ss.rootDir, 'versionEnum.txt'), 'utf8')),
             versionHash: fs.readFileSync(path.join(ss.rootDir, 'versionHash.txt'), 'utf8').slice(0,7),
-            log,
             isPerpetual: argv[2] === "--perpetual",
             startTime: Date.now(),
         };
