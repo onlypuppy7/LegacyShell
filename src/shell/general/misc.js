@@ -87,15 +87,21 @@ const misc = {
                             };
 
                             //iterate through default and notify user of anything missing in custom config
-                            for (const key in yamlDefaultData) {
-                                if (typeof yamlDefaultData[key] === "object") {
+                            for (const key in yamlDefaultData) { //not the cleanest way to do this
+                                if (yamlData[key] === undefined) {
+                                    ss.log.error(`Missing key ${key} in ${file}, using default value.`);
+                                } else if (typeof yamlDefaultData[key] === "object") {
                                     for (const subKey in yamlDefaultData[key]) {
                                         if (yamlData[key] === undefined || yamlData[key][subKey] === undefined) {
-                                            ss.log.error(`Missing key ${key}.${subKey} in ${file}, using default value.`);
+                                            ss.log.error(`Missing key ${key} -> ${subKey} in ${file}, using default value.`);
+                                        } else if (typeof yamlDefaultData[key][subKey] === "object") {
+                                            for (const subSubKey in yamlDefaultData[key][subKey]) {
+                                                if (yamlData[key][subKey][subSubKey] === undefined) { //if there are still more levels, get fucked
+                                                    ss.log.error(`Missing key ${key} -> ${subKey} -> ${subSubKey} in ${file}, using default value.`);
+                                                };
+                                            };
                                         };
                                     };
-                                } else if (yamlData[key] === undefined) {
-                                    ss.log.error(`Missing key ${key} in ${file}, using default value.`);
                                 };
                             };
                         };
