@@ -371,17 +371,12 @@ class newRoom {
         console.log('Finished loading item spawns!');
     };
 
-    packNotificationPacket(output, text, timeoutTime = 3) {
-        output.packInt8U(Comm.Code.notification);
-        output.packString(text);
-        output.packInt8U(timeoutTime);
-    };
-
     notify(text, timeoutTime = 5) {
-        text = text.replaceAll("<", "(");
-        var output = new Comm.Out();
-        this.packNotificationPacket(output, text, timeoutTime);
-        this.sendToAll(output, "notification");
+        this.clients.forEach(client => {
+            if (client.clientReady) {
+                client.notify(text, timeoutTime);
+            };
+        });
     };
 
     packChat(output, text, id = 255, chatType = Comm.Chat.user) {

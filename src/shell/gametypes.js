@@ -30,6 +30,21 @@ export var defaultOptions = {
         1, //team1
         1, //team2
     ],
+    damageModifier: [
+        1, //ffa
+        1, //team1
+        1, //team2
+    ],
+    resistanceModifier: [
+        1, //ffa
+        1, //team1
+        1, //team2
+    ],
+    jumpBoostModifier: [
+        1, //ffa
+        1, //team1
+        1, //team2
+    ],
 };
 
 export var GameTypes = [

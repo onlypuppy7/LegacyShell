@@ -296,6 +296,7 @@ const Comm = {
         user: 0,
         cmd: 1,
         blocked: 2,
+        whisper: 3,
     },
 
     /**
