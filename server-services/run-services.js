@@ -15,12 +15,16 @@ import rl from '#ratelimit';
 import accs from '#accountManagement';
 import sess from '#sessionManagement';
 import recs from '#recordsManagement';
+import backups from '#backups';
 //
 
 let ss = misc.instantiateSS(import.meta, process.argv);
 
+var dbPath = path.join(ss.rootDir, 'server-services', 'store', 'LegacyShellData.db');
+var backupPath = path.join(ss.rootDir, 'server-services', 'store', 'backups');
+
 //init db (ooooh! sql! fancy! a REAL database! not a slow json!)
-const db = new sqlite3.Database(path.join(ss.rootDir, 'server-services', 'store', 'LegacyShellData.db'));
+const db = new sqlite3.Database(dbPath);
 
 ss = {
     ...ss,
@@ -33,12 +37,16 @@ ss = {
     runQuery:   util.promisify(db.run.bind(db)),
     getOne:     util.promisify(db.get.bind(db)),
     getAll:     util.promisify(db.all.bind(db)),
+    //other paths
+    dbPath,
+    backupPath
 };
 
 //yeah we're doing this. deal with it fuckface.
 accs.setSS(ss);
 sess.setSS(ss);
 recs.setSS(ss);
+backups.setSS(ss);
 extendMath(Math);
 
 recs.initDB(ss.db);
@@ -47,7 +55,10 @@ ss.log.green('Account DB set up! (if it didnt exist already i suppose)');
 
 //account stuff
 
-setInterval(sess.cleanupExpiredSessions, 1000 * 60 * (ss.config.services.session_cleanup_interval || 3));
+setInterval(sess.cleanupExpiredSessions, 1e3 * 60 * (ss.config.services.session_cleanup_interval || 3));
+
+setInterval(backups.createBackup, 1e3 * 60 * 60 * (ss.config.services.backups.interval || 1));
+backups.createBackup();
 
 const initTables = async () => {
     try {

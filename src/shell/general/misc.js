@@ -142,7 +142,7 @@ const misc = {
             file = `// [LS] ${hashtag} imported from .${path[1]}\n${file}`;
             return file;
         } catch (error) {
-            return "//fucking failed! "+hashtag;
+            return "//fucking failed! you messed this up DEVELOPER!!! "+hashtag;
         };
     },
     getRandomAsciiChars: function (count, uuid) {
