@@ -1,3 +1,10 @@
+//basic
+import fs from 'node:fs';
+import path from 'node:path';
+//plugin: samplecommand
+import { samplePlugin } from './samplecommand.js'
+//
+
 export const PluginMeta = {
     name: 'Glitchy Room',
     version: '1.0.0',
@@ -7,16 +14,20 @@ export const PluginMeta = {
 };
 
 export class Plugin {
-    constructor(pluginManager) {
+    constructor(pluginManager, thisDir) {
         this.pluginManager = pluginManager;
+        this.thisDir = thisDir;
 
-        // console.log('Loading sample plugin...');
-
-        pluginManager.on('servicesOnLoad', this.handleEvent.bind(this));
+        pluginManager.on('client:pluginSourceInsertion', this.pluginSourceInsertion.bind(this));
+        samplePlugin.registerListeners(this.pluginManager);
     };
 
-    handleEvent(data) {
-        // console.log('Plugin received event data:', data);
+    pluginSourceInsertion(data) {
+        data.pluginInsertion.files.push({
+            insertBefore: '\nconsole.log("inserting before... (sample plugin)");',
+            filepath: path.join(this.thisDir, 'samplecommand.js'),
+            insertAfter: '\nconsole.log("inserting after... (sample plugin)!");\nsamplePlugin.registerListeners(plugins);'
+        });
     };
 
     onUnload() {

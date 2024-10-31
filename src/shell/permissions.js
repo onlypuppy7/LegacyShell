@@ -3,6 +3,10 @@ import { isClient, maxServerSlots } from "#constants";
 import Comm from '#comm';
 //
 
+//(server-only-start)
+var plugins;
+//(server-only-end)
+
 export class PermissionsConstructor {
     constructor(newSS, room) {
         var permsConfig;
@@ -11,6 +15,7 @@ export class PermissionsConstructor {
             permsConfig = permissions;
         } else {
             this.ss = newSS;
+            plugins = this.ss.plugins;
             this.room = room;
             permsConfig = this.ss.permissions;
         };
@@ -27,7 +32,7 @@ export class PermissionsConstructor {
         this.cmdsByIdentifier = {};
         
         //change
-        new Command(this, {
+        this.newCommand({
             identifier: "gravityModifier",
             name: "gravity",
             category: "change",
@@ -49,7 +54,7 @@ export class PermissionsConstructor {
                 });
             }
         });
-        new Command(this, {
+        this.newCommand({
             identifier: "speedModifier",
             name: "speed",
             category: "change",
@@ -71,7 +76,7 @@ export class PermissionsConstructor {
                 });
             }
         });
-        new Command(this, {
+        this.newCommand({
             identifier: "regenModifier",
             name: "regen",
             category: "change",
@@ -93,7 +98,7 @@ export class PermissionsConstructor {
                 });
             }
         });
-        new Command(this, {
+        this.newCommand({
             identifier: "damageModifier",
             name: "damage",
             category: "change",
@@ -115,7 +120,7 @@ export class PermissionsConstructor {
                 });
             }
         });
-        new Command(this, {
+        this.newCommand({
             identifier: "resistanceModifier",
             name: "resistance",
             category: "change",
@@ -137,7 +142,7 @@ export class PermissionsConstructor {
                 });
             }
         });
-        new Command(this, {
+        this.newCommand({
             identifier: "jumpBoostModifier",
             name: "jumpBoost",
             category: "change",
@@ -159,7 +164,7 @@ export class PermissionsConstructor {
                 });
             }
         });
-        new Command(this, {
+        this.newCommand({
             identifier: "scale",
             name: "scale",
             category: "change",
@@ -183,7 +188,7 @@ export class PermissionsConstructor {
         });
 
         //mod
-        new Command(this, {
+        this.newCommand({
             identifier: "boot",
             name: "boot",
             category: "mod",
@@ -201,7 +206,7 @@ export class PermissionsConstructor {
             },
             executeServer: (player, opts, mentions) => { }
         });
-        new Command(this, {
+        this.newCommand({
             identifier: "announce",
             name: "announce",
             category: "mod",
@@ -216,7 +221,7 @@ export class PermissionsConstructor {
                 // this.room(`Announcement: ${opts}`);
             }
         });
-        new Command(this, {
+        this.newCommand({
             identifier: "notify",
             name: "notify",
             category: "mod",
@@ -228,12 +233,13 @@ export class PermissionsConstructor {
                 console.log(`notifying rn: ${opts}`);
             },
             executeServer: (player, opts, mentions) => {
+                // console.log(`notifying rn: ${opts}`);
                 this.room.notify(opts, 5);
             }
         });
 
         //room
-        new Command(this, {
+        this.newCommand({
             identifier: "roomLimit",
             name: "limit",
             category: "room",
@@ -250,7 +256,7 @@ export class PermissionsConstructor {
                 this.room.notify(`Player limit has been set to: ${opts}`, 5);
             }
         });
-        new Command(this, {
+        this.newCommand({
             identifier: "warp",
             name: "warp",
             category: "room",
@@ -263,7 +269,7 @@ export class PermissionsConstructor {
             },
             executeServer: (player, opts, mentions) => { }
         });
-        new Command(this, {
+        this.newCommand({
             identifier: "warpall",
             name: "warpall",
             category: "room",
@@ -281,6 +287,12 @@ export class PermissionsConstructor {
                 };
             }
         });
+
+        plugins.emit('permissionsAfterSetup', { this: this });
+    };
+
+    newCommand (options) {
+        new Command(this, options);
     };
 
     inputCmd (player, text) {
@@ -379,7 +391,7 @@ class Command {
         var opts = rawInput;
         var parts = rawInput.split(" ");
 
-        opts = parts.filter(part => !part.startsWith("@"));
+        opts = parts.filter(part => !part.startsWith("@")).join(" ");
 
         switch (this.inputType[0]) {
             case "string": //leave as is
@@ -390,7 +402,7 @@ class Command {
                 opts = !!removedMentions;
                 break;
             case "number": //["number", min, max, step]
-            opts = formatNumber(opts, this.inputType);
+                opts = formatNumber(opts, this.inputType);
                 break;
             default:
                 break;
@@ -401,7 +413,7 @@ class Command {
         var permitted = this.checkPermissions(player);
 
         if (permitted) {
-            var mentions = parseMentions(parts, this);
+            var mentions = parseMentions(parts, this, player);
 
             console.log(mentions);
 
@@ -476,7 +488,7 @@ function forEachMentionInMentions (mentions, callback) {
     });
 };
 
-export function parseMentions (parts, context) {
+export function parseMentions (parts, context, player) {
     var mentions = [];
 
     var playersList = isClient ? players : context.room.players;
