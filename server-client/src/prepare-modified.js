@@ -73,6 +73,7 @@ function prepareModified(ss) {
             { pattern: /LEGACYSHELLPERMISSIONS/g, file: "#permissions" },
             { pattern: /LEGACYSHELLAPOLLO/g, file: "#apollo" },
             { pattern: /LEGACYSHELLPICKUPS/g, file: "#items" },
+            { pattern: /LEGACYSHELLPLUGINMANAGER/g, file: "#plugins" },
         ];
 
         replacements.forEach(replacement => {
@@ -83,6 +84,24 @@ function prepareModified(ss) {
         if (ss.config.client.iif) { // unexposes variables to the client. see: console cracker
             sourceCode = `(()=>{\n${sourceCode}\n})();`
         };
+
+        var pluginInsertion = {};
+        pluginInsertion.string = "";
+        pluginInsertion.files = [];
+
+        ss.plugins.emit('pluginSourceInsertion', { ss, pluginInsertion });
+
+        pluginInsertion.files.forEach((file)=>{
+            if (file.insertBefore) pluginInsertion.string += `${file.insertBefore}`;
+            if (file.filepath) {
+                var fileContent = fs.readFileSync(path.join(file.filepath), 'utf8');
+                fileContent = ss.misc.prepareForClient(fileContent);
+                pluginInsertion.string += `\n\n${fileContent}\n`;
+            };
+            if (file.insertAfter) pluginInsertion.string += `${file.insertAfter}`;
+        });
+
+        sourceCode = sourceCode.replace(/LEGACYSHELLPLUGINS/g, pluginInsertion.string);
 
         extendMath(Math);
 
@@ -106,7 +125,7 @@ function prepareModified(ss) {
         };
 
         ss.log.italic("Inserting standardVertexShader into shellshock.min.js...");
-        const standardVertexShader = fs.readFileSync(path.join(ss.rootDir, 'src', 'shaders', 'standardVertexShader.glsl'), 'utf8')
+        const standardVertexShader = fs.readFileSync(path.join(ss.rootDir, 'src', 'shaders', 'standardVertexShader.glsl'), 'utf8');
             // .replace(/\n/g, '\\n')
             // .replace(/ {4}/g, '\\t');
         sourceCode = sourceCode.replace(/LEGACYSHELLSTANDARDVERTEXSHADER/g, `\n\`${standardVertexShader}\n\``);

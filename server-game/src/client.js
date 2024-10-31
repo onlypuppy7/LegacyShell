@@ -532,6 +532,7 @@ class newClient {
     };
 
     notify(text, timeoutTime = 5) {
+        console.log("notify", text)
         text = text.replaceAll("<", "(");
         var output = new Comm.Out();
         this.packNotificationPacket(output, text, timeoutTime);

@@ -166,16 +166,20 @@ const misc = {
         try {
             const path = misc.hashtagToPath(hashtag);
             let file = fs.readFileSync(path[0], 'utf8');
-            file = file.replaceAll("\nimport ", "\n//(ignore) import ");
-            file = file.replaceAll("\nexport default ", "\n//(ignore) export default ");
-            file = file.replaceAll("\nexport ", "\n/*(ignore) export*/ ");
-            file = file.replaceAll("\n//(server-only-start)", "\n/*(server-only-start)");
-            file = file.replaceAll("\n//(server-only-end)", "\n(server-only-end)*/");
+            file = misc.prepareForClient(file);
             file = `// [LS] ${hashtag} imported from .${path[1]}\n${file}`;
             return file;
         } catch (error) {
             return "//fucking failed! you messed this up DEVELOPER!!! "+hashtag;
         };
+    },
+    prepareForClient: function (file) {
+        file = file.replaceAll("\nimport ", "\n//(ignore) import ");
+        file = file.replaceAll("\nexport default ", "\n//(ignore) export default ");
+        file = file.replaceAll("\nexport ", "\n/*(ignore) export*/ ");
+        file = file.replaceAll("\n//(server-only-start)", "\n/*(server-only-start)");
+        file = file.replaceAll("\n//(server-only-end)", "\n(server-only-end)*/");
+        return file;
     },
     getRandomAsciiChars: function (count, uuid) {
         Math.seed = uuid;

@@ -3,15 +3,21 @@ import fs from 'fs';
 import path from 'path';
 //legacyshell: plugins
 import { fileURLToPath, pathToFileURL } from 'url';
+import { isServer } from '#constants';
 //
 
+//(server-only-start)
 var ss; //trollage. access it later.
+//(server-only-end)
 
 class PluginManager {
-    constructor(newSS) {
+    constructor(newSS, type) {
         this.plugins = new Map();
         this.listeners = {};
-        ss = newSS;
+        if (isServer) {
+            ss = newSS;
+        };
+        if (type) this.type = type;
     };
 
     async loadPlugins(type, pluginsDir) {
@@ -32,7 +38,7 @@ class PluginManager {
 
                     // console.log(PluginMeta);
 
-                    const pluginInstance = new Plugin(this);
+                    const pluginInstance = new Plugin(this, path.join(pluginsDir, pluginFolder));
                     this.plugins.set(pluginFolder, pluginInstance);
                     ss.log.success(`Loaded plugin -> ${PluginMeta.name} v${PluginMeta.version}: ${PluginMeta.descriptionShort}`);
                 };
@@ -45,12 +51,16 @@ class PluginManager {
     };
 
     on(event, listener) { //when a plugin registers a listener
+        console.log("registering emitter", event);
+
         if (!this.listeners[event]) this.listeners[event] = [];
         this.listeners[event].push(listener);
     };
 
     emit(event, ...args) { //when the main program emits an event
         event = `${this.type}:${event}`;
+
+        // console.log("emitting event", event);
 
         if (this.listeners[event]) {
             for (const listener of this.listeners[event]) {
