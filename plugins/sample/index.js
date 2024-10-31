@@ -6,7 +6,7 @@ import { samplePlugin } from './samplecommand.js'
 //
 
 export const PluginMeta = {
-    name: 'Glitchy Room',
+    name: 'Sample Command Plugin',
     version: '1.0.0',
     descriptionShort: 'A sample plugin',
     descriptionLong: 'A sample plugin',

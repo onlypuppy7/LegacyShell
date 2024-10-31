@@ -408,7 +408,7 @@ class Command {
                 break;
         };
 
-        console.log(rawInput, opts);
+        // console.log(rawInput, opts);
 
         var permitted = this.checkPermissions(player);
 
