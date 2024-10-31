@@ -179,6 +179,7 @@ function prepareModified(ss) {
 
         let mapEditorJs = fs.readFileSync(sourceEditorJsPath, 'utf8');
         mapEditorJs = mapEditorJs.replace(/LEGACYSHELLGAMETYPES/g, ss.misc.hashtagToString("gametypes"));
+        mapEditorJs = mapEditorJs.replace(/LEGACYSHELLITEMS/g, ss.misc.hashtagToString("items"));
         mapEditorJs = mapEditorJs.replace(/LEGACYSHELLSKYBOXES/g, JSON.stringify(fs.readdirSync(skyboxesPath)));
 
         fs.writeFileSync(destinationEditorJsPath, mapEditorJs, 'utf8');
