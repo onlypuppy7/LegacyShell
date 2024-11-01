@@ -42,6 +42,7 @@
         "#constants": "./src/shell/constants.js",
         "#gametypes": "./src/shell/gametypes.js",
         "#guns": "./src/shell/guns.js",
+        "#isClientServer": "./src/shell/isClientServer.js",
         "#itemManager": "./src/shell/itemManager.js",
         "#items": "./src/shell/items.js",
         "#loading": "./src/shell/loading.js",

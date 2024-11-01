@@ -76,6 +76,7 @@ function prepareModified(ss) {
             { pattern: /LEGACYSHELLAPOLLO/g, file: "#apollo" },
             { pattern: /LEGACYSHELLPICKUPS/g, file: "#items" },
             { pattern: /LEGACYSHELLPLUGINMANAGER/g, file: "#plugins" },
+            { pattern: /LEGACYSHELLISCLIENTSERVER/g, file: "#isClientServer" },
         ];
 
         replacements.forEach(replacement => {
@@ -88,7 +89,8 @@ function prepareModified(ss) {
         };
 
         var pluginInsertion = {};
-        pluginInsertion.string = "";
+        pluginInsertion.stringBefore = "";
+        pluginInsertion.stringAfter = "";
         pluginInsertion.files = [];
 
         plugins.emit('pluginSourceInsertion', { ss, pluginInsertion });
@@ -98,12 +100,14 @@ function prepareModified(ss) {
             if (file.filepath) {
                 var fileContent = fs.readFileSync(path.join(file.filepath), 'utf8');
                 fileContent = ss.misc.prepareForClient(fileContent);
-                pluginInsertion.string += `\n\n${fileContent}\n`;
+                if (file.position === "before") pluginInsertion.stringBefore += `\n${fileContent}\n\n`;
+                else pluginInsertion.stringAfter += `\n${fileContent}\n\n`;
             };
             if (file.insertAfter) pluginInsertion.string += `${file.insertAfter}`;
         });
 
-        sourceCode = sourceCode.replace(/LEGACYSHELLPLUGINS/g, pluginInsertion.string);
+        sourceCode = sourceCode.replace(/LEGACYSHELLPLUGINSBEFORE/g, pluginInsertion.stringBefore);
+        sourceCode = sourceCode.replace(/LEGACYSHELLPLUGINSAFTER/g, pluginInsertion.stringAfter);
 
         extendMath(Math);
 
