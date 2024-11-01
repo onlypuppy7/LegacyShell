@@ -43,12 +43,12 @@ export class PermissionsConstructor {
             permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
             inputType: ["number", -12, 12, 0.1],
             executeClient: (player, opts, mentions) => {
-                forEachMentionInMentions(mentions, () => {
+                forEachMentionInMentions(mentions, (player) => {
                     player.changeModifiers({gravityModifier: opts});
                 });
             },
             executeServer: (player, opts, mentions) => {
-                forEachMentionInMentions(mentions, () => {
+                forEachMentionInMentions(mentions, (player) => {
                     player.changeModifiers({gravityModifier: opts});
                     player.client.notify(`Your gravity has been set to: ${opts}`, 5);
                 });
@@ -65,12 +65,12 @@ export class PermissionsConstructor {
             permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
             inputType: ["number", -12, 12, 0.1],
             executeClient: (player, opts, mentions) => {
-                forEachMentionInMentions(mentions, () => {
+                forEachMentionInMentions(mentions, (player) => {
                     player.changeModifiers({speedModifier: opts});
                 });
             },
             executeServer: (player, opts, mentions) => {
-                forEachMentionInMentions(mentions, () => {
+                forEachMentionInMentions(mentions, (player) => {
                     player.changeModifiers({speedModifier: opts});
                     player.client.notify(`Your speed has been set to: ${opts}`, 5);
                 });
@@ -87,12 +87,12 @@ export class PermissionsConstructor {
             permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
             inputType: ["number", -12, 12, 0.1],
             executeClient: (player, opts, mentions) => {
-                forEachMentionInMentions(mentions, () => {
+                forEachMentionInMentions(mentions, (player) => {
                     player.changeModifiers({regenModifier: opts});
                 });
             },
             executeServer: (player, opts, mentions) => {
-                forEachMentionInMentions(mentions, () => {
+                forEachMentionInMentions(mentions, (player) => {
                     player.changeModifiers({regenModifier: opts});
                     player.client.notify(`Your regeb rate has been set to: ${opts}`, 5);
                 });
@@ -109,12 +109,12 @@ export class PermissionsConstructor {
             permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
             inputType: ["number", -12, 12, 0.1],
             executeClient: (player, opts, mentions) => {
-                forEachMentionInMentions(mentions, () => {
+                forEachMentionInMentions(mentions, (player) => {
                     player.changeModifiers({damageModifier: opts});
                 });
             },
             executeServer: (player, opts, mentions) => {
-                forEachMentionInMentions(mentions, () => {
+                forEachMentionInMentions(mentions, (player) => {
                     player.changeModifiers({damageModifier: opts});
                     player.client.notify(`Your damage modifier has been set to: ${opts}`, 5);
                 });
@@ -131,12 +131,12 @@ export class PermissionsConstructor {
             permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
             inputType: ["number", -12, 12, 0.1],
             executeClient: (player, opts, mentions) => {
-                forEachMentionInMentions(mentions, () => {
+                forEachMentionInMentions(mentions, (player) => {
                     player.changeModifiers({resistanceModifier: opts});
                 });
             },
             executeServer: (player, opts, mentions) => {
-                forEachMentionInMentions(mentions, () => {
+                forEachMentionInMentions(mentions, (player) => {
                     player.changeModifiers({resistanceModifier: opts});
                     player.client.notify(`Your resistance modifier has been set to: ${opts}`, 5);
                 });
@@ -153,12 +153,12 @@ export class PermissionsConstructor {
             permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
             inputType: ["number", -12, 12, 0.1],
             executeClient: (player, opts, mentions) => {
-                forEachMentionInMentions(mentions, () => {
+                forEachMentionInMentions(mentions, (player) => {
                     player.changeModifiers({jumpBoostModifier: opts});
                 });
             },
             executeServer: (player, opts, mentions) => {
-                forEachMentionInMentions(mentions, () => {
+                forEachMentionInMentions(mentions, (player) => {
                     player.changeModifiers({jumpBoostModifier: opts});
                     player.client.notify(`Your jump boost modifier has been set to: ${opts}`, 5);
                 });
@@ -175,12 +175,12 @@ export class PermissionsConstructor {
             permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
             inputType: ["number", 0.1, 25, 0.1],
             executeClient: (player, opts, mentions) => {
-                forEachMentionInMentions(mentions, () => {
+                forEachMentionInMentions(mentions, (player) => {
                     player.changeScale(opts);
                 });
             },
             executeServer: (player, opts, mentions) => {
-                forEachMentionInMentions(mentions, () => {
+                forEachMentionInMentions(mentions, (player) => {
                     player.changeScale(opts);
                     player.client.notify(`Your scaling has been set to: ${opts}`, 5);
                 });
@@ -199,7 +199,7 @@ export class PermissionsConstructor {
             permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
             inputType: ["string"], //0, maxServerSlots - 1, 1
             executeClient: (player, opts, mentions) => {
-                forEachMentionInMentions(mentions, () => {
+                forEachMentionInMentions(mentions, (player) => {
                     bootPlayer(player.id, player.username);
                     devlog(`booting player: ${opts}`);
                 });
@@ -482,6 +482,7 @@ function alphabetiseObjectKeys(obj) {
 function forEachMentionInMentions (mentions, callback) {
     mentions.forEach(mention => {
         mention.forEach(player => {
+            // console.log(`mentioned: ${player.username}`);
             if (player) callback(player);
         });
     });
@@ -497,6 +498,7 @@ export function parseMentions (parts, context, player) {
 
     parts.forEach(part => {
         if (part.startsWith("@")) {
+            // console.log(`mention: ${part}`);
             switch (part) {
                 case "@m":
                     mentions.push([mePlayer]);
