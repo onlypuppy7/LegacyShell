@@ -16,11 +16,13 @@ import accs from '#accountManagement';
 import sess from '#sessionManagement';
 import recs from '#recordsManagement';
 import backups from '#backups';
+//legacyshell: plugins
+import { plugins } from '#plugins';
 //
 
 (async () => {
     let ss = misc.instantiateSS(import.meta, process.argv);
-    await ss.plugins.loadPlugins('services', ss.pluginsDir);
+    await plugins.loadPlugins('services', ss);
 
     var dbPath = path.join(ss.rootDir, 'server-services', 'store', 'LegacyShellData.db');
     var backupPath = path.join(ss.rootDir, 'server-services', 'store', 'backups');
@@ -55,7 +57,7 @@ import backups from '#backups';
     
     ss.log.green('Account DB set up! (if it didnt exist already i suppose)');
 
-    ss.plugins.emit('servicesOnLoad', { ss });
+    plugins.emit('servicesOnLoad', { ss });
     
     //account stuff
     

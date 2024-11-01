@@ -5,6 +5,8 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import UglifyJS from 'uglify-js';
 import extendMath from '#math';
+//legacyshell: plugins
+import { plugins } from '#plugins';
 //
 
 let ss;
@@ -89,7 +91,7 @@ function prepareModified(ss) {
         pluginInsertion.string = "";
         pluginInsertion.files = [];
 
-        ss.plugins.emit('pluginSourceInsertion', { ss, pluginInsertion });
+        plugins.emit('pluginSourceInsertion', { ss, pluginInsertion });
 
         pluginInsertion.files.forEach((file)=>{
             if (file.insertBefore) pluginInsertion.string += `${file.insertBefore}`;

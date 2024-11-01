@@ -11,11 +11,13 @@ import WebSocket, { WebSocketServer } from 'ws';
 import Comm from '#comm';
 import rm from './src/roomManager.js';
 import { getMapsByAvailabilityAsInts, GameTypes, getMapPool } from '#gametypes';
+//legacyshell: plugins
+import { plugins } from '#plugins';
 //
 
 (async () => {
     let ss = misc.instantiateSS(import.meta, process.argv);
-    await ss.plugins.loadPlugins('game', ss.pluginsDir);
+    await plugins.loadPlugins('game', ss);
 
     var RoomManager;
 
@@ -28,7 +30,7 @@ import { getMapsByAvailabilityAsInts, GameTypes, getMapPool } from '#gametypes';
         },
     };
 
-    ss.plugins.emit('gameOnLoad', { ss });
+    plugins.emit('gameOnLoad', { ss });
 
     function startServer() {
         const RoomManager = new rm.newRoomManager();

@@ -9,11 +9,13 @@ import wsrequest from '#wsrequest';
 //legacyshell: web server
 import express from 'express';
 import prepareModified from '#prepare-modified';
+//legacyshell: plugins
+import { plugins } from '#plugins';
 //
 
 (async () => {
     let ss = misc.instantiateSS(import.meta, process.argv);
-    await ss.plugins.loadPlugins('client', ss.pluginsDir);
+    await plugins.loadPlugins('client', ss);
 
     ss = {
         ...ss,
@@ -24,17 +26,17 @@ import prepareModified from '#prepare-modified';
     let retrieved = false;
     let offline = false;
 
-    ss.plugins.emit('onLoad', { ss });
+    plugins.emit('onLoad', { ss });
 
     function startServer() {
         try {
             const app = express();
             const port = ss.config.client.port || 13370;
 
-            ss.plugins.emit('onStartServer', { ss, app });
+            plugins.emit('onStartServer', { ss, app });
 
             if (ss.config.client.closed) {
-                ss.plugins.emit('closedBeforeDefault', { ss, app });
+                plugins.emit('closedBeforeDefault', { ss, app });
                 app.use(express.static(path.join(ss.currentDir, 'src', 'client-closed')));
 
                 app.use((req, res, next) => {
@@ -45,11 +47,11 @@ import prepareModified from '#prepare-modified';
                     };
                 });
 
-                ss.plugins.emit('closedAfterDefault', { ss, app });
+                plugins.emit('closedAfterDefault', { ss, app });
 
                 ss.log.bgRed('Server is running in closed mode.');
             } else {
-                ss.plugins.emit('openBeforeDefault', { ss, app });
+                plugins.emit('openBeforeDefault', { ss, app });
 
                 app.use(express.static(path.join(ss.currentDir, 'store', 'client-modified')));
                 app.use(express.static(path.join(ss.rootDir, 'src', 'shared-static')));
@@ -64,14 +66,14 @@ import prepareModified from '#prepare-modified';
                     };
                 });
 
-                ss.plugins.emit('openAfterDefault', { ss, app });
+                plugins.emit('openAfterDefault', { ss, app });
 
                 retrieved = 2;
                 try {
                     ss.log.blue('Generating modified files (eg minifying shellshock.min.js)...');
-                    ss.plugins.emit('beforePrepareModified', { ss, app });
+                    plugins.emit('beforePrepareModified', { ss, app });
                     prepareModified(ss);
-                    ss.plugins.emit('afterPrepareModified', { ss, app });
+                    plugins.emit('afterPrepareModified', { ss, app });
                 } catch (error) {
                     console.error('Modification failed:', error);
                     process.exit(1);
@@ -94,7 +96,7 @@ import prepareModified from '#prepare-modified';
 
             app.listen(port, () => {
                 ss.log.success(`Server is running on http://localhost:${port}`);
-                ss.plugins.emit('onServerRunning', { ss, app });
+                plugins.emit('onServerRunning', { ss, app });
             });
         } catch (error) {
             console.log(error);

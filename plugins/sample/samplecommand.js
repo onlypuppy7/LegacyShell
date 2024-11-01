@@ -2,14 +2,14 @@
 
 export const samplePlugin = {
     registerListeners: function (pluginManager) {
-        console.log("registering listeners...");
+        console.log("registering listeners... (sample plugin)");
 
         pluginManager.on('game:startUp', this.startUp.bind(this));
         pluginManager.on('game:permissionsAfterSetup', this.registerSampleCommand.bind(this));
     },
     
     registerSampleCommand: function (data) {
-        // console.log(data);
+        console.log("registering sample command... (sample plugin)");
         var thisThis = data.this;
 
         thisThis.newCommand({

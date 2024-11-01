@@ -3,11 +3,13 @@ import { parentPort } from 'worker_threads';
 import RoomConstructor from '#rooms';
 //legacyshell: basic
 import misc from '#misc';
+//legacyshell: plugins
+import { plugins } from '#plugins';
 //
 
 (async () => {
     let ss = misc.instantiateSS(import.meta, process.argv);
-    await ss.plugins.loadPlugins('game', ss.pluginsDir);
+    await plugins.loadPlugins('game', ss);
     
     var room;
     
