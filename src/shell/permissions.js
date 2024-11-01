@@ -397,9 +397,8 @@ class Command {
             case "string": //leave as is
                 break;
             case "bool": //its a bool
-                if (opts == "true" || opts == "1") opts = true;
-                else if (opts == "false" || opts == "0") opts = false;
-                opts = !!removedMentions;
+                opts = opts.toLowerCase();
+                opts = !(opts.startsWith("f") || opts.startsWith("0"));
                 break;
             case "number": //["number", min, max, step]
                 opts = formatNumber(opts, this.inputType);

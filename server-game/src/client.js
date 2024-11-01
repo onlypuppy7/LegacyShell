@@ -9,7 +9,11 @@ import CatalogConstructor from '#catalog';
 import extendMath from '#math';
 //legacyshell: getting user data
 import wsrequest from '#wsrequest';
+//legacyshell: plugins
+import { plugins } from '#plugins';
 //
+
+plugins.emit('clientStartUp', {  });
 
 let ss, catalog;
 extendMath(Math);
@@ -17,6 +21,8 @@ extendMath(Math);
 function setSS(newSS) {
     ss = newSS;
     catalog = new CatalogConstructor(ss.items);
+
+    plugins.emit('clientSetSS', { ss });
 };
 
 class newClient {
@@ -25,6 +31,8 @@ class newClient {
     };
 
     async initClient(room, info) {
+        plugins.emit('clientInit', { this: this, room, info });
+
         this.ss = ss;
         //
         this.session = info.session;
@@ -77,9 +85,13 @@ class newClient {
         this.sendBuffer(output, "packGameJoined"); //buffer cause not clientReady
 
         this.room.updateRoomDetails();
+
+        plugins.emit('clientInitEnd', { this: this, room, info });
     };
 
     async updateLoadout (classIdx, primary_item_id, secondary_item_id, colorIdx, hatId, stampId) {
+        plugins.emit('clientUpdateLoadout', { this: this, classIdx, primary_item_id, secondary_item_id, colorIdx, hatId, stampId });
+        
         //classIdx
         this.setClassIdx(classIdx);
         //gun skins
@@ -89,9 +101,13 @@ class newClient {
         this.setColorIdx(colorIdx);
         this.setEquippedItem(ItemType.Hat, this.classIdx, catalog.findItemBy8BitItemId(ItemType.Hat, this.classIdx, hatId));
         this.setEquippedItem(ItemType.Stamp, this.classIdx, catalog.findItemBy8BitItemId(ItemType.Stamp, this.classIdx, stampId));
+
+        plugins.emit('clientUpdateLoadoutEnd', { this: this, classIdx, primary_item_id, secondary_item_id, colorIdx, hatId, stampId });
     };
 
     applyLoadout () {
+        plugins.emit('clientApplyLoadout', { this: this });
+
         this.player.changeCharacter(
             this.classIdx,
             this.loadout[ItemType.Primary],
@@ -103,6 +119,8 @@ class newClient {
     };
 
     async instantiatePlayer() {
+        plugins.emit('clientInstantiatePlayer', { this: this });
+
         this.player = new Player({
             id: this.id,
             uniqueId: this.account_id,
@@ -148,6 +166,8 @@ class newClient {
 
             upgradeProductId: this.loggedIn ? this.userData.upgradeProductId : 0,
         }, this.room.scene, this);
+
+        plugins.emit('clientInstantiatePlayerEnd', { this: this });
 
         // console.log("upgradeProductId", this.userData.upgradeProductId, this.loggedIn ? this.userData.upgradeProductId : 0);
     };
@@ -499,9 +519,13 @@ class newClient {
             var idx = Math.mod(this.player.stateIdx + i - FramesBetweenSyncs, stateBufferSize);
             let state = this.player.stateBuffer[idx];
 
-            output.packInt8U(state.controlKeys);
-            output.packRadU(state.yaw);
-            output.packRad(state.pitch);
+            plugins.emit('clientPackSyncLoop', { this: this, output, state });
+
+            if (!plugins.cancel) {
+                output.packInt8U(state.controlKeys);
+                output.packRadU(state.yaw);
+                output.packRad(state.pitch);
+            };
         };
     };
 
