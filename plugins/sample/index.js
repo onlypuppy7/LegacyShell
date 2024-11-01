@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 //plugin: samplecommand
-import { samplePlugin } from './samplecommand.js'
+import { samplePlugin } from './samplecommand.js';
 //
 
 export const PluginMeta = {
@@ -27,11 +27,11 @@ export class Plugin {
         data.pluginInsertion.files.push({
             insertBefore: '\nconsole.log("inserting before... (sample plugin)");',
             filepath: path.join(this.thisDir, 'samplecommand.js'),
-            insertAfter: '\nconsole.log("inserting after... (sample plugin)!");\nsamplePlugin.registerListeners(plugins);'
+            insertAfter: '\nconsole.log("inserting after... (sample plugin)!");'
         });
     };
 
-    onUnload() {
+    onUnload() { //i dont see this being used anywhere
         console.log('Unloading Plugin');
     };
 };
