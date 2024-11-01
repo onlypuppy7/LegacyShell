@@ -43,20 +43,72 @@ function prepareModified(ss) {
     checkAndCreateDir(destinationEditorJsPath);
 
     try {
-        let sourceCode = fs.readFileSync(sourceShellJsPath, 'utf8');
+        var pluginInsertion = {};
+        pluginInsertion.stringBefore = "";
+        pluginInsertion.stringAfter = "";
+        pluginInsertion.files = [];
+    
+        plugins.emit('pluginSourceInsertion', { this: this, ss, pluginInsertion });
+    
+        pluginInsertion.files.forEach((file)=>{
+            if (file.insertBefore) {
+                if (file.position === "before") {
+                    pluginInsertion.stringBefore += `${file.insertBefore}`;
+                } else {
+                    pluginInsertion.stringAfter += `${file.insertBefore}`;
+                };
+            };
+            if (file.filepath) {
+                var fileContent = fs.readFileSync(path.join(file.filepath), 'utf8');
+                fileContent = ss.misc.prepareForClient(fileContent);
+                console.log(`[PLUGIN] Inserting ${file.filepath} into shellshock.min.js...`);
+                if (file.position === "before") pluginInsertion.stringBefore += `\n${fileContent}\n\n`;
+                else pluginInsertion.stringAfter += `\n${fileContent}\n\n`;
+            };
+            if (file.insertAfter) {
+                if (file.position === "before") {
+                    pluginInsertion.stringBefore += `${file.insertAfter}`;
+                } else {
+                    pluginInsertion.stringAfter += `${file.insertAfter}`;
+                };
+            };
+        });
 
-        ss.log.italic("Inserting version into shellshock.min.js...");
-        sourceCode = sourceCode.replace(/LEGACYSHELLVERSION/g, ss.packageJson.version);
-        ss.log.italic("Inserting item jsons into shellshock.min.js...");
-        sourceCode = sourceCode.replace(/LEGACYSHELLITEMS/g, ss.cache.items); //akshually
-        ss.log.italic("Inserting map jsons into shellshock.min.js...");
-        sourceCode = sourceCode.replace(/LEGACYSHELLMINMAPS/g, ss.cache.maps); //akshually
-        ss.log.italic("Inserting devmode into shellshock.min.js...");
-        sourceCode = sourceCode.replace(/LEGACYSHELLDEVMODE/g, ss.config.devlogs ? "true" : "false");
-        ss.log.italic("Inserting permissions into shellshock.min.js...");
-        sourceCode = sourceCode.replace(/LEGACYSHELLPERMSCONFIG/g, JSON.stringify(ss.permissions));
+        let code = {};
 
-        const replacements = [
+        code.sourceJs = fs.readFileSync(sourceShellJsPath, 'utf8');
+        code.mapEditorJs = fs.readFileSync(sourceEditorJsPath, 'utf8');
+
+        function doReplacements(replacements) {
+            plugins.emit('doReplacements', { this: this, ss, replacements, code });
+
+            replacements.forEach(replacement => {
+                var insertion = replacement.file ? ss.misc.hashtagToString(replacement.file) : replacement.insertion;
+                var name = replacement.file ? replacement.file.replace("#", "") + ".js" : replacement.name || replacement.pattern.toString();
+    
+                plugins.emit('doReplacementsLoop', { this: this, ss, replacement, code, insertion, name });
+
+                if (replacement.pattern.test(code.sourceJs)) {
+                    ss.log.italic(`Inserting ${name} into shellshock.min.js...`);
+                    code.sourceJs = code.sourceJs.replace(replacement.pattern, insertion);
+                };
+                if (replacement.pattern.test(code.mapEditorJs)) {
+                    ss.log.italic(`Inserting ${name} into mapEdit.js...`);
+                    code.mapEditorJs = code.mapEditorJs.replace(replacement.pattern, insertion);
+                };
+            });
+        };
+
+        const replacementsBefore = [
+            { pattern: /LEGACYSHELLPLUGINSBEFORE/g, insertion: pluginInsertion.stringBefore },
+            { pattern: /LEGACYSHELLPLUGINSAFTER/g, insertion: pluginInsertion.stringAfter },
+
+            { pattern: /LEGACYSHELLVERSION/g, insertion: `'${ss.packageJson.version}'` },
+            { pattern: /LEGACYSHELLDEVMODE/g, insertion: ss.config.devlogs ? "true" : "false" },
+            { pattern: /LEGACYSHELLPERMSCONFIG/g, insertion: JSON.stringify(ss.permissions) },
+
+            { pattern: /LEGACYSHELLSKYBOXES/g, insertion: JSON.stringify(fs.readdirSync(skyboxesPath)) },
+
             { pattern: /LEGACYSHELLCOMM/g, file: "#comm" },
             { pattern: /LEGACYSHELLPLAYERCONSTRUCTOR/g, file: "#player" },
             { pattern: /LEGACYSHELLCATALOG/g, file: "#catalog" },
@@ -79,42 +131,26 @@ function prepareModified(ss) {
             { pattern: /LEGACYSHELLISCLIENTSERVER/g, file: "#isClientServer" },
         ];
 
-        replacements.forEach(replacement => {
-            ss.log.italic(`Inserting ${replacement.file.replace("#", "")}.js into shellshock.min.js...`);
-            sourceCode = sourceCode.replace(replacement.pattern, ss.misc.hashtagToString(replacement.file));
-        });
+        plugins.emit('replacementsBefore', { this: this, ss, replacementsBefore });
+
+        doReplacements(replacementsBefore);
 
         if (ss.config.client.iif) { // unexposes variables to the client. see: console cracker
-            sourceCode = `(()=>{\n${sourceCode}\n})();`
+            code.sourceJs = `(()=>{\n${code.sourceJs}\n})();`
         };
-
-        var pluginInsertion = {};
-        pluginInsertion.stringBefore = "";
-        pluginInsertion.stringAfter = "";
-        pluginInsertion.files = [];
-
-        plugins.emit('pluginSourceInsertion', { ss, pluginInsertion });
-
-        pluginInsertion.files.forEach((file)=>{
-            if (file.insertBefore) pluginInsertion.string += `${file.insertBefore}`;
-            if (file.filepath) {
-                var fileContent = fs.readFileSync(path.join(file.filepath), 'utf8');
-                fileContent = ss.misc.prepareForClient(fileContent);
-                if (file.position === "before") pluginInsertion.stringBefore += `\n${fileContent}\n\n`;
-                else pluginInsertion.stringAfter += `\n${fileContent}\n\n`;
-            };
-            if (file.insertAfter) pluginInsertion.string += `${file.insertAfter}`;
-        });
-
-        sourceCode = sourceCode.replace(/LEGACYSHELLPLUGINSBEFORE/g, pluginInsertion.stringBefore);
-        sourceCode = sourceCode.replace(/LEGACYSHELLPLUGINSAFTER/g, pluginInsertion.stringAfter);
 
         extendMath(Math);
 
         if (ss.config.client.minify) {
             ss.log.italic("Minifying/obfuscating shellshock.min.js...");
 
-            const result = UglifyJS.minify(sourceCode);
+            plugins.emit('minificationBefore', { this: this, ss, code, UglifyJS });
+
+            var result;
+
+            if (!plugins.cancel) result = UglifyJS.minify(code.sourceJs);
+
+            plugins.emit('minificationAfter', { this: this, ss, code, result });
 
             if (result.error) {
                 throw new Error(`Minification failed: ${result.error}`);
@@ -124,77 +160,79 @@ function prepareModified(ss) {
                 throw new Error("Minification resulted in undefined code.");
             };
 
-            sourceCode = result.code;
-            console.log(`Minified shellshock.min.js`);
+            code.sourceJs = result.code;
+            ss.log.bold(`Minified shellshock.min.js`);
         } else {
-            console.log(`Skipped minification (config set).`);
+            ss.log.bold(`Skipped minification (config set).`);
+            plugins.emit('minificationSkipped', { this: this, ss, code });
         };
 
-        ss.log.italic("Inserting standardVertexShader into shellshock.min.js...");
-        const standardVertexShader = fs.readFileSync(path.join(ss.rootDir, 'src', 'shaders', 'standardVertexShader.glsl'), 'utf8');
-            // .replace(/\n/g, '\\n')
-            // .replace(/ {4}/g, '\\t');
-        sourceCode = sourceCode.replace(/LEGACYSHELLSTANDARDVERTEXSHADER/g, `\n\`${standardVertexShader}\n\``);
-        
-        ss.log.italic("Inserting standardPixelShader into shellshock.min.js...");
-        const standardPixelShader = fs.readFileSync(path.join(ss.rootDir, 'src', 'shaders', 'standardPixelShader.glsl'), 'utf8')
-            // .replace(/\n/g, '\\n')
-            // .replace(/ {4}/g, '\\t');
-        sourceCode = sourceCode.replace(/LEGACYSHELLSTANDARDPIXELSHADER/g, `\n\`${standardPixelShader}\n\``);
+        const replacementAfter = [
+            { pattern: /LEGACYSHELLITEMS/g, insertion: ss.cache.items },
+            { pattern: /LEGACYSHELLMINMAPS/g, insertion: ss.cache.maps },
 
-        ss.log.italic("Inserting babylon into shellshock.min.js...");
-        sourceCode = sourceCode.replace(/LEGACYSHELLBABYLON/g, `\n${fs.readFileSync(path.join(ss.currentDir, 'src', 'data', 'babylon.js'))}\n`);
-        console.log(`Saved shellshock.min.js to ${destinationShellJsPath}`);
+            { pattern: /LEGACYSHELLSTANDARDVERTEXSHADER/g, insertion: `\n\`${fs.readFileSync(path.join(ss.rootDir, 'src', 'shaders', 'standardVertexShader.glsl'), 'utf8')}\n\`` },
+            { pattern: /LEGACYSHELLSTANDARDPIXELSHADER/g, insertion: `\n\`${fs.readFileSync(path.join(ss.rootDir, 'src', 'shaders', 'standardPixelShader.glsl'), 'utf8')}\n\`` },
 
-        fs.writeFileSync(destinationShellJsPath, sourceCode, 'utf8');
+            { pattern: /LEGACYSHELLBABYLON/g, insertion: `\n${fs.readFileSync(path.join(ss.currentDir, 'src', 'data', 'babylon.js'))}\n` },
+        ];
+
+        plugins.emit('replacementsAfter', { ss, replacementAfter, code });
+
+        doReplacements(replacementAfter);
+
+        fs.writeFileSync(destinationShellJsPath, code.sourceJs, 'utf8');
+        ss.log.bold(`shellshock.min.js copied and modified to ${destinationShellJsPath}`);
+
+        fs.writeFileSync(destinationEditorJsPath, code.mapEditorJs, 'utf8');
+        ss.log.bold(`mapEdit.js copied and modified to ${destinationEditorJsPath}`);
 
         let fileBuffer = fs.readFileSync(destinationShellJsPath);
         let hashSum = crypto.createHash('sha256');
         hashSum.update(fileBuffer);
         hashes.SHELLSHOCKMINJSHASH = hashSum.digest('hex');
         ss.log.italic(`SHA-256 hash of the minified SHELLSHOCKMINJS: ${hashes.SHELLSHOCKMINJSHASH}`);
+        plugins.emit('hashes', { ss, hashes });
 
-        let serversJs = fs.readFileSync(sourceServersJsPath, 'utf8');
-        serversJs = serversJs.replace(/LEGACYSHELLSERVICESPORT/g, ss.config.services.port || "13371");
-        serversJs = serversJs.replace(/LEGACYSHELLWEBSOCKETPORT/g, ss.config.game.port || "13372");
-        serversJs = serversJs.replace(/LEGACYSHELLSERVICESSERVER/g, ss.config.client.servicesURL || "wss://services.legacy.onlypuppy7.online:443");
-        serversJs = serversJs.replace(/LEGACYSHELLSERVERS/g, ss.cache.servers || "[{ name: 'LegacyShell', address: 'matchmaker.legacy.onlypuppy7.online:443' }]");
+        code.serversJs = fs.readFileSync(sourceServersJsPath, 'utf8');
+        code.serversJs = code.serversJs.replace(/LEGACYSHELLSERVICESPORT/g, ss.config.services.port || "13371");
+        code.serversJs = code.serversJs.replace(/LEGACYSHELLWEBSOCKETPORT/g, ss.config.game.port || "13372");
+        code.serversJs = code.serversJs.replace(/LEGACYSHELLSERVICESSERVER/g, ss.config.client.servicesURL || "wss://services.legacy.onlypuppy7.online:443");
+        code.serversJs = code.serversJs.replace(/LEGACYSHELLSERVERS/g, ss.cache.servers || "[{ name: 'LegacyShell', address: 'matchmaker.legacy.onlypuppy7.online:443' }]");
 
-        fs.writeFileSync(destinationServersJsPath, serversJs, 'utf8');
+        plugins.emit('serversJs', { ss, code });
+
+        fs.writeFileSync(destinationServersJsPath, code.serversJs, 'utf8');
         console.log(`servers.js copied and modified to ${destinationServersJsPath}`);
 
         fileBuffer = fs.readFileSync(destinationServersJsPath);
         hashSum = crypto.createHash('sha256');
         hashSum.update(fileBuffer);
         hashes.SERVERJSHASH = hashSum.digest('hex');
+
+        plugins.emit('hashes', { ss, hashes });
         ss.log.italic(`SHA-256 hash of the modified SERVERJS: ${hashes.SERVERJSHASH}`);
 
-        let htmlContent = fs.readFileSync(sourceHtmlPath, 'utf8');
-        htmlContent = htmlContent.replace(/SHELLSHOCKMINJSHASH/g, hashes.SHELLSHOCKMINJSHASH);
-        htmlContent = htmlContent.replace(/LEGACYSHELLVERSION/g, ss.packageJson.version);
-        htmlContent = htmlContent.replace(/LEGACYSHELLEXTVERSION/g, `${ss.packageJson.version} (${ss.versionHash}, ${ss.versionEnum})`);
-        htmlContent = htmlContent.replace(/LEGACYSHELLDISCORDSERVER/g, ss.config.client.discordServer); //outdated method
-        htmlContent = htmlContent.replace(/LEGACYSHELLGITHUB/g, ss.config.client.githubURL);
-        htmlContent = htmlContent.replace(/LEGACYSHELLSYNCURL/g, ss.config.client.sync_server);
-        htmlContent = htmlContent.replace(/LEGACYSHELLCLIENTURL/g, ss.config.client.this_url);
-        htmlContent = htmlContent.replace(/LEGACYSHELLCONFIG/g, ss.distributed_config.replace(/\n/g, '<br>'));
-        htmlContent = htmlContent.replace(/LEGACYSHELLFAQ/g, fs.readFileSync(path.join(ss.currentDir, 'src', 'client-static', 'faq.html'), 'utf8'));
+        code.htmlContent = fs.readFileSync(sourceHtmlPath, 'utf8');
+        code.htmlContent = code.htmlContent.replace(/SHELLSHOCKMINJSHASH/g, hashes.SHELLSHOCKMINJSHASH);
+        code.htmlContent = code.htmlContent.replace(/LEGACYSHELLVERSION/g, ss.packageJson.version);
+        code.htmlContent = code.htmlContent.replace(/LEGACYSHELLEXTVERSION/g, `${ss.packageJson.version} (${ss.versionHash}, ${ss.versionEnum})`);
+        code.htmlContent = code.htmlContent.replace(/LEGACYSHELLDISCORDSERVER/g, ss.config.client.discordServer); //outdated method
+        code.htmlContent = code.htmlContent.replace(/LEGACYSHELLGITHUB/g, ss.config.client.githubURL);
+        code.htmlContent = code.htmlContent.replace(/LEGACYSHELLSYNCURL/g, ss.config.client.sync_server);
+        code.htmlContent = code.htmlContent.replace(/LEGACYSHELLCLIENTURL/g, ss.config.client.this_url);
+        code.htmlContent = code.htmlContent.replace(/LEGACYSHELLCONFIG/g, ss.distributed_config.replace(/\n/g, '<br>'));
+        code.htmlContent = code.htmlContent.replace(/LEGACYSHELLFAQ/g, fs.readFileSync(path.join(ss.currentDir, 'src', 'client-static', 'faq.html'), 'utf8'));
 
-        fs.writeFileSync(destinationHtmlPath, htmlContent, 'utf8');
-        console.log(`index.html copied and modified to ${destinationHtmlPath}`);
+        plugins.emit('htmlContent', { ss, code });
 
-        let mapEditorJs = fs.readFileSync(sourceEditorJsPath, 'utf8');
-        mapEditorJs = mapEditorJs.replace(/LEGACYSHELLGAMETYPES/g, ss.misc.hashtagToString("gametypes"));
-        mapEditorJs = mapEditorJs.replace(/LEGACYSHELLITEMS/g, ss.misc.hashtagToString("items"));
-        mapEditorJs = mapEditorJs.replace(/LEGACYSHELLSKYBOXES/g, JSON.stringify(fs.readdirSync(skyboxesPath)));
-
-        fs.writeFileSync(destinationEditorJsPath, mapEditorJs, 'utf8');
-        console.log(`mapEdit.js copied and modified to ${destinationEditorJsPath}`);
+        fs.writeFileSync(destinationHtmlPath, code.htmlContent, 'utf8');
+        ss.log.bold(`index.html copied and modified to ${destinationHtmlPath}`);
 
         delete ss.cache; //MEMORY LEAK FUCKING MI-Mi-mi-MITIGATED!!!
     } catch (error) {
         console.error('An error occurred during the file processing:', error);
-    }
-}
+    };
+};
 
 export default prepareModified;

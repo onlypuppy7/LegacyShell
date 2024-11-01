@@ -17,7 +17,7 @@ import { plugins } from '#plugins';
 
 (async () => {
     let ss = misc.instantiateSS(import.meta, process.argv);
-    await plugins.loadPlugins('game', ss);
+    await plugins.loadPlugins('gameServer', ss);
 
     var RoomManager;
 
@@ -30,7 +30,7 @@ import { plugins } from '#plugins';
         },
     };
 
-    plugins.emit('gameOnLoad', { ss });
+    plugins.emit('onLoad', { ss });
 
     function startServer() {
         const RoomManager = new rm.newRoomManager();

@@ -58,13 +58,15 @@ export class PluginManager {
     };
 
     emit(event, ...args) { //when the main program emits an event
+        this.cancel = false;
+
         event = `${this.type}:${event}`;
 
         // console.log("emitting event", event);
 
         if (this.listeners[event]) {
             for (const listener of this.listeners[event]) {
-                listener(...args);
+                listener(...args, this);
             };
         };
     };

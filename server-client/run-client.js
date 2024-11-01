@@ -109,6 +109,8 @@ import { plugins } from '#plugins';
         
             const b64auth = (req.headers.authorization || '').split(' ')[1] || '';
             const [login, password] = Buffer.from(b64auth, 'base64').toString().split(':');
+
+            plugins.emit('onCheckPassword', { ss, req, res, next, login, password, auth });
         
             // console.log(login, password, auth.login, auth.password);
 
@@ -123,30 +125,42 @@ import { plugins } from '#plugins';
 
     //all this is retrieving the config:
 
-    let itemsFilePath = path.join(ss.currentDir, 'store', 'items.json');
-    let mapsFilePath = path.join(ss.currentDir, 'store', 'maps.json');
-    let serversFilePath = path.join(ss.currentDir, 'store', 'servers.json');
+    let filepaths = {
+        items: path.join(ss.currentDir, 'store', 'items.json'),
+        maps: path.join(ss.currentDir, 'store', 'maps.json'),
+        servers: path.join(ss.currentDir, 'store', 'servers.json'),
+    };
+
+    plugins.emit('filepaths', { ss, filepaths });
 
     async function connectWebSocket(retryCount = 0) {
         nextTimeout = Math.min(nextTimeout + 5e3, 30e3);
+
+        plugins.emit('onConnectWebSocket', { ss, retryCount, nextTimeout });
 
         try {
             ss.log.blue('WebSocket connection opening. Requesting config information...');
             await wsrequest({
                 cmd: "requestConfig",
-                    lastItems: Math.floor(misc.getLastSavedTimestamp(itemsFilePath)/1000), //well in theory, if its not in existence this returns 0 and we should get it :D
-                    lastMaps: Math.floor(misc.getLastSavedTimestamp(mapsFilePath)/1000),
-                    lastServers: Math.floor(misc.getLastSavedTimestamp(serversFilePath)/1000),
+                    lastItems: Math.floor(misc.getLastSavedTimestamp(filepaths.items)/1000), //well in theory, if its not in existence this returns 0 and we should get it :D
+                    lastMaps: Math.floor(misc.getLastSavedTimestamp(filepaths.maps)/1000),
+                    lastServers: Math.floor(misc.getLastSavedTimestamp(filepaths.servers)/1000),
             }, ss.config.client.sync_server, undefined, (event) => {
                 let response = event.data;
                 var configInfo = JSON.parse(response);
+
+                plugins.emit('onConfigInfo', { ss, configInfo });
 
                 if (configInfo) {
                     if (!retrieved) {
                         ss.log.green('Received config information from sync server.');
                         offline = false;
+
+                        plugins.emit('onConfigInfoReceived', { ss, configInfo });
                 
                         const load = function(thing, filePath) {
+                            plugins.emit('onLoadThing', { ss, thing, filePath });
+
                             if (configInfo[thing]) {
                                 ss.log.blue(`[${thing}] loaded from newly retrieved json.`)
                                 configInfo[thing] = JSON.stringify(configInfo[thing]);
@@ -164,9 +178,11 @@ import { plugins } from '#plugins';
                             };
                         };
                 
-                        load("items", itemsFilePath);
-                        load("maps", mapsFilePath);
-                        load("servers", serversFilePath);
+                        load("items", filepaths.items);
+                        load("maps", filepaths.maps);
+                        load("servers", filepaths.servers);
+
+                        plugins.emit('loadingThings', { ss, load, filepaths });
                 
                         // console.log(ss.items);
                 
@@ -185,10 +201,14 @@ import { plugins } from '#plugins';
 
                         delete configInfo.login;
                         delete configInfo.permissions;
+
+                        plugins.emit('onConfigInfoLoaded', { ss, configInfo });
             
                         ss.distributed_config = yaml.dump(configInfo, { indent: 4 }); //this is for later usage displaying for all to see
                 
                         ss.config.verbose && ss.log.info(`\n${ss.distributed_config}`);
+
+                        ss.log.green(1, 2, 3, 4);
             
                         // console.log(ss.permissions);
                 
@@ -197,6 +217,7 @@ import { plugins } from '#plugins';
                     } else {
                         if (offline && (configInfo.servicesMeta.startTime > ss.config.client.servicesMeta.startTime) && ss.isPerpetual) {
                             console.log("Services server restarted, restarting...");
+                            plugins.emit('onServicesRestart', { ss, configInfo });
                             process.exit(1337);
                         };
                         offline = false;
