@@ -27,7 +27,8 @@ export class Plugin {
         data.pluginInsertion.files.push({
             insertBefore: '\nconsole.log("inserting before... (sample plugin)");',
             filepath: path.join(this.thisDir, 'samplecommand.js'),
-            insertAfter: '\nconsole.log("inserting after... (sample plugin)!");'
+            insertAfter: '\nconsole.log("inserting after... (sample plugin)!");',
+            position: 'before'
         });
     };
 
