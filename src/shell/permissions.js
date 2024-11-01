@@ -1,10 +1,11 @@
 // legacyshell: permissions
 import { isClient, maxServerSlots } from "#constants";
 import Comm from '#comm';
+//legacyshell: plugins
+import { plugins } from '#plugins';
 //
 
 //(server-only-start)
-var plugins;
 //(server-only-end)
 
 export class PermissionsConstructor {
@@ -15,7 +16,6 @@ export class PermissionsConstructor {
             permsConfig = permissions;
         } else {
             this.ss = newSS;
-            plugins = this.ss.plugins;
             this.room = room;
             permsConfig = this.ss.permissions;
         };
@@ -415,7 +415,7 @@ class Command {
         if (permitted) {
             var mentions = parseMentions(parts, this, player);
 
-            console.log(mentions);
+            // console.log(mentions);
 
             if (isClient) {
                 this.executeClient(player, opts, mentions);

@@ -10,18 +10,18 @@ import { isServer } from '#constants';
 var ss; //trollage. access it later.
 //(server-only-end)
 
-class PluginManager {
-    constructor(newSS, type) {
+export class PluginManager {
+    constructor(type) {
         this.plugins = new Map();
         this.listeners = {};
-        if (isServer) {
-            ss = newSS;
-        };
-        if (type) this.type = type;
+        this.type = type || 'game';
     };
 
-    async loadPlugins(type, pluginsDir) {
+    async loadPlugins(type, newSS) {
         this.type = type;
+
+        ss = newSS;
+        var pluginsDir = ss.pluginsDir;
 
         if (!fs.existsSync(pluginsDir)) fs.mkdirSync(pluginsDir, { recursive: true });
 
@@ -40,7 +40,7 @@ class PluginManager {
 
                     const pluginInstance = new Plugin(this, path.join(pluginsDir, pluginFolder));
                     this.plugins.set(pluginFolder, pluginInstance);
-                    ss.log.success(`Loaded plugin -> ${PluginMeta.name} v${PluginMeta.version}: ${PluginMeta.descriptionShort}`);
+                    ss.log.success(`Loaded plugin -> ${PluginMeta.name} v${PluginMeta.version} by ${PluginMeta.author}: ${PluginMeta.descriptionShort}`);
                 };
             } catch (error) {
                 ss.log.error(`Failed to load plugin ${pluginFolder}:`, error);
@@ -79,4 +79,4 @@ class PluginManager {
     // };
 };
 
-export default PluginManager;
+export const plugins = new PluginManager();

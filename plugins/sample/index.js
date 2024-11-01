@@ -7,10 +7,11 @@ import { samplePlugin } from './samplecommand.js'
 
 export const PluginMeta = {
     name: 'Sample Command Plugin',
+    author: 'onlypuppy7',
     version: '1.0.0',
-    descriptionShort: 'A sample plugin',
+    descriptionShort: 'A sample plugin', //displayed when loading
     descriptionLong: 'A sample plugin',
-    legacyShellVersion: 264,
+    legacyShellVersion: 266, //legacy shell version, can be found in /versionEnum.txt, or just on the homescreen
 };
 
 export class Plugin {
