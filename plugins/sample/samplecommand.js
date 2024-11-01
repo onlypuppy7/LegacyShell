@@ -1,3 +1,5 @@
+//legacyshell: basic
+import { isClient } from "#constants";
 //
 
 export const samplePlugin = {
@@ -8,26 +10,28 @@ export const samplePlugin = {
         pluginManager.on('game:permissionsAfterSetup', this.registerSampleCommand.bind(this));
     },
     
-    registerSampleCommand: function (data) {
+    startUp: function (data) { //example of a listener
+        console.log("Client started up");
+    },
+    
+    registerSampleCommand: function (data) { //example of command registration
         console.log("registering sample command... (sample plugin)");
-        var thisThis = data.this;
+        var ctx = data.this;
 
-        thisThis.newCommand({
+        ctx.newCommand({
             identifier: "sampletest",
             name: "test",
             category: "sample",
             description: "Test command.",
             example: "just run it",
-            permissionLevel: [thisThis.ranksEnum.Moderator, thisThis.ranksEnum.Guest, true],
+            permissionLevel: [ctx.ranksEnum.Moderator, ctx.ranksEnum.Guest, true],
             inputType: ["string"],
             executeClient: (player, opts, mentions) => { },
             executeServer: (player, opts, mentions) => {
-                thisThis.room.notify("You did it! Woohoo.", 5);
+                ctx.room.notify("You did it! Woohoo.", 5);
             }
         });
     },
-    
-    startUp: function (data) {
-        console.log("Client started up");
-    },
 };
+
+if (isClient) samplePlugin.registerListeners(plugins);
