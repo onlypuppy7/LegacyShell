@@ -30,7 +30,7 @@ import { plugins } from '#plugins';
         },
     };
 
-    plugins.emit('onLoad', { ss });
+    plugins.emit(`${'onLoad'}`, { ss });
 
     function startServer() {
         const RoomManager = new rm.newRoomManager();

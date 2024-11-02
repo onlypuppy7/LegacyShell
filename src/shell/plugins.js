@@ -4,6 +4,7 @@ import path from 'path';
 //legacyshell: plugins
 import { fileURLToPath, pathToFileURL } from 'url';
 import { isServer } from '#constants';
+import { execSync } from 'child_process';
 //
 
 //(server-only-start)
@@ -32,6 +33,31 @@ export class PluginManager {
             try {
                 const pluginPath = path.join(pluginsDir, pluginFolder, 'index.js');
                 if (fs.existsSync(pluginPath)) {
+                    const dependenciesPath = path.join(pluginsDir, pluginFolder, 'dependencies.js');
+
+                    if (fs.existsSync(dependenciesPath)) {
+                        const { dependencies } = await import(pathToFileURL(dependenciesPath).href);
+                        for (const [dependency, version] of Object.entries(dependencies)) {
+                            try {
+                                const modulePath = path.join(ss.rootDir, 'node_modules', dependency);
+                                if (!fs.existsSync(modulePath)) {
+                                    await import(dependency);
+                                };
+                                // ss.log.dim(`${dependency} is already installed.`);
+                            } catch (error) {
+                                ss.log.warning(`${dependency} is not installed. Attempting to install (${version})...`);
+                                execSync(`npm install ${dependency}@${version} --no-save`, (error, stdout, stderr) => {
+                                    if (error) {
+                                        console.error(`exec error: ${error}`);
+                                        return;
+                                    };
+                                    console.log(`stdout: ${stdout}`);
+                                    console.error(`stderr: ${stderr}`);
+                                });
+                            };
+                        };
+                    };
+
                     const pluginURL = pathToFileURL(pluginPath).href;
                     
                     const { PluginMeta, Plugin } = await import(pluginURL);

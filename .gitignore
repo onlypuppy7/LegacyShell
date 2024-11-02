@@ -16,6 +16,9 @@ package-lock.json
 /versionEnum.txt
 /versionHash.txt
 
+# plugins
+/plugins
+
 # other
 /.vscode
 
