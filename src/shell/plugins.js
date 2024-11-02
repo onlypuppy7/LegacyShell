@@ -18,15 +18,9 @@ export class PluginManager {
         this.type = type || 'game';
     };
 
-    async loadPlugins(type, newSS) {
-        this.type = type;
-
-        ss = newSS;
-        var pluginsDir = ss.pluginsDir;
+    async loadPluginsFromDir(pluginsDir, type, newSS) {
 
         if (!fs.existsSync(pluginsDir)) fs.mkdirSync(pluginsDir, { recursive: true });
-
-        ss.log.info(`####################\nLoading plugins for ${type}...`);
 
         const pluginFolders = fs.readdirSync(pluginsDir);
         for (const pluginFolder of pluginFolders) {
@@ -72,6 +66,17 @@ export class PluginManager {
                 ss.log.error(`Failed to load plugin ${pluginFolder}:`, error);
             };
         };
+    };
+
+    async loadPlugins(type, newSS) {
+        this.type = type;
+
+        ss = newSS;
+
+        ss.log.info(`####################\nLoading plugins for ${type}...`);
+
+        await this.loadPluginsFromDir(ss.pluginsDir, type, newSS);
+        await this.loadPluginsFromDir(ss.pluginsDirDefault, type, newSS);
 
         ss.log.info('Finished loading plugins.\n####################');
     };

@@ -92,7 +92,6 @@ export var GameTypes = [
     }
 ];
 
-console.log("############################### 300");
 plugins.emit('GameTypesInit', { GameTypes, ItemTypes, defaultOptions });
 
 export var AllMapPools = [];
