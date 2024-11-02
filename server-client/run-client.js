@@ -54,7 +54,6 @@ import { plugins } from '#plugins';
                 plugins.emit('openBeforeDefault', { ss, app });
 
                 app.use(express.static(path.join(ss.currentDir, 'store', 'client-modified')));
-                app.use(express.static(path.join(ss.rootDir, 'src', 'shared-static')));
                 app.use(express.static(path.join(ss.currentDir, 'src', 'client-static')));
 
                 app.use((req, res, next) => {
@@ -207,8 +206,6 @@ import { plugins } from '#plugins';
                         ss.distributed_config = yaml.dump(configInfo, { indent: 4 }); //this is for later usage displaying for all to see
                 
                         ss.config.verbose && ss.log.info(`\n${ss.distributed_config}`);
-
-                        ss.log.green(1, 2, 3, 4);
             
                         // console.log(ss.permissions);
                 

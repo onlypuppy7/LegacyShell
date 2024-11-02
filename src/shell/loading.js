@@ -49,9 +49,10 @@ export function loadMeshes(scene, meshNames, onMeshLoaded, onComplete) { //[srvr
         var meshPath = meshNames[idx] + ".babylon";
 
         if (isServer && ss) {
-            meshPath = path.join(ss.rootDir, 'src', 'shared-static', rootUrl, meshPath);
+            meshPath = path.join(ss.rootDir, 'server-game', 'store', 'models', meshPath);
             var data = fs.readFileSync(meshPath, "utf8");
-            meshPath = "data:" + (data = data.replace(/\r?\n|\r/g, "")), rootUrl = ""
+            meshPath = "data:" + (data = data.replace(/\r?\n|\r/g, ""));
+            rootUrl = "";
         };
 
         BABYLON.SceneLoader.ImportMesh("", rootUrl, meshPath, scene, function (meshes, partcileSystems, skeletons) {

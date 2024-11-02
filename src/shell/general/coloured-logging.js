@@ -1,4 +1,6 @@
+//
 import chalk from 'chalk';
+//
 
 const logMethods = {
     green: (...args) => console.log(chalk.green(...args)),

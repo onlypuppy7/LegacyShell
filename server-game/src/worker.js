@@ -1,6 +1,5 @@
 //legacyshell: room worker (bridge)
 import { parentPort } from 'worker_threads';
-import RoomConstructor from '#rooms';
 //legacyshell: basic
 import misc from '#misc';
 //legacyshell: plugins
@@ -10,7 +9,10 @@ import { plugins } from '#plugins';
 (async () => {
     let ss = misc.instantiateSS(import.meta, process.argv);
     await plugins.loadPlugins('game', ss);
-    
+
+    //importing, important to do after plugins are loaded so that they can inject their own methods
+    const RoomConstructor = (await import('#rooms')).default;
+
     var room;
     
     parentPort.on('message', (msg) => {
