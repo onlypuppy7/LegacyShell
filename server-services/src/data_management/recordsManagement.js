@@ -198,6 +198,25 @@ const exported = {
             `);
         });
     },
+    insertItems: async (jsonDir = path.join(ss.currentDir, 'src', 'items')) => {
+        const files = fs.readdirSync(jsonDir);
+
+        for (const file of files) {
+            if (path.extname(file) === '.json') {
+                ss.log.beige(`Inserting: ${file}`);
+                const filePath = path.join(jsonDir, file);
+                const fileContent = fs.readFileSync(filePath, 'utf8');
+                const jsonData = JSON.parse(fileContent);
+
+                for (const item of jsonData) {
+                    await ss.runQuery(`
+                        INSERT OR REPLACE INTO items (id, name, is_available, price, item_class, item_type_id, item_type_name, exclusive_for_class, item_data)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    `, [item.id, item.name, item.is_available, item.price, path.parse(file).name, item.item_type_id, item.item_type_name, item.exclusive_for_class, JSON.stringify(item.item_data)]);
+                };
+            };
+        };
+    },
     getCodeData: async (code_key, retainSensitive) => {
         try {
             ss.config.verbose && ss.log.bgCyan(`services: Reading from DB: get code ${code_key}`);

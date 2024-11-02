@@ -75,23 +75,8 @@ import { plugins } from '#plugins';
             } else {
                 ss.log.blue('Items table is empty. Initializing with JSON data...');
         
-                const jsonDir = path.join(ss.currentDir, 'src', 'items');
-                const files = fs.readdirSync(jsonDir);
-                for (const file of files) {
-                    if (path.extname(file) === '.json') {
-                        ss.log.beige(`Inserting: ${file}`);
-                        const filePath = path.join(jsonDir, file);
-                        const fileContent = fs.readFileSync(filePath, 'utf8');
-                        const jsonData = JSON.parse(fileContent);
-        
-                        for (const item of jsonData) {
-                            await ss.runQuery(`
-                                INSERT INTO items (id, name, is_available, price, item_class, item_type_id, item_type_name, exclusive_for_class, item_data)
-                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                            `, [item.id, item.name, item.is_available, item.price, path.parse(file).name, item.item_type_id, item.item_type_name, item.exclusive_for_class, JSON.stringify(item.item_data)]);
-                        };
-                    };
-                };
+                await recs.insertItems();
+                
                 ss.log.green('Items table initialized with JSON data.');
             };
     
@@ -136,6 +121,8 @@ import { plugins } from '#plugins';
                 };
             };
             ss.log.green('Maps table initialized with JSON data.');
+
+            plugins.emit('initTables', { ss });
         } catch (error) {
             console.error('Error initializing items table:', error);
         };

@@ -137,6 +137,7 @@ const misc = {
             packageJson: JSON.parse(fs.readFileSync(path.join(ss.rootDir, 'package.json'), 'utf8')),
             // plugins: new PluginManager(ss),
             pluginsDir: path.join(ss.rootDir, 'plugins'),
+            pluginsDirDefault: path.join(ss.rootDir, 'plugins_default'),
             versionEnum: Number(fs.readFileSync(path.join(ss.rootDir, 'versionEnum.txt'), 'utf8')),
             versionHash: fs.readFileSync(path.join(ss.rootDir, 'versionHash.txt'), 'utf8').slice(0,7),
             isPerpetual: argv[2] === "--perpetual",
