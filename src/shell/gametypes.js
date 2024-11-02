@@ -1,5 +1,7 @@
 //legacyshell: gametypes
 import { ItemTypes } from '#items';
+//legacyshell: plugins
+import { plugins } from '#plugins';
 //
 
 export var defaultOptions = {
@@ -89,6 +91,9 @@ export var GameTypes = [
         }
     }
 ];
+
+console.log("############################### 300");
+plugins.emit('GameTypesInit', { GameTypes, ItemTypes, defaultOptions });
 
 export var AllMapPools = [];
 

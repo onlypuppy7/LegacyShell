@@ -9,15 +9,18 @@ import wsrequest from '#wsrequest';
 //legacyshell: game
 import WebSocket, { WebSocketServer } from 'ws';
 import Comm from '#comm';
-import rm from './src/roomManager.js';
-import { getMapsByAvailabilityAsInts, GameTypes, getMapPool } from '#gametypes';
 //legacyshell: plugins
 import { plugins } from '#plugins';
+import { prepareBabylons } from '#prepare-babylons';
 //
 
 (async () => {
     let ss = misc.instantiateSS(import.meta, process.argv);
-    await plugins.loadPlugins('gameServer', ss);
+    await plugins.loadPlugins('game', ss);
+
+    //importing, important to do after plugins are loaded so that they can inject their own methods
+    const rm = (await import('./src/roomManager.js')).default;
+    const { getMapsByAvailabilityAsInts, GameTypes, getMapPool } = await import('#gametypes');
 
     var RoomManager;
 
@@ -30,7 +33,9 @@ import { plugins } from '#plugins';
         },
     };
 
-    plugins.emit(`${'onLoad'}`, { ss });
+    plugins.emit(`${'onLoad'}`, { ss }); //annoyed yet?
+
+    prepareBabylons(ss, path.join(ss.currentDir, 'store', 'models'));
 
     function startServer() {
         const RoomManager = new rm.newRoomManager();

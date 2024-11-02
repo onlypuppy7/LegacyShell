@@ -1,5 +1,7 @@
 //legacyshell: items
 import { isServer } from "#constants";
+//legacyshell: plugins
+import { plugins } from '#plugins';
 //
 
 // [LS] ItemActor CONSTRUCTOR
@@ -79,22 +81,9 @@ export const AllItems = [
             return true;
         }
     },
-    {
-        codeName: "HEALTH",
-        mesh: "healthpack.alt",
-        name: "Health Pack",
-        actor: ItemActor,
-        poolSize: 50,
-        collect: function (player, applyToWeaponIdx) {
-            if (player.hp === 100) return false
-            player.setHp(player.hp + 50);
-            if (player.actor) {
-                playSoundIndependent2D("ammo");
-            };
-            return true;
-        }
-    }
 ];
+
+plugins.emit('AllItems', { AllItems, ItemActor, dummyItem });
 
 export const ItemTypes = {};
 
@@ -107,3 +96,4 @@ AllItems.forEach((item, index) => {
     item.id = index;
 });
 
+plugins.emit('itemsLoaded', { AllItems, ItemTypes, ItemActor, dummyItem });

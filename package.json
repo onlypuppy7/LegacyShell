@@ -32,6 +32,7 @@
         "#coloured-logging": "./src/shell/general/coloured-logging.js",
         "#looper": "./src/shell/general/looper.js",
         "#misc": "./src/shell/general/misc.js",
+        "#prepare-babylons": "./src/shell/general/prepare-babylons.js",
         "#scrambled": "./src/shell/general/scrambled.js",
         "#wsrequest": "./src/shell/general/wsrequest.js",
         "#bullets": "./src/shell/bullets.js",
