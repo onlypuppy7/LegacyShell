@@ -63,6 +63,6 @@
         "#sessionManagement": "./server-services/src/data_management/sessionManagement.js",
         "#backups": "./server-services/src/data_management/backups.js",
         "#ratelimit": "./server-services/src/ratelimit.js",
-        "#apollo" : "./server-client/src/client-static/src/apollon/Apollo.js"
+        "#apollo": "./server-client/src/client-static/src/apollon/Apollo.js"
     }
 }
