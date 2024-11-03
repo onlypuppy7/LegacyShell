@@ -519,7 +519,7 @@ class Player {
                 if (mesh) {
                     if (mesh.name == "jump-pad" && this.canJump() && Math.length2(cx + 0.5 - this.x, cz + 0.5 - this.z) < 0.3) {
                         this.y += 0.26;
-                        this.dy = 0.1;
+                        this.dy = 0.13;
                         this.setJumping(true);
                     };
                 };
@@ -1011,8 +1011,6 @@ class Player {
     };
     getOccupiedCell(cx = Math.floor(this.x), cy = Math.floor(this.y), cz = Math.floor(this.z)) {
         if (this.x < 0 || this.y < 0 || this.z < 0 || this.x >= this.map.width || this.y >= this.map.height || this.z > this.map.depth) return {};
-
-        console.log(cx, cy, cz);
 
         return this.map.data[cx][cy][cz]
     };
