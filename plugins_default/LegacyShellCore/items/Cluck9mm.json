@@ -1,7 +1,7 @@
 [{
     "id": 3254,
     "name": "Classic Cluck 9mm",
-    "price": 1500,
+    "price": 15000,
     "item_type_id": 4,
     "item_type_name": "Secondary",
     "category_name": "Shared Secondary Weapons",
@@ -10,5 +10,5 @@
         "class": "Cluck9mm",
         "meshName": "old.cluck9mm"
     },
-    "is_available": true
+    "is_available": false
 }]

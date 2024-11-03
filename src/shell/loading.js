@@ -4,6 +4,7 @@ import path from 'node:path';
 //legacyshell: loading
 import BABYLON from "babylonjs";
 import { stateBufferSize, isClient, isServer, Team } from '#constants';
+import JSZip from 'jszip';
 //
 
 //(server-only-start)
@@ -42,63 +43,121 @@ export function iterateXYZ(width, height, depth, options, callback) {
             for (var z = opt.z; z < depth; z += opt.step) callback(x, y, z)
 };
 
+var meshesLoaded = [];
+
 // [LS] Mesh Loading Helpers
 export function loadMeshes(scene, meshNames, onMeshLoaded, onComplete) { //[srvr]
-    for (var meshCount = meshNames.length, that = this, mat = scene.getMaterialByName("standard"), numEggs = 0, numHands = 0, idx = 0; idx < meshCount; idx++) {
-        var rootUrl = "models/";
-        var meshPath = meshNames[idx] + ".babylon";
+    let meshCount = meshNames.length;
+    let that = this;
+    let mat = scene.getMaterialByName("standard");
+    let numEggs = 0;
+    let numHands = 0;
 
-        if (isServer && ss) {
-            meshPath = path.join(ss.rootDir, 'server-game', 'store', 'models', meshPath);
-            var data = fs.readFileSync(meshPath, "utf8");
-            meshPath = "data:" + (data = data.replace(/\r?\n|\r/g, ""));
-            rootUrl = "";
-        };
+    let rootUrl = "models/";
 
-        BABYLON.SceneLoader.ImportMesh("", rootUrl, meshPath, scene, function (meshes, partcileSystems, skeletons) {
+    function decrement () {
+        // console.log("decrementing mesh count", meshCount, meshNames, meshesLoaded);
+        0 == --meshCount && onComplete && onComplete.call(that);
+    };
+
+    function load(rootUrl, meshPath, scene, meshName) {
+        BABYLON.SceneLoader.ImportMesh("", rootUrl, meshPath, scene, function (meshes, particleSystems, skeletons) {
             try {
                 for (var m = 0; m < meshes.length; m++) {
                     var mesh = meshes[m];
-
-                    // if (isServer && ss && ss.config.verbose) ss.log.bgPurple(mesh.name);
-                    
-                    "egg" == mesh.name && numEggs++;
-                    "hands" == mesh.name && numHands++;
-
-                    if (!duplicateWarningIssued) {
-                        if (1 < numEggs || 1 < numHands) {
-                            duplicateWarningIssued = true, alert("Duplicate egg and/or hand models detected.\n\nOpen the weapon models in Blender and make sure egg/hands layers are turned off, then re-export.")
-                        };
-                        if (mesh.setMaterial) mesh.setMaterial(mat);
-                        mesh.setEnabled(false);
-                        mesh.isPickable = false;
-                        if (onMeshLoaded) onMeshLoaded(mesh);
-                    };
+                    if (mesh.setMaterial) mesh.setMaterial(mat);
+                    mesh.setEnabled(false);
+                    mesh.isPickable = false;
+                    if (onMeshLoaded) onMeshLoaded(mesh);
                 };
-                0 == --meshCount && onComplete && onComplete.call(that);
+                meshesLoaded.push(meshName);
+                decrement();
             } catch (e) {
                 console.log(e)
             };
         });
     };
+
+    if (typeof meshNames === "string" && meshNames.includes(".zip")) {
+        var zipPath = rootUrl + meshNames;
+        console.log("loading mesh zip", zipPath);
+    
+        if (isServer && ss) { //note that this isnt really tested, dont rely on this for server stuff, just use array of strings
+            zipPath = path.join(ss.rootDir, 'server-game', 'store', 'models', meshNames);
+            var data = fs.readFileSync(zipPath);
+            zipPath = "data:application/zip;base64," + data.toString('base64');
+            rootUrl = "";
+        };
+    
+        fetch(zipPath)
+            .then(response => {
+                if (!response.ok) throw new Error("Failed to fetch the zip file");
+                return response.arrayBuffer();
+            })
+            .then(data => {
+                const zip = new JSZip();
+                return zip.loadAsync(data);
+            })
+            .then(zip => {
+                meshCount = Object.keys(zip.files).length;
+                zip.forEach(function (relativePath, zipEntry) {
+                    console.log("loading mesh", relativePath);
+                    zipEntry.async("string").then(function (data) {
+                        const meshPath = "data:" + data.replace(/\r?\n|\r/g, "");
+                        load(rootUrl, meshPath, scene, relativePath);
+                    });
+                });
+            })
+            .catch(error => {
+                console.error("Error loading the zip file:", error);
+            });
+    } else {
+        for (var idx = 0; idx < meshCount; idx++) {
+            var meshName = meshNames[idx];
+            var meshPath = meshName + ".babylon";
+            // console.log("loading mesh", meshPath);
+    
+            if (isServer && ss) {
+                meshPath = path.join(ss.rootDir, 'server-game', 'store', 'models', meshPath);
+                var data = fs.readFileSync(meshPath, "utf8");
+                meshPath = "data:" + (data = data.replace(/\r?\n|\r/g, ""));
+                rootUrl = "";
+            };
+    
+            if (meshesLoaded.includes(meshName)) {
+                console.warn("Mesh already loaded: " + meshName);
+                // decrement();
+                // continue;
+            };
+    
+            load(rootUrl, meshPath, scene, meshPath);
+        };
+    };
 };
 
 // [LS] Server used loaders
+export function makeBarrier(name, scene, color) {
+    var barrier = BABYLON.MeshBuilder.CreateBox(name, {
+        size: 1
+    }, scene);
+    var mat = new BABYLON.StandardMaterial();
+    mat.diffuseColor = color;
+    mat.emissiveColor = color;
+    mat.specularColor = BABYLON.Color3.Black();
+    mat.wireframe = true;
+    barrier.material = mat;
+    barrier.setEnabled(false);
+    return barrier;
+};
+
 export function loadMapMeshes(scene, onComplete) { //[8th], loads map meshes, wowie (name from deobf leak)
     mapMeshes = [null];
     var mat;
     
     //this barrier only shows up in the map editor
-    var barrier = BABYLON.MeshBuilder.CreateBox("SPECIAL.barrier.full.verysoft", {
-        size: 1
-    }, scene);
-    mat = new BABYLON.StandardMaterial;
-    mat.diffuseColor = BABYLON.Color3.Red();
-    mat.emissiveColor = BABYLON.Color3.Red();
-    mat.specularColor = BABYLON.Color3.Black();
-    mat.wireframe = true, barrier.material = mat;
-    barrier.setEnabled(false);
-    mapMeshes.push(barrier);
+    mapMeshes.push(makeBarrier("SPECIAL.barrier.full.verysoft", scene, BABYLON.Color3.Red()));
+    mapMeshes.push(makeBarrier("SPECIAL.barrier.full", scene, BABYLON.Color3.Green()));
+    mapMeshes.push(makeBarrier("SPECIAL.barrier.none", scene, BABYLON.Color3.White()));
 
     //defines a shape for the egg meshes (idk im assuming this is necessary for some reason)
     for (var shape = [], i = 0; i <= 1; i += .125) {
@@ -142,7 +201,7 @@ export function loadMapMeshes(scene, onComplete) { //[8th], loads map meshes, wo
         onComplete();
     };
 
-    loadMeshes(scene, ["map"], function (mesh) {
+    loadMeshes(scene, isClient ? "map.zip" : ["map"], function (mesh) {
         if (mesh.parent) {
             mesh.freezeWorldMatrix()
         } else {

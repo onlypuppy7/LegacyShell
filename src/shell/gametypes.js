@@ -65,30 +65,6 @@ export var GameTypes = [
         options: {
             teamsEnabled: true,
         }
-    }, {
-        shortName: "Scale",
-        longName: "Scale Shift",
-        codeName: "scale",
-        mapPool: "Scale",
-        options: {
-            teamsEnabled: true,
-            scale: [
-                1, //ffa
-                0.4, //team1
-                2, //team2
-            ],
-            gravityModifier: [
-                1, //ffa
-                1, //team1
-                0.5, //team2
-            ],
-            regenModifier: [
-                1, //ffa
-                2, //team1
-                0.25, //team2
-            ],
-            teamSwitchMaximumDifference: 1,
-        }
     }
 ];
 

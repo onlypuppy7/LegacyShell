@@ -509,6 +509,21 @@ class Player {
             };
             this.y = old_y;
             this.dy *= .5;
+
+            var cx = Math.floor(this.x);
+            var cz = Math.floor(this.z);
+            
+            var cell = this.getOccupiedCell(cx, Math.floor(this.y - 0.5), cz);
+            if (cell) {
+                var mesh = cell.mesh;
+                if (mesh) {
+                    if (mesh.name == "jump-pad" && this.canJump() && Math.length2(cx + 0.5 - this.x, cz + 0.5 - this.z) < 0.3) {
+                        this.y += 0.26;
+                        this.dy = 0.1;
+                        this.setJumping(true);
+                    };
+                };
+            };
         } else {
             if (0 == this.jumping) this.setJumping(true);
         };
@@ -994,12 +1009,10 @@ class Player {
             };
         };
     };
-    getOccupiedCell() {
+    getOccupiedCell(cx = Math.floor(this.x), cy = Math.floor(this.y), cz = Math.floor(this.z)) {
         if (this.x < 0 || this.y < 0 || this.z < 0 || this.x >= this.map.width || this.y >= this.map.height || this.z > this.map.depth) return {};
 
-        var cx = Math.floor(this.x);
-        var cy = Math.floor(this.y + 1e-4);
-        var cz = Math.floor(this.z);
+        console.log(cx, cy, cz);
 
         return this.map.data[cx][cy][cz]
     };
