@@ -4,6 +4,8 @@ bun.lockb
 package-lock.json
 
 # cached stores
+/src/scripts/store
+/src/scripts/stamps-slicer/store
 /server-client/store
 /server-services/store
 /server-game/store

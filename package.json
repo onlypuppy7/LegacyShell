@@ -27,6 +27,7 @@
         "markdown-it": "^14.1.0",
         "sqlite3": "^5.1.7",
         "uglify-js": "^3.19.2",
+        "webp-converter": "^2.3.3",
         "ws": "^8.18.0"
     },
     "imports": {
