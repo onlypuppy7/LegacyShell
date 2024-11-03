@@ -88,7 +88,7 @@ export class PluginManager {
         this.listeners[event].push(listener);
     };
 
-    emit(event, ...args) { //when the main program emits an event
+    async emit(event, ...args) { //when the main program emits an event
         this.cancel = false;
 
         event = `${this.type}:${event}`;
@@ -97,7 +97,11 @@ export class PluginManager {
 
         if (this.listeners[event]) {
             for (const listener of this.listeners[event]) {
-                listener(...args, this);
+                try {
+                    await listener(...args, this);
+                } catch (error) {
+                    console.error(`Error in listener for event ${event}:`, error);
+                };
             };
         };
     };

@@ -8,7 +8,7 @@ import { LegacyShellCorePlugin } from './shared.js';
 export const PluginMeta = {
     name: 'LegacyShellCore',
     author: 'onlypuppy7',
-    version: '1.0.0',
+    version: '1.0.1',
     descriptionShort: 'Used in the public instance', //displayed when loading
     descriptionLong: 'Used in the public instance',
     legacyShellVersion: 269, //legacy shell version, can be found in /versionEnum.txt, or just on the homescreen
@@ -43,13 +43,14 @@ export class Plugin {
         const babylonFiles = fs.readdirSync(babylonPath);
         babylonFiles.forEach((file) => {
             if (data.filename + ".babylon" === file) {
-                // console.log('found', file);
+                console.log('found', file);
                 extraBabylons.push(path.join(this.thisDir, 'models', file));
             };
         });
     };
 
-    initTables(data) {
-        data.ss.recs.insertItems(path.join(this.thisDir, 'items'));
+    async initTables(data) { //async operation requires awaits to ensure proper order
+        await data.ss.recs.insertItems(path.join(this.thisDir, 'items'));
+        await data.ss.recs.insertMaps(path.join(this.thisDir, 'maps'));
     };
 };

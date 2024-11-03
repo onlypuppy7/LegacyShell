@@ -3,17 +3,30 @@ import fs from 'node:fs';
 import path from 'node:path';
 //plugin: prepare-babylons
 import misc from '#misc';
+import jszip from 'jszip';
 //legacyshell: plugins
 import { plugins } from '#plugins';
 //
 
-var debuggingLogs = false;
+var debuggingLogs = true;
 
 export function prepareBabylons(ss, endBabylonsDir = path.join(ss.rootDir, 'store', 'export-static', 'models'), baseBabylonsDir = path.join(ss.rootDir, 'src', 'base-babylons')) {
     if (!fs.existsSync(endBabylonsDir)) fs.mkdirSync(endBabylonsDir, { recursive: true });
 
-    var baseBabylons = fs.readdirSync(baseBabylonsDir);
-    baseBabylons = baseBabylons.filter(file => path.extname(file) === '.babylon');
+    var babylonDirFiles = fs.readdirSync(baseBabylonsDir);
+
+    var baseBabylons = babylonDirFiles.filter(file => path.extname(file) === '.babylon');
+
+    //delete log files cause doxxing
+    var logFiles = babylonDirFiles.filter(file => path.extname(file) === '.log');
+    logFiles.forEach(file => fs.unlinkSync(path.join(baseBabylonsDir, file)));
+
+    var modelsZip = new jszip();
+    var mapZip = new jszip();
+
+    function addBabylonToZip(zip, babylon, babylonData) {
+        zip.file(`${babylon}.babylon`, JSON.stringify(babylonData));
+    };
 
     for (const babylon of baseBabylons) {
         try {
@@ -36,15 +49,24 @@ export function prepareBabylons(ss, endBabylonsDir = path.join(ss.rootDir, 'stor
                     var thisTimestamp = misc.getLastSavedTimestamp(extraBabylon);
                     if (thisTimestamp > timestamp) timestamp = thisTimestamp;
 
-                    baseBabylon.materials = [
+                    extraBabylonData.materials && (baseBabylon.materials = [
                         ...baseBabylon.materials,
                         ...extraBabylonData.materials
-                    ];
+                    ]);
         
-                    baseBabylon.meshes = [
+                    extraBabylonData.multiMaterials && (baseBabylon.multiMaterials = [
+                        ...baseBabylon.multiMaterials,
+                        ...extraBabylonData.multiMaterials
+                    ]);
+        
+                    extraBabylonData.meshes && (baseBabylon.meshes = [
                         ...baseBabylon.meshes,
                         ...extraBabylonData.meshes
-                    ];
+                    ]);
+
+                    //delete log files cause doxxing
+                    var logFiles = fs.readdirSync(path.dirname(extraBabylon)).filter(file => path.extname(file) === '.log');
+                    logFiles.forEach(file => fs.unlinkSync(path.join(path.dirname(extraBabylon), file)));
                 } catch (error) {
                     ss.log.error(`Error adding extra babylon ${extraBabylon}:`, error);
                 };
@@ -56,6 +78,15 @@ export function prepareBabylons(ss, endBabylonsDir = path.join(ss.rootDir, 'stor
                     debuggingLogs && console.log("Deleting this material", newMaterial.name);
                     //delete this specific material, not by name cause that would delete all instances
                     baseBabylon.materials = baseBabylon.materials.filter(mat => mat !== newMaterial);
+                };
+            });
+            baseBabylon.multiMaterials.forEach((newMultiMaterial) => {
+                //check if multiMaterial has over 1 instance
+                const duplicateMultiMaterial = baseBabylon.multiMaterials.filter(mat => mat.name === newMultiMaterial.name).length > 1;
+                if (duplicateMultiMaterial) {
+                    debuggingLogs && console.log("Deleting this multiMaterial", newMultiMaterial.name);
+                    //delete this specific multiMaterial, not by name cause that would delete all instances
+                    baseBabylon.multiMaterials = baseBabylon.multiMaterials.filter(mat => mat !== newMultiMaterial);
                 };
             });
             baseBabylon.meshes.forEach((newMesh) => {
@@ -74,12 +105,33 @@ export function prepareBabylons(ss, endBabylonsDir = path.join(ss.rootDir, 'stor
             const endBabylon = JSON.stringify(baseBabylon);
             fs.writeFileSync(path.join(endBabylonsDir, `${filename}.babylon`), endBabylon);
             fs.writeFileSync(path.join(endBabylonsDir, `${filename}.babylon.manifest`), `{
-	"version" : ${timestamp},
+	"version" : ${Math.ceil(timestamp)},
 	"enableSceneOffline" : true,
 	"enableTextureOffline" : true
 }`);
+            if (babylon !== "map.babylon") {
+                addBabylonToZip(modelsZip, filename, baseBabylon);
+            } else {
+                addBabylonToZip(mapZip, filename, baseBabylon);
+            };
         } catch (error) {
             ss.log.error(`Error preparing babylon ${babylon}:`, error);
         };
     };
+
+    function saveZip(zip, zipName) {
+        zip.generateNodeStream({ 
+            type: 'nodebuffer', 
+            streamFiles: true, 
+            compression: "DEFLATE"
+        }).pipe(fs.createWriteStream(path.join(endBabylonsDir, zipName))
+            .on('finish', function () {
+                ss.log.green(`${zipName} written.`);
+            }));
+    };
+
+    saveZip(modelsZip, 'models.zip');
+    saveZip(mapZip, 'map.zip');
+
+
 };
