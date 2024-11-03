@@ -19,6 +19,8 @@ function setSS(newSS) {
 function prepareModified(ss) {
     prepareBabylons(ss, path.join(ss.rootDir, 'server-client', 'store', 'client-modified', 'models'));
 
+    ss.log.info('\nGenerating modified files (eg minifying shellshock.min.js)...');
+
     const sourceShellJsPath = path.join(ss.currentDir, 'src', 'client-static', 'src', 'shellshock.min.js');
     const destinationShellJsPath = path.join(ss.currentDir, 'store', 'client-modified', 'src', 'shellshock.min.js');
 

@@ -13,6 +13,8 @@ var debuggingLogs = false;
 export function prepareBabylons(ss, endBabylonsDir = path.join(ss.rootDir, 'store', 'export-static', 'models'), baseBabylonsDir = path.join(ss.rootDir, 'src', 'base-babylons')) {
     if (!fs.existsSync(endBabylonsDir)) fs.mkdirSync(endBabylonsDir, { recursive: true });
 
+    ss.log.info("Preparing babylons...");
+
     var babylonDirFiles = fs.readdirSync(baseBabylonsDir);
 
     var baseBabylons = babylonDirFiles.filter(file => path.extname(file) === '.babylon');
