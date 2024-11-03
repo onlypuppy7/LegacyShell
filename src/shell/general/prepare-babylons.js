@@ -8,7 +8,7 @@ import jszip from 'jszip';
 import { plugins } from '#plugins';
 //
 
-var debuggingLogs = true;
+var debuggingLogs = false;
 
 export function prepareBabylons(ss, endBabylonsDir = path.join(ss.rootDir, 'store', 'export-static', 'models'), baseBabylonsDir = path.join(ss.rootDir, 'src', 'base-babylons')) {
     if (!fs.existsSync(endBabylonsDir)) fs.mkdirSync(endBabylonsDir, { recursive: true });
@@ -24,6 +24,8 @@ export function prepareBabylons(ss, endBabylonsDir = path.join(ss.rootDir, 'stor
     var modelsZip = new jszip();
     var mapZip = new jszip();
 
+    var fileChanged = false;
+
     function addBabylonToZip(zip, babylon, babylonData) {
         zip.file(`${babylon}.babylon`, JSON.stringify(babylonData));
     };
@@ -31,7 +33,7 @@ export function prepareBabylons(ss, endBabylonsDir = path.join(ss.rootDir, 'stor
     for (const babylon of baseBabylons) {
         try {
             const filename = path.basename(babylon, '.babylon');
-            debuggingLogs && console.log(`Copying ${filename}...`);
+            ss.log.dim(`Copying ${filename}...`);
             const baseBabylon = JSON.parse(fs.readFileSync(path.join(baseBabylonsDir, babylon), 'utf8'));
             //get date of file saved
             var timestamp = misc.getLastSavedTimestamp(path.join(baseBabylonsDir, babylon));
@@ -103,6 +105,12 @@ export function prepareBabylons(ss, endBabylonsDir = path.join(ss.rootDir, 'stor
             debuggingLogs && console.log(babylon, "after", baseBabylon.meshes.length);
 
             const endBabylon = JSON.stringify(baseBabylon);
+
+            try {
+                var oldBabylon = fs.readFileSync(path.join(endBabylonsDir, `${filename}.babylon`), 'utf8');
+                if (oldBabylon !== endBabylon) fileChanged = true;
+            } catch (error) { fileChanged = true };
+
             fs.writeFileSync(path.join(endBabylonsDir, `${filename}.babylon`), endBabylon);
             fs.writeFileSync(path.join(endBabylonsDir, `${filename}.babylon.manifest`), `{
 	"version" : ${Math.ceil(timestamp)},
@@ -130,8 +138,11 @@ export function prepareBabylons(ss, endBabylonsDir = path.join(ss.rootDir, 'stor
             }));
     };
 
-    saveZip(modelsZip, 'models.zip');
-    saveZip(mapZip, 'map.zip');
-
-
+    if (fileChanged) {
+        ss.log.info("Babylons changed. Wait for zip to save before playing.");
+        saveZip(modelsZip, 'models.zip');
+        saveZip(mapZip, 'map.zip');
+    } else {
+        ss.log.green("No babylons changed.");
+    };
 };

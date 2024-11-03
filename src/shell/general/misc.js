@@ -20,7 +20,7 @@ const misc = {
     getLastSavedTimestamp: function (filePath) {
         try {
             const stats = fs.statSync(filePath);
-            return stats.mtimeMs;
+            return Math.ceil(stats.mtimeMs);
         } catch (error) {
             log.yellow('Error getting file timestamp. It probably doesn\'t exist... yet!'); //it just doesnt exist. who cares LMAO
             return 0;
