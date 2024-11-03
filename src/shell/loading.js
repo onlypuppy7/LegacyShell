@@ -201,7 +201,7 @@ export function loadMapMeshes(scene, onComplete) { //[8th], loads map meshes, wo
         onComplete();
     };
 
-    loadMeshes(scene, isClient ? "map.zip" : ["map"], function (mesh) {
+    loadMeshes(scene, isClient ? "map.zip?LEGACYSHELLMAPZIPTIMESTAMP" : ["map"], function (mesh) {
         if (mesh.parent) {
             mesh.freezeWorldMatrix()
         } else {

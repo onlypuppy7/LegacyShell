@@ -43,7 +43,7 @@ export class Plugin {
         const babylonFiles = fs.readdirSync(babylonPath);
         babylonFiles.forEach((file) => {
             if (data.filename + ".babylon" === file) {
-                console.log('found', file);
+                // console.log('found', file);
                 extraBabylons.push(path.join(this.thisDir, 'models', file));
             };
         });

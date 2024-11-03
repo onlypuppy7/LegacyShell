@@ -132,6 +132,9 @@ function prepareModified(ss) {
             { pattern: /LEGACYSHELLPICKUPS/g, file: "#items" },
             { pattern: /LEGACYSHELLPLUGINMANAGER/g, file: "#plugins" },
             { pattern: /LEGACYSHELLISCLIENTSERVER/g, file: "#isClientServer" },
+
+            { pattern: /LEGACYSHELLMODELSZIPTIMESTAMP/g, insertion: ss.misc.getLastSavedTimestamp(path.join(ss.currentDir, 'store', 'client-modified', 'models', 'models.zip')) },
+            { pattern: /LEGACYSHELLMAPZIPTIMESTAMP/g, insertion: ss.misc.getLastSavedTimestamp(path.join(ss.currentDir, 'store', 'client-modified', 'models', 'map.zip')) },
         ];
 
         plugins.emit('replacementsBefore', { this: this, ss, replacementsBefore });

@@ -519,9 +519,20 @@ class Player {
                 if (mesh) {
                     if (mesh.name == "jump-pad" && this.canJump() && Math.length2(cx + 0.5 - this.x, cz + 0.5 - this.z) < 0.3) {
                         this.y += 0.26;
-                        this.dy = 0.13;
+                        this.dy = 0.13; //approx 3 blocks in height
                         this.setJumping(true);
                     };
+                    //could always add more stuff here... like an elevator or something
+                    //not a trampoline though, that would be too much
+                    //maybe a trampoline
+                    //or a trampoline
+                    //or a trampoline
+                    //ok maybe a trampoline
+                    //or a trampoline
+                    //but not a trampoline
+                    //other than a trampoline, we could add a trampoline
+                    //or a trampoline
+                    //other than a trampoline, it could be a trampoline, but not a trampoline, it could be a trampoline, however it could not be a trampoline
                 };
             };
         } else {
