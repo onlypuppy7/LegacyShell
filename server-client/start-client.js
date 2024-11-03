@@ -71,7 +71,6 @@ export default async function run (ss) {
 
                 retrieved = 2;
                 try {
-                    ss.log.blue('Generating modified files (eg minifying shellshock.min.js)...');
                     plugins.emit('beforePrepareModified', { ss, app });
                     prepareModified(ss);
                     plugins.emit('afterPrepareModified', { ss, app });
@@ -96,7 +95,7 @@ export default async function run (ss) {
             });
 
             app.listen(port, () => {
-                ss.log.success(`Server is running on http://localhost:${port}`);
+                ss.log.success(`\nServer is running on http://localhost:${port}`);
                 plugins.emit('onServerRunning', { ss, app });
             });
         } catch (error) {
