@@ -45,9 +45,15 @@ export const LegacyShellCorePlugin = {
         var GameTypes = data.GameTypes;
         var ItemTypes = data.ItemTypes;
 
+        GameTypes[0].shortName = "FFA (Classic)";
+        GameTypes[0].longName = " (Free For All)";
+
+        GameTypes[1].shortName = "Classic (Teams)";
+        GameTypes[1].longName = "Classic (Teams)";
+
         GameTypes.push({
-            shortName: "Timed (FFA)",
-            longName: "Timed (Free For All)",
+            shortName: "FFA (Timed)",
+            longName: "Free For All (Timed)",
             codeName: "timedffa",
             mapPool: "FFA",
             options: {
@@ -59,8 +65,8 @@ export const LegacyShellCorePlugin = {
         });
 
         GameTypes.push({
-            shortName: "Timed (Teams)",
-            longName: "Timed (Teams)",
+            shortName: "Teams (Timed)",
+            longName: "Teams (Timed)",
             codeName: "timedteams",
             mapPool: "Teams",
             options: {
@@ -87,12 +93,42 @@ export const LegacyShellCorePlugin = {
         // });
 
         GameTypes.push({
-            shortName: "Scale",
-            longName: "Scale Shift",
+            shortName: "Scale (Classic)",
+            longName: "Scale Shift (Classic)",
             codeName: "scale",
             mapPool: "Scale",
             options: {
                 teamsEnabled: true,
+                scale: [
+                    1, //ffa
+                    0.4, //team1
+                    2, //team2
+                ],
+                gravityModifier: [
+                    1, //ffa
+                    1, //team1
+                    0.5, //team2
+                ],
+                regenModifier: [
+                    1, //ffa
+                    2, //team1
+                    0.25, //team2
+                ],
+                teamSwitchMaximumDifference: 1,
+            }
+        });
+
+        GameTypes.push({
+            shortName: "Scale (Timed)",
+            longName: "Scale Shift (Timed)",
+            codeName: "scale",
+            mapPool: "Scale",
+            options: {
+                teamsEnabled: true,
+                timedGame: {
+                    enabled: true,
+                    roundLength: 150, //2.5 mins in seconds
+                },
                 scale: [
                     1, //ffa
                     0.4, //team1

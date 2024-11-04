@@ -8,7 +8,7 @@ import { LegacyShellCorePlugin } from './shared.js';
 export const PluginMeta = {
     name: 'LegacyShellCore',
     author: 'onlypuppy7',
-    version: '1.0.1',
+    version: '1.0.2',
     descriptionShort: 'Used in the public instance', //displayed when loading
     descriptionLong: 'Used in the public instance',
     legacyShellVersion: 269, //legacy shell version, can be found in /versionEnum.txt, or just on the homescreen
