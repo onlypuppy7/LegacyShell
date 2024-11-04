@@ -47,6 +47,10 @@ export var defaultOptions = {
         1, //team1
         1, //team2
     ],
+    timedGame: {
+        enabled: false,
+        roundLength: 150, //2.5 mins in seconds
+    },
 };
 
 export var GameTypes = [

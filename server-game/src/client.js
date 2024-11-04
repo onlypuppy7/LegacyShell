@@ -217,8 +217,17 @@ class newClient {
                             this.packPlayer(output);
                             this.sendToAll(output, "packThisPlayer (ready/joined)");
 
-                            var output = new Comm.Out(1);
+                            var output = new Comm.Out();
                             output.packInt8U(Comm.Code.clientReady);
+
+                            if (this.room.gameOptions.timedGame.enabled) {
+                                // var roundRestartTime = this.gameOptions.timedGame.roundRestartTime;
+
+                                output.packInt16U(this.room.roundLength); //length of the round (in seconds)
+                                output.packInt32U(this.room.roundEndTime - Date.now()); //time to end the round (in ms)
+                                output.packInt32U(this.room.roundRestartTime); //time to wait before next round starts (in ms)
+                            };
+
                             this.sendToMe(output, "clientReady");
 
                             this.room.setGameOwner();
@@ -254,7 +263,7 @@ class newClient {
 
                         break;
                     case Comm.Code.pause:
-                        this.player.resetDespawn();
+                        this.player.resetDespawn(5e3);
 
                         this.timeout.set(() => {
                             this.player.removeFromPlay();
@@ -262,7 +271,7 @@ class newClient {
                         }, 3e3);
                         break;
                     case Comm.Code.requestRespawn:
-                        if (Date.now() >= (this.player.lastDespawn + 5000) && !this.player.playing) {
+                        if ((Date.now() >= this.player.nextRespawn) && !this.player.playing) {
                             const spawnPoint = this.room.getBestSpawn(this.player);
 
                             this.player.respawn(spawnPoint);

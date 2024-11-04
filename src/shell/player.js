@@ -138,7 +138,7 @@ class Player {
         };
         this.changeWeaponLoadout(this.primaryWeaponItem, this.secondaryWeaponItem);
 
-        this.resetDespawn(-5000);
+        this.resetDespawn(0);
         this.jumpHeld = false;
         this.lastActivity = Date.now();
 
@@ -832,8 +832,9 @@ class Player {
             getMunitionsManager(this).throwGrenade(this, pos, vec);
         };
     };
-    resetDespawn(offset = 0) {
+    resetDespawn(respawnTime = 5000, offset = 0) {
         this.lastDespawn = Date.now() + offset;
+        this.nextRespawn = this.lastDespawn + respawnTime;
     };
     removeFromPlay() {
         this.playing = false;
@@ -1023,7 +1024,11 @@ class Player {
     getOccupiedCell(cx = Math.floor(this.x), cy = Math.floor(this.y), cz = Math.floor(this.z)) {
         if (this.x < 0 || this.y < 0 || this.z < 0 || this.x >= this.map.width || this.y >= this.map.height || this.z > this.map.depth) return {};
 
-        return this.map.data[cx][cy][cz]
+        if (this.map && this.map.data && this.map.data[cx] && this.map.data[cx][cy] && this.map.data[cx][cy][cz]) {
+            return this.map.data[cx][cy][cz];
+        } else {
+            return {};
+        };
     };
     collidesWithMap() {
         return this.Collider.playerCollidesWithMap(this);
