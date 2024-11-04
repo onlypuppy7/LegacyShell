@@ -138,7 +138,13 @@ class Player {
         };
         this.changeWeaponLoadout(this.primaryWeaponItem, this.secondaryWeaponItem);
 
-        this.resetDespawn(0);
+        var respawnTime = 0;
+        if (isServer && this.client.room.gameOptions.timedGame.enabled && this.client.room.roundEndTime < Date.now()) {
+            respawnTime = Math.max(0, this.client.room.roundRestartTime - Date.now());
+            console.log("respawnTime", respawnTime);
+        };
+        this.resetDespawn(respawnTime);
+        
         this.jumpHeld = false;
         this.lastActivity = Date.now();
 
