@@ -53,7 +53,7 @@ export const LegacyShellCorePlugin = {
             options: {
                 timedGame: {
                     enabled: true,
-                    roundLength: 30, //2.5 mins in seconds
+                    roundLength: 150, //2.5 mins in seconds
                 },
             }
         });

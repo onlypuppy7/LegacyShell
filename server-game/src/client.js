@@ -224,8 +224,8 @@ class newClient {
                                 // var roundRestartTime = this.gameOptions.timedGame.roundRestartTime;
 
                                 output.packInt16U(this.room.roundLength); //length of the round (in seconds)
-                                output.packInt32U(this.room.roundEndTime - Date.now()); //time to end the round (in ms)
-                                output.packInt32U(this.room.roundRestartTime); //time to wait before next round starts (in ms)
+                                output.packInt32U(Math.max(0, this.room.roundEndTime - Date.now())); //time to end the round (in ms)
+                                output.packInt32U(Math.max(0, this.room.roundRestartTime - Date.now())); //time to wait before next round starts (in ms)
                             };
 
                             this.sendToMe(output, "clientReady");
@@ -263,12 +263,7 @@ class newClient {
 
                         break;
                     case Comm.Code.pause:
-                        this.player.resetDespawn(5e3);
-
-                        this.timeout.set(() => {
-                            this.player.removeFromPlay();
-                            this.sendToOthers(this.packPaused(), this.id, "pause");
-                        }, 3e3);
+                        this.pause();
                         break;
                     case Comm.Code.requestRespawn:
                         if ((Date.now() >= this.player.nextRespawn) && !this.player.playing) {
@@ -387,6 +382,17 @@ class newClient {
 
         } catch (error) {
             console.error('Error processing message:', error);
+        };
+    };
+
+    pause(time = 5e3) {
+        if (Date.now() >= this.player.nextRespawn) {
+            this.player.resetDespawn(time);
+
+            this.timeout.set(() => {
+                this.player.removeFromPlay();
+                this.sendToOthers(this.packPaused(), this.id, "pause");
+            }, 3e3);
         };
     };
 
