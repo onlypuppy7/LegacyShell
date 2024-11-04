@@ -46,27 +46,42 @@ export function prepareBabylons(ss, endBabylonsDir = path.join(ss.rootDir, 'stor
 
             debuggingLogs && console.log(babylon, "before", baseBabylon.meshes.length);
 
-            for (const extraBabylon of extraBabylons) {
+            for (const item of extraBabylons) {
                 debuggingLogs && console.log("Adding extra babylon", extraBabylon);
                 try {
+                    var extraBabylon = item.filepath;
+
                     const extraBabylonData = JSON.parse(fs.readFileSync(extraBabylon, 'utf8'));
                     var thisTimestamp = misc.getLastSavedTimestamp(extraBabylon);
                     if (thisTimestamp > timestamp) timestamp = thisTimestamp;
 
-                    extraBabylonData.materials && (baseBabylon.materials = [
-                        ...baseBabylon.materials,
-                        ...extraBabylonData.materials
-                    ]);
-        
-                    extraBabylonData.multiMaterials && (baseBabylon.multiMaterials = [
-                        ...baseBabylon.multiMaterials,
-                        ...extraBabylonData.multiMaterials
-                    ]);
-        
-                    extraBabylonData.meshes && (baseBabylon.meshes = [
-                        ...baseBabylon.meshes,
-                        ...extraBabylonData.meshes
-                    ]);
+                    if (item.overwrite) {
+                        baseBabylon.meshes = [
+                            ...baseBabylon.meshes,
+                            ...extraBabylonData.meshes,
+                        ];
+                        baseBabylon.materials = [
+                            ...baseBabylon.materials,
+                            ...extraBabylonData.materials,
+                        ];
+                        baseBabylon.multiMaterials = [
+                            ...baseBabylon.multiMaterials,
+                            ...extraBabylonData.multiMaterials,
+                        ];
+                    } else {
+                        extraBabylonData.materials && (baseBabylon.materials = [
+                            ...extraBabylonData.materials,
+                            ...baseBabylon.materials,
+                        ]);
+                        extraBabylonData.multiMaterials && (baseBabylon.multiMaterials = [
+                            ...extraBabylonData.multiMaterials,
+                            ...baseBabylon.multiMaterials,
+                        ]);
+                        extraBabylonData.meshes && (baseBabylon.meshes = [
+                            ...extraBabylonData.meshes,
+                            ...baseBabylon.meshes,
+                        ]);
+                    };
 
                     //delete log files cause doxxing
                     var logFiles = fs.readdirSync(path.dirname(extraBabylon)).filter(file => path.extname(file) === '.log');
