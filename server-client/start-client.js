@@ -55,6 +55,16 @@ export default async function run (ss) {
             } else {
                 plugins.emit('openBeforeDefault', { ss, app });
 
+                try {
+                    if (ss.config.client.login.enabled) {
+                        console.log("Password enabled:", ss.config.client.login);
+                        app.use(checkPassword);
+                    };
+                } catch (error) {
+                    console.log("Starting client server failed:", error);
+                    // process.exit(1);
+                };
+
                 app.use(express.static(path.join(ss.currentDir, 'store', 'client-modified')));
                 app.use(express.static(path.join(ss.currentDir, 'src', 'client-static')));
 
@@ -77,16 +87,6 @@ export default async function run (ss) {
                 } catch (error) {
                     console.error('Modification failed:', error);
                     process.exit(1);
-                };
-
-                try {
-                    if (ss.config.client.login.enabled) {
-                        console.log("Password enabled:", ss.config.client.login);
-                        app.use(checkPassword);
-                    };
-                } catch (error) {
-                    console.log("Starting client server failed:", error);
-                    // process.exit(1);
                 };
             };
 
