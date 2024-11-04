@@ -46,10 +46,10 @@ export const LegacyShellCorePlugin = {
         var ItemTypes = data.ItemTypes;
 
         GameTypes[0].shortName = "FFA (Classic)";
-        GameTypes[0].longName = " (Free For All)";
+        GameTypes[0].longName = "Free For All (Classic)";
 
-        GameTypes[1].shortName = "Classic (Teams)";
-        GameTypes[1].longName = "Classic (Teams)";
+        GameTypes[1].shortName = "Teams (Classic)";
+        GameTypes[1].longName = "Teams (Classic)";
 
         GameTypes.push({
             shortName: "FFA (Timed)",
