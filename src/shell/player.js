@@ -228,6 +228,8 @@ class Player {
             this.pitch = this.stateBuffer[idx].pitch;
         };
 
+        if (isServer && !this.canRespawn()) this.controlKeys = 0;
+
         // devlog(this.name, this.stateIdx, this.controlKeys, this.x.toFixed(2), this.y.toFixed(2), this.z.toFixed(2), this.dx.toFixed(2), this.dy.toFixed(2), this.dz.toFixed(2), this.yaw.toFixed(2), this.pitch.toFixed(2));
 
         // serverlog(this.weapon.ammo.rounds, this.weapon.ammo.store);
@@ -841,6 +843,9 @@ class Player {
     resetDespawn(respawnTime = 5000, offset = 0) {
         this.lastDespawn = Date.now() + offset;
         this.nextRespawn = this.lastDespawn + respawnTime;
+    };
+    canRespawn() {
+        return Date.now() >= this.nextRespawn;
     };
     removeFromPlay() {
         this.playing = false;

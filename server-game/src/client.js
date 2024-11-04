@@ -266,7 +266,7 @@ class newClient {
                         this.pause();
                         break;
                     case Comm.Code.requestRespawn:
-                        if ((Date.now() >= this.player.nextRespawn) && !this.player.playing) {
+                        if (this.player.canRespawn() && !this.player.playing) {
                             const spawnPoint = this.room.getBestSpawn(this.player);
 
                             this.player.respawn(spawnPoint);
@@ -386,7 +386,7 @@ class newClient {
     };
 
     pause(time = 5e3) {
-        if (Date.now() >= this.player.nextRespawn) {
+        if (this.player.canRespawn()) {
             this.player.resetDespawn(time);
 
             this.timeout.set(() => {
