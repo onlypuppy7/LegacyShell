@@ -130,13 +130,15 @@ class newRoom {
     setRoundTimeout() {
         this.roundLength = this.gameOptions.timedGame.roundLength;
         this.roundEndTime = Date.now() + (this.roundLength * 1e3);
-        this.roundRestartTime = 0;
+        this.nextRoundTime = this.roundLength * 1e3;
+        this.timeoutForNextRound = NextRoundTimeout * 1e3;
+        this.roundRestartTime = this.roundEndTime + this.timeoutForNextRound;
 
-        var nextRoundTime = this.roundLength * 1e3;
-
-        console.log("roundEndTime", this.roundEndTime);
         console.log("roundLength", this.roundLength);
-        console.log("nextRoundTime", nextRoundTime);
+        console.log("roundEndTime", this.roundEndTime);
+        console.log("nextRoundTime", this.nextRoundTime);
+        console.log("timeoutForNextRound", this.timeoutForNextRound);
+        console.log("roundRestartTime", this.roundRestartTime);
 
         var output = new Comm.Out(1);
         output.packInt8U(Comm.Code.roundStart);
@@ -144,14 +146,24 @@ class newRoom {
         
         this.roundTimeout = setTimeout(() => {
             console.log(`Round ended. Starting new round in ${NextRoundTimeout} seconds.`);
+
             var output = new Comm.Out(1);
             output.packInt8U(Comm.Code.roundEnd);
             this.sendToAll(output);
+
+            setTimeout(() => {
+                this.pauseAllClients(this.timeoutForNextRound - 3e3);
+            }, 3e3);
+
             setTimeout(() => {
                 console.log("New round starting now!");
                 this.setRoundTimeout();
-            }, NextRoundTimeout * 1e3);
-        }, nextRoundTime);
+            }, this.timeoutForNextRound);
+        }, this.nextRoundTime);
+    };
+
+    pauseAllClients(time = 5e3) {
+        this.clients.forEach(client => { client.pause(time); });
     };
 
     updateRoomDetails() {
