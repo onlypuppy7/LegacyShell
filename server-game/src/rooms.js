@@ -5,7 +5,7 @@ import ColliderConstructor from '#collider';
 import createLoop from '#looper';
 import extendMath from '#math';
 import { setSSforLoader, loadMapMeshes, buildMapData } from '#loading';
-import { TickStep, stateBufferSize, FramesBetweenSyncs, MAP, setSSForConstants, devlog, chatCooldown } from '#constants';
+import { TickStep, stateBufferSize, FramesBetweenSyncs, MAP, setSSForConstants, devlog, chatCooldown, NextRoundTimeout } from '#constants';
 import { GameTypes } from '#gametypes';
 import { ItemTypes } from '#items';
 import { MunitionsManagerConstructor } from '#munitionsManager';
@@ -84,6 +84,11 @@ class newRoom {
         setSSforLoader(ss, this.mapJson, this.Collider);
         this.validItemSpawns = [];
 
+        //timed rounds
+        if (this.gameOptions.timedGame.enabled) {
+            this.setRoundTimeout();
+        };
+
         loadMapMeshes(this.scene, () => {
             ss.config.verbose && console.log("done loadMapMeshes");
             const { map, spawnPoints, mapMeshes } = buildMapData(function (str) { ss.log.error("The following map meshes were not found:\n\n" + str + "\nTry clearing your cache and reload the page!") });
@@ -120,6 +125,33 @@ class newRoom {
                     break;
             }
         };
+    };
+
+    setRoundTimeout() {
+        this.roundLength = this.gameOptions.timedGame.roundLength;
+        this.roundEndTime = Date.now() + (this.roundLength * 1e3);
+        this.roundRestartTime = 0;
+
+        var nextRoundTime = this.roundLength * 1e3;
+
+        console.log("roundEndTime", this.roundEndTime);
+        console.log("roundLength", this.roundLength);
+        console.log("nextRoundTime", nextRoundTime);
+
+        var output = new Comm.Out(1);
+        output.packInt8U(Comm.Code.roundStart);
+        this.sendToAll(output);
+        
+        this.roundTimeout = setTimeout(() => {
+            console.log(`Round ended. Starting new round in ${NextRoundTimeout} seconds.`);
+            var output = new Comm.Out(1);
+            output.packInt8U(Comm.Code.roundEnd);
+            this.sendToAll(output);
+            setTimeout(() => {
+                console.log("New round starting now!");
+                this.setRoundTimeout();
+            }, NextRoundTimeout * 1e3);
+        }, nextRoundTime);
     };
 
     updateRoomDetails() {
@@ -392,6 +424,8 @@ class newRoom {
         });
 
         plugins.emit('getBestSpawnEnd', {this: this, player, best, bestDistance});
+
+        // console.log("best spawn", best, bestDistance);
 
         if (bestDistance === -1) return this.getRandomSpawn(player);
         return {

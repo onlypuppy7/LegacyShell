@@ -1023,7 +1023,7 @@
                 <div class="shadedPane"
                     style="position: fixed; width: 52em; min-width: 1000px; padding: 1em; left: 50%; transform: translateX(-50%); top: 15%;">
 
-                    <div id="gameRespawnContent" style="display: flex; width: 100%; height: 13em; margin-top: 0.5em;">
+                    <div id="gameRespawnContent" style="display: flex; width: 100%; margin-top: 0.5em;"> <!-- height: 13em;  -->
 
                         <!-- <div style="flex: auto;">
                     <div>
@@ -1034,7 +1034,7 @@
                 </div> -->
 
                         <div style="flex: auto; width: 80%; padding-right: 1em;">
-                            <div
+                            <div id="orangeBoxContent"
                                 style="height: 9em; border: solid 0.2em #f83; border-radius: 0.2em; text-align: center; padding: 1em; padding-top: 0.5em">
 
                                 <!-- Help message -->
@@ -1085,6 +1085,85 @@
                                     </div>
                                 </div>
                             </div>
+
+                            <div id="gameSummary">
+                                <!-- Team final scores -->
+                                <div id="teamFinal"
+                                    style="display: none; padding: 1em; display: flex; width: 40em; top: -2.2em">
+                                    <div class="shadedPane"
+                                        style="width: 19.8em; color: rgb(64, 224, 255); background: rgba(0, 64, 192, 0.7); padding-left: 0.5em; padding-right: 0.5em">
+                                        <div style="float: left">
+                                            <h1>Blue</h1>
+                                        </div>
+                                        <div style="float: right">
+                                            <h1 id="teamScore1"></h1>
+                                        </div>
+                                    </div>
+                                    <div style="flex: auto"></div>
+                                    <div class="shadedPane"
+                                        style="width: 19.8em; color: rgb(255, 192, 160); background: rgba(192, 64, 32, 0.7); padding-left: 0.5em; padding-right: 0.5em">
+                                        <div style="float: left">
+                                            <h1 id="teamScore2"></h1>
+                                        </div>
+                                        <div style="float: right">
+                                            <h1>Red</h1>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Free-for-all final scores -->
+                                <div id="ffaFinal"
+                                    style="display: none; padding: 1em; display: flex; width: 40em; top: -2.2em">
+                                    <div class="shadedPane" style="width: 100%; padding-left: 0.5em; padding-right: 0.5em">
+                                        <div style="float: left">
+                                            <h1>Total Kills</h1>
+                                        </div>
+                                        <div style="float: right">
+                                            <h1 id="teamScore0"></h1>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Game summary container -->
+                                <div id="leaderboard" class="flexCol shadedPane" style="
+                            width: 40em; margin-right: 1em; padding: 0.3em;
+                        ">
+                                    <!-- Leaderboard column header -->
+                                    <div class="flexRow" style="
+                                width: 100%;
+                                color: #ccc;
+                                text-align: center;
+                                background: transparent;
+                                padding-left: 0.2em; padding-right: 0.2em
+                            ">
+                                        <div style="width: 6vh; font-size: 0.8em">#</div>
+                                        <div style="flex: auto; text-align: left; font-size: 0.8em">name</div>
+                                        <div style="width: 8vh; font-size: 0.8em">score</div>
+                                        <div style="width: 8vh; font-size: 0.8em">kills</div>
+                                        <div style="width: 8vh; font-size: 0.8em">deaths</div>
+                                        <div style="width: 8vh; font-size: 0.8em">streak</div>
+                                    </div>
+
+                                    <!-- Team leaderboard container -->
+                                    <div id="teamSummary" class="flexCol" style="
+                                display: none;
+                                margin-top: 0.2em;
+                                width: 100%;
+                            ">
+                                        <!-- teamRow elements (below) get added here -->
+                                    </div>
+
+                                    <div id="teamRow" class="flexRow"
+                                        style="width: 100%; display: none; padding-left: 0.2em; padding-right: 0.2em; text-align: center">
+                                        <div style="width: 6vh;"></div> <!-- Rank -->
+                                        <div style="flex: auto; text-align: left"></div> <!-- Name -->
+                                        <div style="width: 8vh"></div> <!-- Score -->
+                                        <div style="width: 8vh"></div> <!-- Kills -->
+                                        <div style="width: 8vh"></div> <!-- Deaths -->
+                                        <div style="width: 8vh"></div> <!-- Streak -->
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         <div style="flex: auto;">
                             <div>
@@ -1108,7 +1187,7 @@
                         </div>
                     </div>
 
-                    <div id="inGameAd" style="display: none;">
+                    <!-- <div id="inGameAd" style="display: none;">
                         <div style="width: 970px; height: 250px;">
                             <div id="gameAdContainer"
                                 style="display: block; pointer-events: all; width: 100%; text-align: center;">
@@ -1118,7 +1197,7 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </div> -->
                 </div>
 
                 <div id="serverAndMapInfo" style="
@@ -1174,84 +1253,12 @@
                     </div>
                 </div>
 
+                <!-- fyi: summary used to be here
+
                 <div id="gameSummary">
-                    <!-- Team final scores -->
-                    <div id="teamFinal"
-                        style="display: none; position: absolute; display: flex; width: 40em; top: -2.2em">
-                        <div class="shadedPane"
-                            style="width: 19.8em; color: rgb(64, 224, 255); background: rgba(0, 64, 192, 0.7); padding-left: 0.5em; padding-right: 0.5em">
-                            <div style="float: left">
-                                <h1>Blue</h1>
-                            </div>
-                            <div style="float: right">
-                                <h1 id="teamScore1"></h1>
-                            </div>
-                        </div>
-                        <div style="flex: auto"></div>
-                        <div class="shadedPane"
-                            style="width: 19.8em; color: rgb(255, 192, 160); background: rgba(192, 64, 32, 0.7); padding-left: 0.5em; padding-right: 0.5em">
-                            <div style="float: left">
-                                <h1 id="teamScore2"></h1>
-                            </div>
-                            <div style="float: right">
-                                <h1>Red</h1>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Free-for-all final scores -->
-                    <div id="ffaFinal"
-                        style="display: none; position: absolute; display: flex; width: 40em; top: -2.2em">
-                        <div class="shadedPane" style="width: 100%; padding-left: 0.5em; padding-right: 0.5em">
-                            <div style="float: left">
-                                <h1>Total Kills</h1>
-                            </div>
-                            <div style="float: right">
-                                <h1 id="teamScore0"></h1>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Game summary container -->
-                    <div id="leaderboard" class="flexCol shadedPane" style="
-                width: 40em; margin-right: 1em; padding: 0.3em;
-            ">
-                        <!-- Leaderboard column header -->
-                        <div class="flexRow" style="
-                    width: 100%;
-                    color: #ccc;
-                    text-align: center;
-                    background: transparent;
-                    padding-left: 0.2em; padding-right: 0.2em
-                ">
-                            <div style="width: 6vh; font-size: 0.8em">#</div>
-                            <div style="flex: auto; text-align: left; font-size: 0.8em">name</div>
-                            <div style="width: 8vh; font-size: 0.8em">score</div>
-                            <div style="width: 8vh; font-size: 0.8em">kills</div>
-                            <div style="width: 8vh; font-size: 0.8em">deaths</div>
-                            <div style="width: 8vh; font-size: 0.8em">streak</div>
-                        </div>
-
-                        <!-- Team leaderboard container -->
-                        <div id="teamSummary" class="flexCol" style="
-                    display: none;
-                    margin-top: 0.2em;
-                    width: 100%;
-                ">
-                            <!-- teamRow elements (below) get added here -->
-                        </div>
-
-                        <div id="teamRow" class="flexRow"
-                            style="width: 100%; display: none; padding-left: 0.2em; padding-right: 0.2em; text-align: center">
-                            <div style="width: 6vh;"></div> <!-- Rank -->
-                            <div style="flex: auto; text-align: left"></div> <!-- Name -->
-                            <div style="width: 8vh"></div> <!-- Score -->
-                            <div style="width: 8vh"></div> <!-- Kills -->
-                            <div style="width: 8vh"></div> <!-- Deaths -->
-                            <div style="width: 8vh"></div> <!-- Streak -->
-                        </div>
-                    </div>
                 </div>
+
+                -->
 
                 <div class="flexCol">
 

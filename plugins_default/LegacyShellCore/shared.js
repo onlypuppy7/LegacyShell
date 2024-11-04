@@ -41,9 +41,36 @@ export const LegacyShellCorePlugin = {
         });
     },
 
-    GameTypesInit(data) {
+    async GameTypesInit(data) {
         var GameTypes = data.GameTypes;
         var ItemTypes = data.ItemTypes;
+
+        GameTypes.push({
+            shortName: "Timed (FFA)",
+            longName: "Timed (Free For All)",
+            codeName: "timedffa",
+            mapPool: "FFA",
+            options: {
+                timedGame: {
+                    enabled: true,
+                    roundLength: 30, //2.5 mins in seconds
+                },
+            }
+        });
+
+        GameTypes.push({
+            shortName: "Timed (Teams)",
+            longName: "Timed (Teams)",
+            codeName: "timedteams",
+            mapPool: "Teams",
+            options: {
+                teamsEnabled: true,
+                timedGame: {
+                    enabled: true,
+                    roundLength: 150, //2.5 mins in seconds
+                },
+            }
+        });
 
         // GameTypes.push({
         //     shortName: "Health Pack",

@@ -192,6 +192,8 @@ export const MAP = {
     barrier: 10
 };
 
+export var NextRoundTimeout = 20; //seconds
+
 export var weaponStats = {
     totalDamage: {
         name: "damage",
