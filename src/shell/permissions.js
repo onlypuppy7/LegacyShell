@@ -1,6 +1,8 @@
 // legacyshell: permissions
 import { isClient, maxServerSlots } from "#constants";
 import Comm from '#comm';
+//legacyshell: ss
+import { ss } from '#misc';
 //legacyshell: plugins
 import { plugins } from '#plugins';
 //
@@ -9,15 +11,14 @@ import { plugins } from '#plugins';
 //(server-only-end)
 
 export class PermissionsConstructor {
-    constructor(newSS, room) {
+    constructor(room) {
         var permsConfig;
 
         if (isClient) {
             permsConfig = permissions;
         } else {
-            this.ss = newSS;
             this.room = room;
-            permsConfig = this.ss.permissions;
+            permsConfig = ss.permissions;
         };
 
         this.perms = permsConfig.permissions;

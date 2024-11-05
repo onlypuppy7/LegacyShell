@@ -3,8 +3,9 @@ import fs from 'node:fs';
 import yaml from 'js-yaml';
 import path from 'node:path';
 //legacyshell: config reqs
-import log from '#coloured-logging';
 import WebSocket, { WebSocketServer } from 'ws';
+//legacyshell: logging
+import log from '#coloured-logging';
 //legacyshell: dirname resolving
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
@@ -13,10 +14,10 @@ import extendMath from '#math';
 import { plugins } from '#plugins';
 //
 
-let ss; //trollage. access it later.
+export var ss; //trollage. access it later.
 extendMath(Math);
 
-const misc = {
+export const misc = {
     getLastSavedTimestamp: function (filePath) {
         try {
             const stats = fs.statSync(filePath);
@@ -46,8 +47,7 @@ const misc = {
 
         ss = {
             currentDir: path.resolve(ogDirname),
-            rootDir: path.join(path.resolve(miscDirname), '..', '..', '..'),
-            log,
+            rootDir: path.join(path.resolve(miscDirname), '..', '..', '..')
         };
 
         if (!noConfig) {
@@ -91,15 +91,15 @@ const misc = {
                             //iterate through default and notify user of anything missing in custom config
                             for (const key in yamlDefaultData) { //not the cleanest way to do this
                                 if (yamlData[key] === undefined) {
-                                    ss.log.error(`Missing key ${key} in ${file}, using default value.`);
+                                    log.error(`Missing key ${key} in ${file}, using default value.`);
                                 } else if (typeof yamlDefaultData[key] === "object") {
                                     for (const subKey in yamlDefaultData[key]) {
                                         if (yamlData[key] === undefined || yamlData[key][subKey] === undefined) {
-                                            ss.log.error(`Missing key ${key} -> ${subKey} in ${file}, using default value.`);
+                                            log.error(`Missing key ${key} -> ${subKey} in ${file}, using default value.`);
                                         } else if (typeof yamlDefaultData[key][subKey] === "object") {
                                             for (const subSubKey in yamlDefaultData[key][subKey]) {
                                                 if (yamlData[key][subKey][subSubKey] === undefined) { //if there are still more levels, get fucked
-                                                    ss.log.error(`Missing key ${key} -> ${subKey} -> ${subSubKey} in ${file}, using default value.`);
+                                                    log.error(`Missing key ${key} -> ${subKey} -> ${subSubKey} in ${file}, using default value.`);
                                                 };
                                             };
                                         };
@@ -144,14 +144,12 @@ const misc = {
             startTime: Date.now(),
         };
 
-        ss.isPerpetual && ss.config.verbose && ss.log.gray("is perpetual");
+        ss.isPerpetual && ss.config.verbose && log.gray("is perpetual");
 
         // console.log(path.resolve(ogDirname), path.resolve(miscDirname), ss);
 
-        ss.log.green(`Created ss Object! Commit hash: ${ss.versionHash} (${ss.versionEnum})`);
-        (!noConfig) && ss.config.verbose && ss.log.bgGray("VERBOSE LOGGING ENABLED!!!!!!");
-
-        return ss;
+        log.green(`Created ss Object! Commit hash: ${ss.versionHash} (${ss.versionEnum})`);
+        (!noConfig) && ss.config.verbose && log.bgGray("VERBOSE LOGGING ENABLED!!!!!!");
     },
     hashtagToPath: function (hashtag) {
         try {

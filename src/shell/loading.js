@@ -5,15 +5,15 @@ import path from 'node:path';
 import BABYLON from "babylonjs";
 import { stateBufferSize, isClient, isServer, Team } from '#constants';
 import JSZip from 'jszip';
+//legacyshell: ss
+import { ss } from '#misc';
 //
 
 //(server-only-start)
-let ss;
 let Collider;
 //(server-only-end)
 
-export function setSSforLoader(newSS, passedMinMap, passedCollider) {
-    ss = newSS;
+export function setParamsforLoader(passedMinMap, passedCollider) {
     minMap = passedMinMap;
     Collider = passedCollider;
 };

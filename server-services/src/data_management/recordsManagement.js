@@ -2,14 +2,13 @@
 import fs from 'node:fs';
 import yaml from 'js-yaml';
 import path from 'node:path';
+//legacyshell: logging
+import log from '#coloured-logging';
+//legacyshell: ss
+import { ss } from '#misc';
 //
 
-let ss; //trollage. access it later.
-
 const exported = {
-    setSS: function (newSS) {
-        ss = newSS;
-    },
     initDB: (db) => {
         db.serialize(() => {
             //USERS
@@ -203,7 +202,7 @@ const exported = {
 
         for (const file of files) {
             if (path.extname(file) === '.json') {
-                ss.log.beige(`Inserting: ${file}`);
+                log.beige(`Inserting: ${file}`);
                 const filePath = path.join(jsonDir, file);
                 const fileContent = fs.readFileSync(filePath, 'utf8');
                 const jsonData = JSON.parse(fileContent);
@@ -221,7 +220,7 @@ const exported = {
         const files = fs.readdirSync(jsonDir);
         for (const file of files) {
             if (path.extname(file) === '.json') {
-                ss.log.beige(`Inserting: ${file}`);
+                log.beige(`Inserting: ${file}`);
                 const filePath = path.join(jsonDir, file);
                 const fileContent = fs.readFileSync(filePath, 'utf8');
                 const map = JSON.parse(fileContent);
@@ -255,7 +254,7 @@ const exported = {
     },
     getCodeData: async (code_key, retainSensitive) => {
         try {
-            ss.config.verbose && ss.log.bgCyan(`services: Reading from DB: get code ${code_key}`);
+            ss.config.verbose && log.bgCyan(`services: Reading from DB: get code ${code_key}`);
             const code = await ss.getOne(`SELECT * FROM codes WHERE key = ?`, [code_key]);
     
             if (code) {
@@ -280,7 +279,7 @@ const exported = {
     },
     getItemData: async (item_id, retainSensitive) => {
         try {
-            ss.config.verbose && ss.log.bgCyan(`services: Reading from DB: get item ${item_id}`);
+            ss.config.verbose && log.bgCyan(`services: Reading from DB: get item ${item_id}`);
             const item = await ss.getOne(`SELECT * FROM items WHERE id = ?`, [item_id]);
     
             if (item) {
@@ -303,7 +302,7 @@ const exported = {
     },
     getAllItemData: async (retainSensitive) => {
         try {
-            ss.config.verbose && ss.log.bgCyan("services: Reading from DB: get all items");
+            ss.config.verbose && log.bgCyan("services: Reading from DB: get all items");
             const items = await ss.getAll(`SELECT * FROM items`);
     
             if (items) {
@@ -328,7 +327,7 @@ const exported = {
     },
     getAllMapData: async (retainSensitive) => {
         try {
-            ss.config.verbose && ss.log.bgCyan("services: Reading from DB: get all maps");
+            ss.config.verbose && log.bgCyan("services: Reading from DB: get all maps");
             const maps = await ss.getAll(`SELECT * FROM maps`);
     
             if (maps) {
@@ -360,7 +359,7 @@ const exported = {
     },
     getAllGameServerData: async (retainSensitive) => {
         try {
-            ss.config.verbose && ss.log.bgCyan(`services: Reading from DB: get all game servers`);
+            ss.config.verbose && log.bgCyan(`services: Reading from DB: get all game servers`);
             const data = await ss.getAll(`SELECT * FROM game_servers`);
             if (data) {
                 return data.map(server => {

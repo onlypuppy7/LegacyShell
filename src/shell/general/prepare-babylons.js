@@ -4,16 +4,20 @@ import path from 'node:path';
 //plugin: prepare-babylons
 import misc from '#misc';
 import jszip from 'jszip';
+//legacyshell: logging
+import log from '#coloured-logging';
+//legacyshell: ss
+import { ss } from '#misc';
 //legacyshell: plugins
 import { plugins } from '#plugins';
 //
 
 var debuggingLogs = false;
 
-export function prepareBabylons(ss, endBabylonsDir = path.join(ss.rootDir, 'store', 'export-static', 'models'), baseBabylonsDir = path.join(ss.rootDir, 'src', 'base-babylons')) {
+export function prepareBabylons(endBabylonsDir = path.join(ss.rootDir, 'store', 'export-static', 'models'), baseBabylonsDir = path.join(ss.rootDir, 'src', 'base-babylons')) {
     if (!fs.existsSync(endBabylonsDir)) fs.mkdirSync(endBabylonsDir, { recursive: true });
 
-    ss.log.info("Preparing babylons...");
+    log.info("Preparing babylons...");
 
     var babylonDirFiles = fs.readdirSync(baseBabylonsDir);
 
@@ -35,7 +39,7 @@ export function prepareBabylons(ss, endBabylonsDir = path.join(ss.rootDir, 'stor
     for (const babylon of baseBabylons) {
         try {
             const filename = path.basename(babylon, '.babylon');
-            ss.log.dim(`Copying ${filename}...`);
+            log.dim(`Copying ${filename}...`);
             const baseBabylon = JSON.parse(fs.readFileSync(path.join(baseBabylonsDir, babylon), 'utf8'));
             //get date of file saved
             var timestamp = misc.getLastSavedTimestamp(path.join(baseBabylonsDir, babylon));
@@ -87,7 +91,7 @@ export function prepareBabylons(ss, endBabylonsDir = path.join(ss.rootDir, 'stor
                     var logFiles = fs.readdirSync(path.dirname(extraBabylon)).filter(file => path.extname(file) === '.log');
                     logFiles.forEach(file => fs.unlinkSync(path.join(path.dirname(extraBabylon), file)));
                 } catch (error) {
-                    ss.log.error(`Error adding extra babylon ${extraBabylon}:`, error);
+                    log.error(`Error adding extra babylon ${extraBabylon}:`, error);
                 };
             };
             baseBabylon.materials.forEach((newMaterial) => {
@@ -140,7 +144,7 @@ export function prepareBabylons(ss, endBabylonsDir = path.join(ss.rootDir, 'stor
                 addBabylonToZip(mapZip, filename, baseBabylon);
             };
         } catch (error) {
-            ss.log.error(`Error preparing babylon ${babylon}:`, error);
+            log.error(`Error preparing babylon ${babylon}:`, error);
         };
     };
 
@@ -151,15 +155,15 @@ export function prepareBabylons(ss, endBabylonsDir = path.join(ss.rootDir, 'stor
             compression: "DEFLATE"
         }).pipe(fs.createWriteStream(path.join(endBabylonsDir, zipName))
             .on('finish', function () {
-                ss.log.green(`${zipName} written.`);
+                log.green(`${zipName} written.`);
             }));
     };
 
     if (fileChanged) {
-        ss.log.info("Babylons changed. Wait for zip to save before playing.");
+        log.info("Babylons changed. Wait for zip to save before playing.");
         saveZip(modelsZip, 'models.zip');
         saveZip(mapZip, 'map.zip');
     } else {
-        ss.log.green("No babylons changed.");
+        log.green("No babylons changed.");
     };
 };

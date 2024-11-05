@@ -1,14 +1,14 @@
 //legacyshell: room worker (bridge)
 import { parentPort } from 'worker_threads';
 //legacyshell: basic
-import misc from '#misc';
+import { ss, misc } from '#misc';
 //legacyshell: plugins
 import { plugins } from '#plugins';
 //
 
 (async () => {
-    let ss = misc.instantiateSS(import.meta, process.argv);
-    await plugins.loadPlugins('game', ss);
+    misc.instantiateSS(import.meta, process.argv);
+    await plugins.loadPlugins('game');
 
     //importing, important to do after plugins are loaded so that they can inject their own methods
     const RoomConstructor = (await import('#rooms')).default;
@@ -21,15 +21,10 @@ import { plugins } from '#plugins';
     
         switch (cmd) {
             case "setSS":
-                ss = {
-                    ...ss,
-                    ...message,
-                    parentPort
-                };
-                RoomConstructor.setSS(ss, parentPort);
+                Object.assign(ss, message);
                 break;
             case "createRoom":
-                room = new RoomConstructor.newRoom(message);
+                room = new RoomConstructor.newRoom(message, ss);
                 break;
             case "joinPlayer":
                 room.joinPlayer(message);

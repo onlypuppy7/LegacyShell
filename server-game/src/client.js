@@ -9,31 +9,30 @@ import CatalogConstructor from '#catalog';
 import extendMath from '#math';
 //legacyshell: getting user data
 import wsrequest from '#wsrequest';
+//legacyshell: logging
+import log from '#coloured-logging';
 //legacyshell: plugins
 import { plugins } from '#plugins';
+//legacyshell: ss
+import { ss } from '#misc';
+//legacyshell: room worker (bridge)
+import { parentPort } from 'worker_threads';
 //
 
 plugins.emit('clientStartUp', {  });
 
-let ss, catalog;
+let catalog;
 extendMath(Math);
-
-function setSS(newSS) {
-    ss = newSS;
-    catalog = new CatalogConstructor(ss.items);
-
-    plugins.emit('clientSetSS', { ss });
-};
 
 class newClient {
     constructor(room, info) {
         this.initClient(room, info);
+        catalog = new CatalogConstructor(ss.items);
     };
 
     async initClient(room, info) {
         plugins.emit('clientInit', { this: this, room, info });
 
-        this.ss = ss;
         //
         this.session = info.session;
         await this.updateUserData();
@@ -611,19 +610,18 @@ class newClient {
     };
 
     sendMsgToWs(msg) {
-        ss.parentPort.postMessage([Comm.Worker.send, msg, this.wsId]);
+        parentPort.postMessage([Comm.Worker.send, msg, this.wsId]);
     };
 
     sendCloseToWs(msg) {
-        ss.parentPort.postMessage([Comm.Worker.close, msg, this.wsId]);
+        parentPort.postMessage([Comm.Worker.close, msg, this.wsId]);
     };
 
     sendBootToWs(msg) {
-        ss.parentPort.postMessage([Comm.Worker.boot, msg, this.wsId]);
+        parentPort.postMessage([Comm.Worker.boot, msg, this.wsId]);
     };
 };
 
 export default {
-    setSS,
     newClient,
 };
