@@ -591,7 +591,7 @@ https://www.youtube.com/watch?v=5qnfb6mgf08
 
 ### No archives exist for August on the Wayback Machine 
 
-## [0.13.5](https://web.archive.org/web/20180716191908/https://shellshock.io/) | 21 June - 16 July
+## [0.13.5](https://web.archive.org/web/20180716191908/https://shellshock.io/) | 21 June - 16 July 2018
 
 > **What's New**
 > - New server architecture

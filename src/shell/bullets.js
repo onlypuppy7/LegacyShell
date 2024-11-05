@@ -146,6 +146,10 @@ Bullet.prototype.update = function (delta) {
                     s.angle = Math.random() * Math.PI2;
                     s.rotate = .08 * Math.random() - .04;
                     s.animColors = bulletHitColors;
+                    
+                    if (isClient && enableBulletHoles) { //bullet holes
+                        bulletHoleManager.addHole(0, x, y, z );
+                    };
                 };
 
                 onDestroy(pos.x, pos.y, pos.z, dx, dy, dz);

@@ -241,14 +241,18 @@ class ColliderConstructor {
         this.ray.length = 1;
         BABYLON.Ray.TransformToRef(this.ray, this.matrix, this.ray);
         var pickInfo = this.intersectsColliderMesh(colliderMesh, false);
-        if (colliderMesh = pickInfo.pickedMesh, pickInfo.hit) {
+        colliderMesh = pickInfo.pickedMesh;
+        if (pickInfo.hit) {
             if (colliderMesh != this.fullCollisionMesh && (0.5 < Math.abs(pickInfo.pickedPoint.x) || 0.5 < Math.abs(pickInfo.pickedPoint.y) || 0.5 < Math.abs(pickInfo.pickedPoint.z))) {
                 var to0 = BABYLON.Vector3.DistanceSquared(this.ray.origin, BABYLON.Vector3.Zero());
                 BABYLON.Vector3.DistanceSquared(this.ray.origin, pickInfo.pickedPoint) < to0 && (pickInfo = this.ray.intersectsMesh(this.fullCollisionMesh, false));
             }
             if (pickInfo.hit) {
                 var p = BABYLON.Vector3.TransformCoordinates(pickInfo.pickedPoint, this.matrix.invert());
-                return p.addInPlace(this.v4), pickInfo.pickedPoint = p, {
+                p.addInPlace(this.v4);
+                pickInfo.pickedPoint = p;
+
+                return {
                     cell: cell,
                     pick: pickInfo
                 };
