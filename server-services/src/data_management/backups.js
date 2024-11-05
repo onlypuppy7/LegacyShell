@@ -2,16 +2,13 @@
 import fs from 'node:fs';
 import yaml from 'js-yaml';
 import path from 'node:path';
-//legacyshell: backups
-
+//legacyshell: logging
+import log from '#coloured-logging';
+//legacyshell: ss
+import { ss } from '#misc';
 //
 
-let ss; //trollage. access it later.
-
 const exported = {
-    setSS: function (newSS) {
-        ss = newSS;
-    },
     createBackup: async (dbPath = ss.dbPath, backupPath = ss.backupPath) => {
         try {
             if (ss.config.services.backups.filepath) backupPath = ss.config.services.backups.filepath;
@@ -25,7 +22,7 @@ const exported = {
                 const timeSinceLastBackup = Math.abs(new Date() - lastBackupDate) / (1e3 * 60 * 60);
 
                 if (timeSinceLastBackup < ss.config.services.backups.interval) {
-                    ss.log.muted('Backup already exists for this time.');
+                    log.muted('Backup already exists for this time.');
                     return false;
                 };
             };
@@ -36,7 +33,7 @@ const exported = {
             const filename = path.join(backupPath, 'LegacyShellDataBackup-' + date + "_" + time + '.db');
             fs.writeFileSync(filename, db);
 
-            ss.log.success('Backup created: ' + filename, path.basename(backupPath));
+            log.success('Backup created: ' + filename, path.basename(backupPath));
 
             if (currentBackups.length > ss.config.services.backups.keep) {
                 var toDelete = currentBackups.length - ss.config.services.backups.keep;
@@ -44,7 +41,7 @@ const exported = {
                 for (var i = 0; i < toDelete; i++) {
                     fs.unlinkSync(path.join(backupPath, currentBackups[i]));
                 };
-                ss.log.muted('Deleted ' + toDelete + ' old backups.');  
+                log.muted('Deleted ' + toDelete + ' old backups.');  
             };
 
             return true;

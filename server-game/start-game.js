@@ -11,6 +11,10 @@ import WebSocket, { WebSocketServer } from 'ws';
 import Comm from '#comm';
 import rm from '#roomManager';
 import { getMapsByAvailabilityAsInts, GameTypes, getMapPool } from '#gametypes';
+//legacyshell: logging
+import log from '#coloured-logging';
+//legacyshell: ss
+import { ss } from '#misc';
 //legacyshell: plugins
 import { plugins } from '#plugins';
 import { prepareBabylons } from '#prepare-babylons';
@@ -19,24 +23,23 @@ import { prepareBabylons } from '#prepare-babylons';
 //i know its called start, even though it should be the other way round. please excuse this.
 //i just didnt want to break old configs for the perpetual wrapper.
 
-export default async function run (ss) {
-    ss = {
-        ...ss,
+export default async function run () {
+
+    Object.assign(ss, {
         mapAvailability: {
             public: [],
             private: [],
             both: [],
         },
-    };
+    });
 
     plugins.emit(`${'onLoad'}`, { ss }); //annoyed yet?
 
-    prepareBabylons(ss, path.join(ss.currentDir, 'store', 'models'));
+    prepareBabylons(path.join(ss.currentDir, 'store', 'models'));
 
     function startServer() {
         const RoomManager = new rm.newRoomManager();
         ss.RoomManager = RoomManager;
-        rm.setSS(ss);
 
         const port = ss.config.game.port || 13372;
         const wss = new WebSocketServer({ port: port });
@@ -119,8 +122,8 @@ export default async function run (ss) {
             };
         });
 
-        ss.config.game.closed && ss.log.bgRed('Server is running in closed mode.');
-        ss.log.success('WebSocket server is running on ws://localhost:' + port);
+        ss.config.game.closed && log.bgRed('Server is running in closed mode.');
+        log.success('WebSocket server is running on ws://localhost:' + port);
     };
 
     //all this is retrieving the config:
@@ -136,7 +139,7 @@ export default async function run (ss) {
         nextTimeout = Math.min(nextTimeout + 5e3, 30e3);
 
         try {
-            ss.log.blue('WebSocket connection opening. Requesting config information...');
+            log.blue('WebSocket connection opening. Requesting config information...');
             await wsrequest({
                 cmd: "requestConfig",
                 lastMaps: Math.floor(misc.getLastSavedTimestamp(mapsFilePath)/1000),
@@ -148,22 +151,22 @@ export default async function run (ss) {
 
                 if (configInfo) {
                     if (!retrieved) {
-                        ss.log.green('Received config information from sync server.');
+                        log.green('Received config information from sync server.');
                         offline = false;
             
                         const load = function(thing, filePath) {
                             if (configInfo[thing]) {
-                                ss.log.blue(`[${thing}] loaded from newly retrieved json.`);
+                                log.blue(`[${thing}] loaded from newly retrieved json.`);
                                 fs.writeFileSync(filePath, JSON.stringify(configInfo[thing]));
                                 ss[thing] = configInfo[thing];
                                 delete configInfo[thing];
                             } else {
                                 delete configInfo[thing]; //still delete the false, derp
                                 if (fs.existsSync(filePath)) {
-                                    ss.log.italic(`[${thing}] loaded from previously saved json.`);
+                                    log.italic(`[${thing}] loaded from previously saved json.`);
                                     ss[thing] = JSON.parse(fs.readFileSync(filePath, 'utf8'));
                                 } else {
-                                    ss.log.red(`Shit. We're fucked. We didn't receive an [${thing}] json nor do we have one stored. FUUUU-`);
+                                    log.red(`Shit. We're fucked. We didn't receive an [${thing}] json nor do we have one stored. FUUUU-`);
                                 };
                             };
                         };
@@ -180,7 +183,9 @@ export default async function run (ss) {
                         configInfo = { ...configInfo, ...configInfo.distributed_all };
                         delete configInfo.distributed_all;
                 
-                        ss = { ...ss, permissions: configInfo.permissions };
+                        Object.assign(ss, {
+                            permissions: configInfo.permissions,
+                        })
                         delete configInfo.permissions;
             
                         ss.config.game = { ...ss.config.game, ...configInfo };
@@ -199,7 +204,7 @@ export default async function run (ss) {
                     };
                 } else {
                     if (!retrieved) {
-                        ss.log.yellow(`Config retrieval failed. Retrying in ${nextTimeout / 1e3} seconds...`);
+                        log.yellow(`Config retrieval failed. Retrying in ${nextTimeout / 1e3} seconds...`);
                         setTimeout(() => {
                             connectWebSocket(retryCount + 1);
                         }, nextTimeout);
@@ -216,7 +221,7 @@ export default async function run (ss) {
                 };
 
                 if (retrieved) {
-                    ss.log.yellow(`Services server offline. Retrying in ${nextTimeout / 1e3} seconds...`);
+                    log.yellow(`Services server offline. Retrying in ${nextTimeout / 1e3} seconds...`);
                     setTimeout(() => {
                         connectWebSocket(retryCount + 1);
                     }, nextTimeout);
@@ -224,7 +229,7 @@ export default async function run (ss) {
             });
         } catch (err) {
             if (!retrieved) {
-                ss.log.red(`WebSocket connection failed: ${err.message}. Retrying in ${nextTimeout / 1e3} seconds... (Attempt ${retryCount + 1})`);
+                log.red(`WebSocket connection failed: ${err.message}. Retrying in ${nextTimeout / 1e3} seconds... (Attempt ${retryCount + 1})`);
                 setTimeout(() => {
                     connectWebSocket(retryCount + 1);
                 }, nextTimeout);

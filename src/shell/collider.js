@@ -1,10 +1,11 @@
 //legacyshell: collider
 import BABYLON from "babylonjs";
 import { isClient } from '#constants';
+//legacyshell: ss
+import { ss } from '#misc';
 //
 
 //(server-only-start)
-var ss;
 var map;
 var mapMeshes;
 var playerLimit;
@@ -60,8 +61,7 @@ class ColliderConstructor {
         this.setUp = 1;
     };
 
-    setSS(ssP, mapP, mapMeshesP, playerLimitP, playersP) {
-        ss = ssP
+    setParams(mapP, mapMeshesP, playerLimitP, playersP) {
         map = mapP;
         mapMeshes = mapMeshesP;
         playerLimit = playerLimitP;

@@ -6,20 +6,18 @@ import crypto from 'node:crypto';
 import UglifyJS from 'uglify-js';
 import extendMath from '#math';
 import { prepareBabylons } from '#prepare-babylons';
+//legacyshell: logging
+import log from '#coloured-logging';
+//legacyshell: ss
+import { ss, misc } from '#misc';
 //legacyshell: plugins
 import { plugins } from '#plugins';
 //
 
-let ss;
+function prepareModified() {
+    prepareBabylons(path.join(ss.rootDir, 'server-client', 'store', 'client-modified', 'models'));
 
-function setSS(newSS) {
-    ss = newSS;
-};
-
-function prepareModified(ss) {
-    prepareBabylons(ss, path.join(ss.rootDir, 'server-client', 'store', 'client-modified', 'models'));
-
-    ss.log.info('\nGenerating modified files (eg minifying shellshock.min.js)...');
+    log.info('\nGenerating modified files (eg minifying shellshock.min.js)...');
 
     const sourceShellJsPath = path.join(ss.currentDir, 'src', 'client-static', 'src', 'shellshock.min.js');
     const destinationShellJsPath = path.join(ss.currentDir, 'store', 'client-modified', 'src', 'shellshock.min.js');
@@ -65,7 +63,7 @@ function prepareModified(ss) {
             };
             if (file.filepath) {
                 var fileContent = fs.readFileSync(path.join(file.filepath), 'utf8');
-                fileContent = ss.misc.prepareForClient(fileContent);
+                fileContent = misc.prepareForClient(fileContent);
                 console.log(`[PLUGIN] Inserting ${file.filepath} into shellshock.min.js...`);
                 if (file.position === "before") pluginInsertion.stringBefore += `\n${fileContent}\n\n`;
                 else pluginInsertion.stringAfter += `\n${fileContent}\n\n`;
@@ -88,17 +86,17 @@ function prepareModified(ss) {
             plugins.emit('doReplacements', { this: this, ss, replacements, code });
 
             replacements.forEach(replacement => {
-                var insertion = replacement.file ? ss.misc.hashtagToString(replacement.file) : replacement.insertion;
+                var insertion = replacement.file ? misc.hashtagToString(replacement.file) : replacement.insertion;
                 var name = replacement.file ? replacement.file.replace("#", "") + ".js" : replacement.name || replacement.pattern.toString();
     
                 plugins.emit('doReplacementsLoop', { this: this, ss, replacement, code, insertion, name });
 
                 if (replacement.pattern.test(code.sourceJs)) {
-                    ss.log.italic(`Inserting ${name} into shellshock.min.js...`);
+                    log.italic(`Inserting ${name} into shellshock.min.js...`);
                     code.sourceJs = code.sourceJs.replace(replacement.pattern, insertion);
                 };
                 if (replacement.pattern.test(code.mapEditorJs)) {
-                    ss.log.italic(`Inserting ${name} into mapEdit.js...`);
+                    log.italic(`Inserting ${name} into mapEdit.js...`);
                     code.mapEditorJs = code.mapEditorJs.replace(replacement.pattern, insertion);
                 };
             });
@@ -135,8 +133,8 @@ function prepareModified(ss) {
             { pattern: /LEGACYSHELLPLUGINMANAGER/g, file: "#plugins" },
             { pattern: /LEGACYSHELLISCLIENTSERVER/g, file: "#isClientServer" },
 
-            { pattern: /LEGACYSHELLMODELSZIPTIMESTAMP/g, insertion: ss.misc.getLastSavedTimestamp(path.join(ss.currentDir, 'store', 'client-modified', 'models', 'models.zip')) },
-            { pattern: /LEGACYSHELLMAPZIPTIMESTAMP/g, insertion: ss.misc.getLastSavedTimestamp(path.join(ss.currentDir, 'store', 'client-modified', 'models', 'map.zip')) },
+            { pattern: /LEGACYSHELLMODELSZIPTIMESTAMP/g, insertion: misc.getLastSavedTimestamp(path.join(ss.currentDir, 'store', 'client-modified', 'models', 'models.zip')) },
+            { pattern: /LEGACYSHELLMAPZIPTIMESTAMP/g, insertion: misc.getLastSavedTimestamp(path.join(ss.currentDir, 'store', 'client-modified', 'models', 'map.zip')) },
         ];
 
         plugins.emit('replacementsBefore', { this: this, ss, replacementsBefore });
@@ -150,7 +148,7 @@ function prepareModified(ss) {
         extendMath(Math);
 
         if (ss.config.client.minify) {
-            ss.log.italic("Minifying/obfuscating shellshock.min.js...");
+            log.italic("Minifying/obfuscating shellshock.min.js...");
 
             plugins.emit('minificationBefore', { this: this, ss, code, UglifyJS });
 
@@ -169,9 +167,9 @@ function prepareModified(ss) {
             };
 
             code.sourceJs = result.code;
-            ss.log.bold(`Minified shellshock.min.js`);
+            log.bold(`Minified shellshock.min.js`);
         } else {
-            ss.log.bold(`Skipped minification (config set).`);
+            log.bold(`Skipped minification (config set).`);
             plugins.emit('minificationSkipped', { this: this, ss, code });
         };
 
@@ -190,16 +188,16 @@ function prepareModified(ss) {
         doReplacements(replacementAfter);
 
         fs.writeFileSync(destinationShellJsPath, code.sourceJs, 'utf8');
-        ss.log.bold(`shellshock.min.js copied and modified to ${destinationShellJsPath}`);
+        log.bold(`shellshock.min.js copied and modified to ${destinationShellJsPath}`);
 
         fs.writeFileSync(destinationEditorJsPath, code.mapEditorJs, 'utf8');
-        ss.log.bold(`mapEdit.js copied and modified to ${destinationEditorJsPath}`);
+        log.bold(`mapEdit.js copied and modified to ${destinationEditorJsPath}`);
 
         let fileBuffer = fs.readFileSync(destinationShellJsPath);
         let hashSum = crypto.createHash('sha256');
         hashSum.update(fileBuffer);
         hashes.SHELLSHOCKMINJSHASH = hashSum.digest('hex');
-        ss.log.italic(`SHA-256 hash of the minified SHELLSHOCKMINJS: ${hashes.SHELLSHOCKMINJSHASH}`);
+        log.italic(`SHA-256 hash of the minified SHELLSHOCKMINJS: ${hashes.SHELLSHOCKMINJSHASH}`);
         plugins.emit('hashes', { ss, hashes });
 
         code.serversJs = fs.readFileSync(sourceServersJsPath, 'utf8');
@@ -219,7 +217,7 @@ function prepareModified(ss) {
         hashes.SERVERJSHASH = hashSum.digest('hex');
 
         plugins.emit('hashes', { ss, hashes });
-        ss.log.italic(`SHA-256 hash of the modified SERVERJS: ${hashes.SERVERJSHASH}`);
+        log.italic(`SHA-256 hash of the modified SERVERJS: ${hashes.SERVERJSHASH}`);
 
         code.htmlContent = fs.readFileSync(sourceHtmlPath, 'utf8');
         code.htmlContent = code.htmlContent.replace(/SHELLSHOCKMINJSHASH/g, hashes.SHELLSHOCKMINJSHASH);
@@ -235,7 +233,7 @@ function prepareModified(ss) {
         plugins.emit('htmlContent', { ss, code });
 
         fs.writeFileSync(destinationHtmlPath, code.htmlContent, 'utf8');
-        ss.log.bold(`index.html copied and modified to ${destinationHtmlPath}`);
+        log.bold(`index.html copied and modified to ${destinationHtmlPath}`);
 
         delete ss.cache; //MEMORY LEAK FUCKING MI-Mi-mi-MITIGATED!!!
     } catch (error) {

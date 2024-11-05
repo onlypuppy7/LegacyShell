@@ -3,15 +3,14 @@ import BABYLON from "babylonjs";
 import { Eggk47, DozenGauge, CSG1, RPEGG, Cluck9mm } from "#guns";
 //cba to change the imports for everything that uses constants
 import { isClient, isServer, devlog, clientlog, serverlog, getTimestamp } from "#isClientServer";
+//legacyshell: ss
+import { ss } from '#misc';
 //
 
 export { isClient, isServer, devlog, clientlog, serverlog, getTimestamp };
 
 //(server-only-start)
 //(server-only-end)
-
-let ss;
-export function setSSForConstants(newSS) {ss = newSS};
 
 //these are pretty damn important:
 

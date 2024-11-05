@@ -4,8 +4,8 @@ import Comm from '#comm';
 import ColliderConstructor from '#collider';
 import createLoop from '#looper';
 import extendMath from '#math';
-import { setSSforLoader, loadMapMeshes, buildMapData } from '#loading';
-import { TickStep, stateBufferSize, FramesBetweenSyncs, MAP, setSSForConstants, devlog, chatCooldown, NextRoundTimeout } from '#constants';
+import { setParamsforLoader, loadMapMeshes, buildMapData } from '#loading';
+import { TickStep, stateBufferSize, FramesBetweenSyncs, MAP, devlog, chatCooldown, NextRoundTimeout } from '#constants';
 import { GameTypes } from '#gametypes';
 import { ItemTypes } from '#items';
 import { MunitionsManagerConstructor } from '#munitionsManager';
@@ -13,26 +13,25 @@ import { ItemManagerConstructor } from '#itemManager';
 import { PermissionsConstructor } from '#permissions';
 import BABYLON from "babylonjs";
 import { censor } from "#censor";
+//legacyshell: logging
+import log from '#coloured-logging';
 //legacyshell: plugins
 import { plugins } from '#plugins';
+//legacyshell: room worker (bridge)
+import { parentPort } from 'worker_threads';
 //
 
 plugins.emit('roomLoading', {});
 
-let ss;
+// let ss; //sorry.
 
-function setSS(newSS, parentPort) {
-    ss = newSS;
-    ClientConstructor.setSS(ss);
-    setSSForConstants(ss);
-    extendMath(Math);
-
-    plugins.emit('roomSetSS', {ss, parentPort});
-};
-
-class newRoom {
-    constructor(info) {
+export class newRoom {
+    constructor(info, ss) {
         plugins.emit('roomInit', {this: this});
+
+        extendMath(Math);
+
+        plugins.emit('roomSetSS', {ss});
 
         this.lastTimeStamp = Date.now();
         console.log("creating room", info.gameId);
@@ -77,11 +76,11 @@ class newRoom {
         this.itemManager = new ItemManagerConstructor();
 
         //permissions, censor
-        this.perm = new PermissionsConstructor(ss, this);
+        this.perm = new PermissionsConstructor(this);
         this.censor = censor;
 
         //map init
-        setSSforLoader(ss, this.mapJson, this.Collider);
+        setParamsforLoader(this.mapJson, this.Collider);
         this.validItemSpawns = [];
 
         //timed rounds
@@ -91,13 +90,13 @@ class newRoom {
 
         loadMapMeshes(this.scene, () => {
             ss.config.verbose && console.log("done loadMapMeshes");
-            const { map, spawnPoints, mapMeshes } = buildMapData(function (str) { ss.log.error("The following map meshes were not found:\n\n" + str + "\nTry clearing your cache and reload the page!") });
+            const { map, spawnPoints, mapMeshes } = buildMapData(function (str) { log.error("The following map meshes were not found:\n\n" + str + "\nTry clearing your cache and reload the page!") });
 
             this.map = map;
             this.spawnPoints = spawnPoints; //this is a [] from 0-2; conveniently lining up with ffa, team1, team2 (i think)
             this.mapMeshes = mapMeshes;
 
-            this.Collider.setSS(ss, this.map, this.mapMeshes, this.playerLimit, this.players);
+            this.Collider.setParams(this.map, this.mapMeshes, this.playerLimit, this.players);
 
             this.updateLoopObject = createLoop(this.updateLoop.bind(this), TickStep);
             this.metaLoopObject = createLoop(this.metaLoop.bind(this), 2e3);
@@ -143,6 +142,8 @@ class newRoom {
         var output = new Comm.Out(1);
         output.packInt8U(Comm.Code.roundStart);
         this.sendToAll(output);
+
+        this.resetGame();
         
         this.roundTimeout = setTimeout(() => {
             console.log(`Round ended. Starting new round in ${NextRoundTimeout} seconds.`);
@@ -162,6 +163,20 @@ class newRoom {
         }, this.nextRoundTime);
     };
 
+    resetGame() {
+        for (var i = 0; i < this.playerLimit; i++) {
+            var player = this.players[i];
+            if (player) {
+                player.removeFromPlay();
+                player.score = 0;
+                player.kills = 0;
+                player.deaths = 0;
+                player.streak = 0;
+                player.bestGameStreak = 0;
+            };
+        };
+    };
+
     pauseAllClients(time = 5e3) {
         this.clients.forEach(client => { client.pause(time); });
     };
@@ -172,7 +187,7 @@ class newRoom {
 
         // devlog(details);
 
-        ss.parentPort.postMessage([Comm.Worker.updateRoom, {
+        parentPort.postMessage([Comm.Worker.updateRoom, {
             ready: true,
             playerLimit: this.playerLimit,
             playerCount: this.details.count,
@@ -260,7 +275,8 @@ class newRoom {
             this.metaLoopObject.stop();
         } catch (error) { } //possible that some wasnt initted, or something
 
-        ss.parentPort.close();
+        parentPort.close();
+
         process.exit(0);
     };
 
@@ -672,6 +688,5 @@ class newRoom {
 plugins.emit('roomLoaded', {newRoom});
 
 export default {
-    setSS,
     newRoom,
 };

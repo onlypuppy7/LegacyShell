@@ -9,6 +9,10 @@ import wsrequest from '#wsrequest';
 //legacyshell: web server
 import express from 'express';
 import prepareModified from '#prepare-modified';
+//legacyshell: logging
+import log from '#coloured-logging';
+//legacyshell: ss
+import { ss } from '#misc';
 //legacyshell: plugins
 import { plugins } from '#plugins';
 //
@@ -16,14 +20,12 @@ import { plugins } from '#plugins';
 //i know its called start, even though it should be the other way round. please excuse this.
 //i just didnt want to break old configs for the perpetual wrapper.
 
-export default async function run (ss) {
-    await plugins.loadPlugins('client', ss);
-
-    ss = {
-        ...ss,
+export default async function run () {
+    
+    Object.assign(ss, {
         cache: {},
         misc,
-    };
+    });
 
     let retrieved = false;
     let offline = false;
@@ -51,7 +53,7 @@ export default async function run (ss) {
 
                 plugins.emit('closedAfterDefault', { ss, app });
 
-                ss.log.bgRed('Server is running in closed mode.');
+                log.bgRed('Server is running in closed mode.');
             } else {
                 plugins.emit('openBeforeDefault', { ss, app });
 
@@ -82,7 +84,7 @@ export default async function run (ss) {
                 retrieved = 2;
                 try {
                     plugins.emit('beforePrepareModified', { ss, app });
-                    prepareModified(ss);
+                    prepareModified();
                     plugins.emit('afterPrepareModified', { ss, app });
                 } catch (error) {
                     console.error('Modification failed:', error);
@@ -95,7 +97,7 @@ export default async function run (ss) {
             });
 
             app.listen(port, () => {
-                ss.log.success(`\nServer is running on http://localhost:${port}`);
+                log.success(`\nServer is running on http://localhost:${port}`);
                 plugins.emit('onServerRunning', { ss, app });
             });
         } catch (error) {
@@ -139,7 +141,7 @@ export default async function run (ss) {
         plugins.emit('onConnectWebSocket', { ss, retryCount, nextTimeout });
 
         try {
-            ss.log.blue('WebSocket connection opening. Requesting config information...');
+            log.blue('WebSocket connection opening. Requesting config information...');
             await wsrequest({
                 cmd: "requestConfig",
                     lastItems: Math.floor(misc.getLastSavedTimestamp(filepaths.items)/1000), //well in theory, if its not in existence this returns 0 and we should get it :D
@@ -153,7 +155,7 @@ export default async function run (ss) {
 
                 if (configInfo) {
                     if (!retrieved) {
-                        ss.log.green('Received config information from sync server.');
+                        log.green('Received config information from sync server.');
                         offline = false;
 
                         plugins.emit('onConfigInfoReceived', { ss, configInfo });
@@ -162,7 +164,7 @@ export default async function run (ss) {
                             plugins.emit('onLoadThing', { ss, thing, filePath });
 
                             if (configInfo[thing]) {
-                                ss.log.blue(`[${thing}] loaded from newly retrieved json.`)
+                                log.blue(`[${thing}] loaded from newly retrieved json.`)
                                 configInfo[thing] = JSON.stringify(configInfo[thing]);
                                 fs.writeFileSync(filePath, configInfo[thing]); //dont convert the json. there is no need.
                                 ss.cache[thing] = configInfo[thing];
@@ -170,10 +172,10 @@ export default async function run (ss) {
                             } else {
                                 delete configInfo[thing]; //still delete the false, derp
                                 if (fs.existsSync(filePath)) {
-                                    ss.log.italic(`[${thing}] loaded from previously saved json.`);
+                                    log.italic(`[${thing}] loaded from previously saved json.`);
                                     ss.cache[thing] = fs.readFileSync(filePath, 'utf8');
                                 } else {
-                                    ss.log.red(`Shit. We're fucked. We didn't receive an [${thing}] json nor do we have one stored. FUUUU-`);
+                                    log.red(`Shit. We're fucked. We didn't receive an [${thing}] json nor do we have one stored. FUUUU-`);
                                 };
                             };
                         };
@@ -194,7 +196,10 @@ export default async function run (ss) {
                         configInfo = { ...configInfo, ...configInfo.distributed_all };
                         delete configInfo.distributed_all;
                 
-                        ss = { ...ss, permissions: configInfo.permissions };
+                        
+                        Object.assign(ss, {
+                            permissions: configInfo.permissions
+                        });
                         delete configInfo.permissions;
             
                         ss.config.client = { ...ss.config.client, ...configInfo };
@@ -206,7 +211,7 @@ export default async function run (ss) {
             
                         ss.distributed_config = yaml.dump(configInfo, { indent: 4 }); //this is for later usage displaying for all to see
                 
-                        ss.config.verbose && ss.log.info(`\n${ss.distributed_config}`);
+                        ss.config.verbose && log.info(`\n${ss.distributed_config}`);
             
                         // console.log(ss.permissions);
                 
@@ -222,7 +227,7 @@ export default async function run (ss) {
                     };
                 } else {
                     if (!retrieved) {
-                        ss.log.yellow(`Config retrieval failed. Retrying in ${nextTimeout / 1e3} seconds...`);
+                        log.yellow(`Config retrieval failed. Retrying in ${nextTimeout / 1e3} seconds...`);
                         setTimeout(() => {
                             connectWebSocket(retryCount + 1);
                         }, nextTimeout);
@@ -239,7 +244,7 @@ export default async function run (ss) {
                 };
 
                 if (retrieved) {
-                    ss.log.yellow(`Services server offline. Retrying in ${nextTimeout / 1e3} seconds...`);
+                    log.yellow(`Services server offline. Retrying in ${nextTimeout / 1e3} seconds...`);
                     setTimeout(() => {
                         connectWebSocket(retryCount + 1);
                     }, nextTimeout);
@@ -247,7 +252,7 @@ export default async function run (ss) {
             });
         } catch (err) {
             if (!retrieved) {
-                ss.log.red(`WebSocket connection failed: ${err.message}. Retrying in ${nextTimeout / 1e3} seconds... (Attempt ${retryCount + 1})`);
+                log.red(`WebSocket connection failed: ${err.message}. Retrying in ${nextTimeout / 1e3} seconds... (Attempt ${retryCount + 1})`);
                 setTimeout(() => {
                     connectWebSocket(retryCount + 1);
                 }, nextTimeout);

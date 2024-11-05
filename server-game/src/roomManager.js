@@ -4,6 +4,8 @@ import { Worker } from 'worker_threads';
 import misc from '#misc';
 import extendMath from '#math';
 import { GameTypes, getMapPool } from '#gametypes';
+//legacyshell: ss
+import { ss } from '#misc';
 //
 
 const id_length = 3; //btw you cant just modify this without also adjusting the client's code. do you ever NEED to modify this? no. just have it static.
@@ -15,15 +17,10 @@ const highestRoomID = Math.pow(36, id_length) - 1;
 //4:      1,679,616
 //5:     60,466,176
 
-let ss;
-
-function setSS(newSS) {
-    ss = newSS;
-    extendMath(Math);
-};
 
 class newRoomManager {
     constructor() {
+        (Math);
         this.rooms = new Map();
         this.workers = new Map();
         console.log(`RoomManager initialized.`, this.getUnusedID());
@@ -277,6 +274,5 @@ class newRoomManager {
 };
 
 export default {
-    setSS,
     newRoomManager,
 };;

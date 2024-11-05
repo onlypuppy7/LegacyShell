@@ -6,6 +6,8 @@ import { getMunitionsManager } from '#bullets';
 import Comm from '#comm';
 //legacyshell: adding kills and deaths (literally tracking ur every move the government is watching yuo)
 import wsrequest from '#wsrequest';
+//legacyshell: logging
+import log from '#coloured-logging';
 //legacyshell: plugins
 import { plugins } from '#plugins';
 //

@@ -15,6 +15,10 @@ import accs from '#accountManagement';
 import sess from '#sessionManagement';
 import recs from '#recordsManagement';
 import backups from '#backups';
+//legacyshell: logging
+import log from '#coloured-logging';
+//legacyshell: ss
+import { ss } from '#misc';
 //legacyshell: plugins
 import { plugins } from '#plugins';
 //
@@ -22,15 +26,14 @@ import { plugins } from '#plugins';
 //i know its called start, even though it should be the other way round. please excuse this.
 //i just didnt want to break old configs for the perpetual wrapper.
 
-export default async function run (ss) {
+export default async function run () {
     var dbPath = path.join(ss.rootDir, 'server-services', 'store', 'LegacyShellData.db');
     var backupPath = path.join(ss.rootDir, 'server-services', 'store', 'backups');
     
     //init db (ooooh! sql! fancy! a REAL database! not a slow json!)
     const db = new sqlite3.Database(dbPath);
     
-    ss = {
-        ...ss,
+    Object.assign(ss, {
         requests_cache: {},
         db,
         accs,
@@ -43,18 +46,13 @@ export default async function run (ss) {
         //other paths
         dbPath,
         backupPath
-    };
+    });
     
-    //yeah we're doing this. deal with it fuckface.
-    accs.setSS(ss);
-    sess.setSS(ss);
-    recs.setSS(ss);
-    backups.setSS(ss);
     extendMath(Math);
     
     recs.initDB(ss.db);
     
-    ss.log.green('Account DB set up! (if it didnt exist already i suppose)');
+    log.green('Account DB set up! (if it didnt exist already i suppose)');
 
     plugins.emit('servicesOnLoad', { ss });
     
@@ -68,25 +66,25 @@ export default async function run (ss) {
     const initTables = async () => {
         try {
             //ITEMS TABLE
-            ss.config.verbose && ss.log.bgCyan("services: Reading from DB: count items");
+            ss.config.verbose && log.bgCyan("services: Reading from DB: count items");
             if ((await ss.getOne('SELECT COUNT(*) AS count FROM items')).count > 0) {
-                ss.log.italic('No need to init items table');
+                log.italic('No need to init items table');
             } else {
-                ss.log.blue('Items table is empty. Initializing with JSON data...');
+                log.blue('Items table is empty. Initializing with JSON data...');
         
                 await recs.insertItems();
                 
-                ss.log.green('Items table initialized with JSON data.');
+                log.green('Items table initialized with JSON data.');
             };
     
-            ss.log.blue('Initializing maps from JSON data...');
+            log.blue('Initializing maps from JSON data...');
         
-            ss.config.verbose && ss.log.bgPurple(`services: Deleting from DB: all maps`);
+            ss.config.verbose && log.bgPurple(`services: Deleting from DB: all maps`);
             await ss.runQuery('DELETE FROM maps;');
 
             await recs.insertMaps();
     
-            ss.log.green('Maps table initialized with JSON data.');
+            log.green('Maps table initialized with JSON data.');
 
             await plugins.emit('initTables', { ss });
         } catch (error) {
@@ -122,7 +120,7 @@ export default async function run (ss) {
                     ];
                     auth_commands.includes(msg.cmd) && (cmdType = 'auth_required');
                     
-                    ss.config.verbose && ss.log.dim("Received cmd: "+msg.cmd+"; type: "+cmdType), console.log(msg);
+                    ss.config.verbose && log.dim("Received cmd: "+msg.cmd+"; type: "+cmdType), console.log(msg);
     
                     if (ss.config.services.ratelimit.protect_ips)
                         ip = crypto.createHash('md5').update(ip).digest('hex');
@@ -131,8 +129,8 @@ export default async function run (ss) {
     
                     if (msg.auth_key) {
                         isAccepted = await accs.getAuthKeyData(msg.auth_key); //bypass RL
-                        if (isAccepted) ss.log.special('Found auth key '+isAccepted.name);
-                        else ss.log.red('Invalid auth key');
+                        if (isAccepted) log.special('Found auth key '+isAccepted.name);
+                        else log.red('Invalid auth key');
                     } else if (cmdType == 'auth_required') {
                         isAccepted = false;
                     } else {
@@ -140,7 +138,7 @@ export default async function run (ss) {
                     };
         
                     if (!isAccepted) {
-                        ss.config.verbose && ss.log.red("rejected some bs from "+ip+" "+cmdType);
+                        ss.config.verbose && log.red("rejected some bs from "+ip+" "+cmdType);
                         return ws.send(JSON.stringify({ error: 'Too many requests. Please try again later.' }));
                     };
         
@@ -155,18 +153,18 @@ export default async function run (ss) {
                                 userData = await accs.getUserData(sessionData.user_id, true);
                             };
                         } catch (error) {
-                            ss.log.red("WHY IS THERE AN ERROR?? error with session -> userData");
+                            log.red("WHY IS THERE AN ERROR?? error with session -> userData");
                             console.error(error);
                         };
                     };
         
                     // Sync commands
                     if (msg.cmd == "requestConfig") {
-                        ss.config.verbose && ss.log.bgCyan("services: Reading from DB: get max modified of items");
+                        ss.config.verbose && log.bgCyan("services: Reading from DB: get max modified of items");
                         const items = await ss.getOne('SELECT MAX(dateModified) AS maxDateModified FROM items');
-                        ss.config.verbose && ss.log.bgCyan("services: Reading from DB: get max modified of maps");
+                        ss.config.verbose && log.bgCyan("services: Reading from DB: get max modified of maps");
                         const maps = await ss.getOne('SELECT MAX(dateModified) AS maxDateModified FROM maps');
-                        ss.config.verbose && ss.log.bgCyan("services: Reading from DB: get max modified of game_servers");
+                        ss.config.verbose && log.bgCyan("services: Reading from DB: get max modified of game_servers");
                         const game_servers = await ss.getOne('SELECT MAX(dateModified) AS maxDateModified FROM game_servers');
     
                         let timeNow = Math.floor(Date.now()/1000);
@@ -215,7 +213,7 @@ export default async function run (ss) {
                                 userData.kills += 1;
                                 userData.streak = Math.max(msg.currentKills, userData.streak || 0);
     
-                                ss.config.verbose && ss.log.bgBlue("services: Writing to DB: set new balance + kills + streak "+userData.username);
+                                ss.config.verbose && log.bgBlue("services: Writing to DB: set new balance + kills + streak "+userData.username);
                                 await ss.runQuery(`
                                     UPDATE users 
                                     SET currentBalance = ?, kills = ?, streak = ?
@@ -231,7 +229,7 @@ export default async function run (ss) {
                             case 'addDeath':
                                 userData.deaths += 1;
     
-                                ss.config.verbose && ss.log.bgBlue("services: Writing to DB: set new deaths "+userData.username);
+                                ss.config.verbose && log.bgBlue("services: Writing to DB: set new deaths "+userData.username);
                                 await ss.runQuery(`
                                     UPDATE users 
                                     SET deaths = ?
@@ -359,7 +357,7 @@ export default async function run (ss) {
                                     }));
             
                                     fetch(ss.config.services.feedback, { method: 'POST', body: formData });
-                                } else ss.log.blue('Feedback received, no discord webhook set!:'+JSON.stringify(msg));
+                                } else log.blue('Feedback received, no discord webhook set!:'+JSON.stringify(msg));
             
                                 ws.send(JSON.stringify({ success: true }));
                                 break;
@@ -401,7 +399,7 @@ export default async function run (ss) {
                                         // color: this.colorIdx,
                                         userData.loadout.colorIdx = Math.clamp(Math.floor(msg.color), 0, userData.upgradeIsExpired ? 6 : 13); //if vip, then eep
         
-                                        ss.config.verbose && ss.log.bgBlue("services: Writing to DB: set new loadout "+userData.username) //, console.log(userData.loadout);
+                                        ss.config.verbose && log.bgBlue("services: Writing to DB: set new loadout "+userData.username) //, console.log(userData.loadout);
                                         await ss.runQuery(`
                                             UPDATE users 
                                             SET loadout = ?
@@ -425,7 +423,7 @@ export default async function run (ss) {
                                         buyingResult = await accs.addItemToPlayer(msg.item_id, userData, true, false);
                                     }; //ELSE -> achievement: how did we get here?
                                 } catch (error) {
-                                    ss.log.red("WHY IS THERE AN ERROR??");
+                                    log.red("WHY IS THERE AN ERROR??");
                                     console.error(error);
                                     buyingResult = "ERROR";
                                 };
@@ -444,7 +442,7 @@ export default async function run (ss) {
                                         redeemResult = await accs.addCodeToPlayer(msg.code, userData);
                                     };
                                 } catch (error) {
-                                    ss.log.red("WHY IS THERE AN ERROR??");
+                                    log.red("WHY IS THERE AN ERROR??");
                                     console.error(error);
                                 };
         
@@ -466,7 +464,7 @@ export default async function run (ss) {
                                         previewResult = await recs.getCodeData(msg.code, true);
                                     };
                                 } catch (error) {
-                                    ss.log.red("WHY IS THERE AN ERROR??");
+                                    log.red("WHY IS THERE AN ERROR??");
                                     console.error(error);
                                 };
         
@@ -525,7 +523,7 @@ export default async function run (ss) {
                                             userData.upgradeMultiplier = 2;
                                             userData.upgradeProductId = 1; //actually, idk what these ids correspond to. but it seems fine when its at 1.
             
-                                            ss.config.verbose && ss.log.bgBlue("services: Writing to DB: set new upgrade stuff "+userData.username) //, console.log(userData.loadout);
+                                            ss.config.verbose && log.bgBlue("services: Writing to DB: set new upgrade stuff "+userData.username) //, console.log(userData.loadout);
                                             await ss.runQuery(`
                                                 UPDATE users 
                                                 SET 
@@ -563,11 +561,11 @@ export default async function run (ss) {
                 };
             });
         
-            ws.on('close', () => ss.log.dim('Client disconnected'));
+            ws.on('close', () => log.dim('Client disconnected'));
             ws.on('error', (error) => console.error(`WebSocket error: ${error}`));
         });
     
-        ss.config.distributed_all.closed && ss.log.bgRed('Server is running in closed mode.');
-        ss.log.success('WebSocket server is running on ws://localhost:' + port);
+        ss.config.distributed_all.closed && log.bgRed('Server is running in closed mode.');
+        log.success('WebSocket server is running on ws://localhost:' + port);
     });
 };

@@ -5,11 +5,11 @@ import path from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
 import { isServer } from '#constants';
 import { execSync } from 'child_process';
+//legacyshell: ss
+import { ss } from '#misc';
+//legacyshell: logging
+import log from '#coloured-logging';
 //
-
-//(server-only-start)
-var ss; //trollage. access it later.
-//(server-only-end)
 
 export class PluginManager {
     constructor(type) {
@@ -19,7 +19,6 @@ export class PluginManager {
     };
 
     async loadPluginsFromDir(pluginsDir, type, newSS) {
-
         if (!fs.existsSync(pluginsDir)) fs.mkdirSync(pluginsDir, { recursive: true });
 
         const pluginFolders = fs.readdirSync(pluginsDir);
@@ -37,9 +36,9 @@ export class PluginManager {
                                 if (!fs.existsSync(modulePath)) {
                                     await import(dependency);
                                 };
-                                // ss.log.dim(`${dependency} is already installed.`);
+                                // log.dim(`${dependency} is already installed.`);
                             } catch (error) {
-                                ss.log.warning(`${dependency} is not installed. Attempting to install (${version})...`);
+                                log.warning(`${dependency} is not installed. Attempting to install (${version})...`);
                                 execSync(`npm install ${dependency}@${version} --no-save`, (error, stdout, stderr) => {
                                     if (error) {
                                         console.error(`exec error: ${error}`);
@@ -60,29 +59,28 @@ export class PluginManager {
 
                     const pluginInstance = new Plugin(this, path.join(pluginsDir, pluginFolder));
                     this.plugins.set(pluginFolder, pluginInstance);
-                    ss.log.success(`Loaded plugin -> ${PluginMeta.name} v${PluginMeta.version} by ${PluginMeta.author}: ${PluginMeta.descriptionShort}`);
+                    log.success(`Loaded plugin -> ${PluginMeta.name} v${PluginMeta.version} by ${PluginMeta.author}: ${PluginMeta.descriptionShort}`);
                 };
             } catch (error) {
-                ss.log.error(`Failed to load plugin ${pluginFolder}:`, error);
+                log.error(`Failed to load plugin ${pluginFolder}:`, error);
             };
         };
     };
 
-    async loadPlugins(type, newSS) {
+    async loadPlugins(type) {
         this.type = type;
 
-        ss = newSS;
+        log.info(`####################\nLoading plugins for ${type}...`);
 
-        ss.log.info(`####################\nLoading plugins for ${type}...`);
+        await this.loadPluginsFromDir(ss.pluginsDir, type, ss);
+        await this.loadPluginsFromDir(ss.pluginsDirDefault, type, ss);
 
-        await this.loadPluginsFromDir(ss.pluginsDir, type, newSS);
-        await this.loadPluginsFromDir(ss.pluginsDirDefault, type, newSS);
-
-        ss.log.info('Finished loading plugins.\n####################');
+        log.info('Finished loading plugins.\n####################');
     };
 
     on(event, listener) { //when a plugin registers a listener
-        console.log("registering emitter", event);
+        if (isServer) log.purple("registering emitter", event);
+        else console.log("registering emitter", event);
 
         if (!this.listeners[event]) this.listeners[event] = [];
         this.listeners[event].push(listener);
