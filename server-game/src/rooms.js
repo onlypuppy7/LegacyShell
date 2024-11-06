@@ -46,7 +46,8 @@ export class newRoom {
         this.joinType = info.joinType; console.log(this.joinType)
         this.gameType = info.gameType;
         this.gameOptions = JSON.parse(JSON.stringify(GameTypes[this.gameType].options)); //create copy of object
-        console.log("gameOptions", this.gameOptions)
+        console.log("gameOptions", this.gameOptions);
+        console.log(GameTypes[this.gameType]);
         this.mapId = info.mapId;
         this.gameId = info.gameId;
         this.gameKey = info.gameKey;
@@ -199,7 +200,7 @@ export class newRoom {
         plugins.emit('roomDetailsUpdatedEnd', {this: this, details: this.details});
     };
 
-    updateLoop (delta) {
+    async updateLoop (delta) {
         var currentTimeStamp = Date.now();
         this.existedFor = Date.now() - this.startTime;
         plugins.emit('roomUpdate', {this: this, delta, currentTimeStamp});
@@ -229,7 +230,7 @@ export class newRoom {
 
             if (this.serverStateIdx % FramesBetweenSyncs === 0) {
                 plugins.emit('roomSync', {this: this});
-                this.sync();
+                await this.sync();
             };
         };
     };
@@ -280,17 +281,17 @@ export class newRoom {
         process.exit(0);
     };
 
-    sync() {
+    async sync() {
         var output = new Comm.Out();
-        plugins.emit('clientSync', {this: this, output});
-        this.clients.forEach(client => {
-            let eventData = { this: this, client, output };
-            plugins.emit('clientSyncLoop', eventData);
+        await plugins.emit('clientSync', {this: this, output});
+        for (const client of this.clients) {
+            await plugins.emit('clientSyncLoop', { this: this, client, output });
             if (!plugins.cancel) {
-                client.packSync(output);
+                await client.packSync(output);
             };
-        });
-        this.sendToAll(output, "sync");
+        };
+        await plugins.emit('clientSyncEnd', {this: this, output});
+        if (!plugins.cancel) this.sendToAll(output, "sync");
     };
 
     async joinPlayer(info) {

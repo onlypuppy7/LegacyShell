@@ -64,7 +64,8 @@ class newRoomManager {
             console.log("create game?");
             let remainingMapIds = [...ss.mapAvailability.private];
             remainingMapIds = getMapPool(remainingMapIds, mapPool, ss.maps);
-            info.mapId = remainingMapIds[info.mapId] ? info.mapId : Math.getRandomFromList(remainingMapIds);
+            console.log(info.gameType, mapPool, remainingMapIds);
+            info.mapId = remainingMapIds.includes(info.mapId) ? info.mapId : Math.getRandomFromList(remainingMapIds);
             return this.createRoom(info);
         } else if (info.joinType === Comm.Code.joinPrivateGame) {
             if (info.gameId && info.gameId > 0) {
@@ -227,7 +228,7 @@ class newRoomManager {
     };
 
     joinRoom(room, msg, ws, ip) {
-        console.log(room.uuids, (msg.uuid))
+        console.log("uuids", room.uuids, msg.uuid)
         if (room.bootedIps.includes(ip)) {
             ws.close(Comm.Close.booted);
         } else if (room.uuids && room.uuids.includes(msg.uuid)) {

@@ -14,7 +14,7 @@ import { ss, misc } from '#misc';
 import { plugins } from '#plugins';
 //
 
-function prepareModified() {
+async function prepareModified() {
     prepareBabylons(path.join(ss.rootDir, 'server-client', 'store', 'client-modified', 'models'));
 
     log.info('\nGenerating modified files (eg minifying shellshock.min.js)...');
@@ -51,7 +51,7 @@ function prepareModified() {
         pluginInsertion.stringAfter = "";
         pluginInsertion.files = [];
     
-        plugins.emit('pluginSourceInsertion', { this: this, ss, pluginInsertion });
+        await plugins.emit('pluginSourceInsertion', { this: this, ss, pluginInsertion });
     
         pluginInsertion.files.forEach((file)=>{
             if (file.insertBefore) {
@@ -82,14 +82,14 @@ function prepareModified() {
         code.sourceJs = fs.readFileSync(sourceShellJsPath, 'utf8');
         code.mapEditorJs = fs.readFileSync(sourceEditorJsPath, 'utf8');
 
-        function doReplacements(replacements) {
-            plugins.emit('doReplacements', { this: this, ss, replacements, code });
+        async function doReplacements(replacements) {
+            await plugins.emit('doReplacements', { this: this, ss, replacements, code });
 
-            replacements.forEach(replacement => {
+            await replacements.forEach(async (replacement) => {
                 var insertion = replacement.file ? misc.hashtagToString(replacement.file) : replacement.insertion;
                 var name = replacement.file ? replacement.file.replace("#", "") + ".js" : replacement.name || replacement.pattern.toString();
     
-                plugins.emit('doReplacementsLoop', { this: this, ss, replacement, code, insertion, name });
+                await plugins.emit('doReplacementsLoop', { this: this, ss, replacement, code, insertion, name });
 
                 if (replacement.pattern.test(code.sourceJs)) {
                     log.italic(`Inserting ${name} into shellshock.min.js...`);
@@ -137,9 +137,9 @@ function prepareModified() {
             { pattern: /LEGACYSHELLMAPZIPTIMESTAMP/g, insertion: misc.getLastSavedTimestamp(path.join(ss.currentDir, 'store', 'client-modified', 'models', 'map.zip')) },
         ];
 
-        plugins.emit('replacementsBefore', { this: this, ss, replacementsBefore });
+        await plugins.emit('replacementsBefore', { this: this, ss, replacementsBefore });
 
-        doReplacements(replacementsBefore);
+        await doReplacements(replacementsBefore);
 
         if (ss.config.client.iif) { // unexposes variables to the client. see: console cracker
             code.sourceJs = `(()=>{\n${code.sourceJs}\n})();`
@@ -150,13 +150,13 @@ function prepareModified() {
         if (ss.config.client.minify) {
             log.italic("Minifying/obfuscating shellshock.min.js...");
 
-            plugins.emit('minificationBefore', { this: this, ss, code, UglifyJS });
+            await plugins.emit('minificationBefore', { this: this, ss, code, UglifyJS });
 
             var result;
 
             if (!plugins.cancel) result = UglifyJS.minify(code.sourceJs);
 
-            plugins.emit('minificationAfter', { this: this, ss, code, result });
+            await plugins.emit('minificationAfter', { this: this, ss, code, result });
 
             if (result.error) {
                 throw new Error(`Minification failed: ${result.error}`);
@@ -170,7 +170,7 @@ function prepareModified() {
             log.bold(`Minified shellshock.min.js`);
         } else {
             log.bold(`Skipped minification (config set).`);
-            plugins.emit('minificationSkipped', { this: this, ss, code });
+            await plugins.emit('minificationSkipped', { this: this, ss, code });
         };
 
         const replacementAfter = [
@@ -183,9 +183,9 @@ function prepareModified() {
             { pattern: /LEGACYSHELLBABYLON/g, insertion: `\n${fs.readFileSync(path.join(ss.currentDir, 'src', 'data', 'babylon.js'))}\n` },
         ];
 
-        plugins.emit('replacementsAfter', { ss, replacementAfter, code });
+        await plugins.emit('replacementsAfter', { ss, replacementAfter, code });
 
-        doReplacements(replacementAfter);
+        await doReplacements(replacementAfter);
 
         fs.writeFileSync(destinationShellJsPath, code.sourceJs, 'utf8');
         log.bold(`shellshock.min.js copied and modified to ${destinationShellJsPath}`);
@@ -198,7 +198,7 @@ function prepareModified() {
         hashSum.update(fileBuffer);
         hashes.SHELLSHOCKMINJSHASH = hashSum.digest('hex');
         log.italic(`SHA-256 hash of the minified SHELLSHOCKMINJS: ${hashes.SHELLSHOCKMINJSHASH}`);
-        plugins.emit('hashes', { ss, hashes });
+        await plugins.emit('hashes', { ss, hashes });
 
         code.serversJs = fs.readFileSync(sourceServersJsPath, 'utf8');
         code.serversJs = code.serversJs.replace(/LEGACYSHELLSERVICESPORT/g, ss.config.services.port || "13371");
@@ -206,7 +206,7 @@ function prepareModified() {
         code.serversJs = code.serversJs.replace(/LEGACYSHELLSERVICESSERVER/g, ss.config.client.servicesURL || "wss://services.legacy.onlypuppy7.online:443");
         code.serversJs = code.serversJs.replace(/LEGACYSHELLSERVERS/g, ss.cache.servers || "[{ name: 'LegacyShell', address: 'matchmaker.legacy.onlypuppy7.online:443' }]");
 
-        plugins.emit('serversJs', { ss, code });
+        await plugins.emit('serversJs', { ss, code });
 
         fs.writeFileSync(destinationServersJsPath, code.serversJs, 'utf8');
         console.log(`servers.js copied and modified to ${destinationServersJsPath}`);
@@ -216,7 +216,7 @@ function prepareModified() {
         hashSum.update(fileBuffer);
         hashes.SERVERJSHASH = hashSum.digest('hex');
 
-        plugins.emit('hashes', { ss, hashes });
+        await plugins.emit('hashes', { ss, hashes });
         log.italic(`SHA-256 hash of the modified SERVERJS: ${hashes.SERVERJSHASH}`);
 
         code.htmlContent = fs.readFileSync(sourceHtmlPath, 'utf8');
@@ -230,7 +230,7 @@ function prepareModified() {
         code.htmlContent = code.htmlContent.replace(/LEGACYSHELLCONFIG/g, ss.distributed_config.replace(/\n/g, '<br>'));
         code.htmlContent = code.htmlContent.replace(/LEGACYSHELLFAQ/g, fs.readFileSync(path.join(ss.currentDir, 'src', 'client-static', 'faq.html'), 'utf8'));
 
-        plugins.emit('htmlContent', { ss, code });
+        await plugins.emit('htmlContent', { ss, code });
 
         fs.writeFileSync(destinationHtmlPath, code.htmlContent, 'utf8');
         log.bold(`index.html copied and modified to ${destinationHtmlPath}`);

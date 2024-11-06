@@ -33,7 +33,7 @@ export default async function run () {
         },
     });
 
-    plugins.emit(`${'onLoad'}`, { ss }); //annoyed yet?
+    await plugins.emit(`${'onLoad'}`, { ss }); //annoyed yet?
 
     prepareBabylons(path.join(ss.currentDir, 'store', 'models'));
 

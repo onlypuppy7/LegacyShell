@@ -31,7 +31,7 @@ class newClient {
     };
 
     async initClient(room, info) {
-        plugins.emit('clientInit', { this: this, room, info });
+        await plugins.emit('clientInit', { this: this, room, info });
 
         //
         this.session = info.session;
@@ -75,7 +75,7 @@ class newClient {
             info.stampId
         );
         await this.instantiatePlayer();
-        // this.applyLoadout();
+        // await this.applyLoadout();
 
         this.room.registerPlayerClient(this);
 
@@ -85,11 +85,11 @@ class newClient {
 
         this.room.updateRoomDetails();
 
-        plugins.emit('clientInitEnd', { this: this, room, info });
+        await plugins.emit('clientInitEnd', { this: this, room, info });
     };
 
     async updateLoadout (classIdx, primary_item_id, secondary_item_id, colorIdx, hatId, stampId) {
-        plugins.emit('clientUpdateLoadout', { this: this, classIdx, primary_item_id, secondary_item_id, colorIdx, hatId, stampId });
+        await plugins.emit('clientUpdateLoadout', { this: this, classIdx, primary_item_id, secondary_item_id, colorIdx, hatId, stampId });
         
         //classIdx
         this.setClassIdx(classIdx);
@@ -101,11 +101,11 @@ class newClient {
         this.setEquippedItem(ItemType.Hat, this.classIdx, catalog.findItemBy8BitItemId(ItemType.Hat, this.classIdx, hatId));
         this.setEquippedItem(ItemType.Stamp, this.classIdx, catalog.findItemBy8BitItemId(ItemType.Stamp, this.classIdx, stampId));
 
-        plugins.emit('clientUpdateLoadoutEnd', { this: this, classIdx, primary_item_id, secondary_item_id, colorIdx, hatId, stampId });
+        await plugins.emit('clientUpdateLoadoutEnd', { this: this, classIdx, primary_item_id, secondary_item_id, colorIdx, hatId, stampId });
     };
 
-    applyLoadout () {
-        plugins.emit('clientApplyLoadout', { this: this });
+    async applyLoadout () {
+        await plugins.emit('clientApplyLoadout', { this: this });
 
         this.player.changeCharacter(
             this.classIdx,
@@ -118,7 +118,7 @@ class newClient {
     };
 
     async instantiatePlayer() {
-        plugins.emit('clientInstantiatePlayer', { this: this });
+        await plugins.emit('clientInstantiatePlayer', { this: this });
 
         this.player = new Player({
             id: this.id,
@@ -166,7 +166,7 @@ class newClient {
             upgradeProductId: this.loggedIn ? this.userData.upgradeProductId : 0,
         }, this.room.scene, this);
 
-        plugins.emit('clientInstantiatePlayerEnd', { this: this });
+        await plugins.emit('clientInstantiatePlayerEnd', { this: this });
 
         // console.log("upgradeProductId", this.userData.upgradeProductId, this.loggedIn ? this.userData.upgradeProductId : 0);
     };
@@ -333,7 +333,7 @@ class newClient {
                             hatId,
                             stampId
                         );
-                        this.applyLoadout();
+                        await this.applyLoadout();
                         break;
                     case Comm.Code.throwGrenade:
                         var grenadeThrowPower = input.unPackFloat();
@@ -509,12 +509,13 @@ class newClient {
         output.packInt8(this.player.jumpBoostModifier * 10); //range: -12.8 to 12.7
     };
 
-    packSync(output) {
+    async packSync(output) {
         output.packInt8U(Comm.Code.sync);
 
         let adjustedStateIdx = Math.mod(this.player.stateIdx + this.adjustment - FramesBetweenSyncs, stateBufferSize);
 
         // console.log("packsync", adjustedStateIdx, this.player.stateIdx, this.adjustment);
+        await plugins.emit('clientPackSync', { this: this, output });
 
         output.packInt8U(this.id);
         output.packInt8U(adjustedStateIdx);
@@ -533,7 +534,7 @@ class newClient {
             var idx = Math.mod(this.player.stateIdx + i - FramesBetweenSyncs, stateBufferSize);
             let state = this.player.stateBuffer[idx];
 
-            plugins.emit('clientPackSyncLoop', { this: this, output, state });
+            await plugins.emit('clientPackSyncLoop', { this: this, output, state });
 
             if (!plugins.cancel) {
                 output.packInt8U(state.controlKeys);

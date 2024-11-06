@@ -132,23 +132,25 @@ Bullet.prototype.update = function (delta) {
                 var dz = .1 * -this.dz;
 
                 function onDestroy (x, y, z, dx, dy, dz) {
-                    var s = explosionSmokeManager.getSprite();
-                    s.animLength = 20 * Math.random() + 30;
-                    s.easing = Ease.outQuint;
-                    s.position.x = x;
-                    s.position.y = y;
-                    s.position.z = z;
-                    s.dx = .1 * dx;
-                    s.dy = .1 * dy;
-                    s.dz = .1 * dz;
-                    s.startSize = .1;
-                    s.endSize = .2 * Math.random() + .4;
-                    s.angle = Math.random() * Math.PI2;
-                    s.rotate = .08 * Math.random() - .04;
-                    s.animColors = bulletHitColors;
+                    if (isClient && !disableBulletSmoke) {
+                        var s = explosionSmokeManager.getSprite();
+                        s.animLength = 20 * Math.random() + 30;
+                        s.easing = Ease.outQuint;
+                        s.position.x = x;
+                        s.position.y = y;
+                        s.position.z = z;
+                        s.dx = .1 * dx;
+                        s.dy = .1 * dy;
+                        s.dz = .1 * dz;
+                        s.startSize = .1;
+                        s.endSize = .2 * Math.random() + .4;
+                        s.angle = Math.random() * Math.PI2;
+                        s.rotate = .08 * Math.random() - .04;
+                        s.animColors = bulletHitColors;
+                    };
                     
                     if (isClient && enableBulletHoles) { //bullet holes
-                        bulletHoleManager.addHole(0, x, y, z );
+                        bulletHoleManager.addHole(0, x + (dx/4), y + (dy/4), z + (dz/4));
                     };
                 };
 
