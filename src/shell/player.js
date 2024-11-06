@@ -317,7 +317,7 @@ class Player {
             if (0 == this.climbingCell.ry || this.climbingCell.ry, cy >= this.map.height) {
                 this.climbing = false;
             } else {
-                var cell = this.map.data[cx][cy][cz];
+                var cell = this.getOccupiedCell(cx, cy, cz);
                 if (!(cell.idx && this.mapMeshes[cell.idx].colliderType === "ladder" && cell.ry === this.climbingCell.ry)) {
                     this.y = Math.round(this.y);
                     this.climbing = false;

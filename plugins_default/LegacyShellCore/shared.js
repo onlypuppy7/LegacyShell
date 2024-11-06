@@ -41,7 +41,7 @@ export const LegacyShellCorePlugin = {
         });
     },
 
-    async GameTypesInit(data) {
+    GameTypesInit(data) {
         var GameTypes = data.GameTypes;
         var ItemTypes = data.ItemTypes;
 

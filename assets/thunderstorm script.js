@@ -72,7 +72,7 @@ window.addEventListener('keydown', function(event) {
         gameScene.texturesEnabled = true;
         mapMesh.renderOverlay = true;
         setTimeout(() => {
-            Sounds.thunder.play();
+            playSoundIndependent2D("thunder");
         }, 250);
         setTimeout(() => {
             gameScene.fogDensity = .5;

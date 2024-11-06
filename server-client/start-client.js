@@ -21,7 +21,6 @@ import { plugins } from '#plugins';
 //i just didnt want to break old configs for the perpetual wrapper.
 
 export default async function run () {
-    
     Object.assign(ss, {
         cache: {},
         misc,
@@ -30,17 +29,17 @@ export default async function run () {
     let retrieved = false;
     let offline = false;
 
-    plugins.emit('onLoad', { ss });
+    await plugins.emit('onLoad', { ss });
 
-    function startServer() {
+    async function startServer() {
         try {
             const app = express();
             const port = ss.config.client.port || 13370;
 
-            plugins.emit('onStartServer', { ss, app });
+            await plugins.emit('onStartServer', { ss, app });
 
             if (ss.config.client.closed) {
-                plugins.emit('closedBeforeDefault', { ss, app });
+                await plugins.emit('closedBeforeDefault', { ss, app });
                 app.use(express.static(path.join(ss.currentDir, 'src', 'client-closed')));
 
                 app.use((req, res, next) => {
@@ -51,11 +50,11 @@ export default async function run () {
                     };
                 });
 
-                plugins.emit('closedAfterDefault', { ss, app });
+                await plugins.emit('closedAfterDefault', { ss, app });
 
                 log.bgRed('Server is running in closed mode.');
             } else {
-                plugins.emit('openBeforeDefault', { ss, app });
+                await plugins.emit('openBeforeDefault', { ss, app });
 
                 try {
                     if (ss.config.client.login.enabled) {
@@ -79,40 +78,40 @@ export default async function run () {
                     };
                 });
 
-                plugins.emit('openAfterDefault', { ss, app });
+                await plugins.emit('openAfterDefault', { ss, app });
 
                 retrieved = 2;
                 try {
-                    plugins.emit('beforePrepareModified', { ss, app });
-                    prepareModified();
-                    plugins.emit('afterPrepareModified', { ss, app });
+                    await plugins.emit('beforePrepareModified', { ss, app });
+                    await prepareModified();
+                    await plugins.emit('afterPrepareModified', { ss, app });
                 } catch (error) {
                     console.error('Modification failed:', error);
                     process.exit(1);
                 };
             };
 
-            app.get('/discord', (req, res) => {
+            app.get('/discord', async (req, res) => {
                 res.redirect('https://discord.gg/' + ss.config.client.discordServer);
             });
 
-            app.listen(port, () => {
+            app.listen(port, async () => {
                 log.success(`\nServer is running on http://localhost:${port}`);
-                plugins.emit('onServerRunning', { ss, app });
+                await plugins.emit('onServerRunning', { ss, app });
             });
         } catch (error) {
             console.log(error);
         };
     };
 
-    const checkPassword = (req, res, next) => {
+    const checkPassword = async (req, res, next) => {
         try {
             const auth = { login: ss.config.client.login.username, password: ss.config.client.login.password };
         
             const b64auth = (req.headers.authorization || '').split(' ')[1] || '';
             const [login, password] = Buffer.from(b64auth, 'base64').toString().split(':');
 
-            plugins.emit('onCheckPassword', { ss, req, res, next, login, password, auth });
+            await plugins.emit('onCheckPassword', { ss, req, res, next, login, password, auth });
         
             // console.log(login, password, auth.login, auth.password);
 
@@ -133,12 +132,12 @@ export default async function run () {
         servers: path.join(ss.currentDir, 'store', 'servers.json'),
     };
 
-    plugins.emit('filepaths', { ss, filepaths });
+    await plugins.emit('filepaths', { ss, filepaths });
 
     async function connectWebSocket(retryCount = 0) {
         nextTimeout = Math.min(nextTimeout + 5e3, 30e3);
 
-        plugins.emit('onConnectWebSocket', { ss, retryCount, nextTimeout });
+        await plugins.emit('onConnectWebSocket', { ss, retryCount, nextTimeout });
 
         try {
             log.blue('WebSocket connection opening. Requesting config information...');
@@ -147,21 +146,21 @@ export default async function run () {
                     lastItems: Math.floor(misc.getLastSavedTimestamp(filepaths.items)/1000), //well in theory, if its not in existence this returns 0 and we should get it :D
                     lastMaps: Math.floor(misc.getLastSavedTimestamp(filepaths.maps)/1000),
                     lastServers: Math.floor(misc.getLastSavedTimestamp(filepaths.servers)/1000),
-            }, ss.config.client.sync_server, undefined, (event) => {
+            }, ss.config.client.sync_server, undefined, async (event) => {
                 let response = event.data;
                 var configInfo = JSON.parse(response);
 
-                plugins.emit('onConfigInfo', { ss, configInfo });
+                await plugins.emit('onConfigInfo', { ss, configInfo });
 
                 if (configInfo) {
                     if (!retrieved) {
                         log.green('Received config information from sync server.');
                         offline = false;
 
-                        plugins.emit('onConfigInfoReceived', { ss, configInfo });
+                        await plugins.emit('onConfigInfoReceived', { ss, configInfo });
                 
-                        const load = function(thing, filePath) {
-                            plugins.emit('onLoadThing', { ss, thing, filePath });
+                        const load = async function(thing, filePath) {
+                            await plugins.emit('onLoadThing', { ss, thing, filePath });
 
                             if (configInfo[thing]) {
                                 log.blue(`[${thing}] loaded from newly retrieved json.`)
@@ -180,11 +179,11 @@ export default async function run () {
                             };
                         };
                 
-                        load("items", filepaths.items);
-                        load("maps", filepaths.maps);
-                        load("servers", filepaths.servers);
+                        await load("items", filepaths.items);
+                        await load("maps", filepaths.maps);
+                        await load("servers", filepaths.servers);
 
-                        plugins.emit('loadingThings', { ss, load, filepaths });
+                        await plugins.emit('loadingThings', { ss, load, filepaths });
                 
                         // console.log(ss.items);
                 
@@ -207,7 +206,7 @@ export default async function run () {
                         delete configInfo.login;
                         delete configInfo.permissions;
 
-                        plugins.emit('onConfigInfoLoaded', { ss, configInfo });
+                        await plugins.emit('onConfigInfoLoaded', { ss, configInfo });
             
                         ss.distributed_config = yaml.dump(configInfo, { indent: 4 }); //this is for later usage displaying for all to see
                 
@@ -216,11 +215,11 @@ export default async function run () {
                         // console.log(ss.permissions);
                 
                         retrieved = true;
-                        startServer();
+                        await startServer();
                     } else {
                         if (offline && (configInfo.servicesMeta.startTime > ss.config.client.servicesMeta.startTime) && ss.isPerpetual) {
                             console.log("Services server restarted, restarting...");
-                            plugins.emit('onServicesRestart', { ss, configInfo });
+                            await plugins.emit('onServicesRestart', { ss, configInfo });
                             process.exit(1337);
                         };
                         offline = false;

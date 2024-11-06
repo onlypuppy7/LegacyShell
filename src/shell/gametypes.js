@@ -72,24 +72,26 @@ export var GameTypes = [
     }
 ];
 
-plugins.emit('GameTypesInit', { GameTypes, ItemTypes, defaultOptions });
-
 export var AllMapPools = [];
 
-//fill in defaults where not present (makes the thing above cleaner)
-(function () {
-    var i = 0;
-
-    GameTypes.forEach(gameType => {
-        gameType.options = {
-            ...defaultOptions,
-            ...gameType.options,
-        };
-        gameType.value = i++;
-        if (gameType.mapPool && !AllMapPools.includes(gameType.mapPool)) {
-            AllMapPools.push(gameType.mapPool);
-        };
-    });
+(async function () {
+    await plugins.emit('GameTypesInit', { GameTypes, ItemTypes, defaultOptions });
+    
+    //fill in defaults where not present (makes the thing above cleaner)
+    (function () {
+        var i = 0;
+    
+        GameTypes.forEach(gameType => {
+            gameType.options = {
+                ...defaultOptions,
+                ...gameType.options,
+            };
+            gameType.value = i++;
+            if (gameType.mapPool && !AllMapPools.includes(gameType.mapPool)) {
+                AllMapPools.push(gameType.mapPool);
+            };
+        });
+    })();
 })();
 
 //LS: dynamically create from GameTypes (compatability and also lazy xdd)
