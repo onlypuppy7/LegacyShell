@@ -11,6 +11,7 @@ package-lock.json
 /server-game/store
 /store
 /wiki/.vuepress/dist
+/wiki/.vuepress/.temp
 
 # my crap
 /assets/0.18.2
