@@ -22,6 +22,7 @@ export class Plugin {
         LegacyShellCorePlugin.registerListeners(this.plugins);
         this.plugins.on('client:pluginSourceInsertion', this.pluginSourceInsertion.bind(this));
         this.plugins.on('client:prepareBabylon', this.prepareBabylon.bind(this));
+        this.plugins.on('game:prepareBabylon', this.prepareBabylon.bind(this));
         this.plugins.on('services:initTables', this.initTables.bind(this));
     };
 
