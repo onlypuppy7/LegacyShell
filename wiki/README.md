@@ -1,3 +1,5 @@
+> [Return to LegacyShell](/../)
+
 # Welcome to the LegacyShell Wiki
 This is a source of technical information for both LegacyShell and Shell Shockers.
 

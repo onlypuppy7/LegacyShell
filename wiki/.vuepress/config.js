@@ -5,7 +5,6 @@ import { viteBundler } from '@vuepress/bundler-vite'
 import { defineUserConfig } from 'vuepress'
 
 import { searchPlugin } from '@vuepress/plugin-search'
-// import { backToTopPlugin } from '@vuepress/plugin-back-to-top'
 import { cachePlugin } from '@vuepress/plugin-cache'
 
 import path from 'path'
@@ -37,6 +36,9 @@ for (const subcategoryThing of subcategories) {
 console.log(sidebar);
 
 const navbar = [{
+    text: 'Back to LegacyShell',
+    link: '/back.md'
+}, {
     text: 'Home',
     link: '/'
 }];
@@ -73,7 +75,6 @@ export default defineUserConfig({
     }),
     plugins: [
         searchPlugin({}),
-        // backToTopPlugin(),
         cachePlugin({}),
     ],
 });
