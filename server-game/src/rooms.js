@@ -285,9 +285,11 @@ export class newRoom {
         var output = new Comm.Out();
         await plugins.emit('clientSync', {this: this, output});
         for (const client of this.clients) {
-            await plugins.emit('clientSyncLoop', { this: this, client, output });
-            if (!plugins.cancel) {
-                await client.packSync(output);
+            if (client) {
+                await plugins.emit('clientSyncLoop', { this: this, client, output });
+                if (!plugins.cancel) {
+                    await client.packSync(output);
+                };
             };
         };
         await plugins.emit('clientSyncEnd', {this: this, output});
