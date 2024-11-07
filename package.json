@@ -17,16 +17,19 @@
         "cn": "lsof -t -i :13371 | xargs kill -9 && lsof -t -i :13370 | xargs kill -9 && lsof -t -i :13372 | xargs kill -9"
     },
     "dependencies": {
+        "@vuepress/theme-default": "^2.0.0-rc.60",
         "babylonjs": "3.3.0",
         "bcrypt": "^5.1.1",
         "canvas": "^3.0.0-rc2",
         "chalk": "^5.3.0",
+        "cross-spawn": "^7.0.3",
         "express": "^4.21.0",
         "js-yaml": "^4.1.0",
         "jszip": "^3.10.1",
         "markdown-it": "^14.1.0",
         "sqlite3": "^5.1.7",
         "uglify-js": "^3.19.2",
+        "vuepress": "^2.0.0-rc.18",
         "webp-converter": "^2.3.3",
         "ws": "^8.18.0"
     },
@@ -67,5 +70,13 @@
         "#backups": "./server-services/src/data_management/backups.js",
         "#ratelimit": "./server-services/src/ratelimit.js",
         "#apollo": "./server-client/src/client-static/src/apollon/Apollo.js"
+    },
+    "devDependencies": {
+        "@vuepress/bundler-vite": "^2.0.0-rc.18",
+        "@vuepress/plugin-back-to-top": "^2.0.0-rc.60",
+        "@vuepress/plugin-cache": "^2.0.0-rc.54",
+        "@vuepress/plugin-docsearch": "^2.0.0-rc.60",
+        "@vuepress/plugin-search": "^2.0.0-rc.55",
+        "sass-embedded": "^1.80.6"
     }
 }

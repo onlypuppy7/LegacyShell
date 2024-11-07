@@ -1,0 +1,3 @@
+import comp from "C:/Users/chalex0/Documents/GitHub/LegacyShell/wiki/.vuepress/.temp/pages/wiki/maphistory.html.vue"
+const data = JSON.parse("{\"path\":\"/wiki/maphistory.html\",\"title\":\"Rough Shell Shockers Map History\",\"lang\":\"en-US\",\"frontmatter\":{},\"headers\":[{\"level\":2,\"title\":\"Randomly Genned Era\",\"slug\":\"randomly-genned-era\",\"link\":\"#randomly-genned-era\",\"children\":[{\"level\":3,\"title\":\"The 0.9.0 Maps\",\"slug\":\"the-0-9-0-maps\",\"link\":\"#the-0-9-0-maps\",\"children\":[]}]},{\"level\":2,\"title\":\"Manually Created Era\",\"slug\":\"manually-created-era\",\"link\":\"#manually-created-era\",\"children\":[]}],\"git\":{},\"filePathRelative\":\"wiki/maphistory.md\"}")
+export { comp, data }

@@ -9,6 +9,7 @@ import wsrequest from '#wsrequest';
 //legacyshell: web server
 import express from 'express';
 import prepareModified from '#prepare-modified';
+import { spawn } from 'cross-spawn';
 //legacyshell: logging
 import log from '#coloured-logging';
 //legacyshell: ss
@@ -98,6 +99,26 @@ export default async function run () {
             app.listen(port, async () => {
                 log.success(`\nServer is running on http://localhost:${port}`);
                 await plugins.emit('onServerRunning', { ss, app });
+
+                log.info('Starting VuePress build...');
+
+                const vuepressBuild = spawn('npx', ['vuepress', 'build', 'wiki']);
+
+                vuepressBuild.stdout.on('data', (data) => {
+                    log.cyan(`Build output: ${data}`);
+                });
+
+                vuepressBuild.stderr.on('data', (data) => {
+                    // log.error(`Build error: ${data}`);
+                    log.cyan(`Build output: ${data}`); //this is not an error, just output, i dont know why it gets treated as such
+                });
+
+                vuepressBuild.on('close', (code) => {
+                    log.bold(`Build process exited with code ${code}`);
+                    app.use('/wiki/', express.static(path.join(ss.rootDir, 'wiki', '.vuepress', 'dist')));
+                    app.use('/assets/', express.static(path.join(ss.rootDir, 'wiki', '.vuepress', 'dist', 'assets')));
+                    log.success(`VuePress build complete. Wiki is available at http://localhost:${port}/wiki`);
+                });
             });
         } catch (error) {
             console.log(error);
