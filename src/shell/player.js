@@ -8,6 +8,8 @@ import Comm from '#comm';
 import wsrequest from '#wsrequest';
 //legacyshell: logging
 import log from '#coloured-logging';
+//legacyshell: ss
+import { ss } from '#misc';
 //legacyshell: plugins
 import { plugins } from '#plugins';
 //
@@ -882,7 +884,7 @@ class Player {
                             cmd: "addKill",
                             session: this.client.session,
                             currentKills: this.kills,
-                        }, this.client.ss.config.game.services_server, this.client.ss.config.game.auth_key);
+                        }, ss.config.game.services_server, ss.config.game.auth_key);
 
                         var output = new Comm.Out();
                         output.packInt8U(Comm.Code.updateBalance);
@@ -944,7 +946,7 @@ class Player {
                     var response = await wsrequest({
                         cmd: "addDeath",
                         session: this.client.session,
-                    }, this.client.ss.config.game.services_server, this.client.ss.config.game.auth_key);
+                    }, ss.config.game.services_server, ss.config.game.auth_key);
                 };
             })();
         };

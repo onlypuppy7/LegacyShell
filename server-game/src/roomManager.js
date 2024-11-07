@@ -54,7 +54,9 @@ class newRoomManager {
             };
         };
 
-        var mapPool = thisGameType.mapPool;
+        var mapPool = thisGameType ? thisGameType.mapPool : "none";
+
+        console.log("determined mapPool", mapPool);
 
         if (info.joinType === Comm.Code.createPrivateGame) {
             if (!thisGameType) {
