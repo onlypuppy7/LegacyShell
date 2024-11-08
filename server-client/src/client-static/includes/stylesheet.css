@@ -752,6 +752,10 @@ button > h1 {
     margin: 0;
 }
 
+.command-info p.command-warning {
+    color: red;
+}
+
 .command-info p.command-description {
     color: yellow;
 }

@@ -217,16 +217,9 @@ class newClient {
                             this.sendToAll(output, "packThisPlayer (ready/joined)");
 
                             var output = new Comm.Out();
+                            this.room.packRoundUpdate(output);
+                            this.room.packUpdateRoomParams(output);
                             output.packInt8U(Comm.Code.clientReady);
-
-                            if (this.room.gameOptions.timedGame.enabled) {
-                                // var roundRestartTime = this.gameOptions.timedGame.roundRestartTime;
-
-                                output.packInt16U(this.room.roundLength); //length of the round (in seconds)
-                                output.packInt32U(Math.max(0, this.room.roundEndTime - Date.now())); //time to end the round (in ms)
-                                output.packInt32U(Math.max(0, this.room.roundRestartTime - Date.now())); //time to wait before next round starts (in ms)
-                            };
-
                             this.sendToMe(output, "clientReady");
 
                             this.room.setGameOwner();
@@ -446,6 +439,12 @@ class newClient {
         if (this.loggedIn && (this.userData.upgradeExpiryDate > Date.now() / 1000)) range = 13;
         // console.log(this.userData.upgradeExpiryDate, Date.now() / 1000)
         this.colorIdx = Math.clamp(Math.floor(colorIdx), 0, range);
+    };
+
+    commandFeedback(text) {
+        var output = new Comm.Out();
+        this.room.packChat(output, text, 255, Comm.Chat.cmd);
+        this.sendToMe(output, "chat (cmd)");
     };
 
     packPlayer(output) {

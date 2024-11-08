@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 //plugin: samplecommand
-import { samplePlugin3 } from './samplecommand.js';
+import { samplePlugin2 } from './samplecommand.js';
 //
 
 export const PluginMeta = {
@@ -20,14 +20,14 @@ export class Plugin {
         this.thisDir = thisDir;
 
         this.plugins.on('client:pluginSourceInsertion', this.pluginSourceInsertion.bind(this));
-        samplePlugin3.registerListeners(this.plugins);
+        samplePlugin2.registerListeners(this.plugins);
     };
 
     pluginSourceInsertion(data) {
         data.pluginInsertion.files.push({
-            insertBefore: '\nconsole.log("inserting before... (sample3 plugin)");',
+            insertBefore: '\nconsole.log("inserting before... (sample2 plugin)");',
             filepath: path.join(this.thisDir, 'samplecommand.js'),
-            insertAfter: '\nconsole.log("inserting after... (sample3 plugin)!");',
+            insertAfter: '\nconsole.log("inserting after... (sample2 plugin)!");',
             position: 'before'
         });
     };

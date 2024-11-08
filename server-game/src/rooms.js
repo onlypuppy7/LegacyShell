@@ -85,9 +85,7 @@ export class newRoom {
         this.validItemSpawns = [];
 
         //timed rounds
-        if (this.gameOptions.timedGame.enabled) {
-            this.setRoundTimeout();
-        };
+        this.setRoundTimeout();
 
         loadMapMeshes(this.scene, () => {
             ss.config.verbose && console.log("done loadMapMeshes");
@@ -128,40 +126,68 @@ export class newRoom {
     };
 
     setRoundTimeout() {
-        this.roundLength = this.gameOptions.timedGame.roundLength;
-        this.roundEndTime = Date.now() + (this.roundLength * 1e3);
-        this.nextRoundTime = this.roundLength * 1e3;
-        this.timeoutForNextRound = NextRoundTimeout * 1e3;
-        this.roundRestartTime = this.roundEndTime + this.timeoutForNextRound;
-
-        console.log("roundLength", this.roundLength);
-        console.log("roundEndTime", this.roundEndTime);
-        console.log("nextRoundTime", this.nextRoundTime);
-        console.log("timeoutForNextRound", this.timeoutForNextRound);
-        console.log("roundRestartTime", this.roundRestartTime);
-
-        var output = new Comm.Out(1);
-        output.packInt8U(Comm.Code.roundStart);
-        this.sendToAll(output);
-
-        this.resetGame();
-        
-        this.roundTimeout = setTimeout(() => {
-            console.log(`Round ended. Starting new round in ${NextRoundTimeout} seconds.`);
-
+        if (this.gameOptions.timedGame.enabled) {
+            this.roundLength = this.gameOptions.timedGame.roundLength;
+            this.roundEndTime = Date.now() + (this.roundLength * 1e3);
+            this.nextRoundTime = this.roundLength * 1e3;
+            this.timeoutForNextRound = NextRoundTimeout * 1e3;
+            this.roundRestartTime = this.roundEndTime + this.timeoutForNextRound;
+    
+            console.log("roundLength", this.roundLength);
+            console.log("roundEndTime", this.roundEndTime);
+            console.log("nextRoundTime", this.nextRoundTime);
+            console.log("timeoutForNextRound", this.timeoutForNextRound);
+            console.log("roundRestartTime", this.roundRestartTime);
+    
             var output = new Comm.Out(1);
-            output.packInt8U(Comm.Code.roundEnd);
-            this.sendToAll(output);
+            output.packInt8U(Comm.Code.roundStart);
+            this.sendToAll(output, null, "roundStart");
+    
+            this.resetGame();
+            
+            this.roundTimeout = setTimeout(() => {
+                this.endRound();
+            }, this.nextRoundTime);
+        } else {
+            this.roundEndTime = 0;
+            this.roundLength = 0;
+            this.nextRoundTime = 0;
+        };
+    };
 
-            setTimeout(() => {
-                this.pauseAllClients(this.timeoutForNextRound - 3e3);
-            }, 3e3);
+    endRound() {
+        clearTimeout(this.roundTimeout);
 
-            setTimeout(() => {
-                console.log("New round starting now!");
-                this.setRoundTimeout();
-            }, this.timeoutForNextRound);
-        }, this.nextRoundTime);
+        console.log(`Round ended. Starting new round in ${NextRoundTimeout} seconds.`);
+
+        var output = new Comm.Out();
+        this.packRoundEnd(output);
+        this.sendToAll(output, null, "roundEnd");
+
+        setTimeout(() => {
+            this.pauseAllClients(this.timeoutForNextRound - 3e3);
+        }, 3e3);
+
+        setTimeout(() => {
+            console.log("New round starting now!");
+            this.setRoundTimeout();
+        }, this.timeoutForNextRound);
+    };
+
+    packRoundEnd(output) {
+        plugins.emit('packRoundEnd', {this: this, output});
+        output.packInt8U(Comm.Code.roundEnd);
+        output.packInt16U(this.roundLength); //length of the round (in seconds)
+        plugins.emit('packRoundEndEnd', {this: this, output});
+    };
+
+    packRoundUpdate(output) {
+        plugins.emit('packRoundUpdate', {this: this, output});
+        output.packInt8U(Comm.Code.roundUpdate);
+        output.packInt16U(this.roundLength); //length of the round (in seconds)
+        output.packInt32U(Math.max(0, this.roundEndTime - Date.now())); //time to end the round (in ms)
+        output.packInt32U(Math.max(0, this.roundRestartTime - Date.now())); //time to wait before next round starts (in ms)
+        plugins.emit('packRoundUpdateEnd', {this: this, output});
     };
 
     resetGame() {
@@ -198,6 +224,27 @@ export class newRoom {
         }]);
 
         plugins.emit('roomDetailsUpdatedEnd', {this: this, details: this.details});
+    };
+
+    updateRoomParamsForClients() {
+        var output = new Comm.Out();
+        this.packUpdateRoomParams(output);
+        this.sendToAll(output, null, "updateRoomParams");
+    };
+
+    packUpdateRoomParams(output) {
+        plugins.emit('packUpdateRoomParams', {this: this, output});
+        output.packInt8U(Comm.Code.updateRoomParams);
+        var gameOptions = {
+            cheatsEnabled: this.gameOptions.cheatsEnabled,
+        };
+        output.packString(JSON.stringify(gameOptions));
+        plugins.emit('packUpdateRoomParamsEnd', {this: this, output});
+    };
+
+    enableCheats() {
+        this.gameOptions.cheatsEnabled = true;
+        this.updateRoomParamsForClients();
     };
 
     async updateLoop (delta) {
@@ -293,7 +340,7 @@ export class newRoom {
             };
         };
         await plugins.emit('clientSyncEnd', {this: this, output});
-        if (!plugins.cancel) this.sendToAll(output, "sync");
+        if (!plugins.cancel) this.sendToAll(output, null, "sync");
     };
 
     async joinPlayer(info) {
@@ -325,7 +372,7 @@ export class newRoom {
         var output = new Comm.Out(2);
         output.packInt8U(Comm.Code.removePlayer);
         output.packInt8U(client.id);
-        this.sendToAll(output);
+        this.sendToAll(output, null, "removePlayer");
 
         console.log('Client disconnected', client.id);
 

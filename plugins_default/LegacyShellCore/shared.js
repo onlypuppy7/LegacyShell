@@ -12,6 +12,8 @@ export const LegacyShellCorePlugin = {
         this.plugins.on('game:onMapComplete', this.onMapComplete.bind(this));
         this.plugins.on('game:AllItems', this.AllItems.bind(this));
         this.plugins.on('game:GameTypesInit', this.GameTypesInit.bind(this));
+
+        this.plugins.on('game:permissionsAfterSetup', this.registerSampleCommand.bind(this));
     },
 
     onMapComplete(data) {
@@ -145,6 +147,43 @@ export const LegacyShellCorePlugin = {
                     0.25, //team2
                 ],
                 teamSwitchMaximumDifference: 1,
+            }
+        });
+    },
+    
+    registerSampleCommand: function (data) { //example of command registration
+        console.log("registering sample command... (sample plugin)");
+        var ctx = data.this;
+
+        ctx.newCommand({
+            identifier: "glitchyroom1",
+            isCheat: true,
+            name: "glitch1",
+            category: "change",
+            description: "Glitchy room type 1:<br>Random packets every meta loop.",
+            example: "true",
+            warningText: "This command will probably crash your game (however it's harmless).",
+            permissionLevel: [ctx.ranksEnum.Moderator, ctx.ranksEnum.Guest, true],
+            inputType: ["bool"],
+            executeClient: (player, opts, mentions) => { },
+            executeServer: (player, opts, mentions) => {
+                ctx.room.gameOptions.glitchyRoom1 = opts;
+            }
+        });
+
+        ctx.newCommand({
+            identifier: "glitchyroom2",
+            isCheat: true,
+            name: "glitch2",
+            category: "change",
+            description: "Glitchy room type 2:<br>Broken sync packets.",
+            example: "true",
+            warningText: "This command will probably crash your game (however it's harmless).",
+            permissionLevel: [ctx.ranksEnum.Moderator, ctx.ranksEnum.Guest, true],
+            inputType: ["bool"],
+            executeClient: (player, opts, mentions) => { },
+            executeServer: (player, opts, mentions) => {
+                ctx.room.gameOptions.glitchyRoom2 = opts;
             }
         });
     },

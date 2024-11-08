@@ -35,6 +35,7 @@ export class PermissionsConstructor {
         //change
         this.newCommand({
             identifier: "gravityModifier",
+            isCheat: true,
             name: "gravity",
             category: "change",
             description: "Sets gravity for players.",
@@ -57,6 +58,7 @@ export class PermissionsConstructor {
         });
         this.newCommand({
             identifier: "speedModifier",
+            isCheat: true,
             name: "speed",
             category: "change",
             description: "Sets speed for players.",
@@ -79,6 +81,7 @@ export class PermissionsConstructor {
         });
         this.newCommand({
             identifier: "regenModifier",
+            isCheat: true,
             name: "regen",
             category: "change",
             description: "Sets regen rate for players.",
@@ -101,6 +104,7 @@ export class PermissionsConstructor {
         });
         this.newCommand({
             identifier: "damageModifier",
+            isCheat: true,
             name: "damage",
             category: "change",
             description: "Sets damage modifiers for players.",
@@ -123,6 +127,7 @@ export class PermissionsConstructor {
         });
         this.newCommand({
             identifier: "resistanceModifier",
+            isCheat: true,
             name: "resistance",
             category: "change",
             description: "Sets resistance modifiers for players.",
@@ -145,6 +150,7 @@ export class PermissionsConstructor {
         });
         this.newCommand({
             identifier: "jumpBoostModifier",
+            isCheat: true,
             name: "jumpBoost",
             category: "change",
             description: "Sets jump boost for players.",
@@ -167,6 +173,7 @@ export class PermissionsConstructor {
         });
         this.newCommand({
             identifier: "scale",
+            isCheat: true,
             name: "scale",
             category: "change",
             description: "Sets scaling for players.",
@@ -238,6 +245,26 @@ export class PermissionsConstructor {
                 this.room.notify(opts, 5);
             }
         });
+        this.newCommand({
+            identifier: "modCheatsEnable",
+            name: "cheats",
+            category: "mod",
+            description: "Enable/disable cheats.",
+            example: "true",
+            permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
+            inputType: ["bool"],
+            executeClient: (player, opts, mentions) => {},
+            executeServer: (player, opts, mentions) => {
+                if (this.room.gameOptions.cheatsEnabled !== opts) {
+                    if (!opts) {
+                        player.client.commandFeedback(`Cheats cannot be disabled once enabled.`);
+                    } else {
+                        this.room.enableCheats();
+                        this.room.notify(`Notice: Cheats have been enabled.`, 5);
+                    };
+                };
+            },
+        });
 
         //room
         this.newCommand({
@@ -287,6 +314,75 @@ export class PermissionsConstructor {
                     this.room.sendToAll(output, "warp");
                 };
             }
+        });
+
+        //rounds
+        this.newCommand({
+            identifier: "roundsEnable",
+            name: "enable",
+            category: "rounds",
+            description: "Enable/disable rounds.",
+            example: "true",
+            permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
+            inputType: ["bool"],
+            executeClient: (player, opts, mentions) => {},
+            executeServer: (player, opts, mentions) => {
+                this.room.notify(`Rounds have been ${opts ? "enabled" : "disabled"}.`, 5);
+
+                var changed = this.room.gameOptions.timedGame.enabled != opts;
+                this.room.gameOptions.timedGame.enabled = opts;
+
+                if (changed) {
+                    if (!opts) this.room.endRound();
+                    this.room.setRoundTimeout()
+                    
+                    var output = new Comm.Out();
+                    this.room.packRoundUpdate(output);
+                    this.room.sendToAll(output, "roundUpdate");
+                };
+            },
+        });
+        this.newCommand({
+            identifier: "roundsLength",
+            name: "length",
+            category: "rounds",
+            description: "Set the length of rounds in seconds.",
+            example: "150 (2.5 mins)\n300 (5 mins)",
+            permissionLevel: [this.ranksEnum.Guest, this.ranksEnum.Guest, false],
+            inputType: ["number", 1, 60 * 60, 1],
+            executeClient: (player, opts, mentions) => {},
+            executeServer: (player, opts, mentions) => {
+                if (this.room.gameOptions.timedGame.enabled) {
+                    this.room.gameOptions.timedGame.roundLength = opts;
+                    this.room.roundLength = opts;
+                    
+                    var output = new Comm.Out();
+                    this.room.packRoundUpdate(output);
+                    this.room.sendToAll(output, "roundUpdate");
+
+                    player.client.commandFeedback(`Rounds will now be ${opts} secs long. Use /rounds skip to proceed now.`);
+                } else {
+                    player.client.commandFeedback(`Rounds are not enabled.`);
+                };
+            },
+        });
+        this.newCommand({
+            identifier: "roundsSkip",
+            name: "skip",
+            category: "rounds",
+            description: "Skip to the end of this round.",
+            example: "(no input needed)",
+            permissionLevel: [this.ranksEnum.Guest, this.ranksEnum.Guest, false],
+            inputType: ["string"],
+            executeClient: (player, opts, mentions) => {},
+            executeServer: (player, opts, mentions) => { 
+                if (this.room.gameOptions.timedGame.enabled) {
+                    this.room.notify(`Round skipped early...`, 5);
+                    this.room.endRound();
+                } else {
+                    player.client.commandFeedback(`Rounds are not enabled.`);
+                };
+            },
         });
 
         plugins.emit('permissionsAfterSetup', { this: this });
@@ -354,7 +450,7 @@ export class PermissionsConstructor {
 };
 
 class Command {
-    constructor(context, { identifier, name, category, description, example, usage, autocomplete, permissionLevel, inputType, executeClient, executeServer }) {
+    constructor(context, { identifier, isCheat, name, category, description, example, usage, autocomplete, warningText, permissionLevel, inputType, executeClient, executeServer }) {
         if (!context.cmds[category]) context.cmds[category] = {};
         context.cmds[category][name] = this;
         context.cmdsByIdentifier[identifier] = this;
@@ -366,11 +462,17 @@ class Command {
         this.ctx.cmds[category] = alphabetiseObjectKeys(this.ctx.cmds[category]);
 
         this.identifier = identifier;
+        this.isCheat = isCheat || false;
         this.name = name;
         this.category = category;
         this.description = description;
         this.example = example;
         this.autocomplete = autocomplete || "";
+        this.warningText = warningText || "";
+        if (isCheat) {
+            if (this.warningText !== "") this.warningText += "<br>";
+            this.warningText += "This command is a cheat.";
+        };
 
         var generatedUsage;
         if (inputType[0] == "string") {
@@ -412,7 +514,17 @@ class Command {
 
         var permitted = this.checkPermissions(player);
 
-        if (permitted) {
+        var thisCheatsEnabled = isClient ? gameOptions.cheatsEnabled : this.ctx.room.gameOptions.cheatsEnabled;
+
+        if (this.isCheat && !thisCheatsEnabled) {
+            permitted = false;
+            var text = "Cheats are disabled. Enable them with /mod cheats true.";
+            if (isClient) {
+                addChat(text, null, Comm.Chat.cmd);
+            } else {
+                player.client.commandFeedback(text);
+            };
+        } else if (permitted) {
             var mentions = parseMentions(parts, this, player);
 
             // console.log(mentions);
@@ -425,9 +537,7 @@ class Command {
         } else if (isClient) {
             addChat("Insufficient permissions.", null, Comm.Chat.cmd);
         } else {
-            var output = new Comm.Out();
-            this.room.packChat(output, "Insufficient permissions (yes, really!)", 255, Comm.Chat.cmd);
-            player.client.sendToMe(output, "chat");
+            player.client.commandFeedback("Insufficient permissions (yes, really!)");
         };
 
         return permitted;

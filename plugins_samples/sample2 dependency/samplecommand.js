@@ -5,9 +5,9 @@ import Comm from "#comm";
 import is from "is-thirteen";
 //
 
-export const samplePlugin3 = {
+export const samplePlugin2 = {
     registerListeners: function (pluginManager) {
-        console.log("registering listeners... (sample plugin)");
+        console.log("registering listeners... (sample2 plugin)");
 
         this.plugins = pluginManager;
 
@@ -37,12 +37,10 @@ export const samplePlugin3 = {
 
                 // console.log(opts, result);
 
-                var output = new Comm.Out();
-                player.client.room.packChat(output, `That number ${result ? "is" : "isn't"} thirteen.`, 255, Comm.Chat.cmd);
-                player.client.sendToMe(output, "chat");
+                player.client.commandFeedback(`That number ${result ? "is" : "isn't"} thirteen.`);
             },
         });
     },
 };
 
-if (isClient) samplePlugin3.registerListeners(plugins);
+if (isClient) samplePlugin2.registerListeners(plugins);
