@@ -183,6 +183,9 @@ export default async function run () {
                         configInfo = { ...configInfo, ...configInfo.distributed_all };
                         delete configInfo.distributed_all;
                 
+                        ss.config.servicesMeta = configInfo.servicesMeta;
+                        delete configInfo.servicesMeta;
+                
                         Object.assign(ss, {
                             permissions: configInfo.permissions,
                         })
@@ -196,7 +199,7 @@ export default async function run () {
                         // console.log(ss.permissions);
                         startServer();
                     } else {
-                        if ((configInfo.servicesMeta.startTime > ss.config.game.servicesMeta.startTime) && ss.isPerpetual) {
+                        if ((configInfo.servicesMeta.startTime > ss.config.servicesMeta.startTime) && ss.isPerpetual) {
                             console.log("Services server restarted, restarting...");
                             process.exit(1337);
                         };

@@ -137,11 +137,12 @@ async function prepareModified() {
             { pattern: /LEGACYSHELLMAPZIPTIMESTAMP/g, insertion: misc.getLastSavedTimestamp(path.join(ss.currentDir, 'store', 'client-modified', 'models', 'map.zip')) },
         ];
 
-        await plugins.emit('replacementsBefore', { this: this, ss, replacementsBefore });
+        await plugins.emit('replacementsBefore', { this: this, ss, code, replacementsBefore });
 
         await doReplacements(replacementsBefore);
 
         if (ss.config.client.iif) { // unexposes variables to the client. see: console cracker
+            log.bold('Wrapping shellshock.min.js in an IIFE...');
             code.sourceJs = `(()=>{\n${code.sourceJs}\n})();`
         };
 
@@ -152,22 +153,24 @@ async function prepareModified() {
 
             await plugins.emit('minificationBefore', { this: this, ss, code, UglifyJS });
 
-            var result;
+            var result = {};
 
-            if (!plugins.cancel) result = UglifyJS.minify(code.sourceJs);
+            if (!plugins.cancel) {
+                result = UglifyJS.minify(code.sourceJs);
 
-            await plugins.emit('minificationAfter', { this: this, ss, code, result });
+                await plugins.emit('minificationAfter', { this: this, ss, code, result });
 
-            if (result.error) {
-                throw new Error(`Minification failed: ${result.error}`);
+                if (result.error) {
+                    throw new Error(`Minification failed: ${result.error}`);
+                };
+
+                if (result.code === undefined) {
+                    throw new Error("Minification resulted in undefined code.");
+                };
+
+                code.sourceJs = result.code;
+                log.bold(`Minified shellshock.min.js`);
             };
-
-            if (result.code === undefined) {
-                throw new Error("Minification resulted in undefined code.");
-            };
-
-            code.sourceJs = result.code;
-            log.bold(`Minified shellshock.min.js`);
         } else {
             log.bold(`Skipped minification (config set).`);
             await plugins.emit('minificationSkipped', { this: this, ss, code });
