@@ -216,6 +216,8 @@ export default async function run () {
                         configInfo = { ...configInfo, ...configInfo.distributed_all };
                         delete configInfo.distributed_all;
                 
+                        ss.config.servicesMeta = configInfo.servicesMeta;
+                        delete configInfo.servicesMeta;
                         
                         Object.assign(ss, {
                             permissions: configInfo.permissions
@@ -238,7 +240,7 @@ export default async function run () {
                         retrieved = true;
                         await startServer();
                     } else {
-                        if (offline && (configInfo.servicesMeta.startTime > ss.config.client.servicesMeta.startTime) && ss.isPerpetual) {
+                        if (offline && (configInfo.servicesMeta.startTime > ss.config.servicesMeta.startTime) && ss.isPerpetual) {
                             console.log("Services server restarted, restarting...");
                             await plugins.emit('onServicesRestart', { ss, configInfo });
                             process.exit(1337);
