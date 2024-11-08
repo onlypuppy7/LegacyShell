@@ -5,7 +5,7 @@
 import { TransformNode, Vector3 } from "babylonjs";
 import { Howl, Howler } from "howler";
 
-const APOLLO_VERSION = 5;
+const APOLLO_VERSION = 6;
 
 const APOLLO_LOG = devmode;
 
@@ -193,7 +193,7 @@ function updateListener(newPos, newRotFront, newRotUp) {
  * @param {String} name - name of the sound whose play is desired.
  * @param {Vector3} pos - position of the sound's playback. AUTOMATICALLY ADAPTED TO HOWLER'S COORDINATE SYSTEM!
  */
-function playSoundIndependent(name, pos, rate) {
+function playSoundIndependent(name, {pos, rate, loop}) {
   const p2 = translateVec(pos);
   const sound = getSound(name);
   const id = sound.play();
@@ -201,6 +201,8 @@ function playSoundIndependent(name, pos, rate) {
   sound.pannerAttr(APOLLO_GLOBAL_PANNER_ATTRB, id);
   sound.pos(p2.x, p2.y, p2.z, id);
   if (rate) sound.rate(rate, id);
+  if (loop) sound._loop = loop;
+  return sound;
 }
 
 /**
