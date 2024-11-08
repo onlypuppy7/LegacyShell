@@ -529,6 +529,20 @@ const Comm = {
         */
         setModifiers: 52,
 
+        /** LEGACYSHELL ADDED
+         * 
+         * SERVER: update the round stuff
+         * @constant {number}
+         */
+        roundUpdate: 53,
+
+        /** LEGACYSHELL ADDED
+         * 
+         * SERVER: update the room's params such as cheats, etc
+         * @constant {number}
+         */
+        updateRoomParams: 54,
+
         /** CLIENT: used by bwd admins to look at ips and stuff (scary). 
         * @constant {number}
         */

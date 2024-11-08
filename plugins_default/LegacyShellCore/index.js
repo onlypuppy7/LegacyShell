@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 //plugin: samplecommand
 import { LegacyShellCorePlugin } from './shared.js';
+import Comm from '#comm';
 //
 
 export const PluginMeta = {
@@ -24,6 +25,9 @@ export class Plugin {
         this.plugins.on('client:prepareBabylon', this.prepareBabylon.bind(this));
         this.plugins.on('game:prepareBabylon', this.prepareBabylon.bind(this));
         this.plugins.on('services:initTables', this.initTables.bind(this));
+
+        this.plugins.on('game:metaLoop', this.metaLoopHook.bind(this));
+        this.plugins.on('game:clientPackSyncLoop', this.clientPackSyncLoopHook.bind(this));
     };
 
     pluginSourceInsertion(data) {
@@ -55,5 +59,39 @@ export class Plugin {
     async initTables(data) { //async operation requires awaits to ensure proper order
         await data.ss.recs.insertItems(path.join(this.thisDir, 'items'));
         await data.ss.recs.insertMaps(path.join(this.thisDir, 'maps'));
+    };
+
+    metaLoopHook(data) {
+        var ctx = data.this;
+        if (ctx.gameOptions.glitchyRoom1) {
+            var output = new Comm.Out();
+            output.packInt8U(Math.randomInt(0, 40));
+            output.packInt8U(Math.randomInt(0, 18));
+            output.packInt8U(Math.randomInt(0, 255));
+            output.packInt8U(Math.randomInt(0, 255));
+            output.packInt8U(Math.randomInt(0, 255));
+            output.packInt8U(Math.randomInt(0, 255));
+            output.packInt8U(Math.randomInt(0, 255));
+            output.packInt8U(Math.randomInt(0, 255));
+            output.packInt8U(Math.randomInt(0, 255));
+            output.packInt8U(Math.randomInt(0, 255));
+            output.packInt8U(Math.randomInt(0, 255));
+            output.packInt8U(Math.randomInt(0, 255));
+            ctx.sendToAll(output, "glitchedKek");
+            ctx.notify("The room has been glitched!");
+        };
+    };
+
+    clientPackSyncLoopHook(data) {
+        var ctx = data.this;
+        var state = data.state;
+        var output = data.output;
+
+        if (ctx.room.gameOptions.glitchyRoom2) {
+            this.plugins.cancel = true;
+            output.packInt8U(state.controlKeys);
+            output.packInt8U(state.yaw);
+            output.packInt8U(state.pitch);
+        };
     };
 };

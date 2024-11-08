@@ -25,7 +25,7 @@ export class PluginManager {
         for (const pluginFolder of pluginFolders) {
             try {
                 const pluginPath = path.join(pluginsDir, pluginFolder, 'index.js');
-                if (fs.existsSync(pluginPath)) {
+                if (fs.existsSync(pluginPath) && !pluginFolder.startsWith("_")) {
                     const dependenciesPath = path.join(pluginsDir, pluginFolder, 'dependencies.js');
 
                     if (fs.existsSync(dependenciesPath)) {

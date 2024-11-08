@@ -51,6 +51,7 @@ export var defaultOptions = {
         enabled: false,
         roundLength: 150, //2.5 mins in seconds
     },
+    cheatsEnabled: false,
 };
 
 export var GameTypes = [
@@ -73,6 +74,7 @@ export var GameTypes = [
 ];
 
 export var AllMapPools = [];
+export var GameType = {};
 
 (async function () {
     await plugins.emit('GameTypesInit', { GameTypes, ItemTypes, defaultOptions });
@@ -92,13 +94,13 @@ export var AllMapPools = [];
             };
         });
     })();
-})();
 
-//LS: dynamically create from GameTypes (compatability and also lazy xdd)
-export var GameType = GameTypes.reduce((acc, gameType, index) => {
-    acc[gameType.codeName] = index;
-    return acc;
-}, {});
+    //LS: dynamically create from GameTypes (compatability and also lazy xdd)
+    GameType = GameTypes.reduce((acc, gameType, index) => {
+        acc[gameType.codeName] = index;
+        return acc;
+    }, {});
+})();
 
 export var getMapPool = function (mapsList, mapPool, maps) {
     let generatedMapPool = [];
