@@ -263,7 +263,7 @@ Rocket.prototype.explode = function () {
     if (this.actor) {
         addExplosion(this.x, this.y, this.z, this.damage, this.radius);
         var pos = new BABYLON.Vector3(this.x, this.y, this.z);
-        playSoundIndependent(this.actor.explodeSound, pos);
+        playSoundIndependent(this.actor.explodeSound, {pos});
         //this.actor.explodeSound.setPosition(pos);
         //this.actor.explodeSound.play();
     } else checkExplosionCollisions(this);
@@ -273,7 +273,7 @@ Rocket.prototype.poof = function () {
     if (this.actor) {
         var pos = new BABYLON.Vector3(this.x, this.y, this.z);
         //this.actor.poofSound.setPosition(pos), this.actor.poofSound.play();
-        playSoundIndependent(this.actor.poofSound, pos);
+        playSoundIndependent(this.actor.poofSound, {pos});
         for (var i = 0; i < 10; i++) {
             var dx = .2 * Math.random() - .1,
                 dy = .2 * Math.random() - .1,
@@ -323,7 +323,7 @@ Grenade.prototype.update = function (delta) {
             addExplosion(this.x, this.y, this.z, this.damage, this.radius);
             //what the fuck puppy don't just place audio code here grrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr
             var pos = new BABYLON.Vector3(this.x, this.y, this.z);
-            playSoundIndependent(this.actor.explodeSound, pos);
+            playSoundIndependent(this.actor.explodeSound, {pos});
             //this.actor.explodeSound.setPosition(pos), this.actor.explodeSound.play(), 
             this.actor.remove();
         } else checkExplosionCollisions(this);
