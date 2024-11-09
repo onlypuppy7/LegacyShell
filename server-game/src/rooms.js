@@ -307,7 +307,7 @@ export class newRoom {
                 client.sendCloseToWs();
             };
         });
-        if (Math.getRandomChance(1 / 8) && this.gameOptions.weather.stormEnabled) { //1 in 8 chance of storm every 2 seconds
+        if (Math.getRandomChance(1 / 4) && this.gameOptions.weather.stormEnabled) { //1 in 4 chance of storm every 2 seconds
             var output = new Comm.Out();
             output.packInt8U(Comm.Code.doThunderStrike);
             this.sendToAll(output, null, "doThunderStrike");
