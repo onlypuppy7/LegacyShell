@@ -348,7 +348,7 @@ export class PermissionsConstructor {
             category: "rounds",
             description: "Set the length of rounds in seconds.",
             example: "150 (2.5 mins)\n300 (5 mins)",
-            permissionLevel: [this.ranksEnum.Guest, this.ranksEnum.Guest, false],
+            permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
             inputType: ["number", 1, 60 * 60, 1],
             executeClient: (player, opts, mentions) => {},
             executeServer: (player, opts, mentions) => {
@@ -372,7 +372,7 @@ export class PermissionsConstructor {
             category: "rounds",
             description: "Skip to the end of this round.",
             example: "(no input needed)",
-            permissionLevel: [this.ranksEnum.Guest, this.ranksEnum.Guest, false],
+            permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
             inputType: ["string"],
             executeClient: (player, opts, mentions) => {},
             executeServer: (player, opts, mentions) => { 
@@ -385,12 +385,52 @@ export class PermissionsConstructor {
             },
         });
 
+        //time
+        this.newCommand({
+            identifier: "timeDay",
+            name: "day",
+            category: "time",
+            description: "Set time to day (default).",
+            example: "(no input needed)",
+            permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
+            inputType: ["string"],
+            executeClient: (player, opts, mentions) => {},
+            executeServer: (player, opts, mentions) => {
+                var changed = this.room.gameOptions.time != "day";
+                this.room.gameOptions.time = "day";
+
+                if (changed) {
+                    this.room.notify(`Time has been updated to day.`, 5);
+                    this.room.updateRoomParamsForClients();
+                };
+            },
+        });
+        this.newCommand({
+            identifier: "timeNight",
+            name: "night",
+            category: "time",
+            description: "Set time to night.",
+            example: "(no input needed)",
+            permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
+            inputType: ["string"],
+            executeClient: (player, opts, mentions) => {},
+            executeServer: (player, opts, mentions) => {
+                var changed = this.room.gameOptions.time != "night";
+                this.room.gameOptions.time = "night";
+
+                if (changed) {
+                    this.room.notify(`Time has been updated to night.`, 5);
+                    this.room.updateRoomParamsForClients();
+                };
+            },
+        });
+
         //weather
         this.newCommand({
-            identifier: "weatherRain",
+            identifier: "rainEnabled",
             name: "rain",
             category: "weather",
-            description: "Enable/disable rain.",
+            description: "Enable/disable rainy weather.",
             example: "true",
             permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
             inputType: ["bool"],
@@ -401,6 +441,25 @@ export class PermissionsConstructor {
 
                 if (changed) {
                     this.room.notify(`Rain has been ${opts ? "enabled" : "disabled"}.`, 5);
+                    this.room.updateRoomParamsForClients();
+                };
+            },
+        });
+        this.newCommand({
+            identifier: "stormEnabled",
+            name: "storm",
+            category: "weather",
+            description: "Enable/disable stormy weather.",
+            example: "true",
+            permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
+            inputType: ["bool"],
+            executeClient: (player, opts, mentions) => {},
+            executeServer: (player, opts, mentions) => {
+                var changed = this.room.gameOptions.weather.stormEnabled != opts;
+                this.room.gameOptions.weather.stormEnabled = opts;
+
+                if (changed) {
+                    this.room.notify(`Stormy weather has been ${opts ? "enabled" : "disabled"}.`, 5);
                     this.room.updateRoomParamsForClients();
                 };
             },

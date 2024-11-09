@@ -543,6 +543,13 @@ const Comm = {
          */
         updateRoomParams: 54,
 
+        /** LEGACYSHELL ADDED
+         * 
+         * SERVER: inits a thunderstrike
+         * @constant {number}
+         */
+        doThunderStrike: 55,
+
         /** CLIENT: used by bwd admins to look at ips and stuff (scary). 
         * @constant {number}
         */

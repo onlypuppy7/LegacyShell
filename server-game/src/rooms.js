@@ -238,8 +238,9 @@ export class newRoom {
         var gameOptions = {
             cheatsEnabled: this.gameOptions.cheatsEnabled,
             weather: this.gameOptions.weather,
+            time: this.gameOptions.time,
         };
-        output.packString(JSON.stringify(gameOptions));
+        output.packString(JSON.stringify(gameOptions)); //is this technically bloated? yes, but its the only way i can do this such that adding new options is easy
         plugins.emit('packUpdateRoomParamsEnd', {this: this, output});
     };
 
@@ -306,6 +307,11 @@ export class newRoom {
                 client.sendCloseToWs();
             };
         });
+        if (Math.getRandomChance(1 / 8) && this.gameOptions.weather.stormEnabled) { //1 in 8 chance of storm every 2 seconds
+            var output = new Comm.Out();
+            output.packInt8U(Comm.Code.doThunderStrike);
+            this.sendToAll(output, null, "doThunderStrike");
+        };
     };
 
     destroy() {
