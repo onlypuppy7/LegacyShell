@@ -49,7 +49,7 @@ wetMaterial.specularPower = 16;
 
 mapMesh.material = wetMaterial;
 
-setSkybox("thunderstorm");
+// Sounds.rain.play();
 
 gameScene.texturesEnabled = false;
 gameScene.fogColor = new BABYLON.Color4(0, 0, 0, 1);
@@ -59,7 +59,22 @@ mapMesh.overlayAlpha = 0.1;
 mapMesh.overlayColor = {r: 1, g: 1, b: 1};
 mapMesh.renderOverlay = false;
 
-Sounds.rain.play();
+//night
+
+// skyboxMaterial.alpha = 0.1;
+
+// gameScene.fogColor = new BABYLON.Color4(0, 0, 0, 1);
+// gameScene.fogDensity = .065;
+
+// mapMesh.overlayAlpha = 0.5;
+// mapMesh.overlayColor = {r: 0, g: 0, b: 0};
+// mapMesh.renderOverlay = true;
+
+//done up to here
+
+//storm
+
+setSkybox("thunderstorm");
 
 window.addEventListener('keydown', function(event) {
     if (event.key === '[') {

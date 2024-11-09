@@ -54,7 +54,9 @@ export var defaultOptions = {
     cheatsEnabled: false,
     weather: {
         rainEnabled: false,
+        stormEnabled: false,
     },
+    time: "day",
 };
 
 export var GameTypes = [

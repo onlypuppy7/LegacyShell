@@ -139,7 +139,6 @@ const exported = {
                 END;
             `);
         
-            //WIP! MAPS
             db.run(`
             CREATE TABLE IF NOT EXISTS maps (
                 name TEXT PRIMARY KEY DEFAULT 'Unknown map',
