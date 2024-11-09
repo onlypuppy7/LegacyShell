@@ -202,7 +202,7 @@ const exported = {
 
         for (const file of files) {
             if (path.extname(file) === '.json') {
-                log.beige(`Inserting: ${file}`);
+                log.beige(`[Items] Inserting: ${file}`);
                 const filePath = path.join(jsonDir, file);
                 const fileContent = fs.readFileSync(filePath, 'utf8');
                 const jsonData = JSON.parse(fileContent);
@@ -218,39 +218,57 @@ const exported = {
     },
     insertMaps: async (jsonDir = path.join(ss.currentDir, 'src', 'maps')) => {
         const files = fs.readdirSync(jsonDir);
+        const maps = [];
         for (const file of files) {
             if (path.extname(file) === '.json') {
-                log.beige(`Inserting: ${file}`);
+                log.beige(`[Maps] Reading: ${file}`);
                 const filePath = path.join(jsonDir, file);
                 const fileContent = fs.readFileSync(filePath, 'utf8');
-                const map = JSON.parse(fileContent);
-
-                await ss.runQuery(`
-                    INSERT OR REPLACE INTO maps ( name, sun, ambient, fog, data, palette, render, width, height, depth, surfaceArea, extents, skybox, modes, availability, numPlayers, dateCreated, dateModified ) 
-                    VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )
-                `, [
-                        map.name || 'Unknown map',
-                        map.sun ? JSON.stringify(map.sun) : '{"direction":{"x":0.2,"y":1,"z":-0.3},"color":"#FFFFFF"}',
-                        map.ambient || '#000000', //NOT USED! (other than map editor idfk)
-                        map.fog ? JSON.stringify(map.fog) : '{"density":0.01,"color":"#FFFFFF"}',
-                        map.data ? JSON.stringify(map.data) : '{}',
-                        map.palette ? JSON.stringify(map.palette) : '[null,null,null,null,null,null,null,null,null,null]',
-                        map.render ? JSON.stringify(map.render) : '{}',
-                        map.width || -9999,
-                        map.height || -9999,
-                        map.depth || -9999,
-                        map.surfaceArea || 0,
-                        map.extents ? JSON.stringify(map.extents) : '{"x":{"max":0,"min":10000},"y":{"max":0,"min":10000},"z":{"max":0,"min":10000},"width":-9999,"height":-9999,"depth":-9999}',
-                        map.skybox || '',
-                        map.modes ? JSON.stringify(map.modes) : '{"FFA":true,"Teams":true}',
-                        map.availability || 'both',
-                        map.numPlayers || 18,
-                        Math.floor(Date.now() / 1000),
-                        Math.floor(Date.now() / 1000)
-                    ]
-                );
+                maps.push(JSON.parse(fileContent));
             };
         };
+
+        for (const map of maps) {
+            log.beige(`[Maps] Inserting: ${map.name}`);
+            await ss.runQuery(`
+                INSERT OR REPLACE INTO maps ( name, sun, ambient, fog, data, palette, render, width, height, depth, surfaceArea, extents, skybox, modes, availability, numPlayers, dateCreated, dateModified ) 
+                VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )
+            `, [
+                    map.name || 'Unknown map',
+                    map.sun ? JSON.stringify(map.sun) : '{"direction":{"x":0.2,"y":1,"z":-0.3},"color":"#FFFFFF"}',
+                    map.ambient || '#000000', //NOT USED! (other than map editor idfk)
+                    map.fog ? JSON.stringify(map.fog) : '{"density":0.01,"color":"#FFFFFF"}',
+                    map.data ? JSON.stringify(map.data) : '{}',
+                    map.palette ? JSON.stringify(map.palette) : '[null,null,null,null,null,null,null,null,null,null]',
+                    map.render ? JSON.stringify(map.render) : '{}',
+                    map.width || -9999,
+                    map.height || -9999,
+                    map.depth || -9999,
+                    map.surfaceArea || 0,
+                    map.extents ? JSON.stringify(map.extents) : '{"x":{"max":0,"min":10000},"y":{"max":0,"min":10000},"z":{"max":0,"min":10000},"width":-9999,"height":-9999,"depth":-9999}',
+                    map.skybox || '',
+                    map.modes ? JSON.stringify(map.modes) : '{"FFA":true,"Teams":true}',
+                    map.availability || 'both',
+                    map.numPlayers || 18,
+                    Math.floor(Date.now() / 1000),
+                    Math.floor(Date.now() / 1000)
+                ],
+            );
+        };
+
+        //alphabetical order (cringe)
+        try {
+            await ss.runQuery('BEGIN TRANSACTION');
+            await ss.runQuery('CREATE TABLE maps_temp AS SELECT * FROM maps ORDER BY name');
+            await ss.runQuery('DROP TABLE maps');
+            await ss.runQuery('ALTER TABLE maps_temp RENAME TO maps');
+            await ss.runQuery('COMMIT');
+        } catch (error) {
+            await ss.runQuery('ROLLBACK');
+            console.error('Error reordering maps table:', error);
+        };
+
+        log.beige(`[Maps] Inserted ${maps.length} maps`);
     },
     getCodeData: async (code_key, retainSensitive) => {
         try {
