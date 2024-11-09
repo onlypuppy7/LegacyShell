@@ -237,6 +237,7 @@ export class newRoom {
         output.packInt8U(Comm.Code.updateRoomParams);
         var gameOptions = {
             cheatsEnabled: this.gameOptions.cheatsEnabled,
+            weather: this.gameOptions.weather,
         };
         output.packString(JSON.stringify(gameOptions));
         plugins.emit('packUpdateRoomParamsEnd', {this: this, output});

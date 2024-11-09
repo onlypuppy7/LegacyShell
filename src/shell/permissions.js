@@ -385,6 +385,28 @@ export class PermissionsConstructor {
             },
         });
 
+        //weather
+        this.newCommand({
+            identifier: "weatherRain",
+            name: "rain",
+            category: "weather",
+            description: "Enable/disable rain.",
+            example: "true",
+            permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
+            inputType: ["bool"],
+            executeClient: (player, opts, mentions) => {},
+            executeServer: (player, opts, mentions) => {
+                var changed = this.room.gameOptions.weather.rainEnabled != opts;
+                this.room.gameOptions.weather.rainEnabled = opts;
+
+                if (changed) {
+                    this.room.notify(`Rain has been ${opts ? "enabled" : "disabled"}.`, 5);
+                    this.room.updateRoomParamsForClients();
+                };
+            },
+        });
+
+
         plugins.emit('permissionsAfterSetup', { this: this });
     };
 
