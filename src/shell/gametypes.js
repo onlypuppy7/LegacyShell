@@ -52,6 +52,9 @@ export var defaultOptions = {
         roundLength: 150, //2.5 mins in seconds
     },
     cheatsEnabled: false,
+    weather: {
+        rainEnabled: false,
+    },
 };
 
 export var GameTypes = [

@@ -43,14 +43,10 @@ gameScene.registerBeforeRender(function() {
 
 // Create a shiny material
 var wetMaterial = new BABYLON.StandardMaterial("wetMaterial", gameScene);
-wetMaterial.diffuseColor = new BABYLON.Color3(0.7, 0.7, 0.7); // Darker to simulate wetness
-wetMaterial.specularColor = new BABYLON.Color3(1, 1, 1); // White specular for highlights
-wetMaterial.specularPower = 64; // Higher power for sharper reflections
-wetMaterial.reflectionTexture = new BABYLON.MirrorTexture("mirror", 1024 * 1, gameScene, true);
-wetMaterial.reflectionTexture.mirrorPlane = new BABYLON.Plane(0, -1, 0, 0); // Reflect the ground
-wetMaterial.reflectionTexture.level = .5; // Adjust reflection intensity
+wetMaterial.diffuseColor = new BABYLON.Color3(0.85, 0.85, 0.85);
+wetMaterial.specularColor = new BABYLON.Color3(1, 1, 1);
+wetMaterial.specularPower = 16;
 
-// Apply the material to the mapMesh
 mapMesh.material = wetMaterial;
 
 setSkybox("thunderstorm");

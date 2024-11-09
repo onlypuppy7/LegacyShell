@@ -5,7 +5,7 @@
 import { TransformNode, Vector3 } from "babylonjs";
 import { Howl, Howler } from "howler";
 
-const APOLLO_VERSION = 6;
+const APOLLO_VERSION = 7;
 
 const APOLLO_LOG = devmode;
 
@@ -55,6 +55,15 @@ function apolloSetVolume(vol) {
     console.log(`APOLLO: setting Howler volume to ${vol}, as requested.`);
   Howler.volume(vol);
 }
+
+/**
+ * stops all sounds. This is a wrapper for Howler.stop().
+ * @returns {void}
+ * @example stopAllSounds();
+*/
+stopAllSounds = function () {
+  Howler.stop();
+};
 
 /**
  * loads a sound from a given source and saves it under the given name.
@@ -193,15 +202,19 @@ function updateListener(newPos, newRotFront, newRotUp) {
  * @param {String} name - name of the sound whose play is desired.
  * @param {Vector3} pos - position of the sound's playback. AUTOMATICALLY ADAPTED TO HOWLER'S COORDINATE SYSTEM!
  */
-function playSoundIndependent(name, {pos, rate, loop}) {
+function playSoundIndependent(name, params = {}) {
+  const { pos, rate, loop, vol } = params;
   const p2 = translateVec(pos);
+  if (loop) {
+    sound._loop = loop;
+    sound.loop();
+  };
   const sound = getSound(name);
   const id = sound.play();
-  sound.volume(1, id);
+  sound.volume(vol, id);
   sound.pannerAttr(APOLLO_GLOBAL_PANNER_ATTRB, id);
   sound.pos(p2.x, p2.y, p2.z, id);
   if (rate) sound.rate(rate, id);
-  if (loop) sound._loop = loop;
   return sound;
 }
 
@@ -209,10 +222,17 @@ function playSoundIndependent(name, {pos, rate, loop}) {
  * plays a sound independent from an emitter, 2D.
  * @param {String} name - name of the sound whose play is desired.
  */
-function playSoundIndependent2D(name) {
+function playSoundIndependent2D(name, params = {}) {
+  const { pos, rate, loop, vol } = params;
   const sound = getSound(name);
+  if (loop) {
+    sound._loop = loop;
+    sound.loop();
+  };
   const id = sound.play();
-  sound.volume(1, id);
+  sound.volume(vol, id);
+  if (rate) sound.rate(rate, id); //repeated code is am making me angry
+  return sound;
 }
 
 /**
