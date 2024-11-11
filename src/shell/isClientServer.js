@@ -1,3 +1,5 @@
+//legacyshell: ss
+import {ss} from "#misc";
 //
 
 export const isClient = typeof (window) !== 'undefined'; //best to define once, or something
