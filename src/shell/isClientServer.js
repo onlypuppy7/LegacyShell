@@ -4,15 +4,13 @@ export const isClient = typeof (window) !== 'undefined'; //best to define once, 
 export const isServer = typeof (window) === 'undefined'; //clearer in code
 
 export const devlog = function (...args) {
-    if (isServer) {
-        console.log(...args);
-    } else if (devmode || ss?.config?.devlogs) {
+    if ((isServer && ss?.config?.devlogs) || (isClient && devmode)) {
         console.log(getTimestamp(), "LS_DEVLOG", ...args);
     };
 };
 
 export const clientlog = function (...args) {
-    if (isClient && devmode || ss?.config?.devlogs) {
+    if ((isServer && ss?.config?.devlogs) || (isClient && devmode)) {
         console.log(getTimestamp(), "LS_CLN_LOG", ...args);
     };
 };
