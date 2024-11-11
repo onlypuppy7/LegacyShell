@@ -5,9 +5,10 @@
 import { TransformNode, Vector3 } from "babylonjs";
 import { Howl, Howler } from "howler";
 
-const APOLLO_VERSION = 5;
+const APOLLO_VERSION = 7;
 
-const APOLLO_LOG = true;
+const APOLLO_LOG = devmode;
+
 const APOLLO_GLOBAL_PANNER_ATTRB =
   /*= {
   panningModel: 'HRTF',
@@ -56,6 +57,15 @@ function apolloSetVolume(vol) {
 }
 
 /**
+ * stops all sounds. This is a wrapper for Howler.stop().
+ * @returns {void}
+ * @example stopAllSounds();
+*/
+stopAllSounds = function () {
+  Howler.stop();
+};
+
+/**
  * loads a sound from a given source and saves it under the given name.
  * @param {String} src - the source of the media.
  * @param {String} name - the name of the sound.
@@ -101,7 +111,7 @@ function loadCue(name, srcs) {
  * @returns {void}
  * @example loadSoundsFromList([["sound/1.mp3", "sound1"], ["sound/2.mp3", "sound2"]], () => console.log("all sounds loaded!"));
  */
-function loadSoundsFromList(list, onComplete) {
+function loadSoundsFromList(list, onComplete) { //i hate this formatting, delete the code NOW or I will kill you
   var loadsComplete = 0;
 
   function catComplete() {
@@ -192,24 +202,37 @@ function updateListener(newPos, newRotFront, newRotUp) {
  * @param {String} name - name of the sound whose play is desired.
  * @param {Vector3} pos - position of the sound's playback. AUTOMATICALLY ADAPTED TO HOWLER'S COORDINATE SYSTEM!
  */
-function playSoundIndependent(name, pos, rate) {
+function playSoundIndependent(name, params = {}) {
+  const { pos, rate, loop, vol } = params;
   const p2 = translateVec(pos);
+  if (loop) {
+    sound._loop = loop;
+    sound.loop();
+  };
   const sound = getSound(name);
   const id = sound.play();
-  sound.volume(1, id);
+  sound.volume(vol, id);
   sound.pannerAttr(APOLLO_GLOBAL_PANNER_ATTRB, id);
   sound.pos(p2.x, p2.y, p2.z, id);
   if (rate) sound.rate(rate, id);
+  return sound;
 }
 
 /**
  * plays a sound independent from an emitter, 2D.
  * @param {String} name - name of the sound whose play is desired.
  */
-function playSoundIndependent2D(name) {
+function playSoundIndependent2D(name, params = {}) {
+  const { pos, rate, loop, vol } = params;
   const sound = getSound(name);
+  if (loop) {
+    sound._loop = loop;
+    sound.loop();
+  };
   const id = sound.play();
-  sound.volume(1, id);
+  sound.volume(vol, id);
+  if (rate) sound.rate(rate, id); //repeated code is am making me angry
+  return sound;
 }
 
 /**

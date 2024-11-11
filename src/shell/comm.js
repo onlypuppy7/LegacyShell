@@ -296,6 +296,7 @@ const Comm = {
         user: 0,
         cmd: 1,
         blocked: 2,
+        whisper: 3,
     },
 
     /**
@@ -526,7 +527,42 @@ const Comm = {
         * SERVER: set scale of a player
         * @constant {number}
         */
-        setScale: 52,
+        setModifiers: 52,
+
+        /** LEGACYSHELL ADDED
+         * 
+         * SERVER: update the round stuff
+         * @constant {number}
+         */
+        roundUpdate: 53,
+
+        /** LEGACYSHELL ADDED
+         * 
+         * SERVER: update the room's params such as cheats, etc
+         * @constant {number}
+         */
+        updateRoomParams: 54,
+
+        /** LEGACYSHELL ADDED
+         * 
+         * SERVER: inits a thunderstrike
+         * @constant {number}
+         */
+        doThunderStrike: 55,
+
+        /** LEGACYSHELL ADDED
+         * 
+         * SERVER: heals a player
+         * @constant {number}
+         */
+        heal: 56,
+
+        /** LEGACYSHELL ADDED
+         * 
+         * SERVER: syncs the data of the player, with less pertinent data
+         * @constant {number}
+         */
+        syncData: 57,
 
         /** CLIENT: used by bwd admins to look at ips and stuff (scary). 
         * @constant {number}

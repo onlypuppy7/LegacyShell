@@ -8,9 +8,3 @@ iif: true #iif means immediately invoked function. in other words, hides vars fr
 discordServer: F3Xh5bhXTr # do NOT put anything except the ending id/vanity as the rest is filled in!
 
 githubURL: "https://github.com/onlypuppy7/LegacyShell/"
-
-login: #require logins to view the site
-  enabled: false
-
-  username: "legacy"
-  password: "shell"

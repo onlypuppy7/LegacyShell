@@ -1,11 +1,17 @@
 //legacyshell: player
 import BABYLON from "babylonjs";
-import { stateBufferSize, isClient, isServer, CONTROL, devlog } from '#constants';
-import { ItemTypes } from '#gametypes';
+import { stateBufferSize, isClient, isServer, CONTROL, devlog, serverlog } from '#constants';
+import { ItemTypes, AllItems } from '#items';
 import { getMunitionsManager } from '#bullets';
 import Comm from '#comm';
 //legacyshell: adding kills and deaths (literally tracking ur every move the government is watching yuo)
 import wsrequest from '#wsrequest';
+//legacyshell: logging
+import log from '#coloured-logging';
+//legacyshell: ss
+import { ss } from '#misc';
+//legacyshell: plugins
+import { plugins } from '#plugins';
 //
 
 //(server-only-start)
@@ -136,16 +142,28 @@ class Player {
         };
         this.changeWeaponLoadout(this.primaryWeaponItem, this.secondaryWeaponItem);
 
-        this.resetDespawn(-5000);
+        var respawnTime = 0;
+        if (isServer && this.client.room.gameOptions.timedGame.enabled && this.client.room.roundEndTime < Date.now()) {
+            respawnTime = Math.max(0, this.client.room.roundRestartTime - Date.now());
+            console.log("respawnTime", respawnTime);
+        };
+        this.resetDespawn(respawnTime);
+        
         this.jumpHeld = false;
         this.lastActivity = Date.now();
 
         this.setDefaultModifiers(true);
     };
     setDefaultModifiers(init) {
-        this.gravityModifier = this.gameOptions.gravityModifier[this.team];
-        this.speedModifier = this.gameOptions.speedModifier[this.team];
-        this.changeScale(this.gameOptions.scale[this.team], init);
+        this.changeModifiers({
+            gravityModifier: this.gameOptions.gravityModifier[this.team] || 1,
+            speedModifier: this.gameOptions.speedModifier[this.team] || 1,
+            regenModifier: this.gameOptions.regenModifier[this.team] || 1,
+            damageModifier: this.gameOptions.damageModifier[this.team] || 1,
+            resistanceModifier: this.gameOptions.resistanceModifier[this.team] || 1,
+            jumpBoostModifier: this.gameOptions.jumpBoostModifier[this.team] || 1,
+            scale: this.gameOptions.scale[this.team]
+        }, init);
     };
     changeScale (newScale, init) {
         // devlog("setting scale:", newScale);
@@ -154,15 +172,28 @@ class Player {
             this.actor.mesh.scaling.set(newScale, newScale, newScale);
 
             var scale = Math.max(newScale, 0.15); //prevents NaN
-            this.actor.playbackRate = 1.16107 - (0.239878 * Math.log((2.20821 * scale) - 0.251099)); //number
+            this.actor.playbackRate = 1.16107 - (0.239878 * Math.log((2.20821 * scale) - 0.251099)); //hm yes, this is a good formula
             // this.actor.bodyMesh.position.y = 0.32 * newScale;
         };
-        if (isServer && !init) {
-            var output = new Comm.Out(3);
-            this.client.packScale(output);
-            this.client.sendToAll(output, "setScale");
-        };
+        this.sendModifiers(init);
     };
+    changeModifiers(modifiers, init) { //a little disorganized but it works for this purpose
+        if (modifiers.gravityModifier !== undefined) this.gravityModifier = modifiers.gravityModifier;
+        if (modifiers.speedModifier !== undefined) this.speedModifier = modifiers.speedModifier;
+        if (modifiers.regenModifier !== undefined) this.regenModifier = modifiers.regenModifier;
+        if (modifiers.damageModifier !== undefined) this.damageModifier = modifiers.damageModifier;
+        if (modifiers.resistanceModifier !== undefined) this.resistanceModifier = modifiers.resistanceModifier;
+        if (modifiers.jumpBoostModifier !== undefined) this.jumpBoostModifier = modifiers.jumpBoostModifier;
+        if (modifiers.scale !== undefined) this.changeScale(modifiers.scale, init);
+        this.sendModifiers(init);
+    };
+    sendModifiers(init) {
+        if (isServer && !init) {
+            var output = new Comm.Out();
+            this.client.packModifiers(output);
+            this.client.sendToAll(output, "setModifiers");
+        };
+    }
     changeWeaponLoadout(primaryWeaponItem, secondaryWeaponItem) {
         if (this.actor && this.weapons) {
             this.weapons[0].actor.dispose();
@@ -201,7 +232,11 @@ class Player {
             this.pitch = this.stateBuffer[idx].pitch;
         };
 
+        if (isServer && !this.canRespawn()) this.controlKeys = 0;
+
         // devlog(this.name, this.stateIdx, this.controlKeys, this.x.toFixed(2), this.y.toFixed(2), this.z.toFixed(2), this.dx.toFixed(2), this.dy.toFixed(2), this.dz.toFixed(2), this.yaw.toFixed(2), this.pitch.toFixed(2));
+
+        // serverlog(this.weapon.ammo.rounds, this.weapon.ammo.store);
 
         if (this.controlKeys & CONTROL.left) {
             this.lastActivity = Date.now();
@@ -284,7 +319,7 @@ class Player {
             if (0 == this.climbingCell.ry || this.climbingCell.ry, cy >= this.map.height) {
                 this.climbing = false;
             } else {
-                var cell = this.map.data[cx][cy][cz];
+                var cell = this.getOccupiedCell(cx, cy, cz);
                 if (!(cell.idx && this.mapMeshes[cell.idx].colliderType === "ladder" && cell.ry === this.climbingCell.ry)) {
                     this.y = Math.round(this.y);
                     this.climbing = false;
@@ -345,8 +380,9 @@ class Player {
             if (this.weapon) {
                 this.weapon.update(delta)
             };
+            // console.log("patrascru", this.playing, this.isDead(), this.canRespawn(), this.hp);
             if (0 < this.hp && this.playing) {
-                this.setHp(Math.min(100, this.hp + .05 * delta)); //regenning, you can put `* -2` or something here to simulate hunger, or something
+                this.setHp(Math.min(100, this.hp + .05 * delta * this.regenModifier)); //regenning, you can put `* -2` or something here to simulate hunger, or something
             };
             if (0 < this.swapWeaponCountdown) {
                 this.shotSpread = this.weapon.subClass.shotSpreadIncrement;
@@ -486,6 +522,32 @@ class Player {
             };
             this.y = old_y;
             this.dy *= .5;
+
+            var cx = Math.floor(this.x);
+            var cz = Math.floor(this.z);
+            
+            var cell = this.getOccupiedCell(cx, Math.floor(this.y - 0.5), cz);
+            if (cell) {
+                var mesh = cell.mesh;
+                if (mesh) {
+                    if (mesh.name == "jump-pad" && this.canJump() && Math.length2(cx + 0.5 - this.x, cz + 0.5 - this.z) < 0.3) {
+                        this.y += 0.26;
+                        this.dy = 0.13; //approx 3 blocks in height
+                        this.setJumping(true);
+                    };
+                    //could always add more stuff here... like an elevator or something
+                    //not a trampoline though, that would be too much
+                    //maybe a trampoline
+                    //or a trampoline
+                    //or a trampoline
+                    //ok maybe a trampoline
+                    //or a trampoline
+                    //but not a trampoline
+                    //other than a trampoline, we could add a trampoline
+                    //or a trampoline
+                    //other than a trampoline, it could be a trampoline, but not a trampoline, it could be a trampoline, however it could not be a trampoline
+                };
+            };
         } else {
             if (0 == this.jumping) this.setJumping(true);
         };
@@ -509,7 +571,7 @@ class Player {
         };
 
         if (this.canJump()) {
-            this.dy = 0.06;
+            this.dy = 0.06 * this.jumpBoostModifier;
             this.setJumping(true);
             return !(this.lastTouchedGround === 0);
         };
@@ -613,33 +675,7 @@ class Player {
         };
     };
     collectItem(kind, applyToWeaponIdx) {
-        switch (kind) {
-            case ItemTypes.AMMO:
-                const ammoCollected = this.weapons[applyToWeaponIdx].collectAmmo();
-                if (ammoCollected) {
-                    if (this.actor) {
-
-                        playSoundIndependent2D("ammo");
-                        //Sounds.ammo.play();
-                        updateAmmoUi();
-                    };
-                    return true;
-                };
-                return false;
-            case ItemTypes.GRENADE:
-                if (this.grenadeCount < this.grenadeCapacity) {
-                    this.grenadeCount++;
-                    if (this.actor) {
-                        playSoundIndependent2D("ammo");
-                        //Sounds.ammo.play();
-                        updateAmmoUi();
-                    };
-                    return true;
-                };
-                return false;
-            default:
-                return false;
-        };
+        return AllItems[kind].collect(this, applyToWeaponIdx);
     };
     isSteady() {
         return !this.weapon.subClass.readySpread ||
@@ -719,12 +755,21 @@ class Player {
                 this.releaseTrigger();
                 (output = new Comm.Out(1)).packInt8(Comm.Code.reload);
                 wsSend(output, "reload");
-                this.weapon.ammo.store -= rounds;
+                // this.weapon.ammo.store -= rounds;
             } else { //yay server code
                 output = new Comm.Out(2, true);
-                output.packInt8(Comm.Code.reload);
-                output.packInt8(this.id);
+                output.packInt8U(Comm.Code.reload);
+                output.packInt8U(this.id);
                 this.client.sendToOthers(output.buffer, this.id, "reload");
+
+                output = new Comm.Out();
+                output.packInt8U(Comm.Code.reload);
+                output.packInt8U(this.id);
+                output.packInt8U(this.weapon.ammo.rounds);
+                output.packInt8U(this.weapon.ammo.store);
+                output.packInt8U(this.roundsToReload);
+                this.client.sendToMe(output, "reload");
+
                 this.reloadsQueued--;
             };
             if (this.weapon.ammo.rounds == 0) {
@@ -735,11 +780,11 @@ class Player {
         };
     };
     reloaded() {
+        console.log("reloaded", this.roundsToReload);
         this.weapon.ammo.rounds += this.roundsToReload;
+        this.weapon.ammo.store -= this.roundsToReload;
         if (this.actor) {
             this.id == meId && updateAmmoUi();
-        } else {
-            this.weapon.ammo.store -= this.roundsToReload;
         };
     };
     queueGrenade(throwPower) {
@@ -800,8 +845,12 @@ class Player {
             getMunitionsManager(this).throwGrenade(this, pos, vec);
         };
     };
-    resetDespawn(offset = 0) {
+    resetDespawn(respawnTime = 5000, offset = 0) {
         this.lastDespawn = Date.now() + offset;
+        this.nextRespawn = this.lastDespawn + respawnTime;
+    };
+    canRespawn() {
+        return Date.now() >= this.nextRespawn;
     };
     removeFromPlay() {
         this.playing = false;
@@ -836,7 +885,7 @@ class Player {
                             cmd: "addKill",
                             session: this.client.session,
                             currentKills: this.kills,
-                        }, this.client.ss.config.game.services_server, this.client.ss.config.game.auth_key);
+                        }, ss.config.game.services_server, ss.config.game.auth_key);
 
                         var output = new Comm.Out();
                         output.packInt8U(Comm.Code.updateBalance);
@@ -847,13 +896,24 @@ class Player {
             })();
         };
     };
-    hit(damage, firedPlayer, dx, dz) {
+    hit (damage, firedPlayer, dx, dz, noHeal = false) {
         if (this.isDead() || (!this.playing)) return;
         if (this.team === 0 ? false : (this.team === firedPlayer.team && this.id !== firedPlayer.id)) return;
-        damage = Math.ceil(damage);
+
+        damage = Math.ceil((damage / this.resistanceModifier) / this.scale);
+
+        damage = Math.min(damage, this.hp + 1); //no overkill, also no ridiculous healing from nades
+
+        if (firedPlayer && firedPlayer.id !== this.id && !noHeal) {
+            var multiplier = this.gameOptions.lifesteal[firedPlayer.team];
+            console.log("lifesteal multiplier", multiplier, damage, damage * multiplier);
+            firedPlayer.heal(damage * multiplier, this, dx, dz);
+            this.firedPlayer = firedPlayer;
+        };
+        
         var firedPlayerId = firedPlayer ? firedPlayer.id : null;
 
-        if (damage > this.hp) { //no powerup so whatever
+        if (damage > this.hp) { //no powerups in this version so whatever
             this.die(firedPlayerId);
             firedPlayer.scoreKill(this);
         } else {
@@ -874,7 +934,23 @@ class Player {
             this.client.sendToOthers(output, "hitThem");
         };
     };
-    die(firedId) {
+    heal (health, damagedPlayer = this, dx = 0, dz = 0) {
+        if (this.isDead() || (!this.playing) || health == 0) return;
+        
+        if (health >= 0) {
+            this.setHp(this.hp + health, this.id);
+            if (isServer) {
+                var output = new Comm.Out();
+                output.packInt8U(Comm.Code.heal);
+                output.packInt8U(this.id);
+                output.packInt8U(this.hp);
+                this.client.sendToAll(output, "heal");
+            };
+        } else {
+            this.hit(-health, damagedPlayer, dx, dz, true);
+        };
+    };
+    die (firedId) {
         this.score = 0;
         this.streak = 0;
         this.deaths++;
@@ -896,15 +972,28 @@ class Player {
                     var response = await wsrequest({
                         cmd: "addDeath",
                         session: this.client.session,
-                    }, this.client.ss.config.game.services_server, this.client.ss.config.game.auth_key);
+                    }, ss.config.game.services_server, ss.config.game.auth_key);
                 };
             })();
         };
     };
-    setHp(newHp, firedId = this.id) {
+    setHp(newHp, firedId) {
+        // console.log("setHp", newHp, firedId);
+
         this.hp = Math.clamp(newHp, 0, 100);
 
-        if (this.hp < 1) this.die(firedId);
+        if (this.hp <= 0) {
+            if (firedId === undefined) {
+                if (this.firedPlayer) {
+                    this.die(this.firedPlayer.id);
+                    this.firedPlayer.scoreKill(this);
+                } else {
+                    this.die(this.id);
+                };
+            } else {
+                this.die(firedId);
+            };
+        };
     };
     respawn(newPos) {
         this.x = newPos.x;
@@ -912,6 +1001,7 @@ class Player {
         this.z = newPos.z;
         this.yaw = newPos.yaw || this.yaw;
         this.pitch = newPos.pitch || this.pitch;
+        this.firedPlayer = null;
 
         this.respawnQueued = false;
         this.playing = true;
@@ -986,14 +1076,14 @@ class Player {
             };
         };
     };
-    getOccupiedCell() {
+    getOccupiedCell(cx = Math.floor(this.x), cy = Math.floor(this.y), cz = Math.floor(this.z)) {
         if (this.x < 0 || this.y < 0 || this.z < 0 || this.x >= this.map.width || this.y >= this.map.height || this.z > this.map.depth) return {};
 
-        var cx = Math.floor(this.x);
-        var cy = Math.floor(this.y + 1e-4);
-        var cz = Math.floor(this.z);
-
-        return this.map.data[cx][cy][cz]
+        if (this.map && this.map.data && this.map.data[cx] && this.map.data[cx][cy] && this.map.data[cx][cy][cz]) {
+            return this.map.data[cx][cy][cz];
+        } else {
+            return {};
+        };
     };
     collidesWithMap() {
         return this.Collider.playerCollidesWithMap(this);

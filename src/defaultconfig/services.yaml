@@ -30,3 +30,9 @@ ratelimit: #limit spammy requests
       - "feedback"
 
   protect_ips: true #md5 hashes ips. this is not a very strong algorithm, so still be careful about sharing info
+
+backups: #backup database
+  enabled: true
+  interval: 4 #in hours
+  keep: 50 #how many backups to keep
+  filepath: false #where to store the backups. false to store in the default location

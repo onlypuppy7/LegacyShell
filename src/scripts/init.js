@@ -13,6 +13,8 @@ import misc from '#misc';
 import sqlite3 from 'sqlite3'; //db
 import util from 'node:util';
 import recs from '#recordsManagement';
+//legacyshell: ss
+import { ss } from '#misc';
 //
 
 const rl = readline.createInterface({
@@ -126,7 +128,7 @@ function askDevLogging(callback) {
 };
 
 function askAuthServer(callback) {
-    let ss = misc.instantiateSS(import.meta, process.argv, undefined, true);
+    misc.instantiateSS(import.meta, process.argv, undefined, true);
 
     // Initialize the database
     const servicesStoreFolder = path.join(ss.rootDir, 'server-services', 'store');
@@ -139,13 +141,12 @@ function askAuthServer(callback) {
     
     log.green('Account DB set up!\n');
 
-    ss = {
-        ...ss,
+    Object.assign(ss, {
         // Database promise wrappers
         runQuery: util.promisify(db.run.bind(db)),
         getOne: util.promisify(db.get.bind(db)),
         getAll: util.promisify(db.all.bind(db)),
-    };
+    });
 
     log.info('\nIf just you wish to run LegacyShell on your one machine, select yes. If you otherwise want to act as a mirror/extra region/other standalone component, select no.');
     log.bold('\n\nAdd the game server as an authed server?');

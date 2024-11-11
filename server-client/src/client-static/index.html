@@ -6,7 +6,6 @@
         <link href="https://fonts.googleapis.com/css?family=Sigmar+One|Nunito:400,600,700,900" rel="stylesheet">
         <link href="./includes/stylesheet.css?1548028299" rel="stylesheet" type="text/css">
         <link href="./includes/game.css?1548021319" rel="stylesheet" type="text/css">
-        <link rel="icon" type="image/png" href="/favicon.png">
         <meta charset="UTF-8" />
         <meta name="description"
             content="Welcome to LegacyShell, the world's most advanced egg-based private server! It's like your favorite egg-based multiplayer shooter but... older!" />
@@ -17,6 +16,13 @@
             content="Welcome to LegacyShell, the world's most advanced egg-based private server! It's like your favorite egg-based multiplayer shooter but... older!" />
         <meta property="og:image" content="https://LEGACYSHELLCLIENTURL/img/logo.png" />
         <link rel="manifest" href="/manifest.json" />
+        
+        <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+        <link rel="shortcut icon" href="/favicon.ico" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+        <meta name="apple-mobile-web-app-title" content="LS Map" />
+        <link rel="manifest" href="/site.webmanifest" />
 
 
         <!-- Language CSV to Javascript Object conversion -->
@@ -247,9 +253,10 @@
         </script>
 
         <!-- legacyshell libs (not bloat) -->
-        <script src="https://cdn.jsdelivr.net/npm/js-sha256@0.9.0/src/sha256.min.js"></script>
+        <script src="/libs/sha256.min.js"></script>
+        <script src="/libs/jszip-3.7.1.min.js"></script>
             <!-- legacyshell sound thing -->
-            <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
+            <script src="/libs/howler-2.2.3.min.js"></script>
 
 
 
@@ -427,6 +434,9 @@
         <div id="mainMenu" class="unselectable fill hideme">
 
             <!-- Special message -->
+            <!-- <div style="position: absolute; left: 50%; transform: translateX(-50%); top: 1.5em;">
+                Testing timed rounds and other things at <a href="https://dev.shellshock.io/">dev.shellshock.io</a>!
+            </div> -->
 
             <!-- Title Screen -->
             <!-- Login bar -->
@@ -443,12 +453,6 @@
             </div>
 
             <div style="position: absolute; top: 4em; width: 100%">
-                <!-- Editor Icon -->
-                <div id="editorIcon" style="position: absolute; left: 2em; top: -1em;">
-                    <a href="/editor" target="_blank" rel="noopener">
-                        <img src="img/editorIcon.png" alt="Editor" style="width: 7.5em; height: 7.5em; cursor: pointer;">
-                    </a>
-                </div>
                 <!-- Logo -->
                 <div id="logo">
                     <a id="logoLink" target="_blank" rel="noopener">
@@ -461,8 +465,22 @@
 
                 <!-- Main menu container -->
                 <div class="flexRow" style="text-align: center">
-                    <!-- AdInPlay -->
                     <div style="flex: 1; transform: translateY(-3em)">
+                        <div style="display: flex; justify-content: right; gap: 1em;">
+                            <!-- Editor Icon -->
+                            <div id="editorIcon">
+                                <a href="/editor" target="_blank" rel="noopener">
+                                    <img src="img/editorIcon.png" alt="Editor" style="width: 6.5em; height: 6.5em; cursor: pointer;">
+                                </a>
+                            </div>
+                            <!-- Wiki Icon -->
+                            <div id="wikiIcon">
+                                <a href="/wiki" target="_blank" rel="noopener">
+                                    <img src="img/wikiIcon.png" alt="Wiki" style="width: 6.5em; height: 6.5em; cursor: pointer;">
+                                </a>
+                            </div>
+                        </div>
+
                         <div style="flex: 1"></div>
                         <div style="float: right; text-align: left">
                             <div id="twitchContainer">
@@ -653,173 +671,11 @@
     <a href="https://www.bluewizard.com/terms" target="_window">Terms of Service</a>
     -->
                 <br>
-                <a href="http://www.bluewizard.com" target="_blank">Copyright &copy;2018 BWD, 2024 LegacyShell Team</a>
+                <a href="http://www.bluewizard.com" target="_blank">Copyright &copy;2019 BWD, 2024 LegacyShell Team</a>
             </div>
 
             <div class="lightPane pane_faq">
-                <!doctype html>
-                <html>
-
-                    <head>
-                        <meta charset="UTF-8" />
-                        <title>Shell Shockers FAQ</title>
-                    </head>
-
-                    <body style="font-family: sans-serif">
-
-                        <h1>Frequently Asked Questions</h1>
-
-                        <hr><a name="issues"></a>
-                        <h3>Are you aware of this bug?</h3>
-                        <p>Probably. Here are some known issues we're currently battling:</p>
-                        <ul>
-                            <li>Sound is choppy or non-existant on some systems.
-                            <li>Some players have invisible shells. It's a bug, NOT hackers, k?
-                        </ul>
-
-                        <hr><a name="lag"></a>
-                        <h3>Lag! What should I do?</h3>
-                        <p>If your shots are getting off really late, or you're bouncing around all over the place, here
-                            are a few things you can try:
-                        <ul>
-                            <li>Close any other open tabs.
-                            <li>Pause or cancel any active downloads or streams. Turn off that cat video!
-                            <li>Close any file-sharing applications
-                            <li>Close apps that download in the background (Steam, etc.)
-                            <li>Try a different server
-                            <li>Restart your router
-                            <li>If you're on WiFi, try a wired connection if you can
-                        </ul>
-                        <p>Generally speaking, we like to see a ping of 100ms or less. You can see your ping in the
-                            upper-right corner of the game window as you play. You can get away with higher pings if
-                            they're consistent. Lag spikes (when your ping momentarily shoots upward) will absolutely
-                            ruin your day, though, and there is unfortunately no way for the game to compensate for
-                            them.</p>
-
-                        <hr><a name="slow"></a>
-                        <h3>My frame rate is low. Now what?</h3>
-                        <p>(Frame rate is indicated by the FPS readout in the upper-right corner of the game window. 60
-                            is best!)</p>
-                        <ul>
-                            <li>Try closing other apps, browsers, and tabs
-                            <li>Open Settings and turn off Auto Detail, then un-check High Resolution and Shadows (if
-                                enabled)
-                            <li>If you're running multiple displays, try moving your browser window to another one
-                            <li>Install the latest video drivers for your card. Here are some links for common
-                                brands:<br>
-                                <a target="_window" href="http://www.nvidia.com/Download/index.aspx">NVIDIA</a>&nbsp;
-                                <a target="_window" href="http://support.amd.com/en-us/download">ATI</a>&nbsp;
-                                <a target="_window"
-                                    href="https://www.intel.com/content/www/us/en/support/graphics-drivers.html">Intel</a>
-
-                            <li>If your GPU is on Chrome's blacklist, it might be using a software renderer known as
-                                "SwiftShader", which is terribly slow. Enter chrome://flags in your address bar, search
-                                for "Override software rendering list", and enable it. CAUTION: The blacklist exists for
-                                a reason. This may make your system unstable. Make sure you save anything you're working
-                                on before trying this!
-                        </ul>
-                        <p>If you're running Chrome, try enabling Experimental Canvas Features:</p>
-                        <ul>
-                            <li>Enter chrome://flags in the address bar.
-                            <li>Type "canvas" in the search box.
-                            <li>Find "Experimental Canvas Features" and enable it
-                            <li>Restart Chrome
-                        </ul>
-                        <p>This may make it better, or worse. Good luck with that.</p>
-
-                        <hr><a name="pointerlock"></a>
-                        <h3>Why can't I fire?</h3>
-                        <p>Some systems have a problem with registering trackpad taps while in Pointer Lock. A full
-                            click of the pad, while annoying, I know, should do the trick. It's an issue that's
-                            currently being looked in to.</p>
-
-                        <hr><a name="palm"></a>
-                        <h3>Why can't I move and shoot at the same time?</h3>
-                        <p>Some systems have palm-cancelling software enabled by default, which prevents simultaneous
-                            keyboard and trackpad/mouse input. Check your system settings for palm cancelling/rejection
-                            and turn down the sensitivity or disable it altogether.</p>
-
-                        <hr><a name="future"></a>
-                        <h3>Are you going to add more (guns/maps/modes/etc)??</h3>
-                        <h1 style="font-size: 3em;">YES!</h1>
-                        <p>Eventually. Shell Shockers is currently being developed by a single individual, so it's going
-                            to take a little time. Rest assured, however, the game is in active development, and when
-                            new features are ready, you'll be the first to know!</p>
-
-                        <hr><a name="webgl"></a>
-                        <h3>How do I enable WebGL?</h3>
-                        <p>That depends on your browser! Shell Shockers requires WebGL, so if you can play the game
-                            already, it's enabled, and you don't have to worry about this! Otherwise, follow the
-                            directions for your browser below. If your browser version is older than the one listed,
-                            download the latest! You'll thank me later.</p>
-                        <h3>Chrome 49+</h3>
-                        <b>Step 1 - Enable hardware acceleration</b>
-                        <ul>
-                            <li>Enter <code>chrome://settings</code> in the address bar
-                            <li>Open the Advanced settings (probably at the bottom)
-                            <li>In the System section, make sure that "Use hardware acceleration when available" is
-                                checked. If not, you'll have to restart Chrome after you change it.
-                        </ul>
-
-                        <b>Step 2 - Enable WebGL</b>
-                        <ul>
-                            <li>Enter <code>chrome://flags</code> in the address bar
-                            <li>In older versions, ensure that Disable WebGL is <b><i>not</i></b> activated. In newer
-                                versions, search for WebGL 2.0 and set it to "Enabled". Again, you'll have to restart
-                                Chrome once you've done so.
-                        </ul>
-
-                        <h3>Firefox 54+</h3>
-                        <ul>
-                            <li>Enter <code>about:config</code> in the address bar
-                            <li>Search for webgl.disabled and make sure it's set to <code>false</code>
-                        </ul>
-                        <p>Changes take effect immediately.</p>
-                        <h3>Safari 10.1+</h3>
-                        <ul>
-                            <li>Select Safari->Preferences from the menu bar
-                            <li>Select the Advanced tab
-                            <li>Make sure that the Show Develop menu in menu bar checkbox is checked
-                            <li>In the Develop menu, select Experimental Features and make sure that WebGL 2.0 is
-                                checked
-                        </ul>
-                        <h3>Edge 14+</h3>
-                        <p>Should be enabled by default. If not, you probably need to update your graphics driver!</p>
-
-                        <h3>Internet Explorer</h3>
-                        <p>Sorry, Shell Shockers doesn't support IE, as it's missing some key features.</p>
-
-                        <hr><a name="websockets"></a>
-                        <h3>WebSockets? Say what?</h3>
-                        <p>WebSockets allow for efficient communication that is vital for games of this type. Here's a
-                            list of browsers that support it. If yours isn't on the list, or is older than the version
-                            shown, you should download a new one!</p>
-                        <h3>Supported browsers</h3>
-                        <ul>
-                            <li>Chrome
-                            <li>Firefox
-                            <li>Edge
-                            <li>Safari
-                            <li>Opera
-                        </ul>
-
-                        <hr><a name="system"></a>
-                        <h3>System requirements</h3>
-                        <p>We're still in the process of working this out, but here's a rough idea:</p>
-                        <ul>
-                            <li>A mouse (or trackpad; ew!) and keyboard. No official mobile support (yet!)
-                            <li>2.0Ghz processor
-                            <li>4GB RAM
-                            <li>A graphics accelerator that supports WebGL
-                            <li>A broadband connection
-                            <li>A <a href="#webgl">WebGL</a> and <a href="#websockets">WebSocket</a>-compatible browser,
-                                such as Chrome, Firefox, Safari, Edge, or Opera
-                                <br>Internet Explorer is not supported!
-                        </ul>
-
-                    </body>
-
-                </html>
+                LEGACYSHELLFAQ
             </div>
         </div>
 
@@ -1181,7 +1037,7 @@
                 <div class="shadedPane"
                     style="position: fixed; width: 52em; min-width: 1000px; padding: 1em; left: 50%; transform: translateX(-50%); top: 15%;">
 
-                    <div id="gameRespawnContent" style="display: flex; width: 100%; height: 13em; margin-top: 0.5em;">
+                    <div id="gameRespawnContent" style="display: flex; width: 100%; margin-top: 0.5em;"> <!-- height: 13em;  -->
 
                         <!-- <div style="flex: auto;">
                     <div>
@@ -1192,7 +1048,7 @@
                 </div> -->
 
                         <div style="flex: auto; width: 80%; padding-right: 1em;">
-                            <div
+                            <div id="orangeBoxContent"
                                 style="height: 9em; border: solid 0.2em #f83; border-radius: 0.2em; text-align: center; padding: 1em; padding-top: 0.5em">
 
                                 <!-- Help message -->
@@ -1243,6 +1099,85 @@
                                     </div>
                                 </div>
                             </div>
+
+                            <div id="gameSummary">
+                                <!-- Team final scores -->
+                                <div id="teamFinal"
+                                    style="display: none; padding: 1em; display: flex; width: 40em; top: -2.2em">
+                                    <div class="shadedPane"
+                                        style="width: 19.8em; color: rgb(64, 224, 255); background: rgba(0, 64, 192, 0.7); padding-left: 0.5em; padding-right: 0.5em">
+                                        <div style="float: left">
+                                            <h1>Blue</h1>
+                                        </div>
+                                        <div style="float: right">
+                                            <h1 id="teamScore1"></h1>
+                                        </div>
+                                    </div>
+                                    <div style="flex: auto"></div>
+                                    <div class="shadedPane"
+                                        style="width: 19.8em; color: rgb(255, 192, 160); background: rgba(192, 64, 32, 0.7); padding-left: 0.5em; padding-right: 0.5em">
+                                        <div style="float: left">
+                                            <h1 id="teamScore2"></h1>
+                                        </div>
+                                        <div style="float: right">
+                                            <h1>Red</h1>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Free-for-all final scores -->
+                                <div id="ffaFinal"
+                                    style="display: none; padding: 1em; display: flex; width: 40em; top: -2.2em">
+                                    <div class="shadedPane" style="width: 100%; padding-left: 0.5em; padding-right: 0.5em">
+                                        <div style="float: left">
+                                            <h1>Total Kills</h1>
+                                        </div>
+                                        <div style="float: right">
+                                            <h1 id="teamScore0"></h1>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Game summary container -->
+                                <div id="leaderboard" class="flexCol shadedPane" style="
+                            width: 40em; margin-right: 1em; padding: 0.3em;
+                        ">
+                                    <!-- Leaderboard column header -->
+                                    <div class="flexRow" style="
+                                width: 100%;
+                                color: #ccc;
+                                text-align: center;
+                                background: transparent;
+                                padding-left: 0.2em; padding-right: 0.2em
+                            ">
+                                        <div style="width: 6vh; font-size: 0.8em">#</div>
+                                        <div style="flex: auto; text-align: left; font-size: 0.8em">name</div>
+                                        <div style="width: 8vh; font-size: 0.8em">score</div>
+                                        <div style="width: 8vh; font-size: 0.8em">kills</div>
+                                        <div style="width: 8vh; font-size: 0.8em">deaths</div>
+                                        <div style="width: 8vh; font-size: 0.8em">streak</div>
+                                    </div>
+
+                                    <!-- Team leaderboard container -->
+                                    <div id="teamSummary" class="flexCol" style="
+                                display: none;
+                                margin-top: 0.2em;
+                                width: 100%;
+                            ">
+                                        <!-- teamRow elements (below) get added here -->
+                                    </div>
+
+                                    <div id="teamRow" class="flexRow"
+                                        style="width: 100%; display: none; padding-left: 0.2em; padding-right: 0.2em; text-align: center">
+                                        <div style="width: 6vh;"></div> <!-- Rank -->
+                                        <div style="flex: auto; text-align: left"></div> <!-- Name -->
+                                        <div style="width: 8vh"></div> <!-- Score -->
+                                        <div style="width: 8vh"></div> <!-- Kills -->
+                                        <div style="width: 8vh"></div> <!-- Deaths -->
+                                        <div style="width: 8vh"></div> <!-- Streak -->
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         <div style="flex: auto;">
                             <div>
@@ -1266,7 +1201,7 @@
                         </div>
                     </div>
 
-                    <div id="inGameAd" style="display: none;">
+                    <!-- <div id="inGameAd" style="display: none;">
                         <div style="width: 970px; height: 250px;">
                             <div id="gameAdContainer"
                                 style="display: block; pointer-events: all; width: 100%; text-align: center;">
@@ -1276,7 +1211,7 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </div> -->
                 </div>
 
                 <div id="serverAndMapInfo" style="
@@ -1332,84 +1267,12 @@
                     </div>
                 </div>
 
+                <!-- fyi: summary used to be here
+
                 <div id="gameSummary">
-                    <!-- Team final scores -->
-                    <div id="teamFinal"
-                        style="display: none; position: absolute; display: flex; width: 40em; top: -2.2em">
-                        <div class="shadedPane"
-                            style="width: 19.8em; color: rgb(64, 224, 255); background: rgba(0, 64, 192, 0.7); padding-left: 0.5em; padding-right: 0.5em">
-                            <div style="float: left">
-                                <h1>Blue</h1>
-                            </div>
-                            <div style="float: right">
-                                <h1 id="teamScore1"></h1>
-                            </div>
-                        </div>
-                        <div style="flex: auto"></div>
-                        <div class="shadedPane"
-                            style="width: 19.8em; color: rgb(255, 192, 160); background: rgba(192, 64, 32, 0.7); padding-left: 0.5em; padding-right: 0.5em">
-                            <div style="float: left">
-                                <h1 id="teamScore2"></h1>
-                            </div>
-                            <div style="float: right">
-                                <h1>Red</h1>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Free-for-all final scores -->
-                    <div id="ffaFinal"
-                        style="display: none; position: absolute; display: flex; width: 40em; top: -2.2em">
-                        <div class="shadedPane" style="width: 100%; padding-left: 0.5em; padding-right: 0.5em">
-                            <div style="float: left">
-                                <h1>Total Kills</h1>
-                            </div>
-                            <div style="float: right">
-                                <h1 id="teamScore0"></h1>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Game summary container -->
-                    <div id="leaderboard" class="flexCol shadedPane" style="
-                width: 40em; margin-right: 1em; padding: 0.3em;
-            ">
-                        <!-- Leaderboard column header -->
-                        <div class="flexRow" style="
-                    width: 100%;
-                    color: #ccc;
-                    text-align: center;
-                    background: transparent;
-                    padding-left: 0.2em; padding-right: 0.2em
-                ">
-                            <div style="width: 6vh; font-size: 0.8em">#</div>
-                            <div style="flex: auto; text-align: left; font-size: 0.8em">name</div>
-                            <div style="width: 8vh; font-size: 0.8em">score</div>
-                            <div style="width: 8vh; font-size: 0.8em">kills</div>
-                            <div style="width: 8vh; font-size: 0.8em">deaths</div>
-                            <div style="width: 8vh; font-size: 0.8em">streak</div>
-                        </div>
-
-                        <!-- Team leaderboard container -->
-                        <div id="teamSummary" class="flexCol" style="
-                    display: none;
-                    margin-top: 0.2em;
-                    width: 100%;
-                ">
-                            <!-- teamRow elements (below) get added here -->
-                        </div>
-
-                        <div id="teamRow" class="flexRow"
-                            style="width: 100%; display: none; padding-left: 0.2em; padding-right: 0.2em; text-align: center">
-                            <div style="width: 6vh;"></div> <!-- Rank -->
-                            <div style="flex: auto; text-align: left"></div> <!-- Name -->
-                            <div style="width: 8vh"></div> <!-- Score -->
-                            <div style="width: 8vh"></div> <!-- Kills -->
-                            <div style="width: 8vh"></div> <!-- Deaths -->
-                            <div style="width: 8vh"></div> <!-- Streak -->
-                        </div>
-                    </div>
                 </div>
+
+                -->
 
                 <div class="flexCol">
 
@@ -1579,6 +1442,8 @@
                 display: none;
                 bottom: 2.5em;
                 left: 1em;
+                user-select: text;
+                pointer-events: all;
             "></div>
 
             <input id="chatIn" class="chat" maxlength=64 tabindex=-1 placeholder="Press TAB to exit"
@@ -1591,10 +1456,16 @@
                 color: #ff0;
                 bottom: 1em;
                 left: 1em;
-                width: 30%">
+                width: 30%;
+                pointer-events: all;">
             </input>
 
-            <div id="autocomplete-dialog" class="hidden"></div>
+            <div id="autocomplete-dialog" class="hidden"
+                style="
+                pointer-events: all;">
+            </div>
+
+            <div id="command-info-dialog" class="hidden"></div>
 
             <!-- Kill ticker -->
             <div id="killTicker" class="chat" style="
@@ -1629,6 +1500,20 @@
     ">
                 <h3>SPECTATING</h3>
                 <h2 id="spectatingName"></h2>
+            </div>
+
+            <!-- Cheats enabled -->
+            <div id="cheatsEnabled" style="
+        display: none;
+        position: absolute;
+        right: 25%;
+        bottom: 0.5em;
+        text-align: center;
+        padding: 0.5em;
+        border-radius: 0.3em;
+        background: rgba(0, 0, 0, 0.3);
+    ">
+                <h3>CHEATS ACTIVE!</h3>
             </div>
         </div>
         <!-- End Game -->
@@ -2037,6 +1922,36 @@
                     <div class="spinner"></div>
                 </div>
                 <p id="spinnerFooter">Wait for it...</p>
+
+                <!-- yes there are errors, idfk why lmaooo u think i can fix them? i cant/wont. -->
+                <svg id="op7logo" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 300 300" shape-rendering="geometricPrecision" text-rendering="geometricPrecision" cached="false" style="
+                    position: fixed;
+                    text-align: center;
+                    margin-left: -75%;
+                    width: 150%;
+                    animation: fadeOut 0.75s forwards 1.25s;
+                ">
+                    <style><![CDATA[
+                    #er0lXIaz1g42_to {animation: er0lXIaz1g42_to__to 5000ms linear 1 normal forwards}@keyframes er0lXIaz1g42_to__to { 0% {offset-distance: 0%} 12% {offset-distance: 100%} 100% {offset-distance: 100%}} #er0lXIaz1g42 {animation: er0lXIaz1g42_c_o 5000ms linear 1 normal forwards}
+                    @keyframes fadeOut {
+                        0% {
+                            opacity: 1;
+                        }
+                        100% {
+                            opacity: 0;
+                        }
+                    }
+                    @keyframes er0lXIaz1g42_c_o { 0% {opacity: 0} 16% {opacity: 1} 100% {opacity: 1}} #er0lXIaz1g43_to {animation: er0lXIaz1g43_to__to 5000ms linear 1 normal forwards}@keyframes er0lXIaz1g43_to__to { 0% {offset-distance: 0%} 12% {offset-distance: 78.365708%} 20% {offset-distance: 100%} 100% {offset-distance: 100%}} #er0lXIaz1g43 {animation: er0lXIaz1g43_c_o 5000ms linear 1 normal forwards}@keyframes er0lXIaz1g43_c_o { 0% {opacity: 0} 10% {opacity: 0} 18% {opacity: 1} 100% {opacity: 1}} #er0lXIaz1g45 {animation: er0lXIaz1g45_c_o 5000ms linear 1 normal forwards}@keyframes er0lXIaz1g45_c_o { 0% {opacity: 0} 20% {opacity: 0} 24% {opacity: 1} 100% {opacity: 1}} #er0lXIaz1g413_tr {animation: er0lXIaz1g413_tr__tr 5000ms linear 1 normal forwards}@keyframes er0lXIaz1g413_tr__tr { 0% {transform: translate(135.33781px,207.03926px) rotate(720deg);animation-timing-function: cubic-bezier(0.415,0.08,0.115,0.955)} 100% {transform: translate(135.33781px,207.03926px) rotate(252.467532deg)}} #er0lXIaz1g413 {animation: er0lXIaz1g413_f_p 5000ms linear 1 normal forwards}@keyframes er0lXIaz1g413_f_p { 0% {fill: #d2dbed} 100% {fill: #d2dbec}} #er0lXIaz1g414_tr {animation: er0lXIaz1g414_tr__tr 5000ms linear 1 normal forwards}@keyframes er0lXIaz1g414_tr__tr { 0% {transform: translate(11.12px,29.9px) rotate(-720deg);animation-timing-function: cubic-bezier(0.415,0.08,0.115,0.955)} 100% {transform: translate(11.12px,29.9px) rotate(-252.467532deg)}}
+                    ]]></style>
+                    <g id="er0lXIaz1g42_to" style="offset-path:path('M368.625343,277.218448Q350.381094,241.642164,184.43345,157.840759');offset-rotate:0deg"><rect id="er0lXIaz1g42" width="100" height="100" rx="0" ry="0" transform="rotate(45.000001) translate(-57.070193,-54.018311)" opacity="0" fill="rgba(210,219,237,0)" stroke="#ffffff" stroke-width="5"/></g><g id="er0lXIaz1g43_to" style="offset-path:path('M368.625343,277.218448Q350.381094,241.642164,184.43345,157.840759L123.37355,157.840761');offset-rotate:0deg"><rect id="er0lXIaz1g43" width="100" height="100" rx="0" ry="0" transform="rotate(45.000001) translate(-57.070193,-54.018311)" opacity="0" fill="rgba(210,219,237,0)" stroke="#ffffff" stroke-width="5"/></g><path d="" fill="none" stroke="#3f5787" stroke-width="0.6"/><text id="er0lXIaz1g45" dx="0" dy="0" font-family="&quot;er0lXIaz1g41:::Lato&quot;" opacity="0" stroke-width="0" fill="#ffffff">
+                    <tspan y="54%" x="21%" style="
+                    font-size: 32px;">
+                    &nbsp;O &nbsp; &nbsp; P &nbsp; &nbsp; 7
+                    </tspan></text>
+                    <style><![CDATA[
+                    @font-face {font-family: 'er0lXIaz1g41:::Lato';font-style: normal;font-weight: 400;src: url(data:font/ttf;charset=utf-8;base64,AAEAAAAQAQAABAAAR1BPU0R0THUAAAFAAAAAHkdTVUK4/LjqAAABxAAAAChPUy8yeURABwAAAuwAAABgY21hcAFZAH8AAAKgAAAATGN2dCAG9xijAAAB7AAAAC5mcGdtclpyQAAAChwAAAblZ2FzcAASABgAAAEMAAAADGdseWYBKshjAAAF5AAABDhoZWFk/JzyIwAAAhwAAAA2aGhlYQ+2BqIAAAGgAAAAJGhtdHgWtQG5AAABKAAAABhsb2NhBKIEJgAAARgAAAAObWF4cAD/B/kAAAFgAAAAIG5hbWU26FMEAAADTAAAAphwb3N0/3cAeAAAAYAAAAAgcHJlcKYHlRcAAAJUAAAASwABAAIAEgAH//8ADwAAANkA2QExAa0CHAIcAAAEJwAtAYIAAASIAG4GPABcBMYAwgGCAAAAAQAAAAoAHAAcAAFERkxUAAgABAAAAAD//wAAAAAAAAABAAAABgCCAAcAYgAEAAIAIgAtADkAAACQBuUAAgABAAMAAAAAAAD/dAB4AAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAB7b+VgAACQL/RP9DCLkAAQAAAAAAAAAAAAAAAAAAAAYAAQAAAAoAJgAmAAJERkxUABJsYXRuAA4AAAAAAAQAAAAA//8AAAAAAAAAAAAAAAAAAAC4AIsAuAC4AIsAjAWZAAAFugP1AAD+qQWp//AFugQF//L+lAAAAAEAAAABGqCF2gjzXw889QAZB9AAAAAAypNecAAAAADK3y6F/0T+kwi5By0AAAAJAAIAAAAAAAC5CAAIAGMgsAEjRCCwAyNwsBRFICCwKGBmIIpVWLACJWGwAUVjI2KwAiNEswkKAwIrswsQAwIrsxEWAwIrWbIEKAZFUkSzCxAEAisAAAAAAgAAAAMAAAAUAAMAAQAAABQABAA4AAAACgAIAAIAAgAgADcAUACg//8AAAAgADcATwCg////4f/L/7T/ZQABAAAAAAAAAAAAAAADBBIBkAAFAAAFeAUUAAABGAV4BRQAAAO6AHgB9AgDAg8FAgICBAMCA4AAACcAAABKAAAAAAAAAAB0eVBMAEAAIACgBkr+egGQB7YBqiAAAJMAAAAAA/UFmQAAACAAAgAAAAgAZgADAAEECQAAARQBHgADAAEECQABAAgBFgADAAEECQACAA4BCAADAAEECQADAFQAtAADAAEECQAEABgAnAADAAEECQAFAFAATAADAAEECQAGABgANAADAAEECQAOADQAAABoAHQAdABwADoALwAvAHMAYwByAGkAcAB0AHMALgBzAGkAbAAuAG8AcgBnAC8ATwBGAEwATABhAHQAbwAtAFIAZQBnAHUAbABhAHIAVgBlAHIAcwBpAG8AbgAgADEALgAxADAANAA7ACAAVwBlAHMAdABlAHIAbgArAFAAbwBsAGkAcwBoACAAbwBwAGUAbgBzAG8AdQByAGMAZQBMAGEAdABvACAAUgBlAGcAdQBsAGEAcgB0AHkAUABvAGwAYQBuAGQATAB1AGsAYQBzAHoARAB6AGkAZQBkAHoAaQBjADoAIABMAGEAdABvACAAUgBlAGcAdQBsAGEAcgA6ACAAMgAwADEAMQBSAGUAZwB1AGwAYQByAEwAYQB0AG8AQwBvAHAAeQByAGkAZwBoAHQAIAAoAGMAKQAgADIAMAAxADAALQAyADAAMQAxACAAYgB5ACAAdAB5AFAAbwBsAGEAbgBkACAATAB1AGsAYQBzAHoAIABEAHoAaQBlAGQAegBpAGMAIAB3AGkAdABoACAAUgBlAHMAZQByAHYAZQBkACAARgBvAG4AdAAgAE4AYQBtAGUAIAAiAEwAYQB0AG8AIgAuACAATABpAGMAZQBuAHMAZQBkACAAdQBuAGQAZQByACAAdABoAGUAIABTAEkATAAgAE8AcABlAG4AIABGAG8AbgB0ACAATABpAGMAZQBuAHMAZQAsACAAVgBlAHIAcwBpAG8AbgAgADEALgAxAC4ABAAtAAAD+wWZACUANQA5AD0A/kAWPTw7Ojk4NzY0MiooJCIfHRMSBgQKBytLsF9QWEBDAAECAAEeAAMCAQIDATIAAQQCAQQwAAAAAgMAAgEAJgAEAAUIBAUBACYACQkGAAAkAAYGCx8ACAgHAAAkAAcHDAcgCRtLsGxQWEBBAAECAAEeAAMCAQIDATIAAQQCAQQwAAYACQAGCQAAJgAAAAIDAAIBACYABAAFCAQFAQAmAAgIBwAAJAAHBw8HIAgbQEoAAQIAAR4AAwIBAgMBMgABBAIBBDAABgAJAAYJAAAmAAAAAgMAAgEAJgAEAAUIBAUBACYACAcHCAAAIwAICAcAACQABwgHAAAhCVlZsDgrEz4DMzIeAhUUDgQPASMnJj4ENTQmIyIOAiMiJxM0NjMyHgIVFA4CIyImASERITchESH6GTlETy4/Z0kpHi02MCMEEXoMBBotNzAgSTkpOCgcCxkMYz4wFigdEREdKBYwPv6hA878MjIDY/ydBHUWJh0RI0BbODdQOysmJRdpdSIzKyguOigzPBIWEhb8+y9AER4pFxcoHhE/BKT6ZzYFLAABAG4AAAQ8BZkAEgBqQAwAAAASABIPDQkHBAcrS7BfUFhAFAABAQIAACQDAQICCx8AAAAMACADG0uwbFBYQBIDAQIAAQACAQEAJgAAAA8AIAIbQB4AAAEANQMBAgEBAgAAIwMBAgIBAQAkAAECAQEAIQRZWbA4KwEVFAYHAQ4BKwEBPgE3ISImPQEEPA8I/a8NLid/AloNGxH9FBEbBZlQIiwP+1MaJQSeGSoTGxF5AAIAXP/xBeEFqQATACcAd0AKJCIaGBAOBgQEBytLsF9QWEAaAAICAQEAJAABAREfAAMDAAEAJAAAABIAIAQbS7BsUFhAGAABAAIDAQIBACYAAwMAAQAkAAAAFQAgAxtAIQABAAIDAQIBACYAAwAAAwEAIwADAwABACQAAAMAAQAhBFlZsDgrARQCBgQjIiQmAjU0EjYkMzIEFhIHNC4CIyIOAhUUHgIzMj4CBeFmuv77np7+/LpmZroBBJ6eAQW6ZsdIhLx0c7yFSEiFvHN0vIRIAsyh/vPCa2vCAQ2hoQENw2xsw/7zoYTSkU5OkdKEhNGRTU2R0QAAAgDCAAAEfwWZAA4AGQCLQBAAABkXEQ8ADgANBQMCAQYHK0uwX1BYQB4AAwUBAgADAgEAJgAEBAEBACQAAQELHwAAAAwAIAQbS7BsUFhAHAABAAQDAQQBACYAAwUBAgADAgEAJgAAAA8AIAMbQCcAAAIANQABAAQDAQQBACYAAwICAwEAIwADAwIBACQFAQIDAgEAIQVZWbA4KwERIxEhMh4CFRQOAiMnMzI+AjU0JisBAYPBAaeIyYRBRofIgebmU39WLKmr5gIY/egFmT90pGVkpnhDmixPbkKJmgCwACwgZLAgYGYjsABQWGVZLbABLCBkILDAULAEJlqwBEVbWCEjIRuKWCCwUFBYIbBAWRsgsDhQWCGwOFlZILAJRWFksChQWCGwCUUgsDBQWCGwMFkbILDAUFggZiCKimEgsApQWGAbILAgUFghsApgGyCwNlBYIbA2YBtgWVlZG7AAK1lZI7AAUFhlWVktsAIssAcjQrAGI0KwACNCsABDsAZDUViwB0MrsgABAENgQrAWZRxZLbADLLAAQyBFILACRWOwAUViYEQtsAQssABDIEUgsAArI7EGBCVgIEWKI2EgZCCwIFBYIbAAG7AwUFiwIBuwQFlZI7AAUFhlWbADJSNhREQtsAUssAFgICCwCUNKsABQWCCwCSNCWbAKQ0qwAFJYILAKI0JZLbAGLLAAQ7ACJUKyAAEAQ2BCsQkCJUKxCgIlQrABFiMgsAMlUFiwAEOwBCVCioogiiNhsAUqISOwAWEgiiNhsAUqIRuwAEOwAiVCsAIlYbAFKiFZsAlDR7AKQ0dgsIBiILACRWOwAUViYLEAABMjRLABQ7AAPrIBAQFDYEItsAcsACBgsAFhswsLAQBCimCxBgIrLbAILCBgsAtgIEMjsAFgQ7ACJbACJVFYIyA8sAFgI7ASZRwbISFZLbAJLLAIK7AIKi2wCiwgIEcgILACRWOwAUViYCNhOCMgilVYIEcgILACRWOwAUViYCNhOBshWS2wCywAsAEWsAoqsAEVMC2wDCwgNbABYC2wDSwAsANFY7ABRWKwACuwAkVjsAFFYrAAK7AAFrQAAAAAAEQ+IzixDAEVKi2wDiwgPCBHILACRWOwAUViYLAAQ2E4LbAPLC4XPC2wECwgPCBHILACRWOwAUViYLAAQ2GwAUNjOC2wESyxAgAWJSAuIEewACNCsAIlSYqKRyNHI2FisAEjQrIQAQEVFCotsBIssAAWsAQlsAQlRyNHI2GwAStlii4jICA8ijgtsBMssAAWsAQlsAQlIC5HI0cjYSCwBSNCsAErILBgUFggsEBRWLMDIAQgG7MDJgQaWUJCIyCwCEMgiiNHI0cjYSNGYLAFQ7CAYmAgsAArIIqKYSCwA0NgZCOwBENhZFBYsANDYRuwBENgWbADJbCAYmEjICCwBCYjRmE4GyOwCENGsAIlsAhDRyNHI2FgILAFQ7CAYmAjILAAKyOwBUNgsAArsAUlYbAFJbCAYrAEJmEgsAQlYGQjsAMlYGRQWCEbIyFZIyAgsAQmI0ZhOFktsBQssAAWICAgsAUmIC5HI0cjYSM8OC2wFSywABYgsAgjQiAgIEYjR7AAKyNhOC2wFiywABawAyWwAiVHI0cjYbAAVFguIDwjIRuwAiWwAiVHI0cjYSCwBSWwBCVHI0cjYbAGJbAFJUmwAiVhsAFFYyNiY7ABRWJgIy4jICA8ijgjIVktsBcssAAWILAIQyAuRyNHI2EgYLAgYGawgGIjICA8ijgtsBgsIyAuRrACJUZSWCA8WS6xCQEUKy2wGSwjIC5GsAIlRlBYIDxZLrEJARQrLbAaLCMgLkawAiVGUlggPFkjIC5GsAIlRlBYIDxZLrEJARQrLbAbLLAAFSBHsAAjQrIAAQEVFBMusA4qLbAcLLAAFSBHsAAjQrIAAQEVFBMusA4qLbAdLLEAARQTsA8qLbAeLLARKi2wIyywEisjIC5GsAIlRlJYIDxZLrEJARQrLbAmLLATK4ogIDywBSNCijgjIC5GsAIlRlJYIDxZLrEJARQrsAVDLrAJKy2wJCywABawBCWwBCYgLkcjRyNhsAErIyA8IC4jOLEJARQrLbAhLLEIBCVCsAAWsAQlsAQlIC5HI0cjYSCwBSNCsAErILBgUFggsEBRWLMDIAQgG7MDJgQaWUJCIyBHsAVDsIBiYCCwACsgiophILADQ2BkI7AEQ2FkUFiwA0NhG7AEQ2BZsAMlsIBiYbACJUZhOCMgPCM4GyEgIEYjR7AAKyNhOCFZsQkBFCstsCAssAgjQrAfKy2wIiywEisusQkBFCstsCUssBMrISMgIDywBSNCIzixCQEUK7AFQy6wCSstsB8ssAAWRSMgLiBGiiNhOLEJARQrLbAnLLAUKy6xCQEUKy2wKCywFCuwGCstsCkssBQrsBkrLbAqLLAAFrAUK7AaKy2wKyywFSsusQkBFCstsCwssBUrsBgrLbAtLLAVK7AZKy2wLiywFSuwGistsC8ssBYrLrEJARQrLbAwLLAWK7AYKy2wMSywFiuwGSstsDIssBYrsBorLbAzLLAXKy6xCQEUKy2wNCywFyuwGCstsDUssBcrsBkrLbA2LLAXK7AaKy2wNywrLbA4LLA3KrABFTAtAAAA) format('truetype');}
+                    ]]></style>
+                </svg>
             </div>
         </div>
         <!-- AdInPlay test BLOAT -->
