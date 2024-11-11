@@ -1,6 +1,10 @@
+//legacyshell: logging
+import log from '#coloured-logging';
+//
+
 const createIfNotExists = async (ss, ip, result) => {
     if (!result.entry_exists) {
-        ss.config.verbose && ss.log.bgBlue("ratelimit: Writing to DB: insertings reqs "+ip);
+        ss.config.verbose && log.bgBlue("ratelimit: Writing to DB: insertings reqs "+ip);
         await ss.runQuery(`INSERT INTO ip_requests (ip) VALUES (?)`, [ip]);
         result.entry_exists = true;
     };
@@ -11,7 +15,7 @@ export const addRequest = async (ss, ip, type) => {
     let result = ss.requests_cache[ip];
 
     if (!result) {
-        ss.config.verbose && ss.log.bgCyan("ratelimit: Reading from DB: get reqs "+ip);
+        ss.config.verbose && log.bgCyan("ratelimit: Reading from DB: get reqs "+ip);
         result = await ss.getOne(`SELECT * FROM ip_requests WHERE ip = ?`, [ip]);
         if (!result) result = {
             sensitive_count: 0,
@@ -36,7 +40,7 @@ export const addRequest = async (ss, ip, type) => {
         result.last_sensitive_reset = now;
         if (result.sensitive_count >= (ss.config.services.ratelimit.sensitive.max_count || 5)) {
             await createIfNotExists(ss, ip, result);
-            ss.config.verbose && ss.log.bgBlue("ratelimit: Writing to DB: reset sensitive reqs "+ip);
+            ss.config.verbose && log.bgBlue("ratelimit: Writing to DB: reset sensitive reqs "+ip);
             await ss.runQuery(`
                 UPDATE ip_requests
                 SET sensitive_count = 0, last_sensitive_reset = ?
@@ -51,7 +55,7 @@ export const addRequest = async (ss, ip, type) => {
         result.last_regular_reset = now;
         if (result.regular_count >= (ss.config.services.ratelimit.regular.max_count || 10)) {
             await createIfNotExists(ss, ip, result);
-            ss.config.verbose && ss.log.bgBlue("ratelimit: Writing to DB: reset regular reqs "+ip);
+            ss.config.verbose && log.bgBlue("ratelimit: Writing to DB: reset regular reqs "+ip);
             await ss.runQuery(`
                 UPDATE ip_requests
                 SET regular_count = 0, last_regular_reset = ?
@@ -66,7 +70,7 @@ export const addRequest = async (ss, ip, type) => {
         if (result.sensitive_count >= (ss.config.services.ratelimit.sensitive.max_count || 5)) {
             if (result.sensitive_count == (ss.config.services.ratelimit.sensitive.max_count || 5)) {
                 await createIfNotExists(ss, ip, result);
-                ss.config.verbose && ss.log.bgBlue("ratelimit: Writing to DB: set sensitive reqs "+ip);
+                ss.config.verbose && log.bgBlue("ratelimit: Writing to DB: set sensitive reqs "+ip);
                 await ss.runQuery(`
                     UPDATE ip_requests
                     SET sensitive_count = ?
@@ -80,7 +84,7 @@ export const addRequest = async (ss, ip, type) => {
         if (result.regular_count >= (ss.config.services.ratelimit.regular.max_count || 10)) {
             if (result.regular_count == (ss.config.services.ratelimit.regular.max_count || 10)) {
                 await createIfNotExists(ss, ip, result);
-                ss.config.verbose && ss.log.bgBlue("ratelimit: Writing to DB: set regular reqs "+ip);
+                ss.config.verbose && log.bgBlue("ratelimit: Writing to DB: set regular reqs "+ip);
                 await ss.runQuery(`
                     UPDATE ip_requests
                     SET regular_count = ?

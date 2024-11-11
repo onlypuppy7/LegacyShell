@@ -43,17 +43,13 @@ gameScene.registerBeforeRender(function() {
 
 // Create a shiny material
 var wetMaterial = new BABYLON.StandardMaterial("wetMaterial", gameScene);
-wetMaterial.diffuseColor = new BABYLON.Color3(0.7, 0.7, 0.7); // Darker to simulate wetness
-wetMaterial.specularColor = new BABYLON.Color3(1, 1, 1); // White specular for highlights
-wetMaterial.specularPower = 64; // Higher power for sharper reflections
-wetMaterial.reflectionTexture = new BABYLON.MirrorTexture("mirror", 1024 * 1, gameScene, true);
-wetMaterial.reflectionTexture.mirrorPlane = new BABYLON.Plane(0, -1, 0, 0); // Reflect the ground
-wetMaterial.reflectionTexture.level = .5; // Adjust reflection intensity
+wetMaterial.diffuseColor = new BABYLON.Color3(0.85, 0.85, 0.85);
+wetMaterial.specularColor = new BABYLON.Color3(1, 1, 1);
+wetMaterial.specularPower = 16;
 
-// Apply the material to the mapMesh
 mapMesh.material = wetMaterial;
 
-setSkybox("thunderstorm");
+// Sounds.rain.play();
 
 gameScene.texturesEnabled = false;
 gameScene.fogColor = new BABYLON.Color4(0, 0, 0, 1);
@@ -63,7 +59,22 @@ mapMesh.overlayAlpha = 0.1;
 mapMesh.overlayColor = {r: 1, g: 1, b: 1};
 mapMesh.renderOverlay = false;
 
-Sounds.rain.play();
+//night
+
+// skyboxMaterial.alpha = 0.1;
+
+// gameScene.fogColor = new BABYLON.Color4(0, 0, 0, 1);
+// gameScene.fogDensity = .065;
+
+// mapMesh.overlayAlpha = 0.5;
+// mapMesh.overlayColor = {r: 0, g: 0, b: 0};
+// mapMesh.renderOverlay = true;
+
+//done up to here
+
+//storm
+
+setSkybox("thunderstorm");
 
 window.addEventListener('keydown', function(event) {
     if (event.key === '[') {
@@ -72,7 +83,7 @@ window.addEventListener('keydown', function(event) {
         gameScene.texturesEnabled = true;
         mapMesh.renderOverlay = true;
         setTimeout(() => {
-            Sounds.thunder.play();
+            playSoundIndependent2D("thunder");
         }, 250);
         setTimeout(() => {
             gameScene.fogDensity = .5;

@@ -88,6 +88,18 @@
 	transform: rotate(270deg);
 }
 
+@keyframes healAnimation {
+	0% {
+		stroke: white;
+	}
+	20% {
+		stroke: rgb(0, 255, 0);
+	}
+	100% {
+		stroke: white;
+	}
+}
+
 .healthBar {
 	transform-origin: center;
 	transform: rotate(90deg);
@@ -96,6 +108,10 @@
 	stroke-width: 1em;
 	stroke-dasharray: 14.4513em;
 	transition: all 0.3s ease-in-out;
+}
+
+.heal {
+	animation: healAnimation 1s ease-in-out;
 }
 
 .healthYolk {

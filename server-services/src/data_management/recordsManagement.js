@@ -2,14 +2,13 @@
 import fs from 'node:fs';
 import yaml from 'js-yaml';
 import path from 'node:path';
+//legacyshell: logging
+import log from '#coloured-logging';
+//legacyshell: ss
+import { ss } from '#misc';
 //
 
-let ss; //trollage. access it later.
-
 const exported = {
-    setSS: function (newSS) {
-        ss = newSS;
-    },
     initDB: (db) => {
         db.serialize(() => {
             //USERS
@@ -140,7 +139,6 @@ const exported = {
                 END;
             `);
         
-            //WIP! MAPS
             db.run(`
             CREATE TABLE IF NOT EXISTS maps (
                 name TEXT PRIMARY KEY DEFAULT 'Unknown map',
@@ -156,9 +154,9 @@ const exported = {
                 surfaceArea INTEGER DEFAULT 0,
                 extents TEXT DEFAULT '{"x":{"max":0,"min":10000},"y":{"max":0,"min":10000},"z":{"max":0,"min":10000},"width":-9999,"height":-9999,"depth":-9999}',
                 skybox TEXT DEFAULT '',
-                modes TEXT DEFAULT '{"FFA":true,"Teams":true}', --NOT USED!
-                availability TEXT DEFAULT 'both', --NOT USED!
-                numPlayers INTEGER DEFAULT 18, --NOT USED!
+                modes TEXT DEFAULT '{"FFA":true,"Teams":true}',
+                availability TEXT DEFAULT 'both',
+                numPlayers INTEGER DEFAULT 18,
         
                 dateCreated INTEGER DEFAULT (strftime('%s', 'now')),
                 dateModified INTEGER DEFAULT (strftime('%s', 'now'))
@@ -198,9 +196,82 @@ const exported = {
             `);
         });
     },
+    insertItems: async (jsonDir = path.join(ss.currentDir, 'src', 'items')) => {
+        const files = fs.readdirSync(jsonDir);
+
+        for (const file of files) {
+            if (path.extname(file) === '.json') {
+                log.beige(`[Items] Inserting: ${file}`);
+                const filePath = path.join(jsonDir, file);
+                const fileContent = fs.readFileSync(filePath, 'utf8');
+                const jsonData = JSON.parse(fileContent);
+
+                for (const item of jsonData) {
+                    await ss.runQuery(`
+                        INSERT OR REPLACE INTO items (id, name, is_available, price, item_class, item_type_id, item_type_name, exclusive_for_class, item_data)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    `, [item.id, item.name, item.is_available, item.price, path.parse(file).name, item.item_type_id, item.item_type_name, item.exclusive_for_class, JSON.stringify(item.item_data)]);
+                };
+            };
+        };
+    },
+    insertMaps: async (jsonDir = path.join(ss.currentDir, 'src', 'maps')) => {
+        const files = fs.readdirSync(jsonDir);
+        const maps = [];
+        for (const file of files) {
+            if (path.extname(file) === '.json') {
+                log.beige(`[Maps] Reading: ${file}`);
+                const filePath = path.join(jsonDir, file);
+                const fileContent = fs.readFileSync(filePath, 'utf8');
+                maps.push(JSON.parse(fileContent));
+            };
+        };
+
+        for (const map of maps) {
+            log.beige(`[Maps] Inserting: ${map.name}`);
+            await ss.runQuery(`
+                INSERT OR REPLACE INTO maps ( name, sun, ambient, fog, data, palette, render, width, height, depth, surfaceArea, extents, skybox, modes, availability, numPlayers, dateCreated, dateModified ) 
+                VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )
+            `, [
+                    map.name || 'Unknown map',
+                    map.sun ? JSON.stringify(map.sun) : '{"direction":{"x":0.2,"y":1,"z":-0.3},"color":"#FFFFFF"}',
+                    map.ambient || '#000000', //NOT USED! (other than map editor idfk)
+                    map.fog ? JSON.stringify(map.fog) : '{"density":0.01,"color":"#FFFFFF"}',
+                    map.data ? JSON.stringify(map.data) : '{}',
+                    map.palette ? JSON.stringify(map.palette) : '[null,null,null,null,null,null,null,null,null,null]',
+                    map.render ? JSON.stringify(map.render) : '{}',
+                    map.width || -9999,
+                    map.height || -9999,
+                    map.depth || -9999,
+                    map.surfaceArea || 0,
+                    map.extents ? JSON.stringify(map.extents) : '{"x":{"max":0,"min":10000},"y":{"max":0,"min":10000},"z":{"max":0,"min":10000},"width":-9999,"height":-9999,"depth":-9999}',
+                    map.skybox || '',
+                    map.modes ? JSON.stringify(map.modes) : '{"FFA":true,"Teams":true}',
+                    map.availability || 'both',
+                    map.numPlayers || 18,
+                    Math.floor(Date.now() / 1000),
+                    Math.floor(Date.now() / 1000)
+                ],
+            );
+        };
+
+        //alphabetical order (cringe)
+        try {
+            await ss.runQuery('BEGIN TRANSACTION');
+            await ss.runQuery('CREATE TABLE maps_temp AS SELECT * FROM maps ORDER BY name');
+            await ss.runQuery('DROP TABLE maps');
+            await ss.runQuery('ALTER TABLE maps_temp RENAME TO maps');
+            await ss.runQuery('COMMIT');
+        } catch (error) {
+            await ss.runQuery('ROLLBACK');
+            console.error('Error reordering maps table:', error);
+        };
+
+        log.beige(`[Maps] Inserted ${maps.length} maps`);
+    },
     getCodeData: async (code_key, retainSensitive) => {
         try {
-            ss.config.verbose && ss.log.bgCyan(`services: Reading from DB: get code ${code_key}`);
+            ss.config.verbose && log.bgCyan(`services: Reading from DB: get code ${code_key}`);
             const code = await ss.getOne(`SELECT * FROM codes WHERE key = ?`, [code_key]);
     
             if (code) {
@@ -225,7 +296,7 @@ const exported = {
     },
     getItemData: async (item_id, retainSensitive) => {
         try {
-            ss.config.verbose && ss.log.bgCyan(`services: Reading from DB: get item ${item_id}`);
+            ss.config.verbose && log.bgCyan(`services: Reading from DB: get item ${item_id}`);
             const item = await ss.getOne(`SELECT * FROM items WHERE id = ?`, [item_id]);
     
             if (item) {
@@ -248,7 +319,7 @@ const exported = {
     },
     getAllItemData: async (retainSensitive) => {
         try {
-            ss.config.verbose && ss.log.bgCyan("services: Reading from DB: get all items");
+            ss.config.verbose && log.bgCyan("services: Reading from DB: get all items");
             const items = await ss.getAll(`SELECT * FROM items`);
     
             if (items) {
@@ -273,7 +344,7 @@ const exported = {
     },
     getAllMapData: async (retainSensitive) => {
         try {
-            ss.config.verbose && ss.log.bgCyan("services: Reading from DB: get all maps");
+            ss.config.verbose && log.bgCyan("services: Reading from DB: get all maps");
             const maps = await ss.getAll(`SELECT * FROM maps`);
     
             if (maps) {
@@ -305,7 +376,7 @@ const exported = {
     },
     getAllGameServerData: async (retainSensitive) => {
         try {
-            ss.config.verbose && ss.log.bgCyan(`services: Reading from DB: get all game servers`);
+            ss.config.verbose && log.bgCyan(`services: Reading from DB: get all game servers`);
             const data = await ss.getAll(`SELECT * FROM game_servers`);
             if (data) {
                 return data.map(server => {

@@ -17,21 +17,27 @@
         "cn": "lsof -t -i :13371 | xargs kill -9 && lsof -t -i :13370 | xargs kill -9 && lsof -t -i :13372 | xargs kill -9"
     },
     "dependencies": {
+        "@vuepress/theme-default": "^2.0.0-rc.60",
         "babylonjs": "3.3.0",
         "bcrypt": "^5.1.1",
         "canvas": "^3.0.0-rc2",
         "chalk": "^5.3.0",
+        "cross-spawn": "^7.0.3",
         "express": "^4.21.0",
         "js-yaml": "^4.1.0",
+        "jszip": "^3.10.1",
         "markdown-it": "^14.1.0",
         "sqlite3": "^5.1.7",
         "uglify-js": "^3.19.2",
+        "vuepress": "^2.0.0-rc.18",
+        "webp-converter": "^2.3.3",
         "ws": "^8.18.0"
     },
     "imports": {
         "#coloured-logging": "./src/shell/general/coloured-logging.js",
         "#looper": "./src/shell/general/looper.js",
         "#misc": "./src/shell/general/misc.js",
+        "#prepare-babylons": "./src/shell/general/prepare-babylons.js",
         "#scrambled": "./src/shell/general/scrambled.js",
         "#wsrequest": "./src/shell/general/wsrequest.js",
         "#bullets": "./src/shell/bullets.js",
@@ -42,12 +48,15 @@
         "#constants": "./src/shell/constants.js",
         "#gametypes": "./src/shell/gametypes.js",
         "#guns": "./src/shell/guns.js",
+        "#isClientServer": "./src/shell/isClientServer.js",
         "#itemManager": "./src/shell/itemManager.js",
+        "#items": "./src/shell/items.js",
         "#loading": "./src/shell/loading.js",
         "#math": "./src/shell/math.js",
         "#munitionsManager": "./src/shell/munitionsManager.js",
         "#permissions": "./src/shell/permissions.js",
         "#player": "./src/shell/player.js",
+        "#plugins": "./src/shell/plugins.js",
         "#pool": "./src/shell/pool.js",
         "#stringWidth": "./src/shell/stringWidth.js",
         "#prepare-modified": "./server-client/src/prepare-modified.js",
@@ -58,7 +67,16 @@
         "#accountManagement": "./server-services/src/data_management/accountManagement.js",
         "#recordsManagement": "./server-services/src/data_management/recordsManagement.js",
         "#sessionManagement": "./server-services/src/data_management/sessionManagement.js",
+        "#backups": "./server-services/src/data_management/backups.js",
         "#ratelimit": "./server-services/src/ratelimit.js",
-        "#apollo" : "./server-client/src/client-static/src/apollon/Apollo.js"
+        "#apollo": "./server-client/src/client-static/src/apollon/Apollo.js"
+    },
+    "devDependencies": {
+        "@vuepress/bundler-vite": "^2.0.0-rc.18",
+        "@vuepress/plugin-back-to-top": "^2.0.0-rc.60",
+        "@vuepress/plugin-cache": "^2.0.0-rc.54",
+        "@vuepress/plugin-docsearch": "^2.0.0-rc.60",
+        "@vuepress/plugin-search": "^2.0.0-rc.55",
+        "sass-embedded": "^1.80.6"
     }
 }

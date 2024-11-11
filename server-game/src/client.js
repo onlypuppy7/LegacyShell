@@ -3,28 +3,36 @@ import misc from '#misc';
 import Comm from '#comm';
 import { ItemType, itemIdOffsets, FramesBetweenSyncs, stateBufferSize, TimeoutManagerConstructor, maxChatWidth, IntervalManagerConstructor, classes, devlog } from '#constants';
 import { fixStringWidth } from '#stringWidth';
+import { parseMentions } from '#permissions';
 import Player from '#player';
 import CatalogConstructor from '#catalog';
 import extendMath from '#math';
 //legacyshell: getting user data
 import wsrequest from '#wsrequest';
+//legacyshell: logging
+import log from '#coloured-logging';
+//legacyshell: plugins
+import { plugins } from '#plugins';
+//legacyshell: ss
+import { ss } from '#misc';
+//legacyshell: room worker (bridge)
+import { parentPort } from 'worker_threads';
 //
 
-let ss, catalog;
-extendMath(Math);
+plugins.emit('clientStartUp', {  });
 
-function setSS(newSS) {
-    ss = newSS;
-    catalog = new CatalogConstructor(ss.items);
-};
+let catalog;
+extendMath(Math);
 
 class newClient {
     constructor(room, info) {
         this.initClient(room, info);
+        catalog = new CatalogConstructor(ss.items);
     };
 
     async initClient(room, info) {
-        this.ss = ss;
+        await plugins.emit('clientInit', { this: this, room, info });
+
         //
         this.session = info.session;
         await this.updateUserData();
@@ -67,7 +75,7 @@ class newClient {
             info.stampId
         );
         await this.instantiatePlayer();
-        // this.applyLoadout();
+        // await this.applyLoadout();
 
         this.room.registerPlayerClient(this);
 
@@ -76,9 +84,13 @@ class newClient {
         this.sendBuffer(output, "packGameJoined"); //buffer cause not clientReady
 
         this.room.updateRoomDetails();
+
+        await plugins.emit('clientInitEnd', { this: this, room, info });
     };
 
     async updateLoadout (classIdx, primary_item_id, secondary_item_id, colorIdx, hatId, stampId) {
+        await plugins.emit('clientUpdateLoadout', { this: this, classIdx, primary_item_id, secondary_item_id, colorIdx, hatId, stampId });
+        
         //classIdx
         this.setClassIdx(classIdx);
         //gun skins
@@ -88,9 +100,13 @@ class newClient {
         this.setColorIdx(colorIdx);
         this.setEquippedItem(ItemType.Hat, this.classIdx, catalog.findItemBy8BitItemId(ItemType.Hat, this.classIdx, hatId));
         this.setEquippedItem(ItemType.Stamp, this.classIdx, catalog.findItemBy8BitItemId(ItemType.Stamp, this.classIdx, stampId));
+
+        await plugins.emit('clientUpdateLoadoutEnd', { this: this, classIdx, primary_item_id, secondary_item_id, colorIdx, hatId, stampId });
     };
 
-    applyLoadout () {
+    async applyLoadout () {
+        await plugins.emit('clientApplyLoadout', { this: this });
+
         this.player.changeCharacter(
             this.classIdx,
             this.loadout[ItemType.Primary],
@@ -102,6 +118,8 @@ class newClient {
     };
 
     async instantiatePlayer() {
+        await plugins.emit('clientInstantiatePlayer', { this: this });
+
         this.player = new Player({
             id: this.id,
             uniqueId: this.account_id,
@@ -148,6 +166,8 @@ class newClient {
             upgradeProductId: this.loggedIn ? this.userData.upgradeProductId : 0,
         }, this.room.scene, this);
 
+        await plugins.emit('clientInstantiatePlayerEnd', { this: this });
+
         // console.log("upgradeProductId", this.userData.upgradeProductId, this.loggedIn ? this.userData.upgradeProductId : 0);
     };
 
@@ -176,7 +196,7 @@ class newClient {
                 let msg = {};
                 msg.cmd = input.unPackInt8U();
 
-                if (msg.cmd !== Comm.Code.sync && msg.cmd !== Comm.Code.ping) {
+                if (msg.cmd !== Comm.Code.sync && msg.cmd !== Comm.Code.syncData && msg.cmd !== Comm.Code.ping) {
                     this.player.lastActivity = Date.now(); //excludes pings (ie idle for 5 mins)
                     console.log(this.id, "received:", Comm.Convert(msg.cmd));
                 };
@@ -196,7 +216,9 @@ class newClient {
                             this.packPlayer(output);
                             this.sendToAll(output, "packThisPlayer (ready/joined)");
 
-                            var output = new Comm.Out(1);
+                            var output = new Comm.Out();
+                            this.room.packRoundUpdate(output);
+                            this.room.packUpdateRoomParams(output);
                             output.packInt8U(Comm.Code.clientReady);
                             this.sendToMe(output, "clientReady");
 
@@ -233,15 +255,10 @@ class newClient {
 
                         break;
                     case Comm.Code.pause:
-                        this.player.resetDespawn();
-
-                        this.timeout.set(() => {
-                            this.player.removeFromPlay();
-                            this.sendToOthers(this.packPaused(), this.id, "pause");
-                        }, 3e3);
+                        this.pause();
                         break;
                     case Comm.Code.requestRespawn:
-                        if (Date.now() >= (this.player.lastDespawn + 5000) && !this.player.playing) {
+                        if (this.player.canRespawn() && !this.player.playing) {
                             const spawnPoint = this.room.getBestSpawn(this.player);
 
                             this.player.respawn(spawnPoint);
@@ -262,16 +279,30 @@ class newClient {
                         text = text.replaceAll("<", "(");
                         console.log(this.player.name, "chatted:", text);
 
-                        if ("" != text) {
+                        if (this.player.chatLineCap <= 0 && this.player.chatLineCap >= -1) {
+                            this.notify("You are sending messages too quickly. Please wait a moment.");
+                        } else if ("" != text) {
                             if (text.startsWith("/")) {
                                 this.room.perm.inputCmd(this.player, text);
                             } else if (!this.room.censor.detect(text, true)) { //todo, ratelimiting
                                 text = fixStringWidth(text, maxChatWidth);
                                 var output = new Comm.Out();
-                                this.room.packChat(output, text, this.id, Comm.Chat.user);
-                                this.sendToOthers(output, this.id, "chat: " + text);
+                                if (text.startsWith("@")) {
+                                    var mentions = parseMentions(text, this);
+                                    if (mentions[0]) {
+                                        this.room.packChat(output, text, this.id, Comm.Chat.whisper);
+                                        mentions[0].forEach(player => {
+                                            if (player !== this.player) this.sendToOne(output, player.id, "chat: " + text);
+                                        });
+                                    };
+                                } else {
+                                    this.room.packChat(output, text, this.id, Comm.Chat.user);
+                                    this.sendToOthers(output, this.id, "chat: " + text);
+                                };
                             };
                         };
+
+                        this.player.chatLineCap--;
                         break;
                     case Comm.Code.reload:
                         this.player.reload();
@@ -297,7 +328,7 @@ class newClient {
                             hatId,
                             stampId
                         );
-                        this.applyLoadout();
+                        await this.applyLoadout();
                         break;
                     case Comm.Code.throwGrenade:
                         var grenadeThrowPower = input.unPackFloat();
@@ -345,6 +376,17 @@ class newClient {
 
         } catch (error) {
             console.error('Error processing message:', error);
+        };
+    };
+
+    pause(time = 5e3) {
+        if (this.player.canRespawn()) {
+            this.player.resetDespawn(time);
+
+            this.timeout.set(() => {
+                this.player.removeFromPlay();
+                this.sendToOthers(this.packPaused(), this.id, "pause");
+            }, 3e3);
         };
     };
 
@@ -401,6 +443,12 @@ class newClient {
         this.colorIdx = Math.clamp(Math.floor(colorIdx), 0, range);
     };
 
+    commandFeedback(text) {
+        var output = new Comm.Out();
+        this.room.packChat(output, text, 255, Comm.Chat.cmd);
+        this.sendToMe(output, "chat (cmd)");
+    };
+
     packPlayer(output) {
         output.packInt8U(Comm.Code.addPlayer);
 
@@ -445,21 +493,30 @@ class newClient {
         output.packInt16U(0); //randomSeed
         output.packInt8U(this.loggedIn ? this.userData.upgradeProductId : 0); //upgradeProductId
 
-        if (this.player.scale !== 1) this.packScale(output);
+        this.packModifiers(output);
     };
 
-    packScale(output) {
-        output.packInt8U(Comm.Code.setScale);
+    packModifiers(output) {
+        output.packInt8U(Comm.Code.setModifiers);
         output.packInt8U(this.id);
-        output.packInt8U(this.player.scale * 10);
+        //unsigned
+        output.packInt8U(this.player.scale * 10); //range: 0 to 25.5
+        //signed
+        output.packInt8(this.player.regenModifier * 10); //range: -12.8 to 12.7
+        output.packInt8(this.player.speedModifier * 10); //range: -12.8 to 12.7
+        output.packInt8(this.player.gravityModifier * 10); //range: -12.8 to 12.7
+        output.packInt8(this.player.damageModifier * 10); //range: -12.8 to 12.7
+        output.packInt8(this.player.resistanceModifier * 10); //range: -12.8 to 12.7
+        output.packInt8(this.player.jumpBoostModifier * 10); //range: -12.8 to 12.7
     };
 
-    packSync(output) {
+    async packSync(output) {
         output.packInt8U(Comm.Code.sync);
 
         let adjustedStateIdx = Math.mod(this.player.stateIdx + this.adjustment - FramesBetweenSyncs, stateBufferSize);
 
         // console.log("packsync", adjustedStateIdx, this.player.stateIdx, this.adjustment);
+        await plugins.emit('clientPackSync', { this: this, output });
 
         output.packInt8U(this.id);
         output.packInt8U(adjustedStateIdx);
@@ -478,10 +535,23 @@ class newClient {
             var idx = Math.mod(this.player.stateIdx + i - FramesBetweenSyncs, stateBufferSize);
             let state = this.player.stateBuffer[idx];
 
-            output.packInt8U(state.controlKeys);
-            output.packRadU(state.yaw);
-            output.packRad(state.pitch);
+            await plugins.emit('clientPackSyncLoop', { this: this, output, state });
+
+            if (!plugins.cancel) {
+                output.packInt8U(state.controlKeys);
+                output.packRadU(state.yaw);
+                output.packRad(state.pitch);
+            };
         };
+    };
+
+    packDataSync(output) {
+        output.packInt8U(Comm.Code.syncData);
+
+        output.packInt8U(this.id);
+
+        output.packFloat(this.player.hp);
+        // console.log("packDataSync", this.player.hp);
     };
 
     packPaused() {
@@ -504,6 +574,20 @@ class newClient {
         output.packInt8U(0); //bool // isGameOwner
     };
 
+    packNotificationPacket(output, text, timeoutTime = 3) {
+        output.packInt8U(Comm.Code.notification);
+        output.packString(text);
+        output.packInt8U(timeoutTime);
+    };
+
+    notify(text, timeoutTime = 5) {
+        console.log("notify", text)
+        text = text.replaceAll("<", "(");
+        var output = new Comm.Out();
+        this.packNotificationPacket(output, text, timeoutTime);
+        this.sendToMe(output, "notification");
+    };
+
     pickupItem (kind, weaponIdx, id) {
         this.room.itemManager.collectItem(kind, id);
 
@@ -515,7 +599,7 @@ class newClient {
         this.room.spawnItems();
     };
 
-    sendBuffer(output, debug) { // more direct operation, prefer this.room.sendToOne
+    sendBuffer(output, debug) { // more direct operation, preferred to use this.room.sendToOne
         if (!(debug.includes("sync") || debug.includes("ping"))) console.log(this.id, debug, output.idx);
         this.sendMsgToWs(output.buffer);
     };
@@ -537,19 +621,18 @@ class newClient {
     };
 
     sendMsgToWs(msg) {
-        ss.parentPort.postMessage([Comm.Worker.send, msg, this.wsId]);
+        parentPort.postMessage([Comm.Worker.send, msg, this.wsId]);
     };
 
     sendCloseToWs(msg) {
-        ss.parentPort.postMessage([Comm.Worker.close, msg, this.wsId]);
+        parentPort.postMessage([Comm.Worker.close, msg, this.wsId]);
     };
 
     sendBootToWs(msg) {
-        ss.parentPort.postMessage([Comm.Worker.boot, msg, this.wsId]);
+        parentPort.postMessage([Comm.Worker.boot, msg, this.wsId]);
     };
 };
 
 export default {
-    setSS,
     newClient,
 };
