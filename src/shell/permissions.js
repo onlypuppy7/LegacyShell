@@ -194,6 +194,25 @@ export class PermissionsConstructor {
                 });
             }
         });
+        this.newCommand({
+            identifier: "lifesteal",
+            isCheat: true,
+            name: "lifesteal",
+            category: "change",
+            description: "Multiplier for how much health to give back from damage.",
+            example: "1.5",
+            permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
+            inputType: ["number", -10, 10, 0.1],
+            executeClient: (player, opts, mentions) => {},
+            executeServer: (player, opts, mentions) => {
+                this.room.gameOptions.lifesteal = [
+                    opts, //ffa
+                    opts, //team1
+                    opts, //team2
+                ];
+                player.client.commandFeedback(`Lifesteal has been set to: ${opts}`);
+            }
+        });
 
         //mod
         this.newCommand({
