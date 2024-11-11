@@ -98,7 +98,7 @@ export class PermissionsConstructor {
             executeServer: (player, opts, mentions) => {
                 forEachMentionInMentions(mentions, (player) => {
                     player.changeModifiers({regenModifier: opts});
-                    player.client.notify(`Your regeb rate has been set to: ${opts}`, 5);
+                    player.client.notify(`Your regen rate has been set to: ${opts}`, 5);
                 });
             }
         });

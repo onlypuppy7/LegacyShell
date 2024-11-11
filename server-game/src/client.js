@@ -196,7 +196,7 @@ class newClient {
                 let msg = {};
                 msg.cmd = input.unPackInt8U();
 
-                if (msg.cmd !== Comm.Code.sync && msg.cmd !== Comm.Code.ping) {
+                if (msg.cmd !== Comm.Code.sync && msg.cmd !== Comm.Code.syncData && msg.cmd !== Comm.Code.ping) {
                     this.player.lastActivity = Date.now(); //excludes pings (ie idle for 5 mins)
                     console.log(this.id, "received:", Comm.Convert(msg.cmd));
                 };
@@ -543,6 +543,15 @@ class newClient {
                 output.packRad(state.pitch);
             };
         };
+    };
+
+    packDataSync(output) {
+        output.packInt8U(Comm.Code.syncData);
+
+        output.packInt8U(this.id);
+
+        output.packFloat(this.player.hp);
+        // console.log("packDataSync", this.player.hp);
     };
 
     packPaused() {
