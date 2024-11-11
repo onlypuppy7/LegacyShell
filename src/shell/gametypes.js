@@ -57,6 +57,11 @@ export var defaultOptions = {
         stormEnabled: false,
     },
     time: "day",
+    lifesteal: [
+        0, //ffa
+        0, //team1
+        0, //team2
+    ],
 };
 
 export var GameTypes = [
