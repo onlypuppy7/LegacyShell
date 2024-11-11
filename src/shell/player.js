@@ -895,16 +895,18 @@ class Player {
             })();
         };
     };
-    hit (damage, firedPlayer, dx, dz) {
+    hit (damage, firedPlayer, dx, dz, noHeal = false) {
         if (this.isDead() || (!this.playing)) return;
         if (this.team === 0 ? false : (this.team === firedPlayer.team && this.id !== firedPlayer.id)) return;
 
         damage = Math.ceil((damage / this.resistanceModifier) / this.scale);
 
-        if (firedPlayer && firedPlayer.id !== this.id) {
+        damage = Math.min(damage, this.hp + 1); //no overkill, also no ridiculous healing from nades
+
+        if (firedPlayer && firedPlayer.id !== this.id && !noHeal) {
             var multiplier = this.gameOptions.lifesteal[firedPlayer.team];
             console.log("lifesteal multiplier", multiplier, damage, damage * multiplier);
-            firedPlayer.heal(damage * multiplier);
+            firedPlayer.heal(damage * multiplier, this, dx, dz);
             this.firedPlayer = firedPlayer;
         };
         
@@ -931,20 +933,23 @@ class Player {
             this.client.sendToOthers(output, "hitThem");
         };
     };
-    heal (health) {
+    heal (health, damagedPlayer = this, dx = 0, dz = 0) {
         if (this.isDead() || (!this.playing) || health == 0) return;
         
-        this.setHp(this.hp + health, this.id);
-
-        if (isServer) {
-            var output = new Comm.Out();
-            output.packInt8U(Comm.Code.heal);
-            output.packInt8U(this.id);
-            output.packInt8U(this.hp);
-            this.client.sendToAll(output, "heal");
+        if (health >= 0) {
+            this.setHp(this.hp + health, this.id);
+            if (isServer) {
+                var output = new Comm.Out();
+                output.packInt8U(Comm.Code.heal);
+                output.packInt8U(this.id);
+                output.packInt8U(this.hp);
+                this.client.sendToAll(output, "heal");
+            };
+        } else {
+            this.hit(-health, damagedPlayer, dx, dz, true);
         };
     };
-    die(firedId) {
+    die (firedId) {
         this.score = 0;
         this.streak = 0;
         this.deaths++;
