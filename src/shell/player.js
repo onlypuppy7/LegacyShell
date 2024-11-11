@@ -380,6 +380,7 @@ class Player {
             if (this.weapon) {
                 this.weapon.update(delta)
             };
+            // console.log("patrascru", this.playing, this.isDead(), this.canRespawn(), this.hp);
             if (0 < this.hp && this.playing) {
                 this.setHp(Math.min(100, this.hp + .05 * delta * this.regenModifier)); //regenning, you can put `* -2` or something here to simulate hunger, or something
             };
@@ -977,9 +978,11 @@ class Player {
         };
     };
     setHp(newHp, firedId) {
+        // console.log("setHp", newHp, firedId);
+
         this.hp = Math.clamp(newHp, 0, 100);
 
-        if (this.hp < 1) {
+        if (this.hp <= 0) {
             if (firedId === undefined) {
                 if (this.firedPlayer) {
                     this.die(this.firedPlayer.id);

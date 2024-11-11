@@ -557,6 +557,13 @@ const Comm = {
          */
         heal: 56,
 
+        /** LEGACYSHELL ADDED
+         * 
+         * SERVER: syncs the data of the player, with less pertinent data
+         * @constant {number}
+         */
+        syncData: 57,
+
         /** CLIENT: used by bwd admins to look at ips and stuff (scary). 
         * @constant {number}
         */

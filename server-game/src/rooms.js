@@ -98,6 +98,7 @@ export class newRoom {
             this.Collider.setParams(this.map, this.mapMeshes, this.playerLimit, this.players);
 
             this.updateLoopObject = createLoop(this.updateLoop.bind(this), TickStep);
+            this.dataSyncLoopObject = createLoop(this.dataSyncLoop.bind(this), 1e3);
             this.metaLoopObject = createLoop(this.metaLoop.bind(this), 2e3);
             this.updateRoomDetailsLoopObject = createLoop(this.updateRoomDetails.bind(this), 30e3);
 
@@ -282,6 +283,20 @@ export class newRoom {
                 await this.sync();
             };
         };
+    };
+
+    //occurs every second, to reduce the data sent in the main sync but also facilitate some less important data that benefits from syncing
+    async dataSyncLoop(delta) {
+        var output = new Comm.Out();
+        plugins.emit('dataSyncLoop', {this: this, delta, output});
+
+        this.clients.forEach(client => {
+            plugins.emit('clientDataSync', {this: this, client, delta, output});
+            client.packDataSync(output);
+        });
+
+        plugins.emit('roomDataSync', {this: this, delta, output});
+        this.sendToAll(output, null, "dataSync");
     };
 
     metaLoop(fromDisconnect) {
