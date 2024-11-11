@@ -22,9 +22,11 @@ const rl = readline.createInterface({
     output: process.stdout
 });
 
-const storeFolder = path.join(import.meta.dirname, '..', '..', 'store');
+misc.instantiateSS(import.meta, process.argv, undefined, true);
+
+const storeFolder = path.join(ss.rootDir, 'store');
 const configFolderPath = path.join(storeFolder, 'config');
-const defaultConfigFolderPath = path.join(import.meta.dirname, '..', 'defaultconfig');
+const defaultConfigFolderPath = path.join(ss.rootDir, 'src', 'defaultconfig');
 
 function copyYamlFiles(callback) {
     if (!fs.existsSync(configFolderPath)) {
@@ -128,8 +130,6 @@ function askDevLogging(callback) {
 };
 
 function askAuthServer(callback) {
-    misc.instantiateSS(import.meta, process.argv, undefined, true);
-
     // Initialize the database
     const servicesStoreFolder = path.join(ss.rootDir, 'server-services', 'store');
 
