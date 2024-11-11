@@ -1,0 +1,14 @@
+[{
+    "id": 3800,
+    "name": "RPEGG",
+    "price": 0,
+    "item_type_id": 3,
+    "item_type_name": "Primary",
+    "category_name": "Eggsploder Primary Weapons",
+    "exclusive_for_class": 3,
+    "item_data": {
+        "class": "RPEGG",
+        "meshName": "gun_rpegg"
+    },
+    "is_available": true
+}]

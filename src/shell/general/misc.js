@@ -3,22 +3,25 @@ import fs from 'node:fs';
 import yaml from 'js-yaml';
 import path from 'node:path';
 //legacyshell: config reqs
-import log from '#coloured-logging';
 import WebSocket, { WebSocketServer } from 'ws';
+//legacyshell: logging
+import log from '#coloured-logging';
 //legacyshell: dirname resolving
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import extendMath from '#math';
+//legacyshell: plugins
+import { plugins } from '#plugins';
 //
 
-let ss; //trollage. access it later.
+export var ss; //trollage. access it later.
 extendMath(Math);
 
-const misc = {
+export const misc = {
     getLastSavedTimestamp: function (filePath) {
         try {
             const stats = fs.statSync(filePath);
-            return stats.mtimeMs;
+            return Math.ceil(stats.mtimeMs);
         } catch (error) {
             log.yellow('Error getting file timestamp. It probably doesn\'t exist... yet!'); //it just doesnt exist. who cares LMAO
             return 0;
@@ -44,10 +47,11 @@ const misc = {
 
         ss = {
             currentDir: path.resolve(ogDirname),
-            rootDir: path.join(path.resolve(miscDirname), '..', '..', '..'),
+            rootDir: path.join(path.resolve(miscDirname), '..', '..', '..')
         };
 
         if (!noConfig) {
+            const defaultConfigPath = path.join(ss.rootDir, 'src', 'defaultconfig');
             const configFolderPath = path.join(ss.rootDir, 'store', 'config');
             if (!fs.existsSync(configFolderPath)) {
                 console.log("Config folder not found, make sure you have run the init script first... 'npm run init'");
@@ -73,9 +77,36 @@ const misc = {
     
                 try {
                     const data = fs.readFileSync(filePath, 'utf8');
+                    const defaultData = fs.readFileSync(path.join(defaultConfigPath, file), 'utf8');
                     try {
                         const yamlData = yaml.load(data);
-                        config[name] = yamlData;
+                        const yamlDefaultData = yaml.load(defaultData);
+
+                        if (yamlDefaultData) {
+                            config[name] = { //overwrite default with custom
+                                ...yamlDefaultData,
+                                ...yamlData
+                            };
+
+                            //iterate through default and notify user of anything missing in custom config
+                            for (const key in yamlDefaultData) { //not the cleanest way to do this
+                                if (yamlData[key] === undefined) {
+                                    log.error(`Missing key ${key} in ${file}, using default value.`);
+                                } else if (typeof yamlDefaultData[key] === "object") {
+                                    for (const subKey in yamlDefaultData[key]) {
+                                        if (yamlData[key] === undefined || yamlData[key][subKey] === undefined) {
+                                            log.error(`Missing key ${key} -> ${subKey} in ${file}, using default value.`);
+                                        } else if (typeof yamlDefaultData[key][subKey] === "object") {
+                                            for (const subSubKey in yamlDefaultData[key][subKey]) {
+                                                if (yamlData[key][subKey][subSubKey] === undefined) { //if there are still more levels, get fucked
+                                                    log.error(`Missing key ${key} -> ${subKey} -> ${subSubKey} in ${file}, using default value.`);
+                                                };
+                                            };
+                                        };
+                                    };
+                                };
+                            };
+                        };
                     } catch (parseError) {
                         console.error(`Error parsing YAML in ${file}:`, parseError);
                         process.exit(1);
@@ -104,21 +135,21 @@ const misc = {
         ss = {
             ...ss,
             packageJson: JSON.parse(fs.readFileSync(path.join(ss.rootDir, 'package.json'), 'utf8')),
+            // plugins: new PluginManager(ss),
+            pluginsDir: path.join(ss.rootDir, 'plugins'),
+            pluginsDirDefault: path.join(ss.rootDir, 'plugins_default'),
             versionEnum: Number(fs.readFileSync(path.join(ss.rootDir, 'versionEnum.txt'), 'utf8')),
             versionHash: fs.readFileSync(path.join(ss.rootDir, 'versionHash.txt'), 'utf8').slice(0,7),
-            log,
             isPerpetual: argv[2] === "--perpetual",
             startTime: Date.now(),
         };
 
-        ss.isPerpetual && ss.config.verbose && ss.log.gray("is perpetual");
+        ss.isPerpetual && ss.config.verbose && log.gray("is perpetual");
 
         // console.log(path.resolve(ogDirname), path.resolve(miscDirname), ss);
 
-        ss.log.green(`Created ss Object! Commit hash: ${ss.versionHash} (${ss.versionEnum})`);
-        (!noConfig) && ss.config.verbose && ss.log.bgGray("VERBOSE LOGGING ENABLED!!!!!!");
-
-        return ss;
+        log.green(`Created ss Object! Commit hash: ${ss.versionHash} (${ss.versionEnum})`);
+        (!noConfig) && ss.config.verbose && log.bgGray("VERBOSE LOGGING ENABLED!!!!!!");
     },
     hashtagToPath: function (hashtag) {
         try {
@@ -134,16 +165,20 @@ const misc = {
         try {
             const path = misc.hashtagToPath(hashtag);
             let file = fs.readFileSync(path[0], 'utf8');
-            file = file.replaceAll("\nimport ", "\n//(ignore) import ");
-            file = file.replaceAll("\nexport default ", "\n//(ignore) export default ");
-            file = file.replaceAll("\nexport ", "\n/*(ignore) export*/ ");
-            file = file.replaceAll("\n//(server-only-start)", "\n/*(server-only-start)");
-            file = file.replaceAll("\n//(server-only-end)", "\n(server-only-end)*/");
+            file = misc.prepareForClient(file);
             file = `// [LS] ${hashtag} imported from .${path[1]}\n${file}`;
             return file;
         } catch (error) {
-            return "//fucking failed! "+hashtag;
+            return "//fucking failed! you messed this up DEVELOPER!!! "+hashtag;
         };
+    },
+    prepareForClient: function (file) {
+        file = file.replaceAll("\nimport ", "\n//(ignore) import ");
+        file = file.replaceAll("\nexport default ", "\n//(ignore) export default ");
+        file = file.replaceAll("\nexport ", "\n/*(ignore) export*/ ");
+        file = file.replaceAll("\n//(server-only-start)", "\n/*(server-only-start)");
+        file = file.replaceAll("\n//(server-only-end)", "\n(server-only-end)*/");
+        return file;
     },
     getRandomAsciiChars: function (count, uuid) {
         Math.seed = uuid;

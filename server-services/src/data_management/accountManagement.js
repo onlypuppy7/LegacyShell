@@ -5,14 +5,13 @@ import path from 'node:path';
 //legacyshell: database
 import bcrypt from 'bcrypt';
 import crypto from 'node:crypto'; //passwds
+//legacyshell: logging
+import log from '#coloured-logging';
+//legacyshell: ss
+import { ss } from '#misc';
 //
 
-let ss; //trollage. access it later.
-
 const exported = {
-    setSS: function (newSS) {
-        ss = newSS;
-    },
     hashPassword: (data) => {
         return bcrypt.hashSync(data, ss.config.services.password_cost_factor || 10);
     },
@@ -34,13 +33,13 @@ const exported = {
     },
     generateToken: async (username) => {
         const newToken = crypto.randomBytes(32).toString('hex');
-        ss.config.verbose && ss.log.bgBlue("services: Writing to DB: set new token "+username);
+        ss.config.verbose && log.bgBlue("services: Writing to DB: set new token "+username);
         await ss.runQuery(`UPDATE users SET authToken = ? WHERE username = ?`, [newToken, username]);
         return newToken;
     },
     getAuthKeyData: async (auth_key) => {
         try {
-            ss.config.verbose && ss.log.bgCyan(`services: Reading from DB: get code ${auth_key}`);
+            ss.config.verbose && log.bgCyan(`services: Reading from DB: get code ${auth_key}`);
             const data = await ss.getOne(`SELECT * FROM game_servers WHERE auth_key = ?`, [auth_key]);
             if (data) return data;
             else {
@@ -55,7 +54,7 @@ const exported = {
     createAccount: async (username, password) => {
         password = exported.hashPassword(password);
         try {
-            ss.config.verbose && ss.log.bgBlue("services: Writing to DB: create new user "+username);
+            ss.config.verbose && log.bgBlue("services: Writing to DB: create new user "+username);
             await ss.runQuery(`
                 INSERT INTO users (username, password)
                 VALUES (?, ?)
@@ -72,13 +71,13 @@ const exported = {
             let user;
     
             if (typeof identifier === 'string') {
-                ss.config.verbose && ss.log.bgCyan("services: Reading from DB: get user via username "+identifier);
+                ss.config.verbose && log.bgCyan("services: Reading from DB: get user via username "+identifier);
                 user = await ss.getOne(`SELECT * FROM users WHERE username = ?`, [identifier]);
             } else if (Number.isInteger(identifier)) {
-                ss.config.verbose && ss.log.bgCyan("services: Reading from DB: get user via ID "+identifier);
+                ss.config.verbose && log.bgCyan("services: Reading from DB: get user via ID "+identifier);
                 user = await ss.getOne(`SELECT * FROM users WHERE account_id = ?`, [identifier]);
             } else {
-                ss.log.red('Invalid identifier type '+identifier);
+                log.red('Invalid identifier type '+identifier);
                 return null;
             };
     
@@ -125,7 +124,7 @@ const exported = {
             };
             userData.ownedItemIds = [...userData.ownedItemIds, item_id];
 
-            ss.config.verbose && ss.log.bgBlue("services: Writing to DB: set new balance + ownedItemIds "+userData.username);
+            ss.config.verbose && log.bgBlue("services: Writing to DB: set new balance + ownedItemIds "+userData.username);
             await ss.runQuery(`
                 UPDATE users 
                 SET currentBalance = ?, eggsSpent = ?, ownedItemIds = ?
@@ -161,7 +160,7 @@ const exported = {
                     };
                     userData.currentBalance += code.eggs_given;
     
-                    ss.config.verbose && ss.log.bgBlue("services: Writing to DB: set new balance + ownedItemIds "+userData.username);
+                    ss.config.verbose && log.bgBlue("services: Writing to DB: set new balance + ownedItemIds "+userData.username);
                     await ss.runQuery(`
                         UPDATE users 
                         SET currentBalance = ?, ownedItemIds = ?
@@ -171,7 +170,7 @@ const exported = {
                     code.uses -= 1;
                     code.used_by = [...code.used_by, userData.account_id];
     
-                    ss.config.verbose && ss.log.bgBlue("services: Writing to DB: update code "+code_key);
+                    ss.config.verbose && log.bgBlue("services: Writing to DB: update code "+code_key);
                     await ss.runQuery(`
                         UPDATE codes 
                         SET uses = ?, used_by = ?

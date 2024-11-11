@@ -1,0 +1,14 @@
+[{
+    "id": 3654,
+    "name": "Classic CSG1",
+    "price": 20000,
+    "item_type_id": 3,
+    "item_type_name": "Primary",
+    "category_name": "Ranger Primary Weapons",
+    "exclusive_for_class": 2,
+    "item_data": {
+        "class": "CSG1",
+        "meshName": "old.csg1"
+    },
+    "is_available": false
+}]

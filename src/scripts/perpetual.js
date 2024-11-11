@@ -9,6 +9,10 @@ import { getTimestamp } from '#constants';
 //legacyshell: perpetual
 import { spawn } from 'child_process';
 import readline from 'readline';
+//legacyshell: logging
+import log from '#coloured-logging';
+//legacyshell: ss
+import { ss } from '#misc';
 //
 
 // optional passing of args instead of the yaml (warning cancer do not use)
@@ -28,7 +32,7 @@ if (typeof fetch !== 'function') {
     process.exit(0);
 }
 
-let ss = misc.instantiateSS(import.meta, process.argv, true);
+misc.instantiateSS(import.meta, process.argv, true);
 
 let server_type = process.argv[2].replace("--","");
 
@@ -101,13 +105,13 @@ let messagesSent = 0;
 
 const logSend = (msg) => {
     msg = `#${getTimestamp()} ${msg}`;
-    ss.log.muted(msg);
+    log.muted(msg);
     appendLog(msg);
 };
 
 const logNoSend = (msg) => {
     msg = `#${getTimestamp()} ${msg}`;
-    ss.log.muted(msg);
+    log.muted(msg);
     appendLog(msg, true);
 };
 

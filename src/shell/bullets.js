@@ -108,9 +108,9 @@ Bullet.prototype.fireThis = function (player, pos, dir, weaponClass) {
     this.dz = Bullet.direction.z * weaponClass.velocity;
 
     this.weaponClass = weaponClass;
-    this.damage = weaponClass.damage;
+    this.damage = weaponClass.damage * player.scale * player.damageModifier;
     this.active = true;
-    this.range = weaponClass.range;
+    this.range = weaponClass.range; 
     this.velocity = weaponClass.velocity;
     var res = Collider.rayCollidesWithMap(pos, dir, Collider.projectileCollidesWithCell.bind(Collider));
     res && (this.actor && this.end.copyFrom(res.pick.pickedPoint), this.range = BABYLON.Vector3.Distance(pos, res.pick.pickedPoint)), this.actor && this.actor.fire()
@@ -132,20 +132,26 @@ Bullet.prototype.update = function (delta) {
                 var dz = .1 * -this.dz;
 
                 function onDestroy (x, y, z, dx, dy, dz) {
-                    var s = explosionSmokeManager.getSprite();
-                    s.animLength = 20 * Math.random() + 30;
-                    s.easing = Ease.outQuint;
-                    s.position.x = x;
-                    s.position.y = y;
-                    s.position.z = z;
-                    s.dx = .1 * dx;
-                    s.dy = .1 * dy;
-                    s.dz = .1 * dz;
-                    s.startSize = .1;
-                    s.endSize = .2 * Math.random() + .4;
-                    s.angle = Math.random() * Math.PI2;
-                    s.rotate = .08 * Math.random() - .04;
-                    s.animColors = bulletHitColors;
+                    if (isClient && !disableBulletSmoke) {
+                        var s = explosionSmokeManager.getSprite();
+                        s.animLength = 20 * Math.random() + 30;
+                        s.easing = Ease.outQuint;
+                        s.position.x = x;
+                        s.position.y = y;
+                        s.position.z = z;
+                        s.dx = .1 * dx;
+                        s.dy = .1 * dy;
+                        s.dz = .1 * dz;
+                        s.startSize = .1;
+                        s.endSize = .2 * Math.random() + .4;
+                        s.angle = Math.random() * Math.PI2;
+                        s.rotate = .08 * Math.random() - .04;
+                        s.animColors = bulletHitColors;
+                    };
+                    
+                    if (isClient && enableBulletHoles) { //bullet holes
+                        bulletHoleManager.addHole(0, x + (dx/4), y + (dy/4), z + (dz/4));
+                    };
                 };
 
                 onDestroy(pos.x, pos.y, pos.z, dx, dy, dz);
@@ -194,7 +200,7 @@ Bullet.prototype.collidesWithPlayer = function (player, point) {
         var dist = BABYLON.Vector3.Cross(tv1, tv2).length();
 
         var dot = -BABYLON.Vector3.Dot(tv1, tv2) * 0.9 + 0.1;
-        let damageMod = this.player.scale * (2 / player.scale);
+        let damageMod = 2;
         // var damage = this.damage * Math.pow(dot, damageExp + Math.pow(dot, damageExp) * damageMod);
         var damage = this.damage * Math.pow(dot, damageExp) * damageMod;
 
@@ -257,7 +263,7 @@ Rocket.prototype.explode = function () {
     if (this.actor) {
         addExplosion(this.x, this.y, this.z, this.damage, this.radius);
         var pos = new BABYLON.Vector3(this.x, this.y, this.z);
-        playSoundIndependent(this.actor.explodeSound, pos);
+        playSoundIndependent(this.actor.explodeSound, {pos});
         //this.actor.explodeSound.setPosition(pos);
         //this.actor.explodeSound.play();
     } else checkExplosionCollisions(this);
@@ -267,7 +273,7 @@ Rocket.prototype.poof = function () {
     if (this.actor) {
         var pos = new BABYLON.Vector3(this.x, this.y, this.z);
         //this.actor.poofSound.setPosition(pos), this.actor.poofSound.play();
-        playSoundIndependent(this.actor.poofSound, pos);
+        playSoundIndependent(this.actor.poofSound, {pos});
         for (var i = 0; i < 10; i++) {
             var dx = .2 * Math.random() - .1,
                 dy = .2 * Math.random() - .1,
@@ -317,7 +323,7 @@ Grenade.prototype.update = function (delta) {
             addExplosion(this.x, this.y, this.z, this.damage, this.radius);
             //what the fuck puppy don't just place audio code here grrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr
             var pos = new BABYLON.Vector3(this.x, this.y, this.z);
-            playSoundIndependent(this.actor.explodeSound, pos);
+            playSoundIndependent(this.actor.explodeSound, {pos});
             //this.actor.explodeSound.setPosition(pos), this.actor.explodeSound.play(), 
             this.actor.remove();
         } else checkExplosionCollisions(this);

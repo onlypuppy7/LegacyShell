@@ -4,6 +4,8 @@ import { Worker } from 'worker_threads';
 import misc from '#misc';
 import extendMath from '#math';
 import { GameTypes, getMapPool } from '#gametypes';
+//legacyshell: ss
+import { ss } from '#misc';
 //
 
 const id_length = 3; //btw you cant just modify this without also adjusting the client's code. do you ever NEED to modify this? no. just have it static.
@@ -15,15 +17,10 @@ const highestRoomID = Math.pow(36, id_length) - 1;
 //4:      1,679,616
 //5:     60,466,176
 
-let ss;
-
-function setSS(newSS) {
-    ss = newSS;
-    extendMath(Math);
-};
 
 class newRoomManager {
     constructor() {
+        (Math);
         this.rooms = new Map();
         this.workers = new Map();
         console.log(`RoomManager initialized.`, this.getUnusedID());
@@ -42,8 +39,35 @@ class newRoomManager {
     };
 
     searchRooms(info) {
+        var thisGameType = GameTypes[info.gameType];
+
+        let roomSelection = this.rooms;
+        if (info.joinType === Comm.Code.joinPublicGame) {
+            roomSelection = this.getRoomsJoinable(roomSelection);
+            roomSelection = this.getRoomsOfJoinType(info.joinType, roomSelection);
+            if (!thisGameType) {
+                thisGameType = Math.getRandomFromList(this.getAllActiveGameTypes(roomSelection));
+                if (!thisGameType) {
+                    thisGameType = Math.getRandomFromList(GameTypes);
+                };
+                info.gameType = thisGameType.value;
+            };
+        };
+
+        var mapPool = thisGameType ? thisGameType.mapPool : "none";
+
+        console.log("determined mapPool", mapPool);
+
         if (info.joinType === Comm.Code.createPrivateGame) {
+            if (!thisGameType) {
+                thisGameType = Math.getRandomFromList(GameTypes);
+                info.gameType = thisGameType.value;
+            };
             console.log("create game?");
+            let remainingMapIds = [...ss.mapAvailability.private];
+            remainingMapIds = getMapPool(remainingMapIds, mapPool, ss.maps);
+            console.log(info.gameType, mapPool, remainingMapIds);
+            info.mapId = remainingMapIds.includes(info.mapId) ? info.mapId : Math.getRandomFromList(remainingMapIds);
             return this.createRoom(info);
         } else if (info.joinType === Comm.Code.joinPrivateGame) {
             if (info.gameId && info.gameId > 0) {
@@ -52,13 +76,12 @@ class newRoomManager {
         } else if (info.joinType === Comm.Code.joinPublicGame) {
             console.log("public game");
             //this is where it gets interesting
-            let roomSelection = this.rooms;
-            roomSelection = this.getRoomsJoinable(roomSelection);
-            roomSelection = this.getRoomsOfJoinType(info.joinType, roomSelection);
             // console.log("joinType", info.joinType, roomSelection);
             roomSelection = this.getRoomsOfGameType(info.gameType, roomSelection);
             // console.log("gameType", info.gameType, roomSelection);
             let remainingMapIds = [...ss.mapAvailability.public];
+            remainingMapIds = getMapPool(remainingMapIds, mapPool, ss.maps);
+            console.log(info.gameType, mapPool, remainingMapIds);
             roomSelection.forEach((room) => {
                 remainingMapIds = remainingMapIds.filter(mapId => mapId !== room.mapId);
             });
@@ -77,9 +100,8 @@ class newRoomManager {
         return null;
     };
 
-    getRoomsJoinable(selection) { //player limit, or anything else
+    getRoomsJoinable(selection = this.rooms) { //player limit, or anything else
         const matchingRooms = [];
-        selection = selection || this.rooms;
         for (const room of selection.values()) {
             if ((room.ready) && room.playerCount < room.playerLimit) {
                 matchingRooms.push(room);
@@ -88,9 +110,8 @@ class newRoomManager {
         return matchingRooms;
     };
 
-    getRoomsOfJoinType(joinType, selection) { //private/public
+    getRoomsOfJoinType(joinType, selection = this.rooms) { //private/public
         const matchingRooms = [];
-        selection = selection || this.rooms;
         for (const room of selection.values()) {
             if (room.joinType === joinType) {
                 matchingRooms.push(room);
@@ -99,15 +120,25 @@ class newRoomManager {
         return matchingRooms;
     };
 
-    getRoomsOfGameType(gameType, selection) { //gamemode
+    getRoomsOfGameType(gameType, selection = this.rooms) { //gamemode
         const matchingRooms = [];
-        selection = selection || this.rooms;
         for (const room of selection.values()) {
             if (room.gameType === gameType) {
                 matchingRooms.push(room);
             };
         };
         return matchingRooms;
+    };
+
+    getAllActiveGameTypes(selection = this.rooms) {
+        const gameTypes = [];
+        for (const room of selection.values()) {
+            var roomGameType = GameTypes[room.gameType];
+            if (!gameTypes.includes(roomGameType)) {
+                gameTypes.push(roomGameType);
+            };
+        };
+        return gameTypes;
     };
 
     getRandomID() {
@@ -188,6 +219,7 @@ class newRoomManager {
             maps: ss.maps,
             items: ss.items,
             permissions: ss.permissions,
+            config: ss.config,
         }]);
 
         worker.postMessage(["createRoom", info]);
@@ -199,7 +231,7 @@ class newRoomManager {
     };
 
     joinRoom(room, msg, ws, ip) {
-        console.log(room.uuids, (msg.uuid))
+        console.log("uuids", room.uuids, msg.uuid)
         if (room.bootedIps.includes(ip)) {
             ws.close(Comm.Close.booted);
         } else if (room.uuids && room.uuids.includes(msg.uuid)) {
@@ -246,6 +278,5 @@ class newRoomManager {
 };
 
 export default {
-    setSS,
     newRoomManager,
 };;
