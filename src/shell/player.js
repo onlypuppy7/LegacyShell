@@ -900,6 +900,12 @@ class Player {
         if (this.team === 0 ? false : (this.team === firedPlayer.team && this.id !== firedPlayer.id)) return;
 
         damage = Math.ceil((damage / this.resistanceModifier) / this.scale);
+
+        if (firedPlayer && firedPlayer.id !== this.id) {
+            var multiplier = this.gameOptions.lifesteal[firedPlayer.team];
+            console.log("lifesteal multiplier", multiplier, damage, damage * multiplier);
+            firedPlayer.heal(damage * multiplier);
+        };
         
         var firedPlayerId = firedPlayer ? firedPlayer.id : null;
 
@@ -922,6 +928,19 @@ class Player {
             output.packInt8U(this.id);
             output.packInt8U(this.hp);
             this.client.sendToOthers(output, "hitThem");
+        };
+    };
+    heal (health) {
+        if (this.isDead() || (!this.playing) || health == 0) return;
+        
+        this.setHp(this.hp + health, this.id);
+
+        if (isServer) {
+            var output = new Comm.Out();
+            output.packInt8U(Comm.Code.heal);
+            output.packInt8U(this.id);
+            output.packInt8U(this.hp);
+            this.client.sendToAll(output, "heal");
         };
     };
     die(firedId) {

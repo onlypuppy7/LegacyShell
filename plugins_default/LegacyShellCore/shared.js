@@ -1,5 +1,5 @@
 //legacyshell: basic
-import { isClient } from "#constants";
+import { isClient, isServer } from "#constants";
 import Comm from "#comm";
 //
 
@@ -34,9 +34,8 @@ export const LegacyShellCorePlugin = {
             poolSize: 50,
             collect: function (player, applyToWeaponIdx) {
                 if (player.hp === 100) return false
-                player.setHp(player.hp + 50);
-                if (player.actor) {
-                    playSoundIndependent2D("ammo");
+                if (isServer) {
+                    player.heal(50);
                 };
                 return true;
             }
@@ -79,20 +78,6 @@ export const LegacyShellCorePlugin = {
                 },
             }
         });
-
-        // GameTypes.push({
-        //     shortName: "Health Pack",
-        //     longName: "Health Pack Test",
-        //     codeName: "healthpacktest", //used for creation of GameType enum
-        //     mapPool: "FFA", //the pool of maps to use. helps with avoiding having to assign game types to maps retroactively when making a new game mode
-        //     options: {
-        //         itemsEnabled: [ //itemType enum, spawn per how much surface area, minimum
-        //             [ItemTypes.AMMO, 35, 4],
-        //             [ItemTypes.GRENADE, 75, 5],
-        //             [ItemTypes.HEALTH, 55, 5],
-        //         ],
-        //     }
-        // });
 
         GameTypes.push({
             shortName: "Scale (Classic)",
@@ -147,6 +132,112 @@ export const LegacyShellCorePlugin = {
                     0.25, //team2
                 ],
                 teamSwitchMaximumDifference: 1,
+            }
+        });
+
+        GameTypes.push({
+            shortName: "Lifesteal (FFA)",
+            longName: "Lifesteal (Free For All)",
+            codeName: "lifestealffa", //used for creation of GameType enum
+            mapPool: "FFA", //the pool of maps to use. helps with avoiding having to assign game types to maps retroactively when making a new game mode
+            options: {
+                itemsEnabled: [ //itemType enum, spawn per how much surface area, minimum
+                    [ItemTypes.AMMO, 35, 4],
+                    [ItemTypes.GRENADE, 75, 5],
+                ],
+                regenModifier: [
+                    .5, //ffa
+                    .5, //team1
+                    .5, //team2
+                ],
+                lifesteal: [
+                    0.5, //ffa
+                    0.5, //team1
+                    0.5, //team2
+                ],
+            }
+        });
+
+        GameTypes.push({
+            shortName: "Lifesteal (Teams)",
+            longName: "Lifesteal (Teams)",
+            codeName: "lifestealteams", //used for creation of GameType enum
+            mapPool: "Teams", //the pool of maps to use. helps with avoiding having to assign game types to maps retroactively when making a new game mode
+            options: {
+                teamsEnabled: true,
+                itemsEnabled: [ //itemType enum, spawn per how much surface area, minimum
+                    [ItemTypes.AMMO, 35, 4],
+                    [ItemTypes.GRENADE, 75, 5],
+                ],
+                regenModifier: [
+                    .5, //ffa
+                    .5, //team1
+                    .5, //team2
+                ],
+                lifesteal: [
+                    0.5, //ffa
+                    0.5, //team1
+                    0.5, //team2
+                ],
+            }
+        });
+
+        GameTypes.push({
+            shortName: "Apocalypse (FFA)",
+            longName: "Apocalypse (Free For All)",
+            codeName: "apocalypseffa", //used for creation of GameType enum
+            mapPool: "FFA", //the pool of maps to use. helps with avoiding having to assign game types to maps retroactively when making a new game mode
+            options: {
+                itemsEnabled: [ //itemType enum, spawn per how much surface area, minimum
+                    [ItemTypes.AMMO, 35, 4],
+                    [ItemTypes.GRENADE, 75, 5],
+                    [ItemTypes.HEALTH, 125, 2], //make them rare
+                ],
+                weather: {
+                    rainEnabled: true,
+                    stormEnabled: true,
+                },
+                time: "night",
+                regenModifier: [
+                    -.75, //ffa
+                    -.75, //team1
+                    -.75, //team2
+                ],
+                lifesteal: [
+                    0.5, //ffa
+                    0.5, //team1
+                    0.5, //team2
+                ],
+            }
+        });
+
+        GameTypes.push({
+            shortName: "Apocalypse (Teams)",
+            longName: "Apocalypse (Teams)",
+            codeName: "apocalypseteams", //used for creation of GameType enum
+            mapPool: "Teams", //the pool of maps to use. helps with avoiding having to assign game types to maps retroactively when making a new game mode
+            options: {
+                teamsEnabled: true,
+                itemsEnabled: [ //itemType enum, spawn per how much surface area, minimum
+                    [ItemTypes.AMMO, 35, 4],
+                    [ItemTypes.GRENADE, 75, 5],
+                    [ItemTypes.HEALTH, 125, 2], //make them rare
+                ],
+                weather: {
+                    rainEnabled: true,
+                    stormEnabled: true,
+                },
+                time: "night",
+                regenModifier: [
+                    -.75, //ffa
+                    -.75, //team1
+                    -.75, //team2
+                ],
+                lifesteal: [
+                    0.5, //ffa
+                    0.5, //team1
+                    0.5, //team2
+                ],
             }
         });
     },

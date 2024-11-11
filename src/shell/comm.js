@@ -550,6 +550,13 @@ const Comm = {
          */
         doThunderStrike: 55,
 
+        /** LEGACYSHELL ADDED
+         * 
+         * SERVER: heals a player
+         * @constant {number}
+         */
+        heal: 56,
+
         /** CLIENT: used by bwd admins to look at ips and stuff (scary). 
         * @constant {number}
         */
