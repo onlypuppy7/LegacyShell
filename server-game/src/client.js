@@ -289,10 +289,12 @@ class newClient {
                                 var output = new Comm.Out();
                                 if (text.startsWith("@")) {
                                     var mentions = parseMentions(text, this);
-                                    this.room.packChat(output, text, this.id, Comm.Chat.whisper);
-                                    mentions[0].forEach(player => {
-                                        if (player !== this.player) this.sendToOne(output, player.id, "chat: " + text);
-                                    });
+                                    if (mentions[0]) {
+                                        this.room.packChat(output, text, this.id, Comm.Chat.whisper);
+                                        mentions[0].forEach(player => {
+                                            if (player !== this.player) this.sendToOne(output, player.id, "chat: " + text);
+                                        });
+                                    };
                                 } else {
                                     this.room.packChat(output, text, this.id, Comm.Chat.user);
                                     this.sendToOthers(output, this.id, "chat: " + text);

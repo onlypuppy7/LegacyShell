@@ -905,6 +905,7 @@ class Player {
             var multiplier = this.gameOptions.lifesteal[firedPlayer.team];
             console.log("lifesteal multiplier", multiplier, damage, damage * multiplier);
             firedPlayer.heal(damage * multiplier);
+            this.firedPlayer = firedPlayer;
         };
         
         var firedPlayerId = firedPlayer ? firedPlayer.id : null;
@@ -970,10 +971,21 @@ class Player {
             })();
         };
     };
-    setHp(newHp, firedId = this.id) {
+    setHp(newHp, firedId) {
         this.hp = Math.clamp(newHp, 0, 100);
 
-        if (this.hp < 1) this.die(firedId);
+        if (this.hp < 1) {
+            if (firedId === undefined) {
+                if (this.firedPlayer) {
+                    this.die(this.firedPlayer.id);
+                    this.firedPlayer.scoreKill(this);
+                } else {
+                    this.die(this.id);
+                };
+            } else {
+                this.die(firedId);
+            };
+        };
     };
     respawn(newPos) {
         this.x = newPos.x;
@@ -981,6 +993,7 @@ class Player {
         this.z = newPos.z;
         this.yaw = newPos.yaw || this.yaw;
         this.pitch = newPos.pitch || this.pitch;
+        this.firedPlayer = null;
 
         this.respawnQueued = false;
         this.playing = true;
