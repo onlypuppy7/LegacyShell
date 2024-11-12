@@ -135,6 +135,56 @@ export var CharClass = {
 
 CharClass.length = Object.keys(CharClass).length;
 
+export var itemIdOffsetsByNameOLD = {
+    Hat:        1000,
+    Stamp:      2000,
+
+    base:       3000,
+
+    Cluck9mm:   3000,
+    
+    Eggk47:     3100,
+    CSG1:       3400,
+    DozenGauge: 3600,
+    RPEGG:      3800,
+};
+
+/**
+ * legacyshell added
+ * 
+ * just for converting old item ids to new ones
+ * 
+ * @enum {number}
+ */
+export var itemIdOffsetsOLD = {
+    [ItemType.Hat]: itemIdOffsetsByNameOLD.Hat - 1,
+    [ItemType.Stamp]: itemIdOffsetsByNameOLD.Stamp - 1,
+    [ItemType.Primary]: {
+        base: itemIdOffsetsByNameOLD.base,
+        [CharClass.Soldier]: itemIdOffsetsByNameOLD.Eggk47 - itemIdOffsetsByNameOLD.base,
+        [CharClass.Scrambler]: itemIdOffsetsByNameOLD.DozenGauge - itemIdOffsetsByNameOLD.base,
+        [CharClass.Ranger]: itemIdOffsetsByNameOLD.CSG1 - itemIdOffsetsByNameOLD.base,
+        [CharClass.Eggsploder]: itemIdOffsetsByNameOLD.RPEGG - itemIdOffsetsByNameOLD.base
+    },
+    [ItemType.Secondary]: itemIdOffsetsByNameOLD.Cluck9mm
+};
+
+
+
+export var itemIdOffsetsByName = {
+    Hat:        1000,
+    Stamp:      2000,
+
+    base:       3000,
+
+    Cluck9mm:   3000,
+    
+    Eggk47:     3100,
+    CSG1:       3400,
+    DozenGauge: 3600,
+    RPEGG:      3800,
+};
+
 /**
  * legacyshell added
  * 
@@ -143,16 +193,16 @@ CharClass.length = Object.keys(CharClass).length;
  * @enum {number}
  */
 export var itemIdOffsets = {
-    [ItemType.Hat]: 999,
-    [ItemType.Stamp]: 1999,
+    [ItemType.Hat]: itemIdOffsetsByName.Hat - 1,
+    [ItemType.Stamp]: itemIdOffsetsByName.Stamp - 1,
     [ItemType.Primary]: {
-        base: 3000,
-        [CharClass.Soldier]: 100,
-        [CharClass.Scrambler]: 600,
-        [CharClass.Ranger]: 400,
-        [CharClass.Eggsploder]: 800
+        base: itemIdOffsetsByName.base,
+        [CharClass.Soldier]: itemIdOffsetsByName.Eggk47 - itemIdOffsetsByName.base,
+        [CharClass.Scrambler]: itemIdOffsetsByName.DozenGauge - itemIdOffsetsByName.base,
+        [CharClass.Ranger]: itemIdOffsetsByName.CSG1 - itemIdOffsetsByName.base,
+        [CharClass.Eggsploder]: itemIdOffsetsByName.RPEGG - itemIdOffsetsByName.base
     },
-    [ItemType.Secondary]: 3000
+    [ItemType.Secondary]: itemIdOffsetsByName.Cluck9mm
 };
 
 export var Team = {

@@ -27,7 +27,7 @@ const CatalogConstructor = function (importedItems) {
     this.findItemById = function (itemId) {
         return this.findItemInListById(itemId, this.Items)
     };
-    this.findItemBy8BitItemId = function (itemType, classIdx, itemId8Bit) {
+    this.findItemBy8BitItemId = function (itemType, classIdx, itemId8Bit, itemIdOffsetsP = itemIdOffsets) {
         if (!this.isSetup) {
             this.setupCatalog();
         };
@@ -38,22 +38,22 @@ const CatalogConstructor = function (importedItems) {
         switch (itemType) {
             case ItemType.Hat:
                 if (itemId8Bit === 0) return null;
-                realItemId += itemIdOffsets[itemType];
+                realItemId += itemIdOffsetsP[itemType];
                 return this.findItemInListById(realItemId, this.hats);
             case ItemType.Stamp:
                 if (itemId8Bit === 0) return null;
-                realItemId += itemIdOffsets[itemType];
+                realItemId += itemIdOffsetsP[itemType];
                 return this.findItemInListById(realItemId, this.stamps);
             case ItemType.Primary:
-                realItemId += itemIdOffsets[itemType].base;
-                realItemId += itemIdOffsets[itemType][classIdx];
+                realItemId += itemIdOffsetsP[itemType].base;
+                realItemId += itemIdOffsetsP[itemType][classIdx];
                 return this.findItemInListById(realItemId, this.forClass[classIdx].forWeaponSlot[Slot.Primary]);
             case ItemType.Secondary:
-                realItemId += itemIdOffsets[itemType];
+                realItemId += itemIdOffsetsP[itemType];
                 return this.findItemInListById(realItemId, this.forClass[classIdx].forWeaponSlot[Slot.Secondary])
         }
     };
-    this.get8BitItemId = function (item, classIdx) {
+    this.get8BitItemId = function (item, classIdx, itemIdOffsetsP = itemIdOffsets) {
         if (item === null) return 0;
         if (!this.isSetup) {
             this.setupCatalog();
@@ -66,18 +66,18 @@ const CatalogConstructor = function (importedItems) {
         switch (item.item_type_id) {
             case ItemType.Hat:
                 if (itemId8Bit === 0) return null;
-                itemId8Bit -= itemIdOffsets[ItemType.Hat];
+                itemId8Bit -= itemIdOffsetsP[ItemType.Hat];
                 break;
             case ItemType.Stamp:
                 if (itemId8Bit === 0) return null;
-                itemId8Bit -= itemIdOffsets[ItemType.Stamp];
+                itemId8Bit -= itemIdOffsetsP[ItemType.Stamp];
                 break;
             case ItemType.Primary:
-                itemId8Bit -= itemIdOffsets[ItemType.Primary].base;
-                itemId8Bit -= itemIdOffsets[ItemType.Primary][classIdx];
+                itemId8Bit -= itemIdOffsetsP[ItemType.Primary].base;
+                itemId8Bit -= itemIdOffsetsP[ItemType.Primary][classIdx];
                 break;
             case ItemType.Secondary:
-                itemId8Bit -= itemIdOffsets[ItemType.Secondary];
+                itemId8Bit -= itemIdOffsetsP[ItemType.Secondary];
                 break;
         };
         return itemId8Bit;
