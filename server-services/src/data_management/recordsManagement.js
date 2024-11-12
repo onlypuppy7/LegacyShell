@@ -2,6 +2,8 @@
 import fs from 'node:fs';
 import yaml from 'js-yaml';
 import path from 'node:path';
+//legacyshell: recs
+import { pathToFileURL } from 'url';
 //legacyshell: logging
 import log from '#coloured-logging';
 //legacyshell: ss
@@ -82,6 +84,7 @@ const exported = {
             db.run(`
             CREATE TABLE IF NOT EXISTS items (
                 id INTEGER PRIMARY KEY,
+                meta_id INTEGER,
                 name TEXT DEFAULT 'Unknown item',
                 is_available BOOLEAN DEFAULT TRUE,
                 price INTEGER DEFAULT 0,
@@ -196,21 +199,27 @@ const exported = {
             `);
         });
     },
-    insertItems: async (jsonDir = path.join(ss.currentDir, 'src', 'items')) => {
-        const files = fs.readdirSync(jsonDir);
+    insertItems: async (jsDir = path.join(ss.currentDir, 'src', 'items')) => {
+        const files = fs.readdirSync(jsDir);
 
         for (const file of files) {
-            if (path.extname(file) === '.json') {
+            if (path.extname(file) === '.js') {
                 log.beige(`[Items] Inserting: ${file}`);
-                const filePath = path.join(jsonDir, file);
-                const fileContent = fs.readFileSync(filePath, 'utf8');
-                const jsonData = JSON.parse(fileContent);
+                const filePath = path.join(jsDir, file);
+                const fileURL = pathToFileURL(filePath);
 
-                for (const item of jsonData) {
-                    await ss.runQuery(`
-                        INSERT OR REPLACE INTO items (id, name, is_available, price, item_class, item_type_id, item_type_name, exclusive_for_class, item_data)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    `, [item.id, item.name, item.is_available, item.price, path.parse(file).name, item.item_type_id, item.item_type_name, item.exclusive_for_class, JSON.stringify(item.item_data)]);
+                const jsData = (await import(fileURL)).default;
+
+                console.log(jsData);
+
+                for (let itemType in jsData) {
+                    const items = jsData[itemType];
+                    for (const item of items) {
+                        await ss.runQuery(`
+                            INSERT OR REPLACE INTO items (id, meta_id, name, is_available, price, item_class, item_type_id, item_type_name, exclusive_for_class, item_data)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        `, [item.id, item.meta_id, item.name, item.is_available, item.price, path.parse(itemType).name, item.item_type_id, item.item_type_name, item.exclusive_for_class, JSON.stringify(item.item_data)]);
+                    };
                 };
             };
         };
