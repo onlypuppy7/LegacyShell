@@ -149,6 +149,20 @@ export var itemIdOffsetsByNameOLD = {
     RPEGG:      3800,
 };
 
+Object.assign(itemIdOffsetsByNameOLD, { //alt names in case its needed (its not my fault shell uses like 4 fucking names for the same exact thing)
+    Hats: itemIdOffsetsByNameOLD.Hat,
+    Stamps: itemIdOffsetsByNameOLD.Stamp,
+
+    Primary: itemIdOffsetsByNameOLD.base,
+
+    Soldier: itemIdOffsetsByNameOLD.Eggk47,
+    Scrambler: itemIdOffsetsByNameOLD.DozenGauge,
+    Ranger: itemIdOffsetsByNameOLD.CSG1,
+    Eggsploder: itemIdOffsetsByNameOLD.RPEGG,
+
+    Secondary: itemIdOffsetsByNameOLD.Cluck9mm
+});
+
 /**
  * legacyshell added
  * 
@@ -172,18 +186,32 @@ export var itemIdOffsetsOLD = {
 
 
 export var itemIdOffsetsByName = {
-    Hat:        1000,
-    Stamp:      2000,
+    Hat:         50e3,
+    Stamp:      100e3,
 
-    base:       3000,
+    base:       150e3,
 
-    Cluck9mm:   3000,
+    Cluck9mm:   150e3,
     
-    Eggk47:     3100,
-    CSG1:       3400,
-    DozenGauge: 3600,
-    RPEGG:      3800,
+    Eggk47:     200e3,
+    CSG1:       250e3,
+    DozenGauge: 300e3,
+    RPEGG:      350e3,
 };
+
+Object.assign(itemIdOffsetsByName, { //alt names in case its needed (its not my fault shell uses like 4 fucking names for the same exact thing)
+    Hats: itemIdOffsetsByName.Hat,
+    Stamps: itemIdOffsetsByName.Stamp,
+
+    Primary: itemIdOffsetsByName.base,
+
+    Soldier: itemIdOffsetsByName.Eggk47,
+    Scrambler: itemIdOffsetsByName.DozenGauge,
+    Ranger: itemIdOffsetsByName.CSG1,
+    Eggsploder: itemIdOffsetsByName.RPEGG,
+
+    Secondary: itemIdOffsetsByName.Cluck9mm
+});
 
 /**
  * legacyshell added

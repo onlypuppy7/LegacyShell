@@ -57,7 +57,7 @@ export class Plugin {
     };
 
     async initTables(data) { //async operation requires awaits to ensure proper order
-        // await data.ss.recs.insertItems(path.join(this.thisDir, 'items'));
+        await data.ss.recs.insertItems(path.join(this.thisDir, 'items'));
         await data.ss.recs.insertMaps(path.join(this.thisDir, 'maps'));
     };
 
