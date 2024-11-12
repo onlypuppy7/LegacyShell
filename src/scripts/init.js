@@ -129,7 +129,7 @@ function askDevLogging(callback) {
     });
 };
 
-function askAuthServer(callback) {
+async function askAuthServer(callback) {
     // Initialize the database
     const servicesStoreFolder = path.join(ss.rootDir, 'server-services', 'store');
 
@@ -200,14 +200,16 @@ function askAuthServer(callback) {
     });
 };
 
-copyYamlFiles(() => {
-    askVerboseLogging(() => {
-        askDevLogging(() => {
-            askAuthServer(() => {
-                log.success("\nLegacyShell has been set up for use!");
-
-                rl.close();
+(async () => {
+    copyYamlFiles(() => {
+        askVerboseLogging(() => {
+            askDevLogging(async () => {
+                await askAuthServer(() => {
+                    log.success("\nLegacyShell has been set up for use!");
+    
+                    rl.close();
+                });
             });
         });
     });
-});
+})();

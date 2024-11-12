@@ -1,12 +1,12 @@
 //legacyshell: catalog
-import { isClient, ItemType, CharClass, Slot, itemIdOffsets, item_classes } from '#constants';
+import { isClient, ItemType, CharClass, Slot, item_classes, itemIdOffsets, itemIdOffsetsOLD, itemIdOffsetsByName, itemIdOffsetsByNameOLD } from '#constants';
 //
 
 //(server-only-start)
 //(server-only-end)
 
 // [LS] Catalog CONSTRUCTOR
-const CatalogConstructor = function (importedItems) {
+export const CatalogConstructor = function (importedItems) {
     if (null == importedItems) throw "Items is undefined or null, cannot create Catalog";
     this.isSetup = false;
     this.Items = importedItems;
@@ -47,12 +47,14 @@ const CatalogConstructor = function (importedItems) {
             case ItemType.Primary:
                 realItemId += itemIdOffsetsP[itemType].base;
                 realItemId += itemIdOffsetsP[itemType][classIdx];
+                console.log(realItemId, this.findItemInListById(realItemId, this.forClass[classIdx].forWeaponSlot[Slot.Primary]));
                 return this.findItemInListById(realItemId, this.forClass[classIdx].forWeaponSlot[Slot.Primary]);
             case ItemType.Secondary:
                 realItemId += itemIdOffsetsP[itemType];
                 return this.findItemInListById(realItemId, this.forClass[classIdx].forWeaponSlot[Slot.Secondary])
         }
     };
+    //its not really 8bit any more
     this.get8BitItemId = function (item, classIdx, itemIdOffsetsP = itemIdOffsets) {
         if (item === null) return 0;
         if (!this.isSetup) {
@@ -138,6 +140,14 @@ const CatalogConstructor = function (importedItems) {
         this.isSetup = true
     };
     false === this.isSetup && this.setupCatalog();
+};
+
+export function convertOldItemIdToMetaId(id, type, oldOffsets = itemIdOffsetsByNameOLD) {
+    return id - oldOffsets[type];
+};
+
+export function convertMetaIdToAbsoluteId(id, type, offsets = itemIdOffsetsByName) {
+    return id + offsets[type];
 };
 
 export default CatalogConstructor;

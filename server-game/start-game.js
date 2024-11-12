@@ -66,11 +66,11 @@ export default async function run () {
                                     msg.gameId = input.unPackInt16U(); //this is the ID of the room
                                     msg.gameKey = input.unPackInt16U(); //who knows what this does.
                                     msg.classIdx = input.unPackInt8U(); //selected weapon
-                                    msg.primary_item_id = input.unPackInt8U(); //primary weapon skin (only accept if signed in btw)
-                                    msg.secondary_item_id = input.unPackInt8U(); //secondary weapon skin (only accept if signed in)
+                                    msg.primary_item_id = input.unPackInt16U(); //primary weapon skin (only accept if signed in btw)
+                                    msg.secondary_item_id = input.unPackInt16U(); //secondary weapon skin (only accept if signed in)
                                     msg.colorIdx = input.unPackInt8U(); //selected colour (0-6, 8-13 if vip)
-                                    msg.hatId = input.unPackInt8U(); //ignore if not logged in (+999)
-                                    msg.stampId = input.unPackInt8U(); //ignore if not logged in (+1999)
+                                    msg.hatId = input.unPackInt16U(); //ignore if not logged in (+999)
+                                    msg.stampId = input.unPackInt16U(); //ignore if not logged in (+1999)
                                     msg.nickname = input.unPackString(); //NOT the username!
                                     msg.uuid = input.unPackInt32U();
                                     //additional stuff provided they are signed in
