@@ -25,12 +25,16 @@ permissions: # user must have permissions above or equal to the set values.
     joinPrivateGame: 0
     createPrivateGame: 0
 
-  cmds: # format: [pubs/bypass owner, privs, require owner in privs]
-    warp: [0, 0, false] # anyone can do in any room
+  cmds:
+    # if you want to add custom permissions for commands and stuff, do it here.
+    # each command has an identifier.
+    # make a new line for each command, with the identifier, followed by the permission options
 
-    announce: [10, 10, false] # mod required
+    # format: [pubs/bypass owner, privs, require owner in privs]
 
-    notify: [10, 0, true] # mod required in pub, or owner in priv
-    roomLimit: [10, 0, true]
-    boot: [10, 0, true]
-    warpall: [10, 0, true]
+    ###########
+    # examples:
+
+    # warp: [0, 0, false] # anyone can do in any room
+    # announce: [10, 10, false] # mod required
+    # notify: [10, 0, true] # mod required in pub, or owner in priv
