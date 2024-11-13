@@ -2,8 +2,13 @@
 
 servicesURL: "wss://services.legacyshell.com:443"
 
-minify: true #this lags startup of the server by a few seconds (to half a minute), in theory though will reduce lag longer term for both clients and the server itself
-iif: true #iif means immediately invoked function. in other words, hides vars from the console. good for making messing a little harder.
+#this lags startup of the server by a few seconds (to half a minute)
+#in theory though will reduce lag longer term for both clients and the server itself
+minify: true 
+
+#iif means immediately invoked function. in other words, hides vars from the console. good for making messing a little harder.
+#note that its nowhere close to foolproof at all, but at least forces someone to have to make a script to change things
+iif: true
 
 discordServer: F3Xh5bhXTr # do NOT put anything except the ending id/vanity as the rest is filled in!
 

@@ -28,6 +28,10 @@ const storeFolder = path.join(ss.rootDir, 'store');
 const configFolderPath = path.join(storeFolder, 'config');
 const defaultConfigFolderPath = path.join(ss.rootDir, 'src', 'defaultconfig');
 
+//make plugin folder
+const pluginFolder = path.join(ss.rootDir, 'plugins');
+if (!fs.existsSync(pluginFolder)) fs.mkdirSync(pluginFolder);
+
 function copyYamlFiles(callback) {
     if (!fs.existsSync(configFolderPath)) {
         fs.mkdirSync(configFolderPath, { recursive: true });

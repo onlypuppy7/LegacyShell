@@ -1,7 +1,15 @@
-# configurable client settings
+# configurable game settings
 
+#the port on your device to use
 port: 13372
 
+#the services server to sync with
+#eg, if you want to make an extra region for the public instance, it would be "wss://services.legacyshell.com"
+#otherwise for local usage you can leave as "ws://localhost:13371"
 services_server: "ws://localhost:13371"
 
-auth_key: "AUTH_KEY" #this is given by the owner of the services server, and can be revoked.
+#this is given by the owner of the services server, and can be revoked
+#you cannot act as an endorsed game server without this key from the services server owner
+#this is cause you wont even show up without it, or be able to access account data, or add kills/deaths to the database
+#if you are running a local instance, run the init script to hopefully fill this in if it is unchanged
+auth_key: "AUTH_KEY"
