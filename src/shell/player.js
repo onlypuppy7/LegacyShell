@@ -978,11 +978,11 @@ class Player {
         };
     };
     setHp(newHp, firedId) {
-        // console.log("setHp", newHp, firedId);
+        console.log("setHp", newHp, firedId, !!this.firedPlayer);
 
         this.hp = Math.clamp(newHp, 0, 100);
 
-        if (this.hp <= 0) {
+        if (this.hp <= 0 && this.playing) {
             if (firedId === undefined) {
                 if (this.firedPlayer) {
                     this.die(this.firedPlayer.id);
@@ -993,6 +993,7 @@ class Player {
             } else {
                 this.die(firedId);
             };
+            this.firedPlayer = null;
         };
     };
     respawn(newPos) {
