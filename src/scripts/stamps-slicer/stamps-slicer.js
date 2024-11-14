@@ -8,6 +8,7 @@ import webp from 'webp-converter';
 import path from 'path';
 
 import { items } from './items.js';
+import { filterName } from '#stampsGenerator';
 
 const imageUrl = 'https://shellshock.io/img/stamps.webp';
 const outputDir = './src/scripts/stamps-slicer/store';
@@ -62,7 +63,7 @@ async function cutImage() {
         var name = `${outputDir}/tile_${count}.png`;
         if (stampPositions[JSON.stringify({ x, y })]) {
           name = `${stampPositions[JSON.stringify({ x, y })]}`;
-          name = name.replace(/[?\/\<]/g, '_'); //just the specific ones causing issues
+          name = filterName(name);
           name = `${outputDir}/${name}.png`;
           console.log(`Exporting stamp ${stampPositions[JSON.stringify({ x, y })]} to ${name}`);
           fs.writeFileSync(name, buffer);
