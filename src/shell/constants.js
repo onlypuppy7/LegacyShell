@@ -298,6 +298,8 @@ export var weaponStats = {
     }
 };
 
+export const stampSize = 128;
+
 export const maxChatWidth = 280;
 export var maxChatCount = 6; //max amount of messages to be displayed at once (default 6)
 

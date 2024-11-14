@@ -12,38 +12,40 @@ import { ss } from '#misc'
 import { convertMetaIdToAbsoluteId, convertOldItemIdToMetaId } from '#catalog';
 //
 
+var usersTable = `
+    CREATE TABLE IF NOT EXISTS users (
+        account_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE,
+        password TEXT,
+        authToken TEXT,
+        kills INTEGER DEFAULT 0,
+        deaths INTEGER DEFAULT 0,
+        streak INTEGER DEFAULT 0,
+        currentBalance INTEGER DEFAULT 1000,
+        eggsSpent INTEGER DEFAULT 0,
+        ownedItemIds TEXT DEFAULT '[50001,50002,50003,50004,50005,50006,100001,100002,100003,100004,100005,100006,200000,300000,250000,350000,150000]',  -- Will store as JSON string
+        loadout TEXT DEFAULT '{"primaryId":[200000,300000,250000,350000],"secondaryId":[150000,150000,150000,150000],"classIdx":0,"colorIdx":0,"hatId":null,"stampId":null}',       -- Will store as JSON string
+        version INTEGER DEFAULT 1,
+
+        upgradeProductId INTEGER DEFAULT 0,
+        upgradeMultiplier INTEGER DEFAULT NULL,
+        upgradeAdFree BOOLEAN DEFAULT TRUE,
+        upgradeExpiryDate INTEGER DEFAULT 0,
+
+        maybeSchoolEmail INTEGER DEFAULT NULL,
+        adminRoles INTEGER DEFAULT 0,
+        dateCreated INTEGER DEFAULT (strftime('%s', 'now')),
+        dateModified INTEGER DEFAULT (strftime('%s', 'now'))
+    )
+`;
+
 const exported = {
     initDB: (db) => {
         db.serialize(exported.initTables(db));
     },
     initTables: (db) => {
         //USERS
-        db.run(`
-            CREATE TABLE IF NOT EXISTS users (
-                account_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT UNIQUE,
-                password TEXT,
-                authToken TEXT,
-                kills INTEGER DEFAULT 0,
-                deaths INTEGER DEFAULT 0,
-                streak INTEGER DEFAULT 0,
-                currentBalance INTEGER DEFAULT 1000,
-                eggsSpent INTEGER DEFAULT 0,
-                ownedItemIds TEXT DEFAULT '[1001,1002,1003,1004,1005,1006,2001,2002,2003,2004,2005,2006,3100,3600,3400,3800,3000]',  -- Will store as JSON string
-                loadout TEXT DEFAULT '{"primaryId":[3100,3600,3400,3800],"secondaryId":[3000,3000,3000,3000],"classIdx":0,"colorIdx":0,"hatId":null,"stampId":null}',       -- Will store as JSON string
-                version INTEGER DEFAULT 1,
-    
-                upgradeProductId INTEGER DEFAULT 0,
-                upgradeMultiplier INTEGER DEFAULT NULL,
-                upgradeAdFree BOOLEAN DEFAULT TRUE,
-                upgradeExpiryDate INTEGER DEFAULT 0,
-    
-                maybeSchoolEmail INTEGER DEFAULT NULL,
-                adminRoles INTEGER DEFAULT 0,
-                dateCreated INTEGER DEFAULT (strftime('%s', 'now')),
-                dateModified INTEGER DEFAULT (strftime('%s', 'now'))
-            )
-        `);
+        db.run(usersTable);
     
         db.run(`
             CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
@@ -202,11 +204,18 @@ const exported = {
             END;
         `);
 
+        //FLAGS
+        db.run(`
+        CREATE TABLE IF NOT EXISTS flags (
+            name TEXT PRIMARY KEY DEFAULT 'flag',
+            value TEXT DEFAULT 'value'
+        )
+        `);
+
         log.beige('Initialised tables if needed');
     },
     performConversionCheck: async () => {
         //code to check if items table has meta_id column
-
         const columns = await ss.getAll(`PRAGMA table_info(items)`);
         const hasMetaIdColumn = columns.some(column => column.name === 'meta_id');
 
@@ -285,6 +294,45 @@ const exported = {
             //delete the old table (will force reinseration of items)
             await ss.runQuery('DROP TABLE items');
             exported.initTables(ss.db);
+        };
+    },
+    updateUserDefaults: async () => { //i hate sqlite this is so stupid
+        var hasFlag = await ss.getOne(`SELECT * FROM flags WHERE name = 'user_defaults_updated'`);
+
+        if (hasFlag) return;
+
+        log.info('');
+        log.info('########################################################');
+        log.info('########################################################');
+        log.info('###### IMPORTANT: Updating user defaults ###############');
+        log.info('########################################################');
+        log.info('########################################################');
+        log.info('');
+
+        try {
+            await ss.runQuery('BEGIN TRANSACTION');
+            await ss.runQuery("ALTER TABLE users RENAME TO old_users;")
+            await ss.runQuery(usersTable);
+            await ss.runQuery(`INSERT INTO users (
+                    account_id, username, password, authToken, kills, deaths, streak, currentBalance,
+                    eggsSpent, ownedItemIds, loadout, version, upgradeProductId, upgradeMultiplier,
+                    upgradeAdFree, upgradeExpiryDate, maybeSchoolEmail, adminRoles, dateCreated, dateModified
+                )
+                    SELECT
+                    account_id, username, password, authToken, kills, deaths, streak, currentBalance,
+                    eggsSpent, ownedItemIds, loadout, version, upgradeProductId, upgradeMultiplier,
+                    upgradeAdFree, upgradeExpiryDate, maybeSchoolEmail, adminRoles, dateCreated, dateModified
+                FROM old_users;`)
+            await ss.runQuery('DROP TABLE old_users;');
+            await ss.runQuery('COMMIT');
+            //add flag for user defaults update
+            await ss.runQuery(`
+                INSERT OR REPLACE INTO flags (name, value)
+                VALUES ('user_defaults_updated', '1')
+            `);
+        } catch (error) {
+            await ss.runQuery('ROLLBACK');
+            console.error('Error updating user defaults:', error);
         };
     },
     insertItems: async (jsDir = path.join(ss.currentDir, 'src', 'items')) => {

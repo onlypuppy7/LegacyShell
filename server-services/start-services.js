@@ -66,8 +66,9 @@ export default async function run () {
     const initTables = async () => {
         try {
             //ITEMS TABLE
-            ss.config.verbose && log.bgCyan("services: Reading from DB: perform outdated items check");
+            ss.config.verbose && log.bgCyan("services: Reading from DB: perform outdated items/user table check");
             await recs.performConversionCheck();
+            await recs.updateUserDefaults();
 
             ss.config.verbose && log.bgCyan("services: Reading from DB: count items");
             if ((await ss.getOne('SELECT COUNT(*) AS count FROM items')).count > 0) {

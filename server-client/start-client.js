@@ -10,6 +10,7 @@ import wsrequest from '#wsrequest';
 import express from 'express';
 import prepareModified from '#prepare-modified';
 import { spawn } from 'cross-spawn';
+import { prepareStamps } from '#stampsGenerator';
 //legacyshell: logging
 import log from '#coloured-logging';
 //legacyshell: ss
@@ -82,6 +83,16 @@ export default async function run () {
                 await plugins.emit('openAfterDefault', { ss, app });
 
                 retrieved = 2;
+
+                try {
+                    await plugins.emit('beforePrepareStamps', { ss, app });
+                    await prepareStamps();
+                    await plugins.emit('afterPrepareStamps', { ss, app });
+                } catch (error) {
+                    console.error('Stamp preparation failed:', error);
+                    process.exit(1);
+                };
+
                 try {
                     await plugins.emit('beforePrepareModified', { ss, app });
                     await prepareModified();

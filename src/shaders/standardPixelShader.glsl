@@ -18,6 +18,8 @@ uniform vec3 colorMult;
 uniform vec4 outlineColor;
 uniform sampler2D textureSampler;
 uniform vec2 stampOffset;
+uniform vec2 uvLowerBound;
+uniform vec2 uvUpperBound;
 uniform vec3 sunColor;
 
 // Varying
@@ -91,7 +93,7 @@ void main(void)
     #ifdef EGGSHELL // Show cracks and stamp texture!
         color.rgb = min((color.rgb - 0.5) * 4. + hp + 2., 1.);
         color.rgb *= colorMult;
-        vec2 uv = clamp(vUV, vec2(0., 0.9375), vec2(.0625, 1.));
+        vec2 uv = clamp(vUV, uvLowerBound, uvUpperBound);
         uv += stampOffset;
         color.rgb = mix(color.rgb, texture2D(textureSampler, uv).rgb, texture2D(textureSampler, uv).a);
     #endif
