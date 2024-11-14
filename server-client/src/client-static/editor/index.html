@@ -3,7 +3,7 @@
     <head>
         <meta charset="UTF-8" />
         <title>LegacyShell Map Editor</title>
-        
+
         <link rel="icon" type="image/png" href="/editor/favicon-96x96.png" sizes="96x96" />
         <link rel="icon" type="image/svg+xml" href="/editor/favicon.svg" />
         <link rel="shortcut icon" href="/editor/favicon.ico" />
@@ -417,7 +417,7 @@
             <div style="margin-top: 0.5em">
                 <span class="button" id="save" onclick="extern.saveMap()" title="Save map to local file(s)">Save</span>
                 <span class="button" id="test" onclick="extern.testMap()"
-                    title="Opens map in offline 'game'">Test</span>
+                    title="Opens map in offline 'game' [HOTKEY: P]">Test</span>
                 <span class="button" onclick="extern.openDialog('mapSettings')" title="Map Settings">Settings</span>
                 <span class="button" onclick="extern.openDialog('help')" title="Help">?</span>
 
@@ -457,6 +457,9 @@
                     <h3 style="margin-top: 1em">Editing</h3>
                 <li>Arrow keys: Move entire map. Hold Shift to move map up/down.
                 <li>Ctrl-Z: Undo (15 levels, go nuts!)
+
+                    <h3 style="margin-top: 1em">Miscellaneous</h3>
+                <li>P: Playtest the map. Hotkey for the "test" button
 
                     <div style="text-align: center; margin-top: 1em">
                         <span class="button" onclick="extern.closeDialog('help');">OK</span>
