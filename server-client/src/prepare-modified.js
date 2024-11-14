@@ -135,6 +135,7 @@ async function prepareModified() {
 
             { pattern: /LEGACYSHELLMODELSZIPTIMESTAMP/g, insertion: misc.getLastSavedTimestamp(path.join(ss.currentDir, 'store', 'client-modified', 'models', 'models.zip')) },
             { pattern: /LEGACYSHELLMAPZIPTIMESTAMP/g, insertion: misc.getLastSavedTimestamp(path.join(ss.currentDir, 'store', 'client-modified', 'models', 'map.zip')) },
+            { pattern: /LEGACYSHELLSTAMPSPNG/g, insertion: misc.getLastSavedTimestamp(path.join(ss.currentDir, 'store', 'client-modified', 'img', 'stamps.png')) },
         ];
 
         await plugins.emit('replacementsBefore', { this: this, ss, code, replacementsBefore });
