@@ -4,6 +4,7 @@ import path from 'node:path';
 //plugin: prepare-babylons
 import misc from '#misc';
 import jszip from 'jszip';
+import { createStampsUV } from '#stampsGenerator';
 //legacyshell: logging
 import log from '#coloured-logging';
 //legacyshell: ss
@@ -120,7 +121,11 @@ export function prepareBabylons(endBabylonsDir = path.join(ss.rootDir, 'store', 
                     debuggingLogs && console.log("Deleting this mesh", newMesh.name);
                     //delete this specific mesh, not by name cause that would delete all instances
                     baseBabylon.meshes = baseBabylon.meshes.filter(mesh => mesh !== newMesh);
-                };
+                } else {
+                    if (newMesh.name === "egg") {
+                        newMesh.uvs = createStampsUV();
+                    };
+                }
             });
 
             debuggingLogs && console.log(babylon, "after", baseBabylon.meshes.length);
