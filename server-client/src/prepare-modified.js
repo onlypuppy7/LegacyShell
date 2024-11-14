@@ -133,7 +133,7 @@ async function prepareModified() {
             { pattern: /LEGACYSHELLPLUGINMANAGER/g, file: "#plugins" },
             { pattern: /LEGACYSHELLISCLIENTSERVER/g, file: "#isClientServer" },
 
-            { pattern: /LEGACYSHELLMODELSZIPTIMESTAMP/g, insertion: misc.getLastSavedTimestamp(path.join(ss.currentDir, 'store', 'client-modified', 'models', 'models.zip')) },
+            { pattern: /LEGACYSHELLZIPTIMES/g, insertion: (String(misc.getLastSavedTimestamp(path.join(ss.currentDir, 'store', 'client-modified', 'models', 'models.zip')))+String(misc.getLastSavedTimestamp(path.join(ss.currentDir, 'store', 'client-modified', 'models', 'map.zip')))) },
             { pattern: /LEGACYSHELLMAPZIPTIMESTAMP/g, insertion: misc.getLastSavedTimestamp(path.join(ss.currentDir, 'store', 'client-modified', 'models', 'map.zip')) },
             { pattern: /LEGACYSHELLSTAMPSPNG/g, insertion: misc.getLastSavedTimestamp(path.join(ss.currentDir, 'store', 'client-modified', 'img', 'stamps.png')) },
         ];
