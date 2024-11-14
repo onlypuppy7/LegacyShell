@@ -191,7 +191,7 @@ export const LegacyShellCorePlugin = {
                 itemsEnabled: [ //itemType enum, spawn per how much surface area, minimum
                     [ItemTypes.AMMO, 35, 4],
                     [ItemTypes.GRENADE, 75, 5],
-                    [ItemTypes.HEALTH, 125, 2], //make them rare
+                    [ItemTypes.HEALTH, 75, 3], //make them rare
                 ],
                 weather: {
                     rainEnabled: true,
@@ -199,9 +199,9 @@ export const LegacyShellCorePlugin = {
                 },
                 time: "night",
                 regenModifier: [
-                    -.75, //ffa
-                    -.75, //team1
-                    -.75, //team2
+                    -.5, //ffa
+                    -.5, //team1
+                    -.5, //team2
                 ],
                 lifesteal: [
                     0.5, //ffa
@@ -221,7 +221,7 @@ export const LegacyShellCorePlugin = {
                 itemsEnabled: [ //itemType enum, spawn per how much surface area, minimum
                     [ItemTypes.AMMO, 35, 4],
                     [ItemTypes.GRENADE, 75, 5],
-                    [ItemTypes.HEALTH, 125, 2], //make them rare
+                    [ItemTypes.HEALTH, 75, 3], //make them rare
                 ],
                 weather: {
                     rainEnabled: true,
@@ -229,9 +229,9 @@ export const LegacyShellCorePlugin = {
                 },
                 time: "night",
                 regenModifier: [
-                    -.75, //ffa
-                    -.75, //team1
-                    -.75, //team2
+                    -.5, //ffa
+                    -.5, //team1
+                    -.5, //team2
                 ],
                 lifesteal: [
                     0.5, //ffa

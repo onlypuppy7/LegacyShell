@@ -599,13 +599,13 @@ class Player {
                 this.actor.setShellColor(shellColor);
                 if (this.id == meId) {
                     var output = new Comm.Out(7);
-                    output.packInt8(Comm.Code.changeCharacter);
-                    output.packInt8(newClassIdx);
-                    output.packInt8(catalog.get8BitItemId(primaryWeaponItem, newClassIdx));
-                    output.packInt8(catalog.get8BitItemId(secondaryWeaponItem, newClassIdx));
-                    output.packInt8(shellColor);
-                    output.packInt8(catalog.get8BitItemId(hatItem, newClassIdx));
-                    output.packInt8(catalog.get8BitItemId(stampItem, newClassIdx));
+                    output.packInt8U(Comm.Code.changeCharacter);
+                    output.packInt8U(newClassIdx);
+                    output.packInt16U(catalog.get8BitItemId(primaryWeaponItem, newClassIdx));
+                    output.packInt16U(catalog.get8BitItemId(secondaryWeaponItem, newClassIdx));
+                    output.packInt8U(shellColor);
+                    output.packInt16U(catalog.get8BitItemId(hatItem, newClassIdx));
+                    output.packInt16U(catalog.get8BitItemId(stampItem, newClassIdx));
                     wsSend(output, "changeCharacter");
                 } else {
                     this.actor.wearHat(this.hatItem);
@@ -616,11 +616,11 @@ class Player {
                 output.packInt8(Comm.Code.changeCharacter);
                 output.packInt8(this.id);
                 output.packInt8(newClassIdx);
-                output.packInt8(this.client.catalog.get8BitItemId(primaryWeaponItem, newClassIdx));
-                output.packInt8(this.client.catalog.get8BitItemId(secondaryWeaponItem, newClassIdx));
+                output.packInt16(this.client.catalog.get8BitItemId(primaryWeaponItem, newClassIdx));
+                output.packInt16(this.client.catalog.get8BitItemId(secondaryWeaponItem, newClassIdx));
                 output.packInt8(shellColor);
-                output.packInt8(this.client.catalog.get8BitItemId(hatItem, newClassIdx));
-                output.packInt8(this.client.catalog.get8BitItemId(stampItem, newClassIdx));
+                output.packInt16(this.client.catalog.get8BitItemId(hatItem, newClassIdx));
+                output.packInt16(this.client.catalog.get8BitItemId(stampItem, newClassIdx));
                 this.client.sendToOthers(output, "changeCharacter");
             };
 
@@ -978,11 +978,11 @@ class Player {
         };
     };
     setHp(newHp, firedId) {
-        // console.log("setHp", newHp, firedId);
+        console.log("setHp", newHp, firedId, !!this.firedPlayer);
 
         this.hp = Math.clamp(newHp, 0, 100);
 
-        if (this.hp <= 0) {
+        if (this.hp <= 0 && this.playing) {
             if (firedId === undefined) {
                 if (this.firedPlayer) {
                     this.die(this.firedPlayer.id);
@@ -993,6 +993,7 @@ class Player {
             } else {
                 this.die(firedId);
             };
+            this.firedPlayer = null;
         };
     };
     respawn(newPos) {

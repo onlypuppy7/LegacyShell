@@ -179,6 +179,7 @@ class newClient {
                 cmd: "getUser",
                 session: this.session,
             }, ss.config.game.services_server, ss.config.game.auth_key);
+
             // console.log(this.userData);
         };
 
@@ -461,11 +462,11 @@ class newClient {
 
         output.packInt8U(this.player.team);
 
-        output.packInt8U(catalog.get8BitItemId(this.loadout[ItemType.Primary], this.classIdx));
-        output.packInt8U(catalog.get8BitItemId(this.loadout[ItemType.Secondary], this.classIdx));
+        output.packInt16U(catalog.get8BitItemId(this.loadout[ItemType.Primary], this.classIdx));
+        output.packInt16U(catalog.get8BitItemId(this.loadout[ItemType.Secondary], this.classIdx));
         output.packInt8U(this.colorIdx);
-        output.packInt8U(catalog.get8BitItemId(this.loadout[ItemType.Hat], this.classIdx));
-        output.packInt8U(catalog.get8BitItemId(this.loadout[ItemType.Stamp], this.classIdx));
+        output.packInt16U(catalog.get8BitItemId(this.loadout[ItemType.Hat], this.classIdx));
+        output.packInt16U(catalog.get8BitItemId(this.loadout[ItemType.Stamp], this.classIdx));
 
         output.packFloat(this.player.x);
         output.packFloat(this.player.y);

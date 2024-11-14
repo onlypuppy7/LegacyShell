@@ -66,6 +66,10 @@ export default async function run () {
     const initTables = async () => {
         try {
             //ITEMS TABLE
+            ss.config.verbose && log.bgCyan("services: Reading from DB: perform outdated items/user table check");
+            await recs.performConversionCheck();
+            await recs.updateUserDefaults();
+
             ss.config.verbose && log.bgCyan("services: Reading from DB: count items");
             if ((await ss.getOne('SELECT COUNT(*) AS count FROM items')).count > 0) {
                 log.italic('No need to init items table');
@@ -391,7 +395,7 @@ export default async function run () {
                                         if (accs.doesPlayerOwnItem(userData, msg.eggsploder_secondary_item_id, "Cluck9mm")) 
                                             userData.loadout.secondaryId[3] = msg.eggsploder_secondary_item_id;
                                         // hat_id: updateHatId,
-                                        if (accs.doesPlayerOwnItem(userData, msg.hat_id, "Hats")) 
+                                        if (accs.doesPlayerOwnItem(userData, msg.hat_id, "Hat")) 
                                             userData.loadout.hatId = msg.hat_id;
                                         // stamp_id: updateStampId,
                                         if (accs.doesPlayerOwnItem(userData, msg.stamp_id, "Stamps")) 

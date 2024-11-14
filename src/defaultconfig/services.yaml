@@ -4,16 +4,28 @@
 
 port: 13371
 
-feedback: false # a discord webhook for all feedback to be sent. leave to "false" to disable feedback
+# a discord webhook for all feedback to be sent. leave to "false" to disable feedback
+feedback: false 
 
-nugget_interval: 24 # set interval in hours between each opportunity to get the 1 hour of vip
+# set interval in hours between each opportunity to get the 1 hour of vip
+nugget_interval: 24 
 
-protect_usernames: false #makes the errors less revealing of which usernames exist. but this is pointless, as you can just send a register request. if the user doesnt exist, then there is no way you can sign up with it anyway. this is just out of spite, tbh.
+# makes the errors less revealing of which usernames exist.
+# but this is pointless, as you can just send a register request.
+# if the user doesnt exist, then there is no way you can sign up with it anyway.
+# this is just out of spite, tbh. (hijinks ensue.......)
+protect_usernames: false 
 
-password_cost_factor: 10 #higher is more secure, but will require more processing power - run "npm run bcrypt" to determine the recommended cost
+#higher is more secure, but will require more processing power - run "npm run bcrypt" to determine the recommended cost
+#you should probably leave as is though, because lowering will make it less secure in the event of a breach
+#this is the main defense against a breach, so dont mess with it unless you know what you are doing
+password_cost_factor: 10
 
-session_expiry_time: 180 #how long, in minutes, sessions should exist for
-session_cleanup_interval: 3 #how often, in minutes, sessions should be purged (should NOT be higher than expiry time! you will make some strange stuff happen, i can only imagine! dont!)
+#how long, in minutes, sessions should exist for
+session_expiry_time: 180
+#how often, in minutes, sessions should be purged
+#should NOT be higher than expiry time (above)! you will make some strange stuff happen, i can only imagine! dont!
+session_cleanup_interval: 3 
 
 ratelimit: #limit spammy requests
   regular:

@@ -352,7 +352,7 @@ export class PermissionsConstructor {
                 this.room.gameOptions.timedGame.enabled = opts;
 
                 if (changed) {
-                    if (!opts) this.room.endRound();
+                    this.room.endRound();
                     this.room.setRoundTimeout()
                     
                     var output = new Comm.Out();
