@@ -1,6 +1,12 @@
+#which should be the ones to do pulls?
+#if youre running a mirror or something, its fine to leave as is
+
+#if you are running all three, then you can delete all except services
+#because when services restarts, it restarts the others anyway (game/client cant do this)
+pullers: ["services", "client", "game"] #default: ["services", "client", "game"]
+
 # config for how you want the files to continually run. setup for error notifications on discord!
 # the options are the same for all, but you can configure each differently.
-
 client:
   process_cmd: "server-client/run-client.js" #dont touch unless u changed the path
 

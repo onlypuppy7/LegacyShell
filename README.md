@@ -22,6 +22,16 @@ In order to emulate all the parts of the webgame shellshock.io, one must replica
 
 So depending on your use case, you could either be using all or some of the servers.
 
+## Contributing
+
+We accept PRs to the LS project for security, bugfixes, code efficiency and feature improvements. You can also submit new features, but so long as you can answer the question:
+
+> **"Could this be a plugin?"**
+
+LegacyShell has an existing and powerful modding API built in. If you want to add, for instance, a gamemode then do consider making it a plugin if possible. If the lack of modding listeners is holding you back (which currently is likely as there are many use cases that we cannot foresee) then PRing the emitters necessary to make your plugin work will almost always be accepted.
+
+Things such as extra skins, stamps or other cosmetic stuff will never be accepted into the base game, as though it's not close to vanilla we want to minimise direct tampering with that experience. You can PR these into the LegacyShellCore plugin, but this is still up to the discretion of onlypuppy7/the LS contributors.
+
 ## Instructions
 ### Prerequisites:
 - Nodejs
