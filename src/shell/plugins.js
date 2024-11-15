@@ -4,7 +4,7 @@ import path from 'path';
 //legacyshell: plugins
 import { fileURLToPath, pathToFileURL } from 'url';
 import { isServer } from '#constants';
-import { execSync } from 'child_process';
+import { exec, execSync } from 'child_process';
 //legacyshell: ss
 import { ss } from '#misc';
 //legacyshell: logging
@@ -26,6 +26,34 @@ export class PluginManager {
             try {
                 const pluginPath = path.join(pluginsDir, pluginFolder, 'index.js');
                 if (fs.existsSync(pluginPath) && !pluginFolder.startsWith("_")) {
+                    (async () => {
+                        const gitPath = path.join(pluginsDir, pluginFolder, '.git');
+                        const currentHash = execSync(`cd ${path.join(pluginsDir, pluginFolder)} && git rev-parse HEAD`, { encoding: 'utf-8' }).trim();
+
+                        try {
+                            if (fs.existsSync(gitPath)) {
+                                log.info(`Plugin ${pluginFolder} has a git repository. Attempting to update... (current hash: ${currentHash})`);
+                                exec(`cd ${path.join(pluginsDir, pluginFolder)} && git pull`, (error, stdout, stderr) => {
+                                    if (error) {
+                                        log.warning(`Failed to update plugin ${pluginFolder} via git:`, error);
+                                        return;
+                                    }
+                                    console.log(`stdout: ${stdout}`);
+                                    console.error(`stderr: ${stderr}`);
+
+                                    const newHash = execSync(`cd ${path.join(pluginsDir, pluginFolder)} && git rev-parse HEAD`, { encoding: 'utf-8' }).trim();
+                                    if (currentHash !== newHash) {
+                                        log.bgGreen(`Plugin ${pluginFolder} updated successfully. (new hash: ${newHash})`);
+                                    } else {
+                                        log.dim(`Plugin ${pluginFolder} is already up to date.`);
+                                    };
+                                });
+                            };
+                        } catch (error) {
+                            log.warning(`Failed to update plugin ${pluginFolder} via git:`, error);
+                        };
+                    })();
+
                     const dependenciesPath = path.join(pluginsDir, pluginFolder, 'dependencies.js');
 
                     if (fs.existsSync(dependenciesPath)) {
