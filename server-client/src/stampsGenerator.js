@@ -132,12 +132,19 @@ export async function prepareStamps() {
         };
     
         if (file && file !== "") {
+            var input = await sharp(file.file).resize({
+                width: stampSize,
+                height: stampSize,
+                fit: 'contain',
+                background: { r: 255, g: 255, b: 255, alpha: 0 }
+            }).toBuffer();
+
             composites.push({
                 id: file.id,
                 x: x,
                 y: y,
 
-                input: await sharp(file.file).resize(stampSize, stampSize).toBuffer(),
+                input,
                 top: y * stampSize,
                 left: x * stampSize,
             });
