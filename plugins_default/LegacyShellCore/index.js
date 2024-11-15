@@ -15,14 +15,19 @@ export const PluginMeta = {
     legacyShellVersion: 269, //legacy shell version, can be found in /versionEnum.txt, or just on the homescreen
 };
 
+export var pluginInstance = null;
+
 export class Plugin {
     constructor(plugins, thisDir) {
         this.plugins = plugins;
         this.thisDir = thisDir;
 
+        pluginInstance = this;
+
         LegacyShellCorePlugin.registerListeners(this.plugins);
         this.plugins.on('client:pluginSourceInsertion', this.pluginSourceInsertion.bind(this));
         this.plugins.on('client:prepareBabylon', this.prepareBabylon.bind(this));
+        this.plugins.on('client:stampImageDirs', this.stampImageDirs.bind(this));
         this.plugins.on('game:prepareBabylon', this.prepareBabylon.bind(this));
         this.plugins.on('services:initTables', this.initTables.bind(this));
 
@@ -37,6 +42,14 @@ export class Plugin {
             insertAfter: '\nconsole.log("inserting after... (LegacyShellCore)!");',
             position: 'before'
         });
+    };
+
+    stampImageDirs(data) {
+        var stampImageDirs = data.stampImageDirs;
+
+        stampImageDirs.push(
+            path.join(this.thisDir, 'stamps')
+        );
     };
 
     prepareBabylon(data) {
