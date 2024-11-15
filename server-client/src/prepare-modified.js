@@ -15,7 +15,7 @@ import { plugins } from '#plugins';
 //
 
 async function prepareModified() {
-    prepareBabylons(path.join(ss.rootDir, 'server-client', 'store', 'client-modified', 'models'));
+    await prepareBabylons(path.join(ss.rootDir, 'server-client', 'store', 'client-modified', 'models'));
 
     log.info('\nGenerating modified files (eg minifying shellshock.min.js)...');
 
