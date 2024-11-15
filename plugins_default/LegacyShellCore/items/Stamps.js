@@ -10,7 +10,16 @@
     Note that 0 is reserved for no stamp
 */
 
-export default {
+//basic
+import fs from 'node:fs';
+import path from 'node:path';
+//legacyshell: logging
+import log from '#coloured-logging';
+//legacyshell: plugins
+import { pluginInstance } from '../index.js';
+//
+
+var items = {
     "Stamps": [{
         "meta_id": 10000,
         "name": "Sex",
@@ -19,10 +28,45 @@ export default {
         "item_type_name": "Stamp",
         "category_name": "Stamps",
         "exclusive_for_class": null,
-        "item_data": {
-            "x": 1,
-            "y": 0
-        },
+        "item_data": {},
         "is_available": true
     }]
 };
+
+//programmatically add stamps from the stamps directory :D
+var stampsDir = path.join(pluginInstance.thisDir, 'stamps');
+
+if (fs.existsSync(stampsDir)) {
+    var stampImgs = fs.readdirSync(stampsDir);
+
+    stampImgs.forEach((file) => {
+        var ext = path.extname(file);
+
+        if (ext !== '.png') return;
+
+        var base = path.basename(file, ext);
+
+        var info = base.split('=')[0].split('_');
+        var name = base.split('=')[1];
+
+        var meta_id = (parseInt(info[0]) || 0) + 10000;
+        var price = parseInt(info[1]) || 500;
+        var is_available = (info[2] || "false").toLowerCase().includes("t");
+
+        items.Stamps.push({
+            meta_id,
+            name,
+            price,
+            item_type_id: 2,
+            item_type_name: "Stamp",
+            category_name: "Stamps",
+            exclusive_for_class: null,
+            item_data: {},
+            is_available
+        });
+
+        log.bgGray(`LegacyShellCore: Added stamp ${name} with meta_id ${meta_id}, price ${price}, and availability ${is_available}`);
+    });
+};
+
+export default items;

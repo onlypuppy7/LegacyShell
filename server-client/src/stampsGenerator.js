@@ -77,6 +77,14 @@ export async function prepareStamps() {
             if (noStamp.includes('&')) {
                 stampImages[noStamp.replace("&", "and")] = filepath;
             };
+
+            //allows you to insert extra information before the =
+            //eg: "0=LegacyShell"
+            //in this instance acting as a way to easily ID the stamp without even needing the Stamps.js
+            if (noStamp.includes('=')) { 
+                console.log('found', noStamp, noStamp.replace(/^.*?=/, ''));
+                stampImages[noStamp.replace(/^.*?=/, '')] = filepath;
+            };
         };
     };
 
@@ -133,7 +141,7 @@ export async function prepareStamps() {
                 top: y * stampSize,
                 left: x * stampSize,
             });
-        } else {
+        } else if (!(x+y === 0)) {
             log.warning('No image for stamp', x, y);
         };
     
@@ -155,7 +163,7 @@ export async function prepareStamps() {
     for (let composite of composites) {
         for (let item of items) {
             if (item.id === composite.id) {
-                log.info(item.name, 'at', composite.x, composite.y);
+                log.italic('[Stamp] Adding:', item.name, 'to stamps.png at', composite.x, composite.y);
                 item.item_data.x = composite.x;
                 item.item_data.y = composite.y;
             };
