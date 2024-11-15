@@ -15,7 +15,7 @@ import { plugins } from '#plugins';
 
 var debuggingLogs = false;
 
-export function prepareBabylons(endBabylonsDir = path.join(ss.rootDir, 'store', 'export-static', 'models'), baseBabylonsDir = path.join(ss.rootDir, 'src', 'base-babylons')) {
+export async function prepareBabylons(endBabylonsDir = path.join(ss.rootDir, 'store', 'export-static', 'models'), baseBabylonsDir = path.join(ss.rootDir, 'src', 'base-babylons')) {
     if (!fs.existsSync(endBabylonsDir)) fs.mkdirSync(endBabylonsDir, { recursive: true });
 
     log.info("Preparing babylons...");
@@ -154,20 +154,30 @@ export function prepareBabylons(endBabylonsDir = path.join(ss.rootDir, 'store', 
     };
 
     function saveZip(zip, zipName) {
-        zip.generateNodeStream({ 
-            type: 'nodebuffer', 
-            streamFiles: true, 
-            compression: "DEFLATE"
-        }).pipe(fs.createWriteStream(path.join(endBabylonsDir, zipName))
-            .on('finish', function () {
-                log.green(`${zipName} written.`);
-            }));
+        return new Promise((resolve, reject) => {
+            zip.generateNodeStream({
+                type: 'nodebuffer',
+                streamFiles: true,
+                compression: "DEFLATE"
+            }).pipe(fs.createWriteStream(path.join(endBabylonsDir, zipName)))
+              .on('finish', function () {
+                  log.green(`${zipName} written.`);
+                  resolve();
+              })
+              .on('error', function (err) {
+                  log.red(`Error writing ${zipName}: ${err}`);
+                  reject(err);
+              });
+        });
     };
 
     if (fileChanged) {
         log.info("Babylons changed. Wait for zip to save before playing.");
-        saveZip(modelsZip, 'models.zip');
-        saveZip(mapZip, 'map.zip');
+        await Promise.all([
+            saveZip(modelsZip, 'models.zip'),
+            saveZip(mapZip, 'map.zip'),
+        ]);
+        log.info("All zips saved. Proceeding.");
     } else {
         log.green("No babylons changed.");
     };

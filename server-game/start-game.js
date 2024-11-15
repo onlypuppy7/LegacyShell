@@ -35,7 +35,7 @@ export default async function run () {
 
     await plugins.emit(`${'onLoad'}`, { ss }); //annoyed yet?
 
-    prepareBabylons(path.join(ss.currentDir, 'store', 'models'));
+    await prepareBabylons(path.join(ss.currentDir, 'store', 'models'));
 
     function startServer() {
         const RoomManager = new rm.newRoomManager();

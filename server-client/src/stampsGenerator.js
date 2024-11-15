@@ -17,7 +17,7 @@ export function filterName(name) {
     return name;
 };
 
-export var widthheight = 32;
+export var widthheight = 32; //fyi 127 is max (assuming 128x128 stamps)
 
 export async function prepareStamps() {
     let items = JSON.parse(ss.cache.items);
