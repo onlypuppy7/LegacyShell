@@ -19,6 +19,8 @@ import { ss } from '#misc';
 import { plugins } from '#plugins';
 //
 
+export var ws;
+
 //i know its called start, even though it should be the other way round. please excuse this.
 //i just didnt want to break old configs for the perpetual wrapper.
 
@@ -38,7 +40,12 @@ export default async function run () {
             const app = express();
             const port = ss.config.client.port || 13370;
 
-            await plugins.emit('onStartServer', { ss, app });
+            await plugins.emit('onStartServer', { ss, app, ws });
+
+            app.use((req, res, next) => {
+                plugins.emit('onRequest', { ss, req, res, next });
+                if (!plugins.cancel) next();
+            });
 
             if (ss.config.client.closed) {
                 await plugins.emit('closedBeforeDefault', { ss, app });
@@ -175,97 +182,116 @@ export default async function run () {
             log.blue('WebSocket connection opening. Requesting config information...');
             await wsrequest({
                 cmd: "requestConfig",
-                    lastItems: Math.floor(misc.getLastSavedTimestamp(filepaths.items)/1000), //well in theory, if its not in existence this returns 0 and we should get it :D
-                    lastMaps: Math.floor(misc.getLastSavedTimestamp(filepaths.maps)/1000),
-                    lastServers: Math.floor(misc.getLastSavedTimestamp(filepaths.servers)/1000),
-            }, ss.config.client.sync_server, undefined, async (event) => {
+                serverType: "client",
+                lastItems: Math.floor(misc.getLastSavedTimestamp(filepaths.items)/1000), //well in theory, if its not in existence this returns 0 and we should get it :D
+                lastMaps: Math.floor(misc.getLastSavedTimestamp(filepaths.maps)/1000),
+                lastServers: Math.floor(misc.getLastSavedTimestamp(filepaths.servers)/1000),
+            }, ss.config.client.sync_server, undefined, async (event, wsP) => {
                 let response = event.data;
-                var configInfo = JSON.parse(response);
+                var msg = JSON.parse(response);
+                ws = wsP;
 
-                await plugins.emit('onConfigInfo', { ss, configInfo });
+                ss.config.verbose && (log.dim("Received cmd: "+msg.cmd), msg.cmd !== "requestConfig" && console.log(msg));
 
-                if (configInfo) {
-                    if (!retrieved) {
-                        log.green('Received config information from sync server.');
-                        offline = false;
+                await plugins.emit('onMsg', { this: this, ss, msg });
 
-                        await plugins.emit('onConfigInfoReceived', { ss, configInfo });
-                
-                        const load = async function(thing, filePath) {
-                            await plugins.emit('onLoadThing', { ss, thing, filePath });
+                switch (msg.cmd) {
+                    case "requestConfig":
+                        if (!retrieved) {
+                            log.green('Received config information from sync server.');
+                            offline = false;
 
-                            if (configInfo[thing]) {
-                                log.blue(`[${thing}] loaded from newly retrieved json.`)
-                                configInfo[thing] = JSON.stringify(configInfo[thing]);
-                                fs.writeFileSync(filePath, configInfo[thing]); //dont convert the json. there is no need.
-                                ss.cache[thing] = configInfo[thing];
-                                delete configInfo[thing];
-                            } else {
-                                delete configInfo[thing]; //still delete the false, derp
-                                if (fs.existsSync(filePath)) {
-                                    log.italic(`[${thing}] loaded from previously saved json.`);
-                                    ss.cache[thing] = fs.readFileSync(filePath, 'utf8');
+                            await plugins.emit('onConfigInfoReceived', { ss, configInfo: msg });
+                    
+                            const load = async function(thing, filePath) {
+                                await plugins.emit('onLoadThing', { ss, thing, filePath });
+
+                                if (msg[thing]) {
+                                    log.blue(`[${thing}] loaded from newly retrieved json.`)
+                                    msg[thing] = JSON.stringify(msg[thing]);
+                                    fs.writeFileSync(filePath, msg[thing]); //dont convert the json. there is no need.
+                                    ss.cache[thing] = msg[thing];
+                                    delete msg[thing];
                                 } else {
-                                    log.red(`Shit. We're fucked. We didn't receive an [${thing}] json nor do we have one stored. FUUUU-`);
+                                    delete msg[thing]; //still delete the false, derp
+                                    if (fs.existsSync(filePath)) {
+                                        log.italic(`[${thing}] loaded from previously saved json.`);
+                                        ss.cache[thing] = fs.readFileSync(filePath, 'utf8');
+                                    } else {
+                                        log.red(`Shit. We're fucked. We didn't receive an [${thing}] json nor do we have one stored. FUUUU-`);
+                                    };
                                 };
                             };
+                    
+                            await load("items", filepaths.items);
+                            await load("maps", filepaths.maps);
+                            await load("servers", filepaths.servers);
+
+                            await plugins.emit('loadingThings', { ss, load, filepaths });
+                    
+                            // console.log(ss.items);
+                    
+                            delete msg.distributed_game;
+                
+                            msg = { ...msg, ...msg.distributed_client };
+                            delete msg.distributed_client;
+                    
+                            msg = { ...msg, ...msg.distributed_all };
+                            delete msg.distributed_all;
+                    
+                            ss.config.servicesMeta = msg.servicesMeta;
+                            delete msg.servicesMeta;
+                            
+                            Object.assign(ss, {
+                                permissions: msg.permissions
+                            });
+                            delete msg.permissions;
+                
+                            ss.config.client = { ...ss.config.client, ...msg };
+
+                            delete msg.login;
+                            delete msg.permissions;
+
+                            await plugins.emit('onConfigInfoLoaded', { ss, configInfo: msg });
+                
+                            ss.distributed_config = yaml.dump(msg, { indent: 4 }); //this is for later usage displaying for all to see
+                    
+                            ss.config.verbose && log.info(`\n${ss.distributed_config}`);
+                
+                            // console.log(ss.permissions);
+                    
+                            retrieved = true;
+                            await startServer();
+                        } else {
+                            if (offline && (msg.servicesMeta.startTime > ss.config.servicesMeta.startTime) && ss.isPerpetual) {
+                                console.log("Services server restarted, restarting...");
+                                await plugins.emit('onServicesRestart', { ss, configInfo: msg });
+                                process.exit(1337);
+                            };
+                            offline = false;
                         };
-                
-                        await load("items", filepaths.items);
-                        await load("maps", filepaths.maps);
-                        await load("servers", filepaths.servers);
-
-                        await plugins.emit('loadingThings', { ss, load, filepaths });
-                
-                        // console.log(ss.items);
-                
-                        delete configInfo.distributed_game;
-            
-                        configInfo = { ...configInfo, ...configInfo.distributed_client };
-                        delete configInfo.distributed_client;
-                
-                        configInfo = { ...configInfo, ...configInfo.distributed_all };
-                        delete configInfo.distributed_all;
-                
-                        ss.config.servicesMeta = configInfo.servicesMeta;
-                        delete configInfo.servicesMeta;
-                        
-                        Object.assign(ss, {
-                            permissions: configInfo.permissions
-                        });
-                        delete configInfo.permissions;
-            
-                        ss.config.client = { ...ss.config.client, ...configInfo };
-
-                        delete configInfo.login;
-                        delete configInfo.permissions;
-
-                        await plugins.emit('onConfigInfoLoaded', { ss, configInfo });
-            
-                        ss.distributed_config = yaml.dump(configInfo, { indent: 4 }); //this is for later usage displaying for all to see
-                
-                        ss.config.verbose && log.info(`\n${ss.distributed_config}`);
-            
-                        // console.log(ss.permissions);
-                
-                        retrieved = true;
-                        await startServer();
-                    } else {
-                        if (offline && (configInfo.servicesMeta.startTime > ss.config.servicesMeta.startTime) && ss.isPerpetual) {
-                            console.log("Services server restarted, restarting...");
-                            await plugins.emit('onServicesRestart', { ss, configInfo });
-                            process.exit(1337);
+                        break;
+                    case "servicesInfo":
+                        var info = {
+                            ...msg.client,
                         };
-                        offline = false;
-                    };
-                } else {
-                    if (!retrieved) {
-                        log.yellow(`Config retrieval failed. Retrying in ${nextTimeout / 1e3} seconds...`);
-                        setTimeout(() => {
-                            connectWebSocket(retryCount + 1);
-                        }, nextTimeout);
-                    };
+                        if (Object.keys(info.gameInfo).length !== 0) {
+                            fs.writeFileSync(path.join(ss.currentDir, 'store', 'client-modified', 'servicesInfo.json'), JSON.stringify(info));
+                        };
+                        break;
+                    default:
+                        log.error(`Unknown command received: ${msg.cmd}`);
+                        break;
                 };
+                
+                // } else {
+                //     if (!retrieved) {
+                //         log.yellow(`Config retrieval failed. Retrying in ${nextTimeout / 1e3} seconds...`);
+                //         setTimeout(() => {
+                //             connectWebSocket(retryCount + 1);
+                //         }, nextTimeout);
+                //     };
+                // };
 
                 return true;
             }, (event) => {

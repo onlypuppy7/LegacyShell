@@ -1,9 +1,9 @@
 //legacyshell: roomManager
 import Comm from '#comm';
 import { Worker } from 'worker_threads';
-import misc from '#misc';
-import extendMath from '#math';
 import { GameTypes, getMapPool } from '#gametypes';
+//legacyshell: servicesWs
+import { ws as servicesWs } from '../start-game.js';
 //legacyshell: ss
 import { ss } from '#misc';
 //
@@ -17,6 +17,7 @@ const highestRoomID = Math.pow(36, id_length) - 1;
 //4:      1,679,616
 //5:     60,466,176
 
+export var gameInfo = {};
 
 class newRoomManager {
     constructor() {
@@ -24,6 +25,11 @@ class newRoomManager {
         this.rooms = new Map();
         this.workers = new Map();
         console.log(`RoomManager initialized.`, this.getUnusedID());
+
+        this.sendInfoToServices();
+        setInterval(() => {
+            this.sendInfoToServices();
+        }, 30e3);
     };
 
     getUnusedID() {
@@ -274,6 +280,58 @@ class newRoomManager {
         } else {
             return null; //doesnt exist
         };
+    };
+
+    async sendInfoToServices() {
+        function makeGameTypeArray() {
+            return Array.from(GameTypes, () => 0);
+        };
+
+        Object.assign(gameInfo, {
+            playerCountPublic: makeGameTypeArray(),
+            playerCountPrivate: makeGameTypeArray(),
+            playerCountBoth: makeGameTypeArray(),
+            playerCountTotal: {
+                public: 0,
+                private: 0,
+                both: 0,
+            },
+
+            totalRooms: this.rooms.size,
+            rooms: [],
+        });
+        for (const room of this.rooms.values()) {
+            var roomInfo = {
+                gameId: room.gameId,
+                gameKey: room.gameKey,
+                gameType: room.gameType,
+                mapId: room.mapId,
+                playerCount: room.playerCount,
+                playerLimit: room.playerLimit,
+                joinType: room.joinType,
+                ready: room.ready,
+                usernames: room.usernames,
+                uuids: room.uuids,
+                sessions: room.sessions,
+            };
+            gameInfo.rooms.push(roomInfo);
+
+            if (room.joinType === Comm.Code.joinPublicGame) {
+                gameInfo.playerCountPublic[room.gameType] = (gameInfo.playerCountPublic[room.gameType] || 0) + room.playerCount;
+                gameInfo.playerCountTotal.public += room.playerCount;
+            } else {
+                gameInfo.playerCountPrivate[room.gameType] = (gameInfo.playerCountPrivate[room.gameType] || 0) + room.playerCount;
+                gameInfo.playerCountTotal.private += room.playerCount;
+            };
+            gameInfo.playerCountBoth[room.gameType] = (gameInfo.playerCountBoth[room.gameType] || 0) + room.playerCount;
+            gameInfo.playerCountTotal.both += room.playerCount
+        };
+        servicesWs.send(JSON.stringify({
+            cmd: 'servicesInfo',
+            thisServer: ss.thisServer,
+            gameInfo,
+            auth_key: ss.config.game.auth_key,
+        }));
     };
 };
 

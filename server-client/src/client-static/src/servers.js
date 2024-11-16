@@ -29,3 +29,8 @@ if (location.hostname.startsWith('localhost')) {
 
 //     servicesServer = 'ws://localshelldev.bluewizard.com:4242/';
 // }
+
+for (var i = 0; i < servers.length; i++) {
+	servers[i].nameDisplay = servers[i].name;
+	servers[i].id = i;
+};
