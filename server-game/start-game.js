@@ -23,8 +23,9 @@ import { prepareBabylons } from '#prepare-babylons';
 //i know its called start, even though it should be the other way round. please excuse this.
 //i just didnt want to break old configs for the perpetual wrapper.
 
-export default async function run () {
+export var ws;
 
+export default async function run () {
     Object.assign(ss, {
         mapAvailability: {
             public: [],
@@ -136,83 +137,102 @@ export default async function run () {
     let itemsFilePath =     path.join(ss.currentDir, 'store', 'items.json');
 
     async function connectWebSocket(retryCount = 0) {
-        nextTimeout = Math.min(nextTimeout + 5e3, 30e3);
+        nextTimeout = Math.min(nextTimeout + 3e3, 30e3);
 
         try {
             log.blue('WebSocket connection opening. Requesting config information...');
             await wsrequest({
                 cmd: "requestConfig",
+                serverType: "game",
                 lastMaps: Math.floor(misc.getLastSavedTimestamp(mapsFilePath)/1000),
                 lastServers: Math.floor(misc.getLastSavedTimestamp(serversFilePath)/1000),
                 lastItems: Math.floor(misc.getLastSavedTimestamp(itemsFilePath)/1000),
-            }, ss.config.game.services_server, ss.config.game.auth_key, (event) => {
+            }, ss.config.game.services_server, ss.config.game.auth_key, async (event, wsP) => {
                 let response = event.data;
-                var configInfo = JSON.parse(response);
+                var msg = JSON.parse(response);
+                ws = wsP;
 
-                if (configInfo) {
-                    if (!retrieved) {
-                        log.green('Received config information from sync server.');
-                        offline = false;
-            
-                        const load = function(thing, filePath) {
-                            if (configInfo[thing]) {
-                                log.blue(`[${thing}] loaded from newly retrieved json.`);
-                                fs.writeFileSync(filePath, JSON.stringify(configInfo[thing]));
-                                ss[thing] = configInfo[thing];
-                                delete configInfo[thing];
-                            } else {
-                                delete configInfo[thing]; //still delete the false, derp
-                                if (fs.existsSync(filePath)) {
-                                    log.italic(`[${thing}] loaded from previously saved json.`);
-                                    ss[thing] = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+                ss.config.verbose && (log.dim("Received cmd: "+msg.cmd), msg.cmd !== "requestConfig" && console.log(msg));
+
+                await plugins.emit('onMsg', { this: this, ss, msg });
+
+                switch (msg.cmd) {
+                    case "requestConfig":
+                        if (!retrieved) {
+                            log.green('Received config information from sync server.');
+                            offline = false;
+                
+                            const load = function(thing, filePath) {
+                                if (msg[thing]) {
+                                    log.blue(`[${thing}] loaded from newly retrieved json.`);
+                                    fs.writeFileSync(filePath, JSON.stringify(msg[thing]));
+                                    ss[thing] = msg[thing];
+                                    delete msg[thing];
                                 } else {
-                                    log.red(`Shit. We're fucked. We didn't receive an [${thing}] json nor do we have one stored. FUUUU-`);
+                                    delete msg[thing]; //still delete the false, derp
+                                    if (fs.existsSync(filePath)) {
+                                        log.italic(`[${thing}] loaded from previously saved json.`);
+                                        ss[thing] = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+                                    } else {
+                                        log.red(`Shit. We're fucked. We didn't receive an [${thing}] json nor do we have one stored. FUUUU-`);
+                                    };
                                 };
                             };
-                        };
-            
-                        load("maps", mapsFilePath);
-                        load("servers", serversFilePath);
-                        load("items", itemsFilePath);
                 
-                        delete configInfo.distributed_client;
-            
-                        configInfo = { ...configInfo, ...configInfo.distributed_game };
-                        delete configInfo.distributed_game;
+                            load("maps", mapsFilePath);
+                            load("servers", serversFilePath);
+                            load("items", itemsFilePath);
+                    
+                            delete msg.distributed_client;
                 
-                        configInfo = { ...configInfo, ...configInfo.distributed_all };
-                        delete configInfo.distributed_all;
+                            msg = { ...msg, ...msg.distributed_game };
+                            delete msg.distributed_game;
+                    
+                            msg = { ...msg, ...msg.distributed_all };
+                            delete msg.distributed_all;
+                    
+                            ss.config.servicesMeta = msg.servicesMeta;
+                            delete msg.servicesMeta;
+                    
+                            Object.assign(ss, {
+                                permissions: msg.permissions,
+                            })
+                            delete msg.permissions;
                 
-                        ss.config.servicesMeta = configInfo.servicesMeta;
-                        delete configInfo.servicesMeta;
-                
-                        Object.assign(ss, {
-                            permissions: configInfo.permissions,
-                        })
-                        delete configInfo.permissions;
-            
-                        ss.config.game = { ...ss.config.game, ...configInfo };
+                            ss.config.game = { ...ss.config.game, ...msg };
 
-                        ss.mapAvailability = getMapsByAvailabilityAsInts(ss.maps);
-            
-                        retrieved = true;
-                        // console.log(ss.permissions);
-                        startServer();
-                    } else {
-                        if ((configInfo.servicesMeta.startTime > ss.config.servicesMeta.startTime) && ss.isPerpetual) {
-                            console.log("Services server restarted, restarting...");
-                            process.exit(1337);
+                            ss.mapAvailability = getMapsByAvailabilityAsInts(ss.maps);
+
+                            ss.thisServer = msg.yourServer;
+                
+                            retrieved = true;
+                            // console.log(ss.permissions);
+                            startServer();
+                        } else {
+                            if ((msg.servicesMeta.startTime > ss.config.servicesMeta.startTime) && ss.isPerpetual) {
+                                console.log("Services server restarted, restarting...");
+                                process.exit(1337);
+                            };
+                            offline = false;
                         };
-                        offline = false;
-                    };
-                } else {
-                    if (!retrieved) {
-                        log.yellow(`Config retrieval failed. Retrying in ${nextTimeout / 1e3} seconds...`);
-                        setTimeout(() => {
-                            connectWebSocket(retryCount + 1);
-                        }, nextTimeout);
-                    };
+                        break;
+                    case "servicesInfo":
+                        
+                        break;
+                    default:
+                        log.error(`Unknown command received: ${msg.cmd}`);
+                        break;
                 };
+                
+                
+                // } else {
+                //     if (!retrieved) {
+                //         log.yellow(`Config retrieval failed. Retrying in ${nextTimeout / 1e3} seconds...`);
+                //         setTimeout(() => {
+                //             connectWebSocket(retryCount + 1);
+                //         }, nextTimeout);
+                //     };
+                // };
 
                 return true;
             }, (event) => {

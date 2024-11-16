@@ -15,12 +15,14 @@ import accs from '#accountManagement';
 import sess from '#sessionManagement';
 import recs from '#recordsManagement';
 import backups from '#backups';
+import { devlog } from '#isClientServer';
 //legacyshell: logging
 import log from '#coloured-logging';
 //legacyshell: ss
 import { ss } from '#misc';
 //legacyshell: plugins
 import { plugins } from '#plugins';
+import { gameInfo } from '#roomManager';
 //
 
 //i know its called start, even though it should be the other way round. please excuse this.
@@ -62,8 +64,15 @@ export default async function run () {
     
     setInterval(backups.createBackup, 1e3 * 60 * 60 * (ss.config.services.backups.interval || 1));
     backups.createBackup();
+
+    var servicesInfo = {
+        client: {
+            gameInfo: {},
+        },
+        gameInfo: {},
+    };
     
-    const initTables = async () => {
+    async function initTables () {
         try {
             //ITEMS TABLE
             ss.config.verbose && log.bgCyan("services: Reading from DB: perform outdated items/user table check");
@@ -178,6 +187,8 @@ export default async function run () {
                         ss.config.verbose && console.log("game_servers", game_servers.maxDateModified, msg.lastServers);
     
                         let response = {
+                            cmd: 'requestConfig',
+
                             distributed_all: ss.config.distributed_all,
                             distributed_client: ss.config.distributed_client,
                             distributed_game: ss.config.distributed_game,
@@ -198,7 +209,35 @@ export default async function run () {
                         if (msg.lastMaps !== undefined)     response.maps   = maps.maxDateModified          > msg.lastMaps      ? await recs.getAllMapData()             : false;
                         if (msg.lastServers !== undefined)  response.servers= game_servers.maxDateModified  > msg.lastServers   ? await recs.getAllGameServerData()      : false;
     
+                        if (msg.auth_key) {
+                            var servers = await recs.getAllGameServerData(true);
+                            for (var i = 0; i < servers.length; i++) {
+                                if (servers[i].auth_key === msg.auth_key) {
+                                    response.yourServer = i;
+                                    // devlog("your server", i);
+                                    break;
+                                };
+                            };
+                        };
+
+                        function sendServicesInfo() {
+                            if (msg.auth_key) {
+                                ws.send(JSON.stringify( {cmd: "servicesInfo", ...servicesInfo} ));
+                            } else {
+                                ws.send(JSON.stringify( {cmd: "servicesInfo", client: servicesInfo.client} ));
+                            };
+                        };
+
+                        sendServicesInfo();
                         ws.send(JSON.stringify( response ));
+
+                        var interval = setInterval(()=>{
+                            if (ws.readyState === WebSocket.CLOSED) {
+                                clearInterval(interval);
+                            } else {
+                                sendServicesInfo();
+                            };
+                        }, 10e3);
                     } else if (ss.config.distributed_all.closed !== true) {
                         switch (msg.cmd) {
                             // Game server commands
@@ -244,7 +283,21 @@ export default async function run () {
                                     deaths: userData.deaths, //again, i dont think we really need this for anything
                                 }));
                                 break;
-                            // Client commands
+                            // Client/game server commands
+                            case 'servicesInfo':
+                                if (msg.gameInfo && msg.auth_key && typeof(msg.thisServer) == 'number') {
+                                    var gameInfo = msg.gameInfo;
+                                    servicesInfo.gameInfo[msg.thisServer] = gameInfo;
+
+                                    var gameInfoForClient = JSON.parse(JSON.stringify(gameInfo));
+                                    delete gameInfoForClient.rooms;
+
+                                    servicesInfo.client.gameInfo[msg.thisServer] = gameInfoForClient;
+                                };
+
+                                console.log(servicesInfo);
+                                break;
+                            // Client client commands
                             case 'validateLogin':
                                 accs.getUserData(msg.username, true, true).then(userData => {
                                     if (userData) {

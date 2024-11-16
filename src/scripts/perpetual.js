@@ -300,8 +300,9 @@ function getVersionHash() {
 let versionHash = getVersionHash();
 
 (setInterval(() => {
-    if (versionHash !== getVersionHash()) {
-        log.bgGreen("Version hash has changed, update! Restarting...");
+    let newVersionHash = getVersionHash()
+    if (versionHash !== newVersionHash) {
+        log.bgGreen(versionHash, newVersionHash, "Version hash has changed, update! Restarting...");
         startProcess();
     };
 }, 15e3));

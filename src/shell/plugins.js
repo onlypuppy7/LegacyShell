@@ -37,15 +37,13 @@ export class PluginManager {
                                     if (error) {
                                         log.warning(`Failed to update plugin ${pluginFolder} via git:`, error);
                                         return;
-                                    }
-                                    console.log(`stdout: ${stdout}`);
-                                    console.error(`stderr: ${stderr}`);
+                                    };
 
                                     const newHash = execSync(`cd ${path.join(pluginsDir, pluginFolder)} && git rev-parse HEAD`, { encoding: 'utf-8' }).trim();
                                     if (currentHash !== newHash) {
                                         log.bgGreen(`Plugin ${pluginFolder} updated successfully. (new hash: ${newHash})`);
                                     } else {
-                                        log.dim(`Plugin ${pluginFolder} is already up to date.`);
+                                        log.dim(`[stdout] ${stdout}${(stderr && stderr !=="") ? "[ERROR!] "+stderr+"\n" : ''}Plugin ${pluginFolder} is already up to date.`);
                                     };
                                 });
                             };

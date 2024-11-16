@@ -99,6 +99,8 @@ export var GameType = {};
                 ...gameType.options,
             };
             gameType.value = i++;
+            gameType.shortNameDisplay = gameType.shortName;
+            gameType.longNameDisplay = gameType.longName;
             if (gameType.mapPool && !AllMapPools.includes(gameType.mapPool)) {
                 AllMapPools.push(gameType.mapPool);
             };
