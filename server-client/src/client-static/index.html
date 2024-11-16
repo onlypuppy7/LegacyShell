@@ -599,8 +599,14 @@
                             <input class="textInput" placeholder="Nickname" id="nickname"
                                 style="width: 100%; font-size: 1.2em" maxlength="32" type="textbox" />
 
-                            <select style="width: 100%; margin-top: 0.25em" id="gameTypeSelect"
-                                onchange="extern.selectGameType(this.selectedIndex)"></select>
+                            <div style="display: flex; gap: 0.5em; margin-top: 0.25em;">
+                                <select style="flex: 1; width: 14em;" id="gameTypeSelect" onchange="extern.selectGameType(this.selectedIndex)"></select>
+                                <button class="ssbutton blue" style="flex: 0 0 auto;height: 2em;width: 2em;" onclick="extern.fetchServicesInfo(true)">
+                                    <h3 style="
+                                        margin-left: -0.0em;
+                                    ">⟳</h3>
+                                </button>
+                            </div>
 
                             <!-- Enter, Create, or Join game -->
                             <button class="ssbutton green" style="width: 100%; height: 3em; margin-top: 0.25em"
