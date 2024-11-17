@@ -92,11 +92,11 @@ export const misc = {
                             for (const key in yamlDefaultData) { //not the cleanest way to do this
                                 if (yamlData[key] === undefined) {
                                     log.error(`Missing key ${key} in ${file}, using default value.`);
-                                } else if (typeof yamlDefaultData[key] === "object") {
+                                } else if (misc.isObject(yamlDefaultData[key])) {
                                     for (const subKey in yamlDefaultData[key]) {
                                         if (yamlData[key] === undefined || yamlData[key][subKey] === undefined) {
                                             log.error(`Missing key ${key} -> ${subKey} in ${file}, using default value.`);
-                                        } else if (typeof yamlDefaultData[key][subKey] === "object") {
+                                        } else if (misc.isObject(yamlDefaultData[key][subKey])) {
                                             for (const subSubKey in yamlDefaultData[key][subKey]) {
                                                 if (yamlData[key][subKey][subSubKey] === undefined) { //if there are still more levels, get fucked
                                                     log.error(`Missing key ${key} -> ${subKey} -> ${subSubKey} in ${file}, using default value.`);
@@ -199,6 +199,8 @@ export const misc = {
       
         return result;
     },
+
+    isObject: (val) => val && typeof val === 'object' && !Array.isArray(val),
 };
 
 export default misc;
