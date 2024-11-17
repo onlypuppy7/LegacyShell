@@ -310,7 +310,7 @@ let versionHash = getVersionHash();
 
 function pullQuestionMark() {
     if (options.is_puller) {
-        logNoSend("Pulling from git...");
+        logNoSend("Pulling from git...", versionHash);
         executeCommand('git', ['pull'], 'ignore');
     };
 };
