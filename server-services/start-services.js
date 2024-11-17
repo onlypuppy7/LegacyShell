@@ -133,7 +133,7 @@ export default async function run () {
                     ];
                     auth_commands.includes(msg.cmd) && (cmdType = 'auth_required');
                     
-                    ss.config.verbose && log.dim("Received cmd: "+msg.cmd+"; type: "+cmdType), console.log(msg);
+                    ss.config.verbose && msg.cmd !=="servicesInfo" && (log.dim("Received cmd: "+msg.cmd+"; type: "+cmdType), console.log(msg));
     
                     if (ss.config.services.ratelimit.protect_ips)
                         ip = crypto.createHash('md5').update(ip).digest('hex');
@@ -295,7 +295,7 @@ export default async function run () {
                                     servicesInfo.client.gameInfo[msg.thisServer] = gameInfoForClient;
                                 };
 
-                                console.log(servicesInfo);
+                                // console.log(servicesInfo);
                                 break;
                             // Client client commands
                             case 'validateLogin':
