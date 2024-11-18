@@ -31,8 +31,8 @@ export const samplePlugin2 = {
             example: "14",
             permissionLevel: [ctx.ranksEnum.Guest, ctx.ranksEnum.Guest, false],
             inputType: ["string"],
-            executeClient: (player, opts, mentions) => { },
-            executeServer: (player, opts, mentions) => {
+            executeClient: ({ player, opts, mentions }) => { },
+            executeServer: ({ player, opts, mentions }) => {
                 var result = is(opts).thirteen();
 
                 // console.log(opts, result);

@@ -276,7 +276,7 @@ class newClient {
                         };
                         break;
                     case Comm.Code.chat:
-                        var text = input.unPackString();
+                        var text = input.unPackLongString();
                         text = text.replaceAll("<", "(");
                         console.log(this.player.name, "chatted:", text);
 
@@ -289,7 +289,7 @@ class newClient {
                                 text = fixStringWidth(text, maxChatWidth);
                                 var output = new Comm.Out();
                                 if (text.startsWith("@")) {
-                                    var mentions = parseMentions(text, this);
+                                    var {mentions} = parseMentions(text, this);
                                     if (mentions[0]) {
                                         this.room.packChat(output, text, this.id, Comm.Chat.whisper);
                                         mentions[0].forEach(player => {

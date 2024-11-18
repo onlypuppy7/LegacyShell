@@ -34,7 +34,7 @@ export class PermissionsConstructor {
         
         //change
         this.newCommand({
-            identifier: "gravityModifier",
+            identifier: "gravity",
             isCheat: true,
             name: "gravity",
             category: "change",
@@ -44,12 +44,12 @@ export class PermissionsConstructor {
             usage: "[@mention] number (-12 to 12, step 0.1)",
             permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
             inputType: ["number", -12, 12, 0.1],
-            executeClient: (player, opts, mentions) => {
+            executeClient: ({ player, opts, mentions }) => {
                 forEachMentionInMentions(mentions, (player) => {
                     player.changeModifiers({gravityModifier: opts});
                 });
             },
-            executeServer: (player, opts, mentions) => {
+            executeServer: ({ player, opts, mentions }) => {
                 forEachMentionInMentions(mentions, (player) => {
                     player.changeModifiers({gravityModifier: opts});
                     player.client.notify(`Your gravity has been set to: ${opts}`, 5);
@@ -57,7 +57,7 @@ export class PermissionsConstructor {
             }
         });
         this.newCommand({
-            identifier: "speedModifier",
+            identifier: "speed",
             isCheat: true,
             name: "speed",
             category: "change",
@@ -67,12 +67,12 @@ export class PermissionsConstructor {
             usage: "[@mention] number (-12 to 12, step 0.1)",
             permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
             inputType: ["number", -12, 12, 0.1],
-            executeClient: (player, opts, mentions) => {
+            executeClient: ({ player, opts, mentions }) => {
                 forEachMentionInMentions(mentions, (player) => {
                     player.changeModifiers({speedModifier: opts});
                 });
             },
-            executeServer: (player, opts, mentions) => {
+            executeServer: ({ player, opts, mentions }) => {
                 forEachMentionInMentions(mentions, (player) => {
                     player.changeModifiers({speedModifier: opts});
                     player.client.notify(`Your speed has been set to: ${opts}`, 5);
@@ -80,7 +80,7 @@ export class PermissionsConstructor {
             }
         });
         this.newCommand({
-            identifier: "regenModifier",
+            identifier: "regen",
             isCheat: true,
             name: "regen",
             category: "change",
@@ -90,12 +90,12 @@ export class PermissionsConstructor {
             usage: "[@mention] number (-12 to 12, step 0.1)",
             permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
             inputType: ["number", -12, 12, 0.1],
-            executeClient: (player, opts, mentions) => {
+            executeClient: ({ player, opts, mentions }) => {
                 forEachMentionInMentions(mentions, (player) => {
                     player.changeModifiers({regenModifier: opts});
                 });
             },
-            executeServer: (player, opts, mentions) => {
+            executeServer: ({ player, opts, mentions }) => {
                 forEachMentionInMentions(mentions, (player) => {
                     player.changeModifiers({regenModifier: opts});
                     player.client.notify(`Your regen rate has been set to: ${opts}`, 5);
@@ -103,7 +103,7 @@ export class PermissionsConstructor {
             }
         });
         this.newCommand({
-            identifier: "damageModifier",
+            identifier: "damage",
             isCheat: true,
             name: "damage",
             category: "change",
@@ -113,12 +113,12 @@ export class PermissionsConstructor {
             usage: "[@mention] number (-12 to 12, step 0.1)",
             permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
             inputType: ["number", -12, 12, 0.1],
-            executeClient: (player, opts, mentions) => {
+            executeClient: ({ player, opts, mentions }) => {
                 forEachMentionInMentions(mentions, (player) => {
                     player.changeModifiers({damageModifier: opts});
                 });
             },
-            executeServer: (player, opts, mentions) => {
+            executeServer: ({ player, opts, mentions }) => {
                 forEachMentionInMentions(mentions, (player) => {
                     player.changeModifiers({damageModifier: opts});
                     player.client.notify(`Your damage modifier has been set to: ${opts}`, 5);
@@ -126,7 +126,7 @@ export class PermissionsConstructor {
             }
         });
         this.newCommand({
-            identifier: "resistanceModifier",
+            identifier: "resistance",
             isCheat: true,
             name: "resistance",
             category: "change",
@@ -136,12 +136,12 @@ export class PermissionsConstructor {
             usage: "[@mention] number (-12 to 12, step 0.1)",
             permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
             inputType: ["number", -12, 12, 0.1],
-            executeClient: (player, opts, mentions) => {
+            executeClient: ({ player, opts, mentions }) => {
                 forEachMentionInMentions(mentions, (player) => {
                     player.changeModifiers({resistanceModifier: opts});
                 });
             },
-            executeServer: (player, opts, mentions) => {
+            executeServer: ({ player, opts, mentions }) => {
                 forEachMentionInMentions(mentions, (player) => {
                     player.changeModifiers({resistanceModifier: opts});
                     player.client.notify(`Your resistance modifier has been set to: ${opts}`, 5);
@@ -149,7 +149,7 @@ export class PermissionsConstructor {
             }
         });
         this.newCommand({
-            identifier: "jumpBoostModifier",
+            identifier: "jumpBoost",
             isCheat: true,
             name: "jumpBoost",
             category: "change",
@@ -159,12 +159,12 @@ export class PermissionsConstructor {
             usage: "[@mention] number (-12 to 12, step 0.1)",
             permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
             inputType: ["number", -12, 12, 0.1],
-            executeClient: (player, opts, mentions) => {
+            executeClient: ({ player, opts, mentions }) => {
                 forEachMentionInMentions(mentions, (player) => {
                     player.changeModifiers({jumpBoostModifier: opts});
                 });
             },
-            executeServer: (player, opts, mentions) => {
+            executeServer: ({ player, opts, mentions }) => {
                 forEachMentionInMentions(mentions, (player) => {
                     player.changeModifiers({jumpBoostModifier: opts});
                     player.client.notify(`Your jump boost modifier has been set to: ${opts}`, 5);
@@ -182,12 +182,12 @@ export class PermissionsConstructor {
             usage: "[@mention] number (0.1 to 25, step 0.1)",
             permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
             inputType: ["number", 0.1, 25, 0.1],
-            executeClient: (player, opts, mentions) => {
+            executeClient: ({ player, opts, mentions }) => {
                 forEachMentionInMentions(mentions, (player) => {
                     player.changeScale(opts);
                 });
             },
-            executeServer: (player, opts, mentions) => {
+            executeServer: ({ player, opts, mentions }) => {
                 forEachMentionInMentions(mentions, (player) => {
                     player.changeScale(opts);
                     player.client.notify(`Your scaling has been set to: ${opts}`, 5);
@@ -203,8 +203,8 @@ export class PermissionsConstructor {
             example: "1.5",
             permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
             inputType: ["number", -10, 10, 0.1],
-            executeClient: (player, opts, mentions) => {},
-            executeServer: (player, opts, mentions) => {
+            executeClient: ({ player, opts, mentions }) => {},
+            executeServer: ({ player, opts, mentions }) => {
                 this.room.gameOptions.lifesteal = [
                     opts, //ffa
                     opts, //team1
@@ -225,13 +225,13 @@ export class PermissionsConstructor {
             usage: "[@mention] (multiple mentions supported)",
             permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
             inputType: ["string"], //0, maxServerSlots - 1, 1
-            executeClient: (player, opts, mentions) => {
+            executeClient: ({ player, opts, mentions }) => {
                 forEachMentionInMentions(mentions, (player) => {
                     bootPlayer(player.id, player.username);
                     devlog(`booting player: ${opts}`);
                 });
             },
-            executeServer: (player, opts, mentions) => { }
+            executeServer: ({ player, opts, mentions }) => { }
         });
         this.newCommand({
             identifier: "announce",
@@ -241,10 +241,10 @@ export class PermissionsConstructor {
             example: "WASSUP",
             permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Moderator, false],
             inputType: ["string"],
-            executeClient: (player, opts, mentions) => {
+            executeClient: ({ player, opts, mentions }) => {
                 console.log(`Announcement: ${opts}`);
             },
-            executeServer: (player, opts, mentions) => {
+            executeServer: ({ player, opts, mentions }) => {
                 // this.room(`Announcement: ${opts}`);
             }
         });
@@ -256,24 +256,24 @@ export class PermissionsConstructor {
             example: "wassup",
             permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
             inputType: ["string"],
-            executeClient: (player, opts, mentions) => {
+            executeClient: ({ player, opts, mentions }) => {
                 console.log(`notifying rn: ${opts}`);
             },
-            executeServer: (player, opts, mentions) => {
+            executeServer: ({ player, opts, mentions }) => {
                 // console.log(`notifying rn: ${opts}`);
                 this.room.notify(opts, 5);
             }
         });
         this.newCommand({
-            identifier: "modCheatsEnable",
+            identifier: "cheats",
             name: "cheats",
             category: "mod",
             description: "Enable/disable cheats.",
             example: "true",
             permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
             inputType: ["bool"],
-            executeClient: (player, opts, mentions) => {},
-            executeServer: (player, opts, mentions) => {
+            executeClient: ({ player, opts, mentions }) => {},
+            executeServer: ({ player, opts, mentions }) => {
                 if (this.room.gameOptions.cheatsEnabled !== opts) {
                     if (!opts) {
                         player.client.commandFeedback(`Cheats cannot be disabled once enabled.`);
@@ -282,6 +282,19 @@ export class PermissionsConstructor {
                         this.room.notify(`Notice: Cheats have been enabled.`, 5);
                     };
                 };
+            },
+        });
+        this.newCommand({
+            identifier: "gameoptions",
+            name: "gameoptions",
+            category: "mod",
+            description: "View current game options.",
+            example: "(no input needed)",
+            permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
+            inputType: ["bool"],
+            executeClient: ({ player, opts, mentions }) => {},
+            executeServer: ({ player, opts, mentions }) => {
+                player.client.commandFeedback(JSON.stringify(this.room.gameOptions));
             },
         });
 
@@ -294,10 +307,10 @@ export class PermissionsConstructor {
             example: "18",
             permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
             inputType: ["number", 1, maxServerSlots, 1],
-            executeClient: (player, opts, mentions) => {
+            executeClient: ({ player, opts, mentions }) => {
                 devlog(`setting new player limit: ${opts}`);
             },
-            executeServer: (player, opts, mentions) => {
+            executeServer: ({ player, opts, mentions }) => {
                 this.room.playerLimit = opts;
                 this.room.updateRoomDetails();
                 this.room.notify(`Player limit has been set to: ${opts}`, 5);
@@ -311,10 +324,10 @@ export class PermissionsConstructor {
             example: "0SXLLS",
             permissionLevel: [this.ranksEnum.Guest, this.ranksEnum.Guest, false],
             inputType: ["string"],
-            executeClient: (player, opts, mentions) => {
+            executeClient: ({ player, opts, mentions }) => {
                 if (opts.length > 5) joinGame(opts);
             },
-            executeServer: (player, opts, mentions) => { }
+            executeServer: ({ player, opts, mentions }) => { }
         });
         this.newCommand({
             identifier: "warpall",
@@ -324,8 +337,8 @@ export class PermissionsConstructor {
             example: "0SXLLS",
             permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
             inputType: ["string"],
-            executeClient: (player, opts, mentions) => { },
-            executeServer: (player, opts, mentions) => {
+            executeClient: ({ player, opts, mentions }) => { },
+            executeServer: ({ player, opts, mentions }) => {
                 if (opts.length > 5) {
                     var output = new Comm.Out();
                     output.packInt8U(Comm.Code.warp);
@@ -344,8 +357,8 @@ export class PermissionsConstructor {
             example: "true",
             permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
             inputType: ["bool"],
-            executeClient: (player, opts, mentions) => {},
-            executeServer: (player, opts, mentions) => {
+            executeClient: ({ player, opts, mentions }) => {},
+            executeServer: ({ player, opts, mentions }) => {
                 this.room.notify(`Rounds have been ${opts ? "enabled" : "disabled"}.`, 5);
 
                 var changed = this.room.gameOptions.timedGame.enabled != opts;
@@ -369,8 +382,8 @@ export class PermissionsConstructor {
             example: "150 (2.5 mins)\n300 (5 mins)",
             permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
             inputType: ["number", 1, 60 * 60, 1],
-            executeClient: (player, opts, mentions) => {},
-            executeServer: (player, opts, mentions) => {
+            executeClient: ({ player, opts, mentions }) => {},
+            executeServer: ({ player, opts, mentions }) => {
                 if (this.room.gameOptions.timedGame.enabled) {
                     this.room.gameOptions.timedGame.roundLength = opts;
                     this.room.roundLength = opts;
@@ -393,8 +406,8 @@ export class PermissionsConstructor {
             example: "(no input needed)",
             permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
             inputType: ["string"],
-            executeClient: (player, opts, mentions) => {},
-            executeServer: (player, opts, mentions) => { 
+            executeClient: ({ player, opts, mentions }) => {},
+            executeServer: ({ player, opts, mentions }) => { 
                 if (this.room.gameOptions.timedGame.enabled) {
                     this.room.notify(`Round skipped early...`, 5);
                     this.room.endRound();
@@ -413,8 +426,8 @@ export class PermissionsConstructor {
             example: "(no input needed)",
             permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
             inputType: ["string"],
-            executeClient: (player, opts, mentions) => {},
-            executeServer: (player, opts, mentions) => {
+            executeClient: ({ player, opts, mentions }) => {},
+            executeServer: ({ player, opts, mentions }) => {
                 var changed = this.room.gameOptions.time != "day";
                 this.room.gameOptions.time = "day";
 
@@ -432,8 +445,8 @@ export class PermissionsConstructor {
             example: "(no input needed)",
             permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
             inputType: ["string"],
-            executeClient: (player, opts, mentions) => {},
-            executeServer: (player, opts, mentions) => {
+            executeClient: ({ player, opts, mentions }) => {},
+            executeServer: ({ player, opts, mentions }) => {
                 var changed = this.room.gameOptions.time != "night";
                 this.room.gameOptions.time = "night";
 
@@ -453,8 +466,8 @@ export class PermissionsConstructor {
             example: "true",
             permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
             inputType: ["bool"],
-            executeClient: (player, opts, mentions) => {},
-            executeServer: (player, opts, mentions) => {
+            executeClient: ({ player, opts, mentions }) => {},
+            executeServer: ({ player, opts, mentions }) => {
                 var changed = this.room.gameOptions.weather.rainEnabled != opts;
                 this.room.gameOptions.weather.rainEnabled = opts;
 
@@ -472,8 +485,8 @@ export class PermissionsConstructor {
             example: "true",
             permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
             inputType: ["bool"],
-            executeClient: (player, opts, mentions) => {},
-            executeServer: (player, opts, mentions) => {
+            executeClient: ({ player, opts, mentions }) => {},
+            executeServer: ({ player, opts, mentions }) => {
                 var changed = this.room.gameOptions.weather.stormEnabled != opts;
                 this.room.gameOptions.weather.stormEnabled = opts;
 
@@ -625,14 +638,14 @@ class Command {
                 player.client.commandFeedback(text);
             };
         } else if (permitted) {
-            var mentions = parseMentions(parts, this, player);
+            var {mentions, mentionsLiteral} = parseMentions(parts, this, player);
 
             // console.log(mentions);
 
             if (isClient) {
-                this.executeClient(player, opts, mentions);
+                this.executeClient({player, opts, mentions, mentionsLiteral});
             } else {
-                this.executeServer(player, opts, mentions);
+                this.executeServer({player, opts, mentions, mentionsLiteral});
             };
         } else if (isClient) {
             addChat("Insufficient permissions.", null, Comm.Chat.cmd);
@@ -701,6 +714,7 @@ function forEachMentionInMentions (mentions, callback) {
 
 export function parseMentions (parts, context, player) {
     var mentions = [];
+    var mentionsLiteral = [];
 
     var playersList = isClient ? players : context.room.players;
     var mePlayer = isClient ? me : context.player || player;
@@ -710,6 +724,7 @@ export function parseMentions (parts, context, player) {
     parts.forEach(part => {
         if (part.startsWith("@")) {
             // console.log(`mention: ${part}`);
+            mentionsLiteral.push(part);
             switch (part) {
                 case "@m":
                     mentions.push([mePlayer]);
@@ -741,5 +756,5 @@ export function parseMentions (parts, context, player) {
         };
     });
 
-    return mentions;
+    return {mentions, mentionsLiteral};
 };
