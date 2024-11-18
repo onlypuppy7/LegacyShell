@@ -240,6 +240,7 @@ export class newRoom {
             cheatsEnabled: this.gameOptions.cheatsEnabled,
             weather: this.gameOptions.weather,
             time: this.gameOptions.time,
+            plugins: this.gameOptions.plugins,
         };
         output.packString(JSON.stringify(gameOptions)); //is this technically bloated? yes, but its the only way i can do this such that adding new options is easy
         plugins.emit('packUpdateRoomParamsEnd', {this: this, output});
