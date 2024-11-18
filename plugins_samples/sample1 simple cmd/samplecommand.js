@@ -28,8 +28,8 @@ export const samplePlugin = {
             example: "just run it",
             permissionLevel: [ctx.ranksEnum.Moderator, ctx.ranksEnum.Guest, true],
             inputType: ["string"],
-            executeClient: (player, opts, mentions) => { },
-            executeServer: (player, opts, mentions) => {
+            executeClient: ({ player, opts, mentions }) => { },
+            executeServer: ({ player, opts, mentions }) => {
                 ctx.room.notify("You did it! Woohoo.", 5);
             }
         });

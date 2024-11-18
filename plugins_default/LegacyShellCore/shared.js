@@ -275,8 +275,8 @@ export const LegacyShellCorePlugin = {
             warningText: "This command will probably crash your game (however it's harmless).",
             permissionLevel: [ctx.ranksEnum.Moderator, ctx.ranksEnum.Guest, true],
             inputType: ["bool"],
-            executeClient: (player, opts, mentions) => { },
-            executeServer: (player, opts, mentions) => {
+            executeClient: ({ player, opts, mentions }) => { },
+            executeServer: ({ player, opts, mentions }) => {
                 ctx.room.gameOptions.glitchyRoom1 = opts;
             }
         });
@@ -290,8 +290,8 @@ export const LegacyShellCorePlugin = {
             warningText: "This command will probably crash your game (however it's harmless).",
             permissionLevel: [ctx.ranksEnum.Moderator, ctx.ranksEnum.Guest, true],
             inputType: ["bool"],
-            executeClient: (player, opts, mentions) => { },
-            executeServer: (player, opts, mentions) => {
+            executeClient: ({ player, opts, mentions }) => { },
+            executeServer: ({ player, opts, mentions }) => {
                 ctx.room.gameOptions.glitchyRoom2 = opts;
             }
         });
@@ -304,8 +304,8 @@ export const LegacyShellCorePlugin = {
             example: "true",
             permissionLevel: [ctx.ranksEnum.Moderator, ctx.ranksEnum.Guest, true],
             inputType: ["bool"],
-            executeClient: (player, opts, mentions) => { },
-            executeServer: (player, opts, mentions) => {
+            executeClient: ({ player, opts, mentions }) => { },
+            executeServer: ({ player, opts, mentions }) => {
                 ctx.room.gameOptions.plugins.infinijump = opts;
                 ctx.room.updateRoomParamsForClients();
             }
@@ -319,8 +319,8 @@ export const LegacyShellCorePlugin = {
             example: "true",
             permissionLevel: [ctx.ranksEnum.Moderator, ctx.ranksEnum.Guest, true],
             inputType: ["bool"],
-            executeClient: (player, opts, mentions) => { },
-            executeServer: (player, opts, mentions) => {
+            executeClient: ({ player, opts, mentions }) => { },
+            executeServer: ({ player, opts, mentions }) => {
                 ctx.room.gameOptions.plugins.pistolrpg = opts;
                 ctx.room.updateRoomParamsForClients();
             }

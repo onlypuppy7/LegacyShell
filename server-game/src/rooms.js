@@ -578,7 +578,7 @@ export class newRoom {
         output.packInt8U(Comm.Code.chat);
         output.packInt8U(chatType);
         output.packInt8U(id);
-        output.packString(text);
+        output.packLongString(text);
         plugins.emit('packChatEnd', {this: this, output, text, id, chatType});
     };
 
