@@ -732,24 +732,23 @@ export function setGameOptionInMentionLiteral(player, mentionsLiteral, key, valu
     var team = player.team;
     var opposingTeam = team == 1 ? 2 : 1;
     var room = player.room;
-    var option = room.gameOptions[key];
 
     mentionsLiteral.forEach(mentionLiteral => {
         switch (mentionLiteral) {
             case "@a":
-                option = [value, value, value];
+                room.gameOptions[key] = [value, value, value];
                 changed = true;
                 room.notify(`Game option ${key} has been set to: ${value} for everyone`, 5);
                 return; //only one mentionLiteral can be used
             case "@t":
-                option[team] = value;
+                room.gameOptions[key][team] = value;
                 changed = true;
                 room.notify(`Game option ${key} has been set to: ${value} for team ${Team[team]}`, 5);
                 return;
             case "@o":
-                option[opposingTeam] = value;
+                room.gameOptions[key][opposingTeam] = value;
                 changed = true;
-                room.notify(`Game option ${key} has been set to: ${value} for team ${Team[opposingTeam]}`, 5);
+                room.gameOptions[key].notify(`Game option ${key} has been set to: ${value} for team ${Team[opposingTeam]}`, 5);
                 return;
             default:
                 break;
@@ -757,7 +756,7 @@ export function setGameOptionInMentionLiteral(player, mentionsLiteral, key, valu
     });
 
     if (changed) {
-        this.room.updateRoomParamsForClients();
+        room.updateRoomParamsForClients();
     };
 
     return changed;
