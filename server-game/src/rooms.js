@@ -222,6 +222,13 @@ export class newRoom {
             usernames: this.details.usernames,
             uuids: this.details.uuids,
             sessions: this.details.sessions,
+
+            joinType: this.joinType,
+            gameType: this.gameType,
+            gameOptions: this.gameOptions,
+            mapId: this.mapId,
+            gameId: this.gameId,
+            gameKey: this.gameKey,
         }]);
 
         plugins.emit('roomDetailsUpdatedEnd', {this: this, details: this.details});
