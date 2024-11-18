@@ -31,10 +31,11 @@ class Player {
     constructor(data, scene, client) {
         if (client) {
             this.client = client;
-            this.Collider = this.client.room.Collider;
-            this.mapMeshes = this.client.room.mapMeshes;
-            this.map = this.client.room.map;
-            this.gameOptions = this.client.room.gameOptions;
+            this.room = this.client.room;
+            this.Collider = this.room.Collider;
+            this.mapMeshes = this.room.mapMeshes;
+            this.map = this.room.map;
+            this.gameOptions = this.room.gameOptions;
         } else {
             this.Collider = Collider;
             this.mapMeshes = mapMeshes;
@@ -143,8 +144,8 @@ class Player {
         this.changeWeaponLoadout(this.primaryWeaponItem, this.secondaryWeaponItem);
 
         var respawnTime = 0;
-        if (isServer && this.client.room.gameOptions.timedGame.enabled && this.client.room.roundEndTime < Date.now()) {
-            respawnTime = Math.max(0, this.client.room.roundRestartTime - Date.now());
+        if (isServer && this.room.gameOptions.timedGame.enabled && this.room.roundEndTime < Date.now()) {
+            respawnTime = Math.max(0, this.room.roundRestartTime - Date.now());
             console.log("respawnTime", respawnTime);
         };
         this.resetDespawn(respawnTime);
@@ -271,7 +272,7 @@ class Player {
         };
 
         if (isServer) {
-            let itemManager = this.client.room.itemManager;
+            let itemManager = this.room.itemManager;
             let pools = itemManager.pools;
 
             for (let i = 0; i < pools.length; i++) {
