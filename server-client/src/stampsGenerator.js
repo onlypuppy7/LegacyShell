@@ -107,7 +107,7 @@ export async function prepareStamps() {
         };
     };
 
-    // widthheight = Math.ceil(Math.pow(filesForImage.length, 0.5));
+    widthheight = Math.ceil(Math.pow(filesForImage.length, 0.5));
 
     log.info(filesForImage.length, "Stamp images prepared. Will use a", widthheight, "x", widthheight, "grid - hence total:", widthheight * widthheight);
 
