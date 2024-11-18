@@ -107,7 +107,7 @@ export async function prepareStamps() {
         };
     };
 
-    widthheight = Math.ceil(Math.pow(filesForImage.length, 0.5));
+    // widthheight = Math.ceil(Math.pow(filesForImage.length, 0.5));
 
     log.info(filesForImage.length, "Stamp images prepared. Will use a", widthheight, "x", widthheight, "grid - hence total:", widthheight * widthheight);
 
@@ -205,7 +205,7 @@ export function createStampsUV(wh = widthheight) {
         1-(1/wh),
         (.2048/wh),
         1-(1.04/wh),
-        (0.00015*wh),
+        (.08/wh),
         (1-(.736/wh)),
         0,
         1,
