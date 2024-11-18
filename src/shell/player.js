@@ -553,14 +553,14 @@ class Player {
         };
     };
     canJump() {
-        // if (this.actor && this.id != meId) return true;
-        var canJump = !this.jumping | this.climbing;
-        if (!canJump) {
+        var canJump = [!this.jumping | this.climbing];
+        if (!canJump[0]) {
             this.y -= .2;
-            this.collidesWithMap() && (canJump = true);
+            this.collidesWithMap() && (canJump[0] = true);
             this.y += .2;
         };
-        return canJump;
+        plugins.emit("canJump", { this: this, canJump });
+        return canJump[0];
     };
     jump() {
         if (this.climbing) {
@@ -978,7 +978,7 @@ class Player {
         };
     };
     setHp(newHp, firedId) {
-        console.log("setHp", newHp, firedId, !!this.firedPlayer);
+        // console.log("setHp", newHp, firedId, !!this.firedPlayer);
 
         this.hp = Math.clamp(newHp, 0, 100);
 

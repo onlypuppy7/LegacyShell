@@ -1,6 +1,10 @@
 //legacyshell: basic
 import { isClient, isServer } from "#constants";
 import Comm from "#comm";
+import { Rocket } from "#bullets";
+import { RPEGG } from "#guns";
+//legacyshell: plugins
+import { plugins } from '#plugins';
 //
 
 export const LegacyShellCorePlugin = {
@@ -10,10 +14,24 @@ export const LegacyShellCorePlugin = {
         this.plugins = pluginManager;
 
         this.plugins.on('game:onMapComplete', this.onMapComplete.bind(this));
+        this.plugins.on('game:canJump', this.canJump.bind(this));
         this.plugins.on('game:AllItems', this.AllItems.bind(this));
         this.plugins.on('game:GameTypesInit', this.GameTypesInit.bind(this));
+        this.plugins.on('game:fireCluck9mm', this.fireCluck9mm.bind(this));
 
         this.plugins.on('game:permissionsAfterSetup', this.registerSampleCommand.bind(this));
+    },
+
+    fireCluck9mm(data) {
+        var ctx = data.this;
+        var player = ctx.player;
+
+        if (player.gameOptions.plugins.pistolrpg) {
+            plugins.cancel = true;
+            var pos = data.pos;
+            var dir = data.dir;
+            Rocket.fire(ctx.player, pos, dir, RPEGG);
+        };
     },
 
     onMapComplete(data) {
@@ -246,11 +264,12 @@ export const LegacyShellCorePlugin = {
         console.log("registering sample command... (sample plugin)");
         var ctx = data.this;
 
+        //cheats
         ctx.newCommand({
             identifier: "glitchyroom1",
             isCheat: true,
             name: "glitch1",
-            category: "change",
+            category: "cheats",
             description: "Glitchy room type 1:<br>Random packets every meta loop.",
             example: "true",
             warningText: "This command will probably crash your game (however it's harmless).",
@@ -261,12 +280,11 @@ export const LegacyShellCorePlugin = {
                 ctx.room.gameOptions.glitchyRoom1 = opts;
             }
         });
-
         ctx.newCommand({
             identifier: "glitchyroom2",
             isCheat: true,
             name: "glitch2",
-            category: "change",
+            category: "cheats",
             description: "Glitchy room type 2:<br>Broken sync packets.",
             example: "true",
             warningText: "This command will probably crash your game (however it's harmless).",
@@ -277,6 +295,45 @@ export const LegacyShellCorePlugin = {
                 ctx.room.gameOptions.glitchyRoom2 = opts;
             }
         });
+        ctx.newCommand({
+            identifier: "infinijump",
+            isCheat: true,
+            name: "infinijump",
+            category: "cheats",
+            description: "Enable/disable infinite jumping.",
+            example: "true",
+            permissionLevel: [ctx.ranksEnum.Moderator, ctx.ranksEnum.Guest, true],
+            inputType: ["bool"],
+            executeClient: (player, opts, mentions) => { },
+            executeServer: (player, opts, mentions) => {
+                ctx.room.gameOptions.plugins.infinijump = opts;
+                ctx.room.updateRoomParamsForClients();
+            }
+        });
+        ctx.newCommand({
+            identifier: "pistolrpg",
+            isCheat: true,
+            name: "pistolrpg",
+            category: "cheats",
+            description: "Enable/disable pistol RPG.",
+            example: "true",
+            permissionLevel: [ctx.ranksEnum.Moderator, ctx.ranksEnum.Guest, true],
+            inputType: ["bool"],
+            executeClient: (player, opts, mentions) => { },
+            executeServer: (player, opts, mentions) => {
+                ctx.room.gameOptions.plugins.pistolrpg = opts;
+                ctx.room.updateRoomParamsForClients();
+            }
+        });
+    },
+
+    canJump(data) {
+        var ctx = data.this;
+        var canJump = data.canJump;
+
+        if (ctx.gameOptions.plugins.infinijump) {
+            canJump[0] = true
+        };
     },
 };
 
