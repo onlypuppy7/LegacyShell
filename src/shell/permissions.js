@@ -229,10 +229,12 @@ export class PermissionsConstructor {
             },
             executeServer: ({ player, opts, mentions }) => { }
         });
+
+        //room
         this.newCommand({
             identifier: "notify",
             name: "notify",
-            category: "mod",
+            category: "room",
             description: "Announces a message to all players.",
             example: "wassup",
             permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
@@ -248,7 +250,7 @@ export class PermissionsConstructor {
         this.newCommand({
             identifier: "cheats",
             name: "cheats",
-            category: "mod",
+            category: "room",
             description: "Enable/disable cheats.",
             example: "true",
             permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
@@ -265,8 +267,6 @@ export class PermissionsConstructor {
                 };
             },
         });
-
-        //room
         this.newCommand({
             identifier: "roomLimit",
             name: "limit",
@@ -326,6 +326,27 @@ export class PermissionsConstructor {
             executeClient: ({ player, opts, mentions }) => {},
             executeServer: ({ player, opts, mentions }) => {
                 player.client.commandFeedback(JSON.stringify(this.room.gameOptions));
+            },
+        });
+        this.newCommand({
+            identifier: "lock",
+            name: "lock",
+            category: "room",
+            description: "Prevent any new players from joining your room.",
+            example: "true",
+            permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
+            inputType: ["bool"],
+            executeClient: ({ player, opts, mentions }) => {},
+            executeServer: ({ player, opts, mentions }) => {
+                this.room.locked = opts;
+                if (opts) {
+                    var hasMoved = this.room.joinType !== Comm.Code.createPrivateGame ? " and moved into private pool" : "";
+                    this.room.joinType = Comm.Code.createPrivateGame;
+                    player.client.commandFeedback(`Room locked${hasMoved}.`);
+                } else {
+                    player.client.commandFeedback(`Room unlocked.`);
+                };
+                this.room.updateRoomDetails();
             },
         });
 

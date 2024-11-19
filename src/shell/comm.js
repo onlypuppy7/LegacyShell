@@ -312,6 +312,7 @@ const Comm = {
         masterServerBusy: 4004,
         masterServerOffline: 4005,
         booted: 4006,
+        locked: 4007,
     },
 
     Worker: {

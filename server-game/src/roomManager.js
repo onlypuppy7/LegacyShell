@@ -161,6 +161,7 @@ class newRoomManager {
 
         info = {
             ...info,
+            locked: false,
         };
 
         const createdRoom = {
@@ -244,6 +245,8 @@ class newRoomManager {
             ws.close(Comm.Close.masterServerBusy);
         } else if (msg.session !== "" && room.sessions && room.sessions.includes(msg.session)) {
             ws.close(Comm.Close.masterServerBusy);
+        } else if (room.locked) {
+            ws.close(Comm.Close.locked);
         } else {
             let wsId = room.wsIdx++;
     
