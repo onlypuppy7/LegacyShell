@@ -237,7 +237,7 @@ export default async function run () {
                             } else {
                                 sendServicesInfo();
                             };
-                        }, 10e3);
+                        }, ss.config.distributed_all.servicesInfoSendInterval * 1e3);
                     } else if (ss.config.distributed_all.closed !== true) {
                         switch (msg.cmd) {
                             // Game server commands
