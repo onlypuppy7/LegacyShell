@@ -29,7 +29,7 @@ class newRoomManager {
         this.sendInfoToServices();
         setInterval(() => {
             this.sendInfoToServices();
-        }, 30e3);
+        }, ss.config.game.servicesInfoCollectInterval * 1e3);
     };
 
     getUnusedID() {

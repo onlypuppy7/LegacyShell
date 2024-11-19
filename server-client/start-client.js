@@ -33,6 +33,8 @@ export default async function run () {
     let retrieved = false;
     let offline = false;
 
+    var servicesInfo = "";
+
     await plugins.emit('onLoad', { ss });
 
     async function startServer() {
@@ -275,9 +277,11 @@ export default async function run () {
                         var info = {
                             ...msg.client,
                         };
-                        if (Object.keys(info.gameInfo).length !== 0) {
-                            fs.writeFileSync(path.join(ss.currentDir, 'store', 'client-modified', 'servicesInfo.json'), JSON.stringify(info));
+                        var newServicesInfo = JSON.stringify(info);
+                        if (Object.keys(info.gameInfo).length !== 0 && servicesInfo !== newServicesInfo) {
+                            fs.writeFileSync(path.join(ss.currentDir, 'store', 'client-modified', 'servicesInfo.json'), newServicesInfo);
                         };
+                        servicesInfo = newServicesInfo;
                         break;
                     default:
                         log.error(`Unknown command received: ${msg.cmd}`);
