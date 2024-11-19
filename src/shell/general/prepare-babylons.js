@@ -152,32 +152,37 @@ export async function prepareBabylons(endBabylonsDir = path.join(ss.rootDir, 'st
             log.error(`Error preparing babylon ${babylon}:`, error);
         };
     };
+function saveZip(zip, zipName) {
+    const tempDir = path.join(endBabylonsDir, "temp_" + zipName);
+    const zipDir = path.join(endBabylonsDir, zipName)
 
-    function saveZip(zip, zipName) {
-        return new Promise((resolve, reject) => {
-            zip.generateNodeStream({
+    return new Promise((resolve, reject) => {
+        zip.generateNodeStream({
                 type: 'nodebuffer',
                 streamFiles: true,
                 compression: "DEFLATE"
-            }).pipe(fs.createWriteStream(path.join(endBabylonsDir, zipName)))
-              .on('finish', function () {
-                  log.green(`${zipName} written.`);
-                  resolve();
-              })
-              .on('error', function (err) {
-                  log.red(`Error writing ${zipName}: ${err}`);
-                  reject(err);
-              });
-        });
-    };
+            }).pipe(fs.createWriteStream(tempDir))
+            .on('finish', function () {
+                fs.renameSync(tempDir, zipDir);
+                log.green(`${zipName} written.`);
+                resolve();
+            })
+            .on('error', function (err) {
+                log.red(`Error writing ${zipName}: ${err}`);
+                reject(err);
+            });
+    });
+};
+
+    var promise = Promise.all([
+        saveZip(modelsZip, 'models.zip'),
+        saveZip(mapZip, 'map.zip'),
+    ]);
 
     if (fileChanged) {
-        log.info("Babylons changed. Wait for zip to save before playing.");
-        await Promise.all([
-            saveZip(modelsZip, 'models.zip'),
-            saveZip(mapZip, 'map.zip'),
-        ]);
-        log.info("All zips saved. Proceeding.");
+        log.info("Babylons changed. Waiting for zip to save before proceeding.");
+        await promise;
+        log.success("All zips saved. Proceeding.");
     } else {
         log.green("No babylons changed.");
     };
