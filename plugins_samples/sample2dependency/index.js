@@ -6,6 +6,7 @@ import { samplePlugin2 } from './samplecommand.js';
 //
 
 export const PluginMeta = {
+    identifier: "sample2dependency",
     name: '"Essential" Sample Plugin',
     author: 'onlypuppy7',
     version: '1.0.0',

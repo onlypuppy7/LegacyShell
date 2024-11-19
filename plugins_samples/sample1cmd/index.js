@@ -6,6 +6,7 @@ import { samplePlugin } from './samplecommand.js';
 //
 
 export const PluginMeta = {
+    identifier: "sample1cmd",
     name: 'Sample Command Plugin',
     author: 'onlypuppy7',
     version: '1.0.0',
