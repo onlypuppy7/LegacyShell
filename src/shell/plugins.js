@@ -13,7 +13,7 @@ import log from '#coloured-logging';
 
 export class PluginManager {
     constructor(type) {
-        this.plugins = new Map();
+        this.plugins = {};
         this.listeners = {};
         this.type = type || 'game';
     };
@@ -84,7 +84,7 @@ export class PluginManager {
                     // console.log(PluginMeta);
 
                     const pluginInstance = new Plugin(this, path.join(pluginsDir, pluginFolder));
-                    this.plugins.set(pluginFolder, pluginInstance);
+                    this.plugins[PluginMeta.identifier || pluginFolder] = pluginInstance;
                     log.success(`Loaded plugin -> ${PluginMeta.name} v${PluginMeta.version} by ${PluginMeta.author}: ${PluginMeta.descriptionShort}`);
                 };
             } catch (error) {
