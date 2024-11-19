@@ -7,6 +7,7 @@ import Comm from '#comm';
 //
 
 export const PluginMeta = {
+    identifier: "legacyshellcore",
     name: 'LegacyShellCore',
     author: 'onlypuppy7',
     version: '1.0.3',

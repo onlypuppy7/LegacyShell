@@ -132,12 +132,30 @@ export async function prepareStamps() {
         };
     
         if (file && file !== "") {
-            var input = await sharp(file.file).resize({
-                width: stampSize,
-                height: stampSize,
+            var input = sharp(file.file);
+
+            var needsBorder = (await needsBorderCheck(input)) ? 2 : 0;
+
+            if (needsBorder) {
+                log.beige('Adding border to', file.file);
+                input = input.clone();
+                input = input.extend({
+                    top: 1,
+                    bottom: 1,
+                    left: 1,
+                    right: 1,
+                    background: { r: 255, g: 255, b: 255, alpha: 0 }
+                });
+            };
+
+            input = input.resize({
+                width: stampSize - needsBorder,
+                height: stampSize - needsBorder,
                 fit: 'contain',
                 background: { r: 255, g: 255, b: 255, alpha: 0 }
-            }).toBuffer();
+            });
+
+            input = await input.toBuffer();
 
             composites.push({
                 id: file.id,
@@ -178,6 +196,39 @@ export async function prepareStamps() {
     };
 
     ss.cache.items = JSON.stringify(items);
+};
+
+export const needsBorderCheck = async (sharpInstance) => {
+    try {
+        sharpInstance = sharpInstance.clone();
+        const metadata = await sharpInstance.metadata();
+    
+        const rawBuffer = await sharpInstance.raw().toBuffer();
+        const { width, height, channels } = metadata;
+    
+        for (let x = 0; x < width; x++) {
+            for (let c = 0; c < channels; c++) {
+                if (rawBuffer[x * channels + c] !== 0) return true;
+            };
+            for (let c = 0; c < channels; c++) {
+                if (rawBuffer[((height - 1) * width + x) * channels + c] !== 0) return true;
+            };
+        };
+    
+        for (let y = 0; y < height; y++) {
+            for (let c = 0; c < channels; c++) {
+                if (rawBuffer[(y * width) * channels + c] !== 0) return true;
+            };
+            for (let c = 0; c < channels; c++) {
+                if (rawBuffer[(y * width + (width - 1)) * channels + c] !== 0) return true;
+            };
+        };
+    
+        return false;
+    } catch (error) {
+        log.error('Error checking for border:', error);
+        return true;
+    };
 };
 
 export function createStampsUV(wh = widthheight) {
