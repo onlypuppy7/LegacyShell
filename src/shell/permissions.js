@@ -50,12 +50,7 @@ export class PermissionsConstructor {
                 });
             },
             executeServer: ({ player, opts, mentions, mentionsLiteral }) => {
-                if (!setGameOptionInMentionLiteral(player, mentionsLiteral, "gravityModifier", opts)) {
-                    forEachMentionInMentions(mentions, (player) => {
-                        player.changeModifiers({gravityModifier: opts});
-                        player.client.notify(`Your gravity has been set to: ${opts}`, 5);
-                    });
-                };
+                setGameOptionInMentions(player, mentions, mentionsLiteral, "gravityModifier", opts);
             }
         });
         this.newCommand({
@@ -75,12 +70,7 @@ export class PermissionsConstructor {
                 });
             },
             executeServer: ({ player, opts, mentions, mentionsLiteral }) => {
-                if (!setGameOptionInMentionLiteral(player, mentionsLiteral, "speedModifier", opts)) {
-                    forEachMentionInMentions(mentions, (player) => {
-                        player.changeModifiers({speedModifier: opts});
-                        player.client.notify(`Your speed has been set to: ${opts}`, 5);
-                    });
-                };
+                setGameOptionInMentions(player, mentions, mentionsLiteral, "speedModifier", opts);
             }
         });
         this.newCommand({
@@ -100,12 +90,7 @@ export class PermissionsConstructor {
                 });
             },
             executeServer: ({ player, opts, mentions, mentionsLiteral }) => {
-                if (!setGameOptionInMentionLiteral(player, mentionsLiteral, "regenModifier", opts)) {
-                    forEachMentionInMentions(mentions, (player) => {
-                        player.changeModifiers({regenModifier: opts});
-                        player.client.notify(`Your regen rate has been set to: ${opts}`, 5);
-                    });
-                };
+                setGameOptionInMentions(player, mentions, mentionsLiteral, "regenModifier", opts);
             }
         });
         this.newCommand({
@@ -125,12 +110,7 @@ export class PermissionsConstructor {
                 });
             },
             executeServer: ({ player, opts, mentions, mentionsLiteral }) => {
-                if (!setGameOptionInMentionLiteral(player, mentionsLiteral, "damageModifier", opts)) {
-                    forEachMentionInMentions(mentions, (player) => {
-                        player.changeModifiers({damageModifier: opts});
-                        player.client.notify(`Your damage modifier has been set to: ${opts}`, 5);
-                    });
-                };
+                setGameOptionInMentions(player, mentions, mentionsLiteral, "damageModifier", opts);
             }
         });
         this.newCommand({
@@ -150,12 +130,7 @@ export class PermissionsConstructor {
                 });
             },
             executeServer: ({ player, opts, mentions, mentionsLiteral }) => {
-                if (!setGameOptionInMentionLiteral(player, mentionsLiteral, "resistanceModifier", opts)) {
-                    forEachMentionInMentions(mentions, (player) => {
-                        player.changeModifiers({resistanceModifier: opts});
-                        player.client.notify(`Your resistance modifier has been set to: ${opts}`, 5);
-                    });
-                };
+                setGameOptionInMentions(player, mentions, mentionsLiteral, "resistanceModifier", opts);
             }
         });
         this.newCommand({
@@ -175,12 +150,7 @@ export class PermissionsConstructor {
                 });
             },
             executeServer: ({ player, opts, mentions, mentionsLiteral }) => {
-                if (!setGameOptionInMentionLiteral(player, mentionsLiteral, "jumpBoostModifier", opts)) {
-                    forEachMentionInMentions(mentions, (player) => {
-                        player.changeModifiers({jumpBoostModifier: opts});
-                        player.client.notify(`Your jump boost modifier has been set to: ${opts}`, 5);
-                    });
-                };
+                setGameOptionInMentions(player, mentions, mentionsLiteral, "jumpBoostModifier", opts);
             }
         });
         this.newCommand({
@@ -200,12 +170,7 @@ export class PermissionsConstructor {
                 });
             },
             executeServer: ({ player, opts, mentions, mentionsLiteral }) => {
-                if (!setGameOptionInMentionLiteral(player, mentionsLiteral, "scale", opts)) {
-                    forEachMentionInMentions(mentions, (player) => {
-                        player.changeScale(opts);
-                        player.client.notify(`Your scaling has been set to: ${opts}`, 5);
-                    });
-                };
+                setGameOptionInMentions(player, mentions, mentionsLiteral, "scale", opts);
             }
         });
         this.newCommand({
@@ -216,12 +181,13 @@ export class PermissionsConstructor {
             description: "Multiplier for how much health to give back from damage.",
             example: "@a 1.5 (only use group mentions)",
             autocomplete: "@",
+            mentionTypes: {group: true},
             usage: "[@group] number (-10 to 10, step 0.1)",
             permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
             inputType: ["number", -10, 10, 0.1],
             executeClient: ({ player, opts, mentions }) => {},
             executeServer: ({ player, opts, mentions, mentionsLiteral }) => {
-                if (!setGameOptionInMentionLiteral(player, mentionsLiteral, "lifesteal", opts)) {
+                if (!setGameOptionInMentions(player, mentions, mentionsLiteral, "lifesteal", opts)) {
                     player.client.commandFeedback(`Use a group mention like @a to set this option.`);
                 };
             }
@@ -578,7 +544,7 @@ export class PermissionsConstructor {
 };
 
 class Command {
-    constructor(context, { identifier, isCheat, name, category, description, example, usage, autocomplete, warningText, permissionLevel, inputType, executeClient, executeServer }) {
+    constructor(context, { identifier, isCheat, name, category, description, example, usage, autocomplete, mentionTypes, warningText, permissionLevel, inputType, executeClient, executeServer }) {
         if (!context.cmds[category]) context.cmds[category] = {};
         context.cmds[category][name] = this;
         context.cmdsByIdentifier[identifier] = this;
@@ -596,6 +562,7 @@ class Command {
         this.description = description;
         this.example = example;
         this.autocomplete = autocomplete || "";
+        this.mentionTypes = mentionTypes || {player: true, group: true};
         this.warningText = warningText || "";
         if (isCheat) {
             if (this.warningText !== "") this.warningText += "<br>";
@@ -727,28 +694,29 @@ export function forEachMentionInMentions (mentions, callback) {
     });
 };
 
-export function setGameOptionInMentionLiteral(player, mentionsLiteral, key, value) {
+export function setGameOptionInMentions(player, mentions, mentionsLiteral, key, value, gameOptions) {
     var changed = false;
     var team = player.team;
     var opposingTeam = team == 1 ? 2 : 1;
     var room = player.room;
+    gameOptions = gameOptions || room.gameOptions;
 
     mentionsLiteral.forEach(mentionLiteral => {
         switch (mentionLiteral) {
             case "@a":
-                room.gameOptions[key] = [value, value, value];
+                gameOptions[key] = [value, value, value];
                 changed = true;
                 room.notify(`Game option ${key} has been set to: ${value} for everyone`, 5);
                 return; //only one mentionLiteral can be used
             case "@t":
-                room.gameOptions[key][team] = value;
+                gameOptions[key][team] = value;
                 changed = true;
                 room.notify(`Game option ${key} has been set to: ${value} for team ${Team[team]}`, 5);
                 return;
             case "@o":
-                room.gameOptions[key][opposingTeam] = value;
+                gameOptions[key][opposingTeam] = value;
                 changed = true;
-                room.gameOptions[key].notify(`Game option ${key} has been set to: ${value} for team ${Team[opposingTeam]}`, 5);
+                room.notify(`Game option ${key} has been set to: ${value} for team ${Team[opposingTeam]}`, 5);
                 return;
             default:
                 break;
@@ -757,6 +725,13 @@ export function setGameOptionInMentionLiteral(player, mentionsLiteral, key, valu
 
     if (changed) {
         room.updateRoomParamsForClients();
+    };
+    
+    if (mentions) {
+        forEachMentionInMentions(mentions, (player) => {
+            if (player[key] !== undefined) player.changeModifiers({[key]: value});
+            player.client.commandFeedback(`Your ${key.replace("Modifier"," modifier")} has been set to: ${value}`);
+        });
     };
 
     return changed;

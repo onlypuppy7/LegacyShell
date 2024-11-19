@@ -5,6 +5,7 @@ import { Rocket } from "#bullets";
 import { RPEGG } from "#guns";
 //legacyshell: plugins
 import { plugins } from '#plugins';
+import { setGameOptionInMentions } from "#permissions";
 //
 
 export const LegacyShellCorePlugin = {
@@ -26,7 +27,7 @@ export const LegacyShellCorePlugin = {
         var ctx = data.this;
         var player = ctx.player;
 
-        if (player.gameOptions.plugins.pistolrpg) {
+        if (player.gameOptions.plugins.pistolrpg[player.team]) {
             plugins.cancel = true;
             var pos = data.pos;
             var dir = data.dir;
@@ -61,6 +62,13 @@ export const LegacyShellCorePlugin = {
     },
 
     GameTypesInit(data) {
+        var defaultOptions = data.defaultOptions;
+
+        Object.assign(defaultOptions.plugins, {
+            infinijump: [false, false, false],
+            pistolrpg: [false, false, false],
+        });
+
         var GameTypes = data.GameTypes;
         var ItemTypes = data.ItemTypes;
 
@@ -301,13 +309,17 @@ export const LegacyShellCorePlugin = {
             name: "infinijump",
             category: "cheats",
             description: "Enable/disable infinite jumping.",
-            example: "true",
+            example: "@a true (only use group mentions)",
+            autocomplete: "@",
+            mentionTypes: {group: true},
+            usage: "[@group] bool",
             permissionLevel: [ctx.ranksEnum.Moderator, ctx.ranksEnum.Guest, true],
             inputType: ["bool"],
             executeClient: ({ player, opts, mentions }) => { },
-            executeServer: ({ player, opts, mentions }) => {
-                ctx.room.gameOptions.plugins.infinijump = opts;
-                ctx.room.updateRoomParamsForClients();
+            executeServer: ({ player, opts, mentions, mentionsLiteral }) => {
+                if (!setGameOptionInMentions(player, mentions, mentionsLiteral, "infinijump", opts, ctx.room.gameOptions.plugins)) {
+                    player.client.commandFeedback(`Use a group mention like @a to set this option.`);
+                };
             }
         });
         ctx.newCommand({
@@ -316,13 +328,17 @@ export const LegacyShellCorePlugin = {
             name: "pistolrpg",
             category: "cheats",
             description: "Enable/disable pistol RPG.",
-            example: "true",
+            example: "@a true (only use group mentions)",
+            autocomplete: "@",
+            mentionTypes: {group: true},
+            usage: "[@group] bool",
             permissionLevel: [ctx.ranksEnum.Moderator, ctx.ranksEnum.Guest, true],
             inputType: ["bool"],
             executeClient: ({ player, opts, mentions }) => { },
-            executeServer: ({ player, opts, mentions }) => {
-                ctx.room.gameOptions.plugins.pistolrpg = opts;
-                ctx.room.updateRoomParamsForClients();
+            executeServer: ({ player, opts, mentions, mentionsLiteral }) => {
+                if (!setGameOptionInMentions(player, mentions, mentionsLiteral, "pistolrpg", opts, ctx.room.gameOptions.plugins)) {
+                    player.client.commandFeedback(`Use a group mention like @a to set this option.`);
+                };
             }
         });
     },
@@ -331,7 +347,7 @@ export const LegacyShellCorePlugin = {
         var ctx = data.this;
         var canJump = data.canJump;
 
-        if (ctx.gameOptions.plugins.infinijump) {
+        if (ctx.gameOptions.plugins.infinijump[ctx.team]) {
             canJump[0] = true
         };
     },
