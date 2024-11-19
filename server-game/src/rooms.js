@@ -47,10 +47,11 @@ export class newRoom {
         this.gameType = info.gameType;
         this.gameOptions = JSON.parse(JSON.stringify(GameTypes[this.gameType].options)); //create copy of object
         console.log("gameOptions", this.gameOptions);
-        console.log(GameTypes[this.gameType]);
         this.mapId = info.mapId;
         this.gameId = info.gameId;
         this.gameKey = info.gameKey;
+        this.locked = info.locked;
+        console.log("locked", this.locked, GameTypes[this.gameType]);
 
         // this.items = info.items;
         this.mapJson = ss.maps[this.mapId];
@@ -229,6 +230,7 @@ export class newRoom {
             mapId: this.mapId,
             gameId: this.gameId,
             gameKey: this.gameKey,
+            locked: this.locked,
         }]);
 
         plugins.emit('roomDetailsUpdatedEnd', {this: this, details: this.details});
