@@ -26,6 +26,7 @@ export class PluginManager {
             try {
                 const pluginPath = path.join(pluginsDir, pluginFolder, 'index.js');
                 if (fs.existsSync(pluginPath) && !pluginFolder.startsWith("_")) {
+                    log.info(`Loading plugin: ${pluginFolder}...`);
                     (async () => {
                         const gitPath = path.join(pluginsDir, pluginFolder, '.git');
                         const currentHash = execSync(`cd ${path.join(pluginsDir, pluginFolder)} && git rev-parse HEAD`, { encoding: 'utf-8' }).trim();
@@ -54,27 +55,43 @@ export class PluginManager {
 
                     const dependenciesPath = path.join(pluginsDir, pluginFolder, 'dependencies.js');
 
+                    var failed = false;
+
                     if (fs.existsSync(dependenciesPath)) {
                         const { dependencies } = await import(pathToFileURL(dependenciesPath).href);
                         for (const [dependency, version] of Object.entries(dependencies)) {
-                            try {
-                                const modulePath = path.join(ss.rootDir, 'node_modules', dependency);
-                                if (!fs.existsSync(modulePath)) {
-                                    await import(dependency);
+                            if (version === "plugin") {
+                                if (this.pluginsList.includes(dependency)) {
+                                    log.green(`Plugin dependency ${dependency} found`);
+                                } else {
+                                    failed = `This plugin requires another plugin to work: ${dependency}.\nInstall it and move it to the plugins folder.\nAlready installed? Ensure the folder name matches exactly.`;
+                                    log.red(`Plugin dependency ${dependency} not found`);
                                 };
-                                // log.dim(`${dependency} is already installed.`);
-                            } catch (error) {
-                                log.warning(`${dependency} is not installed. Attempting to install (${version})...`);
-                                execSync(`npm install ${dependency}@${version} --no-save`, (error, stdout, stderr) => {
-                                    if (error) {
-                                        console.error(`exec error: ${error}`);
-                                        return;
+                            } else {
+                                try {
+                                    const modulePath = path.join(ss.rootDir, 'node_modules', dependency);
+                                    if (!fs.existsSync(modulePath)) {
+                                        await import(dependency);
                                     };
-                                    console.log(`stdout: ${stdout}`);
-                                    console.error(`stderr: ${stderr}`);
-                                });
+                                    // log.dim(`${dependency} is already installed.`);
+                                } catch (error) {
+                                    log.warning(`${dependency} is not installed. Attempting to install (${version})...`);
+                                    execSync(`npm install ${dependency}@${version} --no-save`, (error, stdout, stderr) => {
+                                        if (error) {
+                                            console.error(`exec error: ${error}`);
+                                            return;
+                                        };
+                                        console.log(`stdout: ${stdout}`);
+                                        console.error(`stderr: ${stderr}`);
+                                    });
+                                };
                             };
                         };
+                    };
+
+                    if (failed) {
+                        log.error(`Plugin ${pluginFolder} couldn't be loaded:\n${failed}`);
+                        return;
                     };
 
                     const pluginURL = pathToFileURL(pluginPath).href;
@@ -115,7 +132,7 @@ export class PluginManager {
             };
         };
         
-        console.log(this.pluginsList);
+        console.log("pluginsList", this.pluginsList);
 
         for (const pluginFolder of pluginFolders) {
             await this.loadPluginsFromDir(pluginFolder, type, ss);

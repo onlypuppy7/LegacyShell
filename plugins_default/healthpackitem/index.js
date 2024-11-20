@@ -2,16 +2,17 @@
 import fs from 'node:fs';
 import path from 'node:path';
 //plugin: samplecommand
+import { HealthPackItem } from './shared.js';
 //
 
 export const PluginMeta = {
-    identifier: "modernmapblocks",
-    name: 'Modern Map Blocks',
+    identifier: "healthpackitem",
+    name: 'Health Pack Item',
     author: 'onlypuppy7',
     version: '1.0.0',
-    descriptionShort: 'Adds map block models from current shell!', //displayed when loading
-    descriptionLong: 'Adds map block models from current shell!',
-    legacyShellVersion: 323, //legacy shell version, can be found in /versionEnum.txt, or just on the homescreen
+    descriptionShort: 'Adds a new item type which regains 50hp on collection', //displayed when loading
+    descriptionLong: 'Adds a new item type which regains 50hp on collection',
+    legacyShellVersion: 324, //legacy shell version, can be found in /versionEnum.txt, or just on the homescreen
 };
 
 export var pluginInstance = null;
@@ -23,8 +24,19 @@ export class Plugin {
 
         pluginInstance = this;
 
+        HealthPackItem.registerListeners(this.plugins);
+        this.plugins.on('client:pluginSourceInsertion', this.pluginSourceInsertion.bind(this));
         this.plugins.on('client:prepareBabylon', this.prepareBabylon.bind(this));
         this.plugins.on('game:prepareBabylon', this.prepareBabylon.bind(this));
+    };
+
+    pluginSourceInsertion(data) {
+        data.pluginInsertion.files.push({
+            insertBefore: '\nconsole.log("inserting before... (HealthPackItem)");',
+            filepath: path.join(this.thisDir, 'shared.js'),
+            insertAfter: '\nconsole.log("inserting after... (HealthPackItem)!");',
+            position: 'before'
+        });
     };
 
     async prepareBabylon(data) {
