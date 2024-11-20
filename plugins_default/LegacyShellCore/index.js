@@ -10,7 +10,7 @@ export const PluginMeta = {
     identifier: "legacyshellcore",
     name: 'LegacyShellCore',
     author: 'onlypuppy7',
-    version: '1.0.3',
+    version: '1.0.4',
     descriptionShort: 'Used in the public instance', //displayed when loading
     descriptionLong: 'Used in the public instance',
     legacyShellVersion: 269, //legacy shell version, can be found in /versionEnum.txt, or just on the homescreen
@@ -27,11 +27,14 @@ export class Plugin {
 
         LegacyShellCorePlugin.registerListeners(this.plugins);
         this.plugins.on('client:pluginSourceInsertion', this.pluginSourceInsertion.bind(this));
+        
         this.plugins.on('client:prepareBabylon', this.prepareBabylon.bind(this));
-        this.plugins.on('client:stampImageDirs', this.stampImageDirs.bind(this));
         this.plugins.on('game:prepareBabylon', this.prepareBabylon.bind(this));
-        this.plugins.on('services:initTables', this.initTables.bind(this));
 
+
+        this.plugins.on('client:stampImageDirs', this.stampImageDirs.bind(this));
+        this.plugins.on('services:initTables', this.initTables.bind(this));
+        
         this.plugins.on('game:metaLoop', this.metaLoopHook.bind(this));
         this.plugins.on('game:clientPackSyncLoop', this.clientPackSyncLoopHook.bind(this));
     };
