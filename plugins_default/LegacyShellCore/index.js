@@ -64,7 +64,7 @@ export class Plugin {
         const babylonFiles = fs.readdirSync(babylonPath);
         for (const file of babylonFiles) {
             if (data.filename + ".babylon" === file) {
-                console.log('found', file);
+                console.log('found', file, 'from', PluginMeta.identifier);
                 extraBabylons.push({
                     filepath: path.join(this.thisDir, 'models', file),
                     overwrite: false,
