@@ -29,7 +29,7 @@ var items = {
         "category_name": "Stamps",
         "exclusive_for_class": null,
         "item_data": {},
-        "is_available": true
+        "is_available": false
     }]
 };
 

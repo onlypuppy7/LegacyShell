@@ -321,11 +321,35 @@ export class PermissionsConstructor {
             category: "room",
             description: "View current game options.",
             example: "(no input needed)",
-            permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
+            permissionLevel: [this.ranksEnum.Guest, this.ranksEnum.Guest, false],
             inputType: ["bool"],
             executeClient: ({ player, opts, mentions }) => {},
             executeServer: ({ player, opts, mentions }) => {
                 player.client.commandFeedback(JSON.stringify(this.room.gameOptions));
+            },
+        });
+        this.newCommand({
+            identifier: "roominfo",
+            name: "info",
+            category: "room",
+            description: "View current room's info.",
+            example: "(no input needed)",
+            permissionLevel: [this.ranksEnum.Guest, this.ranksEnum.Guest, false],
+            inputType: ["bool"],
+            executeClient: ({ player, opts, mentions }) => {},
+            executeServer: ({ player, opts, mentions }) => {
+                player.client.commandFeedback(JSON.stringify({
+                    ready: true,
+                    playerLimit: this.room.playerLimit,
+                    playerCount: this.room.details.count,
+                    
+                    joinType: this.room.joinType,
+                    gameType: this.room.gameType,
+                    mapId: this.mapId,
+                    gameId: this.room.gameId,
+                    gameKey: this.room.gameKey,
+                    locked: this.room.locked,
+                }).replaceAll(',"',', "'));
             },
         });
         this.newCommand({
@@ -347,6 +371,30 @@ export class PermissionsConstructor {
                     player.client.commandFeedback(`Room unlocked.`);
                 };
                 this.room.updateRoomDetails();
+            },
+        });
+        this.newCommand({
+            identifier: "isPublic",
+            name: "isPublic",
+            category: "room",
+            description: "Change this room's visibility.",
+            example: "true",
+            usage: "true: public, false: private",
+            permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Moderator, false],
+            inputType: ["bool"],
+            executeClient: ({ player, opts, mentions }) => {},
+            executeServer: ({ player, opts, mentions }) => {
+                if (this.room.locked && opts) {
+                    player.client.commandFeedback(`Room locked: can't make public.`);
+                } else {
+                    this.room.joinType = opts ? Comm.Code.joinPublicGame : Comm.Code.createPrivateGame;
+                    if (opts) {
+                        player.client.commandFeedback(`Room moved to public pool.`);
+                    } else {
+                        player.client.commandFeedback(`Room made private/invite only.`);
+                    };
+                    this.room.updateRoomDetails();
+                };
             },
         });
 
