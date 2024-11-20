@@ -248,8 +248,8 @@ export class PermissionsConstructor {
             }
         });
         this.newCommand({
-            identifier: "cheats",
-            name: "cheats",
+            identifier: "enableCheats",
+            name: "enableCheats",
             category: "room",
             description: "Enable/disable cheats.",
             example: "true",
@@ -682,7 +682,7 @@ class Command {
 
         if (this.isCheat && !thisCheatsEnabled) {
             permitted = false;
-            var text = "Cheats are disabled. Enable them with /mod cheats true.";
+            var text = "Cheats are disabled. Enable them with /room enableCheats true.";
             if (isClient) {
                 addChat(text, null, Comm.Chat.cmd);
             } else {

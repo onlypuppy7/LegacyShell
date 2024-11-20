@@ -98,8 +98,28 @@ export class PluginManager {
 
         log.info(`####################\nLoading plugins for ${type}...`);
 
-        await this.loadPluginsFromDir(ss.pluginsDir, type, ss);
-        await this.loadPluginsFromDir(ss.pluginsDirDefault, type, ss);
+        var pluginFolders = [
+            ss.pluginsDirDefault,
+            ss.pluginsDir,
+        ];
+
+        this.pluginsList = [];
+
+        for (const pluginFolder of pluginFolders) {
+            const dirs = fs.readdirSync(pluginFolder);
+            for (const dir of dirs) {
+                const dirPath = path.join(pluginFolder, dir);
+                if (fs.statSync(dirPath).isDirectory()) {
+                    this.pluginsList.push(dir);
+                };
+            };
+        };
+        
+        console.log(this.pluginsList);
+
+        for (const pluginFolder of pluginFolders) {
+            await this.loadPluginsFromDir(pluginFolder, type, ss);
+        };
 
         log.info('Finished loading plugins.\n####################');
     };

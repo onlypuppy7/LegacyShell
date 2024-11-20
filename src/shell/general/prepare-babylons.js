@@ -47,7 +47,7 @@ export async function prepareBabylons(endBabylonsDir = path.join(ss.rootDir, 'st
 
             var extraBabylons = [];
 
-            plugins.emit('prepareBabylon', { filename, baseBabylon, extraBabylons });
+            await plugins.emit('prepareBabylon', { filename, baseBabylon, extraBabylons });
 
             debuggingLogs && console.log(babylon, "before", baseBabylon.meshes.length);
 

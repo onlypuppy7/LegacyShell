@@ -53,21 +53,21 @@ export class Plugin {
         );
     };
 
-    prepareBabylon(data) {
+    async prepareBabylon(data) {
         // console.log('prepareBabylon', data.filename);
         var extraBabylons = data.extraBabylons;
 
         const babylonPath = path.join(this.thisDir, 'models');
         const babylonFiles = fs.readdirSync(babylonPath);
-        babylonFiles.forEach((file) => {
+        for (const file of babylonFiles) {
             if (data.filename + ".babylon" === file) {
-                // console.log('found', file);
+                console.log('found', file);
                 extraBabylons.push({
                     filepath: path.join(this.thisDir, 'models', file),
                     overwrite: false,
                 });
             };
-        });
+        };
     };
 
     async initTables(data) { //async operation requires awaits to ensure proper order

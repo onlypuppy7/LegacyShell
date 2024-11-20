@@ -254,6 +254,8 @@ class newClient {
 
                         this.player.syncStateIdx = Math.mod(this.player.stateIdx + FramesBetweenSyncs, stateBufferSize);
 
+                        plugins.emit("CommCodeSyncEnd", {this: this, player: this.player, adjustment: this.adjustment, stateIdx, startIdx, i});
+
                         break;
                     case Comm.Code.pause:
                         this.pause();
