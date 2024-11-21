@@ -29,9 +29,10 @@ export class PluginManager {
                     log.info(`Loading plugin: ${pluginFolder}...`);
                     (async () => {
                         const gitPath = path.join(pluginsDir, pluginFolder, '.git');
-                        const currentHash = execSync(`cd ${path.join(pluginsDir, pluginFolder)} && git rev-parse HEAD`, { encoding: 'utf-8' }).trim();
+                        let currentHash;
 
                         try {
+                            currentHash = execSync(`cd ${path.join(pluginsDir, pluginFolder)} && git rev-parse HEAD`, { encoding: 'utf-8' }).trim();
                             if (fs.existsSync(gitPath)) {
                                 log.info(`Plugin ${pluginFolder} has a git repository. Attempting to update... (current hash: ${currentHash})`);
                                 exec(`cd ${path.join(pluginsDir, pluginFolder)} && git pull`, (error, stdout, stderr) => {
