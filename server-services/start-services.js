@@ -52,7 +52,7 @@ export default async function run () {
     
     extendMath(Math);
     
-    recs.initDB(ss.db);
+    await recs.initDB(ss.db);
     
     log.green('Account DB set up! (if it didnt exist already i suppose)');
 
