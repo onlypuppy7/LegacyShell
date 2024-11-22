@@ -15,8 +15,18 @@ import { plugins } from '#plugins';
 //
 
 async function prepareModified() {
-    await prepareBabylons(path.join(ss.rootDir, 'server-client', 'store', 'client-modified', 'models'));
+    try {
+        await Promise.all([
+            prepareBabylons(path.join(ss.rootDir, 'server-client', 'store', 'client-modified', 'models')),
+            modifyFiles(),
+        ]);
+        log.success('All prepareModified promises resolved!');
+    } catch (error) {
+        log.error('One of the prepareModified promises rejected:', error);
+    };
+};
 
+async function modifyFiles() {
     log.info('\nGenerating modified files (eg minifying shellshock.min.js)...');
 
     const sourceShellJsPath = path.join(ss.currentDir, 'src', 'client-static', 'src', 'shellshock.min.js');
@@ -238,8 +248,6 @@ async function prepareModified() {
 
         fs.writeFileSync(destinationHtmlPath, code.htmlContent, 'utf8');
         log.bold(`index.html copied and modified to ${destinationHtmlPath}`);
-
-        delete ss.cache; //MEMORY LEAK FUCKING MI-Mi-mi-MITIGATED!!!
     } catch (error) {
         console.error('An error occurred during the file processing:', error);
     };

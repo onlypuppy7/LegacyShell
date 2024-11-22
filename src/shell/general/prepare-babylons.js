@@ -113,7 +113,7 @@ export async function prepareBabylons(endBabylonsDir = path.join(ss.rootDir, 'st
                     baseBabylon.multiMaterials = baseBabylon.multiMaterials.filter(mat => mat !== newMultiMaterial);
                 };
             });
-            baseBabylon.meshes.forEach((newMesh) => {
+            for (const newMesh of baseBabylon.meshes) {
                 debuggingLogs && console.log("Checking mesh", newMesh.name);
                 //check if mesh has over 1 instance
                 const duplicateMesh = baseBabylon.meshes.filter(mesh => mesh.name === newMesh.name).length > 1;
@@ -123,10 +123,10 @@ export async function prepareBabylons(endBabylonsDir = path.join(ss.rootDir, 'st
                     baseBabylon.meshes = baseBabylon.meshes.filter(mesh => mesh !== newMesh);
                 } else {
                     if (newMesh.name === "egg") {
-                        newMesh.uvs = createStampsUV();
+                        newMesh.uvs = await createStampsUV();
                     };
-                }
-            });
+                };
+            };
 
             debuggingLogs && console.log(babylon, "after", baseBabylon.meshes.length);
 
