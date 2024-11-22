@@ -338,7 +338,7 @@ const exported = {
             `);
         } catch (error) {
             await ss.runQuery('ROLLBACK');
-            console.error('Error updating user defaults:', error);
+            log.error('Error updating user defaults:', error);
         };
     },
     insertItems: async (jsDir = path.join(ss.currentDir, 'src', 'items')) => {
@@ -366,6 +366,8 @@ const exported = {
                             log.warning(`[Items] No offset found for item type: ${itemType}`);
                             offset = 0;
                         };
+
+                        while (item.name.endsWith(" ")) item.name=item.name.substr(0,item.name.length-1); //stupid Lyerpald stamp
 
                         item.id = item.meta_id + offset;
 

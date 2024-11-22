@@ -48,7 +48,7 @@ export class Plugin {
         });
     };
 
-    stampImageDirs(data) {
+    async stampImageDirs(data) {
         var stampImageDirs = data.stampImageDirs;
 
         stampImageDirs.push(
