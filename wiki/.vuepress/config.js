@@ -10,26 +10,45 @@ import { cachePlugin } from '@vuepress/plugin-cache'
 import path from 'path'
 import fs from 'fs'
 
-const subcategories = [["/wiki/", "Wiki", "Wiki"], ["/docs/", "Documentation", "Docs"]];
+const subcategories = [["/wiki/", "Wiki", "Wiki"], ["/plugins/", "Plugins", "Plugins"], ["/docs/", "Documentation", "Docs"]];
 
 const sidebar = {};
 
-for (const subcategoryThing of subcategories) {
-    const subcategory = subcategoryThing[0];
-    const subcategoryName = subcategoryThing[1];
+function addFilesRecursively(basePath, relativePath) {
+    const fullPath = path.join(basePath, relativePath);
+    const items = fs.readdirSync(fullPath);
 
+    return items
+        .filter(item => !item.startsWith('.'))
+        .map(item => {
+            const itemPath = path.join(relativePath, item);
+            const stats = fs.statSync(path.join(basePath, itemPath));
+
+            if (stats.isDirectory()) {
+                return {
+                    text: item,
+                    collapsible: true,
+                    children: addFilesRecursively(basePath, itemPath),
+                };
+            } else if (item.endsWith('.md') && item !== 'README.md') {
+                return itemPath.replace(/\\/g, '/');
+            }
+        })
+        .filter(Boolean);
+};
+
+for (const [subcategory, subcategoryName] of subcategories) {
     const subcategoryPath = path.join(__dirname, "..", subcategory);
-    const files = fs.readdirSync(subcategoryPath);
-    sidebar[subcategory] = [];
-    sidebar[subcategory].push({
-        text: subcategoryName,
-        children: []
-    });
-    const children = sidebar[subcategory][0].children;
 
-    for (const file of files) {
-        if (file === "README.md" || !file.includes(".md")) continue;
-        children.push(`${subcategory}${file}`);
+    try {
+        sidebar[subcategory] = [
+            {
+                text: subcategoryName,
+                children: addFilesRecursively(subcategoryPath, ''),
+            },
+        ];
+    } catch (error) {
+        console.error(`Error processing subcategory ${subcategory}:`, error);
     };
 };
 
