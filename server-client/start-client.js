@@ -107,6 +107,11 @@ export default async function run () {
                     log.error('One of the start-client promises rejected:', error);
                 };
 
+                //if yuo ever want it sequential do this
+                // await prepareStamps();
+                // await prepareModified();
+                // await buildWiki();
+
                 // try {
                 //     await plugins.emit('beforePrepareStamps', { ss, app });
                 //     await prepareStamps();
