@@ -37,7 +37,7 @@ export async function prepareStamps() {
 
     var stampImages = {};
 
-    plugins.emit('stampImageDirs', {this: this, stampImageDirs, stampImages});
+    await plugins.emit('stampImageDirs', {this: this, stampImageDirs, stampImages});
 
     for (let dir of stampImageDirs) {
         if (!fs.existsSync(dir)) {
@@ -95,6 +95,8 @@ export async function prepareStamps() {
     filesForImage.push(''); //blank for no stamp
 
     for (let stamp of stamps) {
+        if (!stamp.name) log.warning("stamp has no name!", stamp);
+
         let name = filterName(stamp.name);
 
         if (stampImages[name]) {
@@ -103,7 +105,7 @@ export async function prepareStamps() {
                 file: stampImages[name],
             });
         } else {
-            log.warning('Stamp not found:', name);
+            log.warning(`Stamp not found: "${name}"`);
         };
     };
 

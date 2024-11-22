@@ -46,6 +46,8 @@ if (fs.existsSync(stampsDir)) {
 
         var base = path.basename(file, ext);
 
+        if (!base.includes('=')) return;
+
         var info = base.split('=')[0].split('_');
         var name = base.split('=')[1];
 
