@@ -325,10 +325,12 @@ export class newRoom {
             // console.log(client.id, client.clientReady);
             // console.log("lastSeenDelta", client.lastSeenDelta, "lastPingDelta", client.lastPingDelta);
 
-            if (client.lastPingDelta > 10e3) { // kick if over 10 secs since last connection
+            if (client.lastPingDelta > 15e3) { // kick if over 15 secs since last connection
+                log.orange("closing ws with id", client.id, "due to 15s connection timeout");
                 client.sendCloseToWs();
             };
             if (client.lastSeenDelta > 5 * 60e3) { // kick if idle for 5 mins
+                log.orange("closing ws with id", client.id, "due to idle timeout");
                 client.sendCloseToWs();
             };
         });
