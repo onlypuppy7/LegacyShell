@@ -37,10 +37,11 @@ export default async function run () {
 
     await plugins.emit('onLoad', { ss });
 
+    const port = ss.config.client.port || 13370;
+
     async function startServer() {
         try {
             const app = express();
-            const port = ss.config.client.port || 13370;
 
             await plugins.emit('onStartServer', { ss, app, ws });
 
@@ -94,55 +95,80 @@ export default async function run () {
                 retrieved = 2;
 
                 try {
-                    await plugins.emit('beforePrepareStamps', { ss, app });
-                    await prepareStamps();
-                    await plugins.emit('afterPrepareStamps', { ss, app });
+                    await Promise.all([
+                        prepareStamps(),
+                        prepareModified(),
+                        buildWiki()
+                    ]);
+                    log.success('All start-client promises resolved!');
+
+                    delete ss.cache; //MEMORY LEAK FUCKING MI-Mi-mi-MITIGATED!!!
                 } catch (error) {
-                    console.error('Stamp preparation failed:', error);
-                    process.exit(1);
+                    log.error('One of the start-client promises rejected:', error);
                 };
 
-                try {
-                    await plugins.emit('beforePrepareModified', { ss, app });
-                    await prepareModified();
-                    await plugins.emit('afterPrepareModified', { ss, app });
-                } catch (error) {
-                    console.error('Modification failed:', error);
-                    process.exit(1);
-                };
+                // try {
+                //     await plugins.emit('beforePrepareStamps', { ss, app });
+                //     await prepareStamps();
+                //     await plugins.emit('afterPrepareStamps', { ss, app });
+                // } catch (error) {
+                //     console.error('Stamp preparation failed:', error);
+                //     process.exit(1);
+                // };
+
+                // try {
+                //     await plugins.emit('beforePrepareModified', { ss, app });
+                //     await prepareModified();
+                //     await plugins.emit('afterPrepareModified', { ss, app });
+                // } catch (error) {
+                //     console.error('Modification failed:', error);
+                //     process.exit(1);
+                // };
             };
 
             app.get('/discord', async (req, res) => {
                 res.redirect('https://discord.gg/' + ss.config.client.discordServer);
             });
 
-            app.listen(port, async () => {
+            var wikiPath = path.join(ss.rootDir, 'wiki', '.vuepress', 'dist');
+            var assetsPath = path.join(ss.rootDir, 'wiki', '.vuepress', 'dist', 'assets');
+
+            app.use('/wiki/', express.static(wikiPath));
+            app.use('/assets/', express.static(assetsPath));
+
+            app.listen(port, async ()=>{
                 log.success(`\nServer is running on http://localhost:${port}`);
                 await plugins.emit('onServerRunning', { ss, app });
-
-                log.info('Starting VuePress build...');
-
-                const vuepressBuild = spawn('npx', ['vuepress', 'build', 'wiki']);
-
-                vuepressBuild.stdout.on('data', (data) => {
-                    log.cyan(`Build output: ${data}`);
-                });
-
-                vuepressBuild.stderr.on('data', (data) => {
-                    // log.error(`Build error: ${data}`);
-                    log.cyan(`Build output: ${data}`); //this is not an error, just output, i dont know why it gets treated as such
-                });
-
-                vuepressBuild.on('close', (code) => {
-                    log.bold(`Build process exited with code ${code}`);
-                    app.use('/wiki/', express.static(path.join(ss.rootDir, 'wiki', '.vuepress', 'dist')));
-                    app.use('/assets/', express.static(path.join(ss.rootDir, 'wiki', '.vuepress', 'dist', 'assets')));
-                    log.success(`VuePress build complete. Wiki is available at http://localhost:${port}/wiki`);
-                });
             });
         } catch (error) {
             console.log(error);
         };
+    };
+
+    async function buildWiki () {
+        log.info('Starting VuePress build...');
+
+        return new Promise((resolve, reject) => {
+            const vuepressBuild = spawn('npx', ['vuepress', 'build', 'wiki']);
+    
+            vuepressBuild.stdout.on('data', (data) => {
+                log.cyan(`Build output: ${data}`);
+            });
+    
+            vuepressBuild.stderr.on('data', (data) => {
+                // log.error(`Build error: ${data}`);
+                log.cyan(`Build output: ${data}`); //this is not an error, just output, i dont know why it gets treated as such
+            });
+    
+            vuepressBuild.on('close', (code) => {
+                log.success(`VuePress build complete. Wiki will be available at http://localhost:${port}/wiki`);
+                resolve();
+            });
+    
+            vuepressBuild.on('error', (err) => {
+                reject(new Error(`VuePress build process encountered an error: ${err.message}`));
+            });
+        });
     };
 
     const checkPassword = async (req, res, next) => {

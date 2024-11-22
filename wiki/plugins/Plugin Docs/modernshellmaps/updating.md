@@ -43,6 +43,11 @@ async function downloadMaps(mapList) {
             filename: map.filename+"h",
             suffix: " (Modern, Halloween)",
         });
+
+        maps.push({ //christmas variants
+            filename: map.filename+"C",
+            suffix: " (Modern, Christmas)",
+        });
     };
 
     for (const map of maps) {

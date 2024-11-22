@@ -9,7 +9,7 @@ import log from '#coloured-logging';
 import { ss } from '#misc';
 //legacyshell: plugins
 import { plugins } from '#plugins';
-import { stampSize } from '#constants';
+import { devlog, stampSize } from '#constants';
 //
 
 export function filterName(name) {
@@ -18,6 +18,7 @@ export function filterName(name) {
 };
 
 export var widthheight = 32; //fyi 127 is max (assuming 128x128 stamps)
+export var widthheightDetermined = false;
 
 export async function prepareStamps() {
     let items = JSON.parse(ss.cache.items);
@@ -110,6 +111,7 @@ export async function prepareStamps() {
     };
 
     widthheight = Math.ceil(Math.pow(filesForImage.length, 0.5));
+    widthheightDetermined = true;
 
     log.info(filesForImage.length, "Stamp images prepared. Will use a", widthheight, "x", widthheight, "grid - hence total:", widthheight * widthheight);
 
@@ -233,8 +235,15 @@ export const needsBorderCheck = async (sharpInstance) => {
     };
 };
 
-export function createStampsUV(wh = widthheight) {
+export async function createStampsUV(wh = widthheight) {
     log.info('Creating stamps UV...', wh);
+
+    //dont proceed until complete=true
+    await new Promise(resolve => {
+        const check = () => widthheightDetermined ? resolve() : setTimeout(check, 100);
+        check(); devlog("widthheightDetermined", widthheightDetermined);
+    });
+
     var uv = [
         0,
         1,
