@@ -21,7 +21,7 @@ Does it need explaining why this was removed?
 
 ![remarks](remarks.png)
 
-## The Chicken Middle Stamp
+### The Chicken Middle Stamp
 
 This is a stamp showing a middle finger.
 
