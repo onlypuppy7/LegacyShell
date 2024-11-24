@@ -79,27 +79,47 @@ export default async function run () {
             await recs.performConversionCheck();
             await recs.updateUserDefaults();
 
-            ss.config.verbose && log.bgCyan("services: Reading from DB: count items");
-            if ((await ss.getOne('SELECT COUNT(*) AS count FROM items')).count > 0) {
-                log.italic('No need to init items table');
-            } else {
-                log.blue('Items table is empty. Initializing with JSON data...');
-        
-                await recs.insertItems();
-                
-                log.green('Items table initialized with JSON data.');
+            async function doItems () {
+                ss.config.verbose && log.bgCyan("services: Reading from DB: count items");
+                if ((await ss.getOne('SELECT COUNT(*) AS count FROM items')).count > 0) {
+                    log.green('No need to init items table');
+                } else {
+                    log.blue('Items table is empty. Initializing with JSON data...');
+            
+                    await recs.insertItems();
+                    
+                    log.green('Items table initialized with JSON data.');
+                };
+
+                await plugins.emit('initTables', { ss }); //technically this should be for the end but now ive already been using it to insert items so lets just pretend it does that now
             };
     
-            log.blue('Initializing maps from JSON data...');
-        
-            ss.config.verbose && log.bgPurple(`services: Deleting from DB: all maps`);
-            await ss.runQuery('DELETE FROM maps;');
-
-            await recs.insertMaps();
+            async function doMaps () {
+                log.blue('Initializing maps from JSON data...');
+            
+                ss.config.verbose && log.bgPurple(`services: Deleting from DB: all maps`);
+                await ss.runQuery('DELETE FROM maps;');
     
-            log.green('Maps table initialized with JSON data.');
+                await recs.insertMaps();
+        
+                log.green('Maps table initialized with JSON data.');
+            };
 
-            await plugins.emit('initTables', { ss });
+            
+            try {
+                await Promise.all([
+                    doItems(),
+                    doMaps(),
+                ]);
+                log.success('All start-services promises resolved!');
+            } catch (error) {
+                log.error('One of the start-client promises rejected:', error);
+            };
+
+            // await doItems();
+            // await doMaps();
+
+            await plugins.emit('initTablesFinish', { ss });
         } catch (error) {
             console.error('Error initializing items table:', error);
         };
