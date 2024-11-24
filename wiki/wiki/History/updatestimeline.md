@@ -64,8 +64,6 @@
 
 ~~https://www.youtube.com/watch?v=Fl5v2SwZPy0~~
 
-### Prior to this point, all maps were [randomly generated](https://www.facebook.com/ShellShockersGame/posts/pfbid0MveedmUki6MLMo73t6LZ9yxAZiAxRjdky6K2EeymVy8V9KXKH9kEc1qZC9iwjYTPl). Unfortunately as of now these maps are lost (but can be reconstructed).
-
 ## 0.2.0 | ?? Sept 2017
 
 > **What's New**
@@ -123,6 +121,8 @@
 **https://www.youtube.com/watch?v=Fg_7lBfi14k**
 
 ***https://www.youtube.com/watch?v=s3-Hmm8hdVc***
+
+### Prior to this point, all maps were [randomly generated](https://www.facebook.com/ShellShockersGame/posts/pfbid0MveedmUki6MLMo73t6LZ9yxAZiAxRjdky6K2EeymVy8V9KXKH9kEc1qZC9iwjYTPl). Unfortunately as of now these maps are lost (but can be reconstructed).
 
 ## ??? | 17 Oct 2017
 
