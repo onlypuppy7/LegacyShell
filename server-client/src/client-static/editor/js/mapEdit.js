@@ -71,7 +71,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
       }
     }
     relativeMaster.style.border = "blueviolet"; //YESSS!!!! TOTALLY UNRELATED COLOR THAT IS NOWHERE ELSE!!!!111
-    relativeMaster.style.borderStyle = "ridge";
+    //relativeMaster.style.borderStyle = "ridge";
     relativeMaster.style.display = "flex";
     relativeMaster.style.justifyContent = "space-between";
     relativeMaster.appendChild(checkContainer);
