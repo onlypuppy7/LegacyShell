@@ -47,10 +47,11 @@ export class newRoom {
         this.gameType = info.gameType;
         this.gameOptions = JSON.parse(JSON.stringify(GameTypes[this.gameType].options)); //create copy of object
         console.log("gameOptions", this.gameOptions);
-        console.log(GameTypes[this.gameType]);
         this.mapId = info.mapId;
         this.gameId = info.gameId;
         this.gameKey = info.gameKey;
+        this.locked = info.locked;
+        console.log("locked", this.locked, GameTypes[this.gameType]);
 
         // this.items = info.items;
         this.mapJson = ss.maps[this.mapId];
@@ -222,6 +223,14 @@ export class newRoom {
             usernames: this.details.usernames,
             uuids: this.details.uuids,
             sessions: this.details.sessions,
+
+            joinType: this.joinType,
+            gameType: this.gameType,
+            gameOptions: this.gameOptions,
+            mapId: this.mapId,
+            gameId: this.gameId,
+            gameKey: this.gameKey,
+            locked: this.locked,
         }]);
 
         plugins.emit('roomDetailsUpdatedEnd', {this: this, details: this.details});
@@ -240,8 +249,9 @@ export class newRoom {
             cheatsEnabled: this.gameOptions.cheatsEnabled,
             weather: this.gameOptions.weather,
             time: this.gameOptions.time,
+            plugins: this.gameOptions.plugins,
         };
-        output.packString(JSON.stringify(gameOptions)); //is this technically bloated? yes, but its the only way i can do this such that adding new options is easy
+        output.packLongString(JSON.stringify(gameOptions)); //is this technically bloated? yes, but its the only way i can do this such that adding new options is easy
         plugins.emit('packUpdateRoomParamsEnd', {this: this, output});
     };
 
@@ -315,10 +325,12 @@ export class newRoom {
             // console.log(client.id, client.clientReady);
             // console.log("lastSeenDelta", client.lastSeenDelta, "lastPingDelta", client.lastPingDelta);
 
-            if (client.lastPingDelta > 10e3) { // kick if over 10 secs since last connection
+            if (client.lastPingDelta > 15e3) { // kick if over 15 secs since last connection
+                log.orange("closing ws with id", client.id, "due to 15s connection timeout");
                 client.sendCloseToWs();
             };
             if (client.lastSeenDelta > 5 * 60e3) { // kick if idle for 5 mins
+                log.orange("closing ws with id", client.id, "due to idle timeout");
                 client.sendCloseToWs();
             };
         });
@@ -577,7 +589,7 @@ export class newRoom {
         output.packInt8U(Comm.Code.chat);
         output.packInt8U(chatType);
         output.packInt8U(id);
-        output.packString(text);
+        output.packLongString(text);
         plugins.emit('packChatEnd', {this: this, output, text, id, chatType});
     };
 

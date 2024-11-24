@@ -4,6 +4,7 @@ import path from 'node:path';
 //plugin: prepare-babylons
 import misc from '#misc';
 import jszip from 'jszip';
+import { createStampsUV } from '#stampsGenerator';
 //legacyshell: logging
 import log from '#coloured-logging';
 //legacyshell: ss
@@ -14,7 +15,7 @@ import { plugins } from '#plugins';
 
 var debuggingLogs = false;
 
-export function prepareBabylons(endBabylonsDir = path.join(ss.rootDir, 'store', 'export-static', 'models'), baseBabylonsDir = path.join(ss.rootDir, 'src', 'base-babylons')) {
+export async function prepareBabylons(endBabylonsDir = path.join(ss.rootDir, 'store', 'export-static', 'models'), baseBabylonsDir = path.join(ss.rootDir, 'src', 'base-babylons')) {
     if (!fs.existsSync(endBabylonsDir)) fs.mkdirSync(endBabylonsDir, { recursive: true });
 
     log.info("Preparing babylons...");
@@ -46,7 +47,7 @@ export function prepareBabylons(endBabylonsDir = path.join(ss.rootDir, 'store', 
 
             var extraBabylons = [];
 
-            plugins.emit('prepareBabylon', { filename, baseBabylon, extraBabylons });
+            await plugins.emit('prepareBabylon', { filename, baseBabylon, extraBabylons });
 
             debuggingLogs && console.log(babylon, "before", baseBabylon.meshes.length);
 
@@ -112,7 +113,7 @@ export function prepareBabylons(endBabylonsDir = path.join(ss.rootDir, 'store', 
                     baseBabylon.multiMaterials = baseBabylon.multiMaterials.filter(mat => mat !== newMultiMaterial);
                 };
             });
-            baseBabylon.meshes.forEach((newMesh) => {
+            for (const newMesh of baseBabylon.meshes) {
                 debuggingLogs && console.log("Checking mesh", newMesh.name);
                 //check if mesh has over 1 instance
                 const duplicateMesh = baseBabylon.meshes.filter(mesh => mesh.name === newMesh.name).length > 1;
@@ -120,8 +121,12 @@ export function prepareBabylons(endBabylonsDir = path.join(ss.rootDir, 'store', 
                     debuggingLogs && console.log("Deleting this mesh", newMesh.name);
                     //delete this specific mesh, not by name cause that would delete all instances
                     baseBabylon.meshes = baseBabylon.meshes.filter(mesh => mesh !== newMesh);
+                } else {
+                    if (newMesh.name === "egg") {
+                        newMesh.uvs = await createStampsUV();
+                    };
                 };
-            });
+            };
 
             debuggingLogs && console.log(babylon, "after", baseBabylon.meshes.length);
 
@@ -147,22 +152,37 @@ export function prepareBabylons(endBabylonsDir = path.join(ss.rootDir, 'store', 
             log.error(`Error preparing babylon ${babylon}:`, error);
         };
     };
+function saveZip(zip, zipName) {
+    const tempDir = path.join(endBabylonsDir, "temp_" + zipName);
+    const zipDir = path.join(endBabylonsDir, zipName)
 
-    function saveZip(zip, zipName) {
-        zip.generateNodeStream({ 
-            type: 'nodebuffer', 
-            streamFiles: true, 
-            compression: "DEFLATE"
-        }).pipe(fs.createWriteStream(path.join(endBabylonsDir, zipName))
+    return new Promise((resolve, reject) => {
+        zip.generateNodeStream({
+                type: 'nodebuffer',
+                streamFiles: true,
+                compression: "DEFLATE"
+            }).pipe(fs.createWriteStream(tempDir))
             .on('finish', function () {
+                fs.renameSync(tempDir, zipDir);
                 log.green(`${zipName} written.`);
-            }));
-    };
+                resolve();
+            })
+            .on('error', function (err) {
+                log.red(`Error writing ${zipName}: ${err}`);
+                reject(err);
+            });
+    });
+};
+
+    var promise = Promise.all([
+        saveZip(modelsZip, 'models.zip'),
+        saveZip(mapZip, 'map.zip'),
+    ]);
 
     if (fileChanged) {
-        log.info("Babylons changed. Wait for zip to save before playing.");
-        saveZip(modelsZip, 'models.zip');
-        saveZip(mapZip, 'map.zip');
+        log.info("Babylons changed. Waiting for zip to save before proceeding.");
+        await promise;
+        log.success("All zips saved. Proceeding.");
     } else {
         log.green("No babylons changed.");
     };

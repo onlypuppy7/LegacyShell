@@ -3,6 +3,8 @@ import BABYLON from "babylonjs";
 import { isClient } from '#constants';
 import { Bullet, Rocket } from '#bullets';
 import Comm from '#comm';
+//legacyshell: plugins
+import { plugins } from '#plugins';
 //
 
 //(server-only-start)
@@ -96,7 +98,8 @@ Eggk47.totalDamage = Eggk47.damage;
 Eggk47.range = 20;
 Eggk47.velocity = .5;
 Eggk47.prototype.fireMunitions = function (pos, dir) {
-    Bullet.fire(this.player, pos, dir, Eggk47)
+    plugins.emit("fireEggk47", {this: this, pos, dir, Eggk47});
+    if (!plugins.cancel) Bullet.fire(this.player, pos, dir, Eggk47)
 };
 
 // [LS] DozenGauge CONSTRUCTOR
@@ -125,9 +128,11 @@ DozenGauge.totalDamage = DozenGauge.damage * 20;
 DozenGauge.range = 7;
 DozenGauge.velocity = .45;
 DozenGauge.prototype.fireMunitions = function (pos, dir) {
+    plugins.emit("fireDozenGauge", {this: this, pos, dir, DozenGauge});
     for (var i = 0; i < 20; i++) {
         this.v1.set(dir.x + Math.seededRandom(-.14, .14) * DozenGauge.range, dir.y + Math.seededRandom(-.09, .09) * DozenGauge.range, dir.z + Math.seededRandom(-.14, .14) * DozenGauge.range);
-        Bullet.fire(this.player, pos, this.v1, DozenGauge);
+        plugins.emit("fireDozenGaugeBullet", {this: this, pos, v1: this.v1, DozenGauge});
+        if (!plugins.cancel) Bullet.fire(this.player, pos, this.v1, DozenGauge);
     };
 };
 
@@ -157,7 +162,8 @@ CSG1.totalDamage = CSG1.damage;
 CSG1.range = 50;
 CSG1.velocity = 0.6;
 CSG1.prototype.fireMunitions = function (pos, dir) {
-    Bullet.fire(this.player, pos, dir, CSG1)
+    plugins.emit("fireCSG1", {this: this, pos, dir, CSG1});
+    if (!plugins.cancel) Bullet.fire(this.player, pos, dir, CSG1)
 };
 
 // [LS] Cluck9mm CONSTRUCTOR
@@ -186,7 +192,8 @@ Cluck9mm.totalDamage = Cluck9mm.damage;
 Cluck9mm.range = 15;
 Cluck9mm.velocity = .45;
 Cluck9mm.prototype.fireMunitions = function (pos, dir) {
-    Bullet.fire(this.player, pos, dir, Cluck9mm);
+    plugins.emit("fireCluck9mm", {this: this, pos, dir, Cluck9mm});
+    if (!plugins.cancel) Bullet.fire(this.player, pos, dir, Cluck9mm);
 };
 
 // [LS] RPEGG CONSTRUCTOR
@@ -217,7 +224,8 @@ RPEGG.range = 45;
 RPEGG.velocity = .2;
 RPEGG.readySpread = 5;
 RPEGG.prototype.fireMunitions = function (pos, dir) {
-    Rocket.fire(this.player, pos, dir, RPEGG);
+    plugins.emit("fireRPEGG", {this: this, pos, dir, RPEGG});
+    if (!plugins.cancel) Rocket.fire(this.player, pos, dir, RPEGG);
     if (this.actor) {
         for (var i = 0; i < 10; i++) {
             var dx = .04 * Math.random() - .02,

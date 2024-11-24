@@ -27,6 +27,7 @@ jobs:
         version=$(cat $version_file)
         new_version=$((version + 1))
         echo $new_version > $version_file
+        echo "new_version=$new_version" >> $GITHUB_ENV
 
     - name: Update commit hash
       run: |

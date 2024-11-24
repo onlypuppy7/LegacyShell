@@ -151,6 +151,20 @@ const Comm = {
                 this.packInt16(str.charCodeAt(i));
             }
         }
+
+        /**
+         * Pack a long string (variable length).
+         * @param {string} str - The string to pack. Length: up to 65535 characters.
+         */
+        packLongString(str) {
+            if (str.length > 65535) {
+                throw new Error('String length exceeds 65535 characters');
+            }
+            this.packInt16(str.length); //maximum length of 65535 characters
+            for (let i = 0; i < str.length; i++) {
+                this.packInt16(str.charCodeAt(i));
+            }
+        }
     },
 
     /**
@@ -269,6 +283,21 @@ const Comm = {
             }
             return str;
         }
+
+        /**
+         * Unpack a long string (variable length).
+         * @param {number} [maxLen=1000] - The maximum length of the string.
+         * @returns {string} - The unpacked string.
+         */
+        unPackLongString() {
+            let str = '';
+            const len = this.unPackInt16U();
+            for (let i = 0; i < len; i++) {
+                const c = this.unPackInt16U();
+                if (c > 0) str += String.fromCharCode(c);
+            }
+            return str;
+        }
     },
 
     /**
@@ -283,6 +312,7 @@ const Comm = {
         masterServerBusy: 4004,
         masterServerOffline: 4005,
         booted: 4006,
+        locked: 4007,
     },
 
     Worker: {

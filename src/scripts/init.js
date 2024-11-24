@@ -134,23 +134,21 @@ function askDevLogging(callback) {
 };
 
 async function askAuthServer(callback) {
-    // Initialize the database
     const servicesStoreFolder = path.join(ss.rootDir, 'server-services', 'store');
 
     fs.mkdirSync(servicesStoreFolder, { recursive: true });
 
     const db = new sqlite3.Database(path.join(servicesStoreFolder, 'LegacyShellData.db'));
-    
-    recs.initDB(db);
-    
-    log.green('Account DB set up!\n');
 
     Object.assign(ss, {
-        // Database promise wrappers
         runQuery: util.promisify(db.run.bind(db)),
-        getOne: util.promisify(db.get.bind(db)),
-        getAll: util.promisify(db.all.bind(db)),
+        getOne:   util.promisify(db.get.bind(db)),
+        getAll:   util.promisify(db.all.bind(db)),
     });
+    
+    await recs.initDB(db);
+    
+    log.green('Account DB set up!\n');
 
     log.info('\nIf just you wish to run LegacyShell on your one machine, select yes. If you otherwise want to act as a mirror/extra region/other standalone component, select no.');
     log.bold('\n\nAdd the game server as an authed server?');

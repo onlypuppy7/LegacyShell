@@ -1,0 +1,1 @@
+For documentation, see: `/wiki/plugins/Plugin Docs/modernshellmaps`

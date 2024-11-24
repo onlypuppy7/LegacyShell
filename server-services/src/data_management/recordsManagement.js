@@ -40,22 +40,28 @@ var usersTable = `
 `;
 
 const exported = {
-    initDB: (db) => {
-        db.serialize(exported.initTables(db));
+    initDB: async (db) => {
+        await new Promise((resolve, reject) => {
+            db.serialize(() => {
+                exported.initTables(db)
+                    .then(resolve)
+                    .catch(reject);
+            });
+        });
     },
-    initTables: (db) => {
+    initTables: async (db) => {
         //USERS
-        db.run(usersTable);
+        await ss.runQuery(usersTable);
     
-        db.run(`
+        await ss.runQuery(`
             CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
         `);
     
-        db.run(`
+        await ss.runQuery(`
             CREATE INDEX IF NOT EXISTS idx_users_authToken ON users(authToken);
         `);
         
-        db.run(`
+        await ss.runQuery(`
             CREATE TRIGGER IF NOT EXISTS update_dateModified
             AFTER UPDATE ON users
             FOR EACH ROW
@@ -65,7 +71,7 @@ const exported = {
         `);
     
         //RATELIMITING
-        db.run(`
+        await ss.runQuery(`
             CREATE TABLE IF NOT EXISTS ip_requests (
                 ip TEXT PRIMARY KEY,
                 sensitive_count INTEGER DEFAULT 0,
@@ -76,7 +82,7 @@ const exported = {
         `);
     
         //SESSIONS
-        db.run(`
+        await ss.runQuery(`
         CREATE TABLE IF NOT EXISTS sessions (
             session_id TEXT PRIMARY KEY,
             user_id INTEGER UNIQUE,
@@ -87,7 +93,7 @@ const exported = {
         `);
     
         //ITEMS
-        db.run(`
+        await ss.runQuery(`
         CREATE TABLE IF NOT EXISTS items (
             id INTEGER PRIMARY KEY,
             meta_id INTEGER,
@@ -104,7 +110,7 @@ const exported = {
         )
         `);
         
-        db.run(`
+        await ss.runQuery(`
             CREATE TRIGGER IF NOT EXISTS update_dateModified_items
             AFTER UPDATE ON items
             FOR EACH ROW
@@ -116,7 +122,7 @@ const exported = {
         //ITEMS (i removed some chars from ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 for ease of reading such as 0/O, 1/I)
         //i know this looks horrible, and it is. but it has to be done so that you can just insert stuff in a sql editor. please just accept this and move on w ur life.
         //remember to change the '31' value if you change the character set.
-        db.run(`
+        await ss.runQuery(`
         CREATE TABLE IF NOT EXISTS codes (
             key TEXT PRIMARY KEY DEFAULT (substr('ABCDEFGHJKMNPQRSTUVWXYZ23456789', abs(random()) % 31 + 1, 1) ||
                                         substr('ABCDEFGHJKMNPQRSTUVWXYZ23456789', abs(random()) % 31 + 1, 1) ||
@@ -139,7 +145,7 @@ const exported = {
         )
         `);
         
-        db.run(`
+        await ss.runQuery(`
             CREATE TRIGGER IF NOT EXISTS update_dateModified_codes
             AFTER UPDATE ON codes
             FOR EACH ROW
@@ -148,7 +154,7 @@ const exported = {
             END;
         `);
     
-        db.run(`
+        await ss.runQuery(`
         CREATE TABLE IF NOT EXISTS maps (
             name TEXT PRIMARY KEY DEFAULT 'Unknown map',
             sun TEXT DEFAULT '{"direction":{"x":0.2,"y":1,"z":-0.3},"color":"#FFFFFF"}',
@@ -172,7 +178,7 @@ const exported = {
         )
         `);
         
-        db.run(`
+        await ss.runQuery(`
             CREATE TRIGGER IF NOT EXISTS update_dateModified_maps
             AFTER UPDATE ON maps
             FOR EACH ROW
@@ -185,7 +191,7 @@ const exported = {
         //allows a server to make certain sensitive operations, such as adding eggs, retrieving user stats.
         //providing one of these auth keys also bypasses ratelimiting
         //also the cancer massive substring thing of doom yeah bitch im NOT sorry
-        db.run(`
+        await ss.runQuery(`
         CREATE TABLE IF NOT EXISTS game_servers (
             auth_key TEXT PRIMARY KEY DEFAULT (substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1) || substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()-_=+[]{}|:,.<>?', abs(random()) % 77 + 1, 1)),
             name TEXT DEFAULT 'Unnamed server',
@@ -195,7 +201,7 @@ const exported = {
         )
         `);
         
-        db.run(`
+        await ss.runQuery(`
             CREATE TRIGGER IF NOT EXISTS update_dateModified_game_servers
             AFTER UPDATE ON game_servers
             FOR EACH ROW
@@ -205,7 +211,7 @@ const exported = {
         `);
 
         //FLAGS
-        db.run(`
+        await ss.runQuery(`
         CREATE TABLE IF NOT EXISTS flags (
             name TEXT PRIMARY KEY DEFAULT 'flag',
             value TEXT DEFAULT 'value'
@@ -293,7 +299,7 @@ const exported = {
 
             //delete the old table (will force reinseration of items)
             await ss.runQuery('DROP TABLE items');
-            exported.initTables(ss.db);
+            await exported.initTables(ss.db);
         };
     },
     updateUserDefaults: async () => { //i hate sqlite this is so stupid
@@ -332,7 +338,7 @@ const exported = {
             `);
         } catch (error) {
             await ss.runQuery('ROLLBACK');
-            console.error('Error updating user defaults:', error);
+            log.error('Error updating user defaults:', error);
         };
     },
     insertItems: async (jsDir = path.join(ss.currentDir, 'src', 'items')) => {
@@ -360,6 +366,8 @@ const exported = {
                             log.warning(`[Items] No offset found for item type: ${itemType}`);
                             offset = 0;
                         };
+
+                        while (item.name.endsWith(" ")) item.name=item.name.substr(0,item.name.length-1); //stupid Lyerpald stamp
 
                         item.id = item.meta_id + offset;
 

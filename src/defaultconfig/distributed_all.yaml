@@ -1,3 +1,9 @@
 #this is what the other servers will ping this server for
 
 closed: false # shuts down services/game and displays a closed message on the webpage.
+
+# interval in seconds in which game/client servers report stats to the services server
+servicesInfoCollectInterval: 15
+
+# interval in seconds in which the services server sends specific stats back to game/client servers
+servicesInfoSendInterval: 10

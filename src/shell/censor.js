@@ -102,7 +102,8 @@ export const censor = { //old isBadWord function
         "your",
         "their",
         "his",
-        "her"
+        "her",
+        "suspic"
     ],
     init: function () {
         let new_banned = [];

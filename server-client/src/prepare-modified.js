@@ -15,8 +15,18 @@ import { plugins } from '#plugins';
 //
 
 async function prepareModified() {
-    prepareBabylons(path.join(ss.rootDir, 'server-client', 'store', 'client-modified', 'models'));
+    try {
+        await Promise.all([
+            prepareBabylons(path.join(ss.rootDir, 'server-client', 'store', 'client-modified', 'models')),
+            modifyFiles(),
+        ]);
+        log.success('All prepareModified promises resolved!');
+    } catch (error) {
+        log.error('One of the prepareModified promises rejected:', error);
+    };
+};
 
+async function modifyFiles() {
     log.info('\nGenerating modified files (eg minifying shellshock.min.js)...');
 
     const sourceShellJsPath = path.join(ss.currentDir, 'src', 'client-static', 'src', 'shellshock.min.js');
@@ -133,7 +143,7 @@ async function prepareModified() {
             { pattern: /LEGACYSHELLPLUGINMANAGER/g, file: "#plugins" },
             { pattern: /LEGACYSHELLISCLIENTSERVER/g, file: "#isClientServer" },
 
-            { pattern: /LEGACYSHELLMODELSZIPTIMESTAMP/g, insertion: misc.getLastSavedTimestamp(path.join(ss.currentDir, 'store', 'client-modified', 'models', 'models.zip')) },
+            { pattern: /LEGACYSHELLZIPTIMES/g, insertion: (String(misc.getLastSavedTimestamp(path.join(ss.currentDir, 'store', 'client-modified', 'models', 'models.zip')))+String(misc.getLastSavedTimestamp(path.join(ss.currentDir, 'store', 'client-modified', 'models', 'map.zip')))) },
             { pattern: /LEGACYSHELLMAPZIPTIMESTAMP/g, insertion: misc.getLastSavedTimestamp(path.join(ss.currentDir, 'store', 'client-modified', 'models', 'map.zip')) },
             { pattern: /LEGACYSHELLSTAMPSPNG/g, insertion: misc.getLastSavedTimestamp(path.join(ss.currentDir, 'store', 'client-modified', 'img', 'stamps.png')) },
         ];
@@ -238,8 +248,6 @@ async function prepareModified() {
 
         fs.writeFileSync(destinationHtmlPath, code.htmlContent, 'utf8');
         log.bold(`index.html copied and modified to ${destinationHtmlPath}`);
-
-        delete ss.cache; //MEMORY LEAK FUCKING MI-Mi-mi-MITIGATED!!!
     } catch (error) {
         console.error('An error occurred during the file processing:', error);
     };
