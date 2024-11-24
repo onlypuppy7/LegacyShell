@@ -235,14 +235,16 @@ export const needsBorderCheck = async (sharpInstance) => {
     };
 };
 
-export async function createStampsUV(wh = widthheight) {
+export async function createStampsUV(wh = widthheight, skipWait) {
     log.info('Creating stamps UV...', wh);
 
-    //dont proceed until complete=true
-    await new Promise(resolve => {
-        const check = () => widthheightDetermined ? resolve() : setTimeout(check, 100);
-        check(); devlog("widthheightDetermined", widthheightDetermined);
-    });
+    if (plugins.type === "client") {
+        //dont proceed until complete=true
+        await new Promise(resolve => {
+            const check = () => widthheightDetermined ? resolve() : setTimeout(check, 100);
+            check(); devlog("widthheightDetermined", widthheightDetermined);
+        });
+    };
 
     var uv = [
         0,

@@ -225,7 +225,7 @@ The first public mentioning of the map editor was on [16th October 2017](https:/
 As stated previously, early versions of Shell contained a map generator built in. Although there are no references to it, we can extract the code and put it to use in alternative ways. Thus, I built it into the LegacyShell map editor to see what it can output.
 
 <center>
-<img src="./LegacyGeneratorOutput.png" alt="LegacyGeneratorOutput" width="40%">
+<img src="./LegacyGeneratorOutput.png" alt="LegacyGeneratorOutput" width="70%">
 
 *Output from my modified Legacy Generator.*
 </center>
@@ -359,6 +359,24 @@ The most significant thing to note here is the presence of an early version of B
 
 Scrutinising these maps further, I think that all these maps were also made with the same techniques as the [inter-editor era](#inter-editor-era), just with some block types replaced with new models.
 
-It's most visible in Bedrock, obviously, as it's essentially another map like those in 0.9.x. Then looking at Blue, it's the same style just with grass and blue blocks. Then there's Two Towers. Despite the name, does it really look like two towers? Not to me. It looks too similar to the output of the Legacy Generator when you set the height to be large. 
+It's most visible in Bedrock, obviously, as it's essentially another map like those in 0.9.x. Then looking at Blue, it's the same style just with grass and blue blocks.
+
+Then there's Two Towers. It looks different to the others and yet, in spite of the name, does it really look like two towers? Not to me.
+
+Here are the dimensions of the Two Towers map:
+
+```json
+"width":24,"height":13,"depth":12,"name":"Two Towers"
+```
+
+Inputting these into the Legacy Generator yields results like this:
+
+<center>
+<img src="./LegacyGeneratorOutput2.png" alt="LegacyGeneratorOutput2" width="70%">
+
+*Output from my modified Legacy Generator.*
+</center>
+
+Pretty freaky right? Even I was amazed to get something so close on my first try. If you're interested in the seed it was `2332`.
 
 So to conclude even though these maps have all prevailed, it's hard for me to call them manually created. But I will because I can. 
