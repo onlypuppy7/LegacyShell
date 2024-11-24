@@ -19,10 +19,10 @@ const preferences = {
   //doubleNumForObjectMenuToggle: true
 }
 
-initPref("loremipsim", "loremIpsum", true, "ds");
-initPref("playtestHotkey", "Playtest Hotkey", true, "the \"p\" hotkey for playtesting");
-initPref("pointerLockOnClose", "Pointerlock on object menu close", true, "lock the pointer when the object menu is closed");
-initPref("doubleSlotForOM", "double-select slot for object menu", true, "opens the object menu when pressing hotkey for selected slot again");
+initPref("loremipsim", "loremIpsum", true, "dfs");
+initPref("playtestHotkey", "Playtest Hotkey", true, "enables the \"p\" hotkey for playtesting");
+initPref("pointerLockOnClose", "Pointerlock on close", true, "locks the pointer when the object menu is closed");
+initPref("doubleSlotForOM", "double-select", true, "opens the object menu when pressing the hotkey for the already selected slot again");
 
 
 function initPref(internalName, displayName, val, description){
@@ -43,11 +43,56 @@ document.addEventListener("DOMContentLoaded", ()=>{
   loadPreferences();
   const masterElem = document.getElementById("prefOpts");
   Object.keys(preferences).forEach((opt) => {
+    const relativeMaster = document.createElement("div");
+    const checkContainer = document.createElement("div");
+    checkContainer.style.width = "30%";
+    checkContainer.style.textWrap = "auto";
+    checkContainer.style.borderStyle = "outset";
+    //const check = extern.addCheckbox(checkContainer, preferences[opt].displayName, true);
+    { //check
+      const check = document.createElement("input");
+      check.type = "checkbox";
+      check.addEventListener('change', (event) => {
+        changePreference(opt, event.currentTarget.checked);
+      });
+      check.checked = preferences[opt].val;
+      check.style.marginRight = "0.25em";
+      check.style.cursor = "pointer";
+      {//label
+        const cLabel = document.createElement("label");
+        cLabel.innerText = preferences[opt].displayName;
+        cLabel.appendChild(check);
+        checkContainer.appendChild(cLabel);
+        cLabel.style.display = "flex";
+        cLabel.style.flexDirection = "row-reverse";
+        cLabel.style.justifyContent = "flex-end";
+        cLabel.style.cursor = "pointer";
+        cLabel.style.userSelect = "none";
+      }
+    }
+    relativeMaster.style.border = "blueviolet"; //YESSS!!!! TOTALLY UNRELATED COLOR THAT IS NOWHERE ELSE!!!!111
+    relativeMaster.style.borderStyle = "ridge";
+    relativeMaster.style.display = "flex";
+    relativeMaster.style.justifyContent = "space-between";
+    relativeMaster.appendChild(checkContainer);
+    const descriptorContainer = document.createElement("div");
+    descriptorContainer.innerHTML = preferences[opt].description;
+    descriptorContainer.style.color = "gray";
+    descriptorContainer.style.textWrap = "auto";
+    descriptorContainer.style.borderStyle = "inset";
+    //descriptorContainer.style.marginLeft = "20px";
+    descriptorContainer.style.width = "70%";
+    descriptorContainer.style.fontStyle = "italic";
+    descriptorContainer.style.fontSize = "small";
+    relativeMaster.appendChild(descriptorContainer);
+    masterElem.appendChild(relativeMaster);
+    /*
     const check = addCheckbox(masterElem, preferences[opt].displayName);
     check.addEventListener('change', (event) => {
       changePreference(opt, event.currentTarget.checked);
     });
     check.checked = preferences[opt].val;
+    */
   });
 });
 
@@ -88926,6 +88971,21 @@ function buildWall(pick, cell, del) {
     [0, 1, 0],
     [0, 0, 1]
   ];
+  function addCheckbox(toEl, labelText, noP) {
+    var check = document.createElement("input");
+    check.type = "checkbox";
+    check.style.float = "left";
+    check.style.marginRight = "0.5em";
+    var label = document.createElement("label");
+    label.innerText = labelText;
+    label.appendChild(check);
+    toEl.appendChild(label);
+    if (!noP) {
+      var br = document.createElement("p");
+      toEl.appendChild(br);
+    }
+    return check;
+  }
   function doWall(cell2, dir, del2) {
     if (-dir[0] == neighborOff.x && -dir[1] == neighborOff.y && -dir[2] == neighborOff.z)
       return;
