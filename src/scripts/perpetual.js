@@ -13,6 +13,7 @@ import readline from 'readline';
 import log from '#coloured-logging';
 //legacyshell: ss
 import { ss } from '#misc';
+import { get } from 'node:http';
 //
 
 // optional passing of args instead of the yaml (warning cancer do not use)
@@ -30,7 +31,7 @@ import { ss } from '#misc';
 if (typeof fetch !== 'function') {
     console.log("This script requires the native fetch API to be available. Upgrade to the latest Node LTS.");
     process.exit(0);
-}
+};
 
 misc.instantiateSS(import.meta, process.argv, true);
 
@@ -52,7 +53,9 @@ const options = {
     webhook_username:       passed.webhook_username         || "Webhook", //eg "LegacyShell: Client Server"
     webhook_avatar:         passed.webhook_avatar           || "https://cdn.onlypuppy7.online/legacyshell/client.png", //eg "https://cdn.onlypuppy7.online/legacyshell/client.png"
     webhook_ping_user:      passed.webhook_ping_user        || false, //this might flood your shit
-    webhook_ping_role:      passed.webhook_ping_role        || false,
+    webhook_ping_role:      passed.webhook_ping_role        || false, //this might flood EVERYONE'S shit
+    //pulling
+    is_puller:              ss.config.perpetual_all.pullers.includes(server_type) || false,
 };
 
 const rl = readline.createInterface({
@@ -61,14 +64,13 @@ const rl = readline.createInterface({
     prompt: '> '
 });
 
-
-function executeCommand(command, args) {
+function executeCommand(command, args, stdio = "inherit") {
     const cmdProcess = spawn(command, args, {
-        stdio: 'inherit',
+        stdio,
     });
 
     cmdProcess.on('exit', (code) => {
-        console.log(`${command} exited with code: ${code}`);
+        if (stdio !== 'ignore') console.log(`${command} exited with code: ${code}`);
     });
 
     cmdProcess.on('error', (err) => {
@@ -285,3 +287,36 @@ if (options.webhook_url && options.webhook_url.length > 0) {
 
 startProcess();
 autoRestart();
+
+function getVersionHash() {
+    try {
+        var newVersionHash= fs.readFileSync(path.join(ss.rootDir, "versionHash.txt"), 'utf8').trim();
+        return newVersionHash;
+    } catch (error) { //cant risk it on the perpetual script
+        return null;
+    };
+};
+
+let versionHash = getVersionHash();
+
+(setInterval(() => {
+    let newVersionHash = getVersionHash()
+    if (versionHash !== newVersionHash) {
+        log.bgGreen(versionHash, newVersionHash, "Version hash has changed, update! Restarting...");
+        versionHash = newVersionHash; //why didnt i include this before? i thought that this perpetual wrapper restarted too. am stupid
+        startProcess();
+    };
+}, 15e3));
+
+function pullQuestionMark() {
+    if (options.is_puller) {
+        logNoSend("Pulling from git...", versionHash);
+        executeCommand('git', ['pull'], 'ignore');
+    };
+};
+
+pullQuestionMark();
+
+(setInterval(() => {
+    pullQuestionMark();
+}, 120e3)); //every 2 minutes seems reasonable

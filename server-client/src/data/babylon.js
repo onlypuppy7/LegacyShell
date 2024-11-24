@@ -24197,7 +24197,7 @@
                         if (this.db) successCallback && successCallback();
                         else {
                             this.hasReachedQuota = !1, this.isSupported = !0;
-                            var request = this.idbFactory.open("babylonjs", 1);
+                            var request = this.idbFactory.open(localStorage.getItem("babylonDB"), 1);
                             request.onerror = function (event) {
                                 handleError()
                             }, request.onblocked = function (event) {

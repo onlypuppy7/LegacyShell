@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 //legacyshell: loading
 import BABYLON from "babylonjs";
-import { stateBufferSize, isClient, isServer, Team } from '#constants';
+import { stateBufferSize, isClient, isServer, Team, devlog } from '#constants';
 import JSZip from 'jszip';
 //legacyshell: ss
 import { ss } from '#misc';
@@ -210,6 +210,11 @@ export function loadMapMeshes(scene, onComplete) { //[8th], loads map meshes, wo
     }, onLoadMeshComplete);
 };
 
+export var illegalMeshes = [
+    "SPECIAL.spatula.none",
+    "DYNAMIC.capture-zone.none",
+];
+
 export function buildMapData (errorFunc) { //[12th], (name from deobf leak)
     map = {
         width: minMap.width,
@@ -237,9 +242,16 @@ export function buildMapData (errorFunc) { //[12th], (name from deobf leak)
     };
 
     Object.keys(minMap.data).forEach(function (meshName) {
+        if (illegalMeshes.includes(meshName)) {
+            devlog("buildMapData skipping illegal:", meshName);
+            return;
+        };
+
         var meshData = minMap.data[meshName];
         var meshIdx = meshIndex[meshName];
         var mesh = mapMeshes[meshIdx];
+
+        console.log(meshName)
 
         if (meshIdx) {
             var colliderMesh;

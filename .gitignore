@@ -4,19 +4,14 @@ bun.lockb
 package-lock.json
 
 # cached stores
-/src/scripts/store
-/src/scripts/stamps-slicer/store
-/server-client/store
-/server-services/store
-/server-game/store
-/store
+**/store/
 
 # vuepress
 wiki/.vuepress/dist
 wiki/.vuepress/.temp
 
 # my crap
-/assets/0.18.2
+/assetsForLegacyShell
 
 # versioning (done by github)
 /versionEnum.txt

@@ -62,6 +62,7 @@ export var defaultOptions = {
         0, //team1
         0, //team2
     ],
+    plugins: {}, //arbitrary flags for plugins to use (synced in updateRoomParams)
 };
 
 export var GameTypes = [
@@ -99,6 +100,8 @@ export var GameType = {};
                 ...gameType.options,
             };
             gameType.value = i++;
+            gameType.shortNameDisplay = gameType.shortName;
+            gameType.longNameDisplay = gameType.longName;
             if (gameType.mapPool && !AllMapPools.includes(gameType.mapPool)) {
                 AllMapPools.push(gameType.mapPool);
             };
