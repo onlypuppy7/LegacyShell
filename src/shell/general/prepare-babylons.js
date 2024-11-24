@@ -37,26 +37,45 @@ export async function prepareBabylons(endBabylonsDir = path.join(ss.rootDir, 'st
         zip.file(`${babylon}.babylon`, JSON.stringify(babylonData));
     };
 
+    await plugins.emit('prepareBabylonBefore', { baseBabylons, babylonDirFiles, addBabylonToZip });
+
     for (const babylon of baseBabylons) {
         try {
             const filename = path.basename(babylon, '.babylon');
-            log.dim(`Copying ${filename}...`);
-            const baseBabylon = JSON.parse(fs.readFileSync(path.join(baseBabylonsDir, babylon), 'utf8'));
-            //get date of file saved
-            var timestamp = misc.getLastSavedTimestamp(path.join(baseBabylonsDir, babylon));
+            let baseBabylon;
+            let timestamp;
+
+            var baseBabylonPath = path.join(baseBabylonsDir, babylon);
+            if (fs.existsSync(baseBabylonPath)) {
+                log.dim(`Copying ${filename}...`);
+                baseBabylon = JSON.parse(fs.readFileSync(baseBabylonPath, 'utf8'));
+                //get date of file saved
+                timestamp = misc.getLastSavedTimestamp(path.join(baseBabylonsDir, babylon));
+            } else {
+                log.dim(`Base ${filename} doesn't exist, cannot copy.`);
+            };
 
             var extraBabylons = [];
 
             await plugins.emit('prepareBabylon', { filename, baseBabylon, extraBabylons });
 
-            debuggingLogs && console.log(babylon, "before", baseBabylon.meshes.length);
+            // debuggingLogs && baseBabylon && console.log(babylon, "before", baseBabylon.meshes.length, extraBabylons);
 
             for (const item of extraBabylons) {
-                debuggingLogs && console.log("Adding extra babylon", extraBabylon);
                 try {
                     var extraBabylon = item.filepath;
+                    debuggingLogs && console.log("Adding extra babylon", extraBabylon, "for", babylon, !!baseBabylon);
 
                     const extraBabylonData = JSON.parse(fs.readFileSync(extraBabylon, 'utf8'));
+
+                    if (!baseBabylon) {
+                        log.pink("Using extraBabylon as fallback base", extraBabylon);
+                        baseBabylon = JSON.parse(fs.readFileSync(extraBabylon, 'utf8'));
+                        timestamp = misc.getLastSavedTimestamp(extraBabylon);
+
+                        debuggingLogs && console.log(extraBabylonData);
+                    };
+
                     var thisTimestamp = misc.getLastSavedTimestamp(extraBabylon);
                     if (thisTimestamp > timestamp) timestamp = thisTimestamp;
 

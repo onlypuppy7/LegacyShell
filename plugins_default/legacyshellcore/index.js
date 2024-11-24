@@ -28,9 +28,11 @@ export class Plugin {
         LegacyShellCorePlugin.registerListeners(this.plugins);
         this.plugins.on('client:pluginSourceInsertion', this.pluginSourceInsertion.bind(this));
         
+        this.plugins.on('client:prepareBabylonBefore', this.prepareBabylonBefore.bind(this));
+        this.plugins.on('game:prepareBabylonBefore', this.prepareBabylonBefore.bind(this));
+
         this.plugins.on('client:prepareBabylon', this.prepareBabylon.bind(this));
         this.plugins.on('game:prepareBabylon', this.prepareBabylon.bind(this));
-
 
         this.plugins.on('client:stampImageDirs', this.stampImageDirs.bind(this));
         this.plugins.on('services:initTables', this.initTables.bind(this));
@@ -56,13 +58,25 @@ export class Plugin {
         );
     };
 
-    async prepareBabylon(data) {
-        // console.log('prepareBabylon', data.filename);
-        var extraBabylons = data.extraBabylons;
+    async prepareBabylonBefore(data) {
+        var baseBabylons = data.baseBabylons;
 
         const babylonPath = path.join(this.thisDir, 'models');
-        const babylonFiles = fs.readdirSync(babylonPath);
-        for (const file of babylonFiles) {
+        this.babylonFiles = fs.readdirSync(babylonPath);
+
+        for (var file of this.babylonFiles) {
+            if (!baseBabylons.includes(file)) {
+                console.log('new model', file, 'from', PluginMeta.identifier);
+                baseBabylons.push(file);
+            };
+        };
+    };
+
+    async prepareBabylon(data) {
+        var extraBabylons = data.extraBabylons;
+
+        // console.log('prepareBabylon', data.filename);
+        for (const file of this.babylonFiles) {
             if (data.filename + ".babylon" === file) {
                 console.log('found', file, 'from', PluginMeta.identifier);
                 extraBabylons.push({
