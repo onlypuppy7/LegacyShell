@@ -112,6 +112,14 @@ async function modifyFiles() {
             });
         };
 
+        const skyboxes = [
+            // "classic",
+            // "classic+mountains",
+            ...fs.readdirSync(skyboxesPath),
+        ];
+
+        skyboxes.sort();
+
         const replacementsBefore = [
             { pattern: /LEGACYSHELLPLUGINSBEFORE/g, insertion: pluginInsertion.stringBefore },
             { pattern: /LEGACYSHELLPLUGINSAFTER/g, insertion: pluginInsertion.stringAfter },
@@ -120,7 +128,7 @@ async function modifyFiles() {
             { pattern: /LEGACYSHELLDEVMODE/g, insertion: ss.config.devlogs ? "true" : "false" },
             { pattern: /LEGACYSHELLPERMSCONFIG/g, insertion: JSON.stringify(ss.permissions) },
 
-            { pattern: /LEGACYSHELLSKYBOXES/g, insertion: JSON.stringify(fs.readdirSync(skyboxesPath)) },
+            { pattern: /LEGACYSHELLSKYBOXES/g, insertion: JSON.stringify(skyboxes) },
 
             { pattern: /LEGACYSHELLCOMM/g, file: "#comm" },
             { pattern: /LEGACYSHELLPLAYERCONSTRUCTOR/g, file: "#player" },

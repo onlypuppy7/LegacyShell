@@ -207,7 +207,7 @@ export default async function run () {
     await plugins.emit('filepaths', { ss, filepaths });
 
     async function connectWebSocket(retryCount = 0) {
-        nextTimeout = Math.min(nextTimeout + 5e3, 30e3);
+        nextTimeout = Math.min(nextTimeout + 3e3, 30e3);
 
         await plugins.emit('onConnectWebSocket', { ss, retryCount, nextTimeout });
 

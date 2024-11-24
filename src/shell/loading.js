@@ -44,6 +44,7 @@ export function iterateXYZ(width, height, depth, options, callback) {
 };
 
 var meshesLoaded = [];
+var zipsLoaded = [];
 
 // [LS] Mesh Loading Helpers
 export function loadMeshes(scene, meshNames, onMeshLoaded, onComplete) { //[srvr]
@@ -80,6 +81,15 @@ export function loadMeshes(scene, meshNames, onMeshLoaded, onComplete) { //[srvr
 
     if (typeof meshNames === "string" && meshNames.includes(".zip")) {
         var zipPath = rootUrl + meshNames;
+
+        // if (zipsLoaded.includes(zipPath)) {
+        //     devlog("zip already loaded, skipping", zipPath);
+        //     onComplete.call(that);
+        //     return;
+        // };
+
+        zipsLoaded.push(zipPath);
+
         console.log("loading mesh zip", zipPath);
     
         if (isServer && ss) { //note that this isnt really tested, dont rely on this for server stuff, just use array of strings
