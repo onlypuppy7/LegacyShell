@@ -6,7 +6,7 @@ This era spans from the first release to the beginning of the [manually created 
 
 In the beginning, maps were just made via random number generators. Within early code there are functions for map generators that create based off of an initial seed. So either the maps themselves were baked into the code like they are in the [manually created era](#manually-created-era), or the seeds were bundled into the code, or the server sent the seed to the clients.
 
-If it was determined by the server, then the preservation of these maps would be particuluary difficult due to the fact that there wasn't anything defined really in circulation. What I mean by this is that it would cause all the different maps found in videos to be only have been temporary for that room and thus making it impossible to say that any one seed has particular importance.
+If it was determined by the server, then the preservation of these maps would be particuluary difficult due to the fact that there wasn't anything defined really in circulation. What I mean by this is that it would cause all the different maps found in videos to just have been temporary for that room and thus making it impossible to say that any one seed has particular importance.
 
 Due to archiving for this era being practically non-existent save for some [YouTube videos](./updatestimeline.md), it's hard to determine how exactly the distribution of maps was achieved.
 
@@ -241,6 +241,7 @@ There are two maps I could find for this version.
 <center>
 <img src="./Shell Shockers  GUERRA DE HUEVOS 1-31 screenshot.png" alt="Shell Shockers  GUERRA DE HUEVOS 1-31 screenshot" width="40%">
 <img src="./Shell Shockers  GUERRA DE HUEVOS 5-10 screenshot.png" alt="Shell Shockers  GUERRA DE HUEVOS 5-10 screenshot" width="40%">
+
 <img src="./Shell Shockers  GUERRA DE HUEVOS 4-58 screenshot.png" alt="Shell Shockers  GUERRA DE HUEVOS 4-58 screenshot" width="40%">
 <img src="./Shell Shockers  GUERRA DE HUEVOS 3-0 screenshot.png" alt="Shell Shockers  GUERRA DE HUEVOS 3-0 screenshot" width="40%">
 
@@ -340,7 +341,7 @@ These maps come without a name, so they have been assigned some.
 
 ## Manually Created Era
 
-This era is the one in which the beginning is marked of when maps started being added which actually stuck around. All prior maps have never returned.
+This era is the one which marked the beginning of when maps started being added which actually stuck around. All prior maps have never returned.
 
 ### The 0.10.x Maps
 
@@ -355,3 +356,9 @@ Blue is often wrongly cited to be the oldest map, when it's just the oldest to s
 |Early Two Towers|[Video 1](https://youtu.be/xyT6_v7H_vs?t=656)|<img src="./0.10.2 Alpha3.png" alt="0.10.2 Alpha3" width="65%">||
 
 The most significant thing to note here is the presence of an early version of Bedrock. It was later readded on 1st May 2023.
+
+Scrutinising these maps further, I think that all these maps were also made with the same techniques as the [inter-editor era](#inter-editor-era), just with some block types replaced with new models.
+
+It's most visible in Bedrock, obviously, as it's essentially another map like those in 0.9.x. Then looking at Blue, it's the same style just with grass and blue blocks. Then there's Two Towers. Despite the name, does it really look like two towers? Not to me. It looks too similar to the output of the Legacy Generator when you set the height to be large. 
+
+So to conclude even though these maps have all prevailed, it's hard for me to call them manually created. But I will because I can. 
