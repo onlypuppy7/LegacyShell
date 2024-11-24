@@ -342,97 +342,104 @@ const exported = {
         };
     },
     insertItems: async (jsDir = path.join(ss.currentDir, 'src', 'items')) => {
-        const files = fs.readdirSync(jsDir);
+        return new Promise(async (resolve, reject) => {
+            const files = fs.readdirSync(jsDir);
 
-        for (const file of files) {
-            if (path.extname(file) === '.js') {
-                log.beige(`[Items] Inserting: ${file}`);
-                const filePath = path.join(jsDir, file);
-                const fileURL = pathToFileURL(filePath);
+            for (const file of files) {
+                if (path.extname(file) === '.js') {
+                    log.beige(`[Items] Inserting: ${file}`);
+                    const filePath = path.join(jsDir, file);
+                    const fileURL = pathToFileURL(filePath);
 
-                const jsData = (await import(fileURL)).default;
+                    const jsData = (await import(fileURL)).default;
 
-                // console.log(jsData);
+                    // console.log(jsData);
 
-                for (let itemType in jsData) {
-                    const items = jsData[itemType];
+                    for (let itemType in jsData) {
+                        const items = jsData[itemType];
 
-                    log.beige(`[Items] Inserting ${items.length} items of type: ${itemType} from ${filePath}`);
+                        log.beige(`[Items] Inserting ${items.length} items of type: ${itemType} from ${filePath}`);
 
-                    for (const item of items) {
-                        var offset = itemIdOffsetsByName[itemType];
+                        for (const item of items) {
+                            var offset = itemIdOffsetsByName[itemType];
 
-                        if (!offset) {
-                            log.warning(`[Items] No offset found for item type: ${itemType}`);
-                            offset = 0;
+                            if (!offset) {
+                                log.warning(`[Items] No offset found for item type: ${itemType}`);
+                                offset = 0;
+                            };
+
+                            while (item.name.endsWith(" ")) item.name=item.name.substr(0,item.name.length-1); //stupid Lyerpald stamp
+
+                            item.id = item.meta_id + offset;
+
+                            await ss.runQuery(`
+                                INSERT OR REPLACE INTO items (id, meta_id, name, is_available, price, item_class, item_type_id, item_type_name, exclusive_for_class, item_data)
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            `, [item.id, item.meta_id, item.name, item.is_available, item.price, path.parse(itemType).name, item.item_type_id, item.item_type_name, item.exclusive_for_class, JSON.stringify(item.item_data)]);
                         };
-
-                        while (item.name.endsWith(" ")) item.name=item.name.substr(0,item.name.length-1); //stupid Lyerpald stamp
-
-                        item.id = item.meta_id + offset;
-
-                        await ss.runQuery(`
-                            INSERT OR REPLACE INTO items (id, meta_id, name, is_available, price, item_class, item_type_id, item_type_name, exclusive_for_class, item_data)
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        `, [item.id, item.meta_id, item.name, item.is_available, item.price, path.parse(itemType).name, item.item_type_id, item.item_type_name, item.exclusive_for_class, JSON.stringify(item.item_data)]);
                     };
                 };
             };
-        };
+            resolve();
+        });
     },
     insertMaps: async (jsonDir = path.join(ss.currentDir, 'src', 'maps')) => {
-        const files = fs.readdirSync(jsonDir);
-        const maps = [];
-        for (const file of files) {
-            if (path.extname(file) === '.json') {
-                log.beige(`[Maps] Reading: ${file}`);
-                const filePath = path.join(jsonDir, file);
-                const fileContent = fs.readFileSync(filePath, 'utf8');
-                maps.push(JSON.parse(fileContent));
+        return new Promise(async (resolve, reject) => {
+            const files = fs.readdirSync(jsonDir);
+            const maps = [];
+            for (const file of files) {
+                if (path.extname(file) === '.json') {
+                    log.beige(`[Maps] Reading: ${file}`);
+                    const filePath = path.join(jsonDir, file);
+                    const fileContent = fs.readFileSync(filePath, 'utf8');
+                    maps.push(JSON.parse(fileContent));
+                };
             };
-        };
-
-        for (const map of maps) {
-            log.beige(`[Maps] Inserting: ${map.name}`);
-            await ss.runQuery(`
-                INSERT OR REPLACE INTO maps ( name, sun, ambient, fog, data, palette, render, width, height, depth, surfaceArea, extents, skybox, modes, availability, numPlayers, dateCreated, dateModified ) 
-                VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )
-            `, [
-                    map.name || 'Unknown map',
-                    map.sun ? JSON.stringify(map.sun) : '{"direction":{"x":0.2,"y":1,"z":-0.3},"color":"#FFFFFF"}',
-                    map.ambient || '#000000', //NOT USED! (other than map editor idfk)
-                    map.fog ? JSON.stringify(map.fog) : '{"density":0.01,"color":"#FFFFFF"}',
-                    map.data ? JSON.stringify(map.data) : '{}',
-                    map.palette ? JSON.stringify(map.palette) : '[null,null,null,null,null,null,null,null,null,null]',
-                    map.render ? JSON.stringify(map.render) : '{}',
-                    map.width || -9999,
-                    map.height || -9999,
-                    map.depth || -9999,
-                    map.surfaceArea || 0,
-                    map.extents ? JSON.stringify(map.extents) : '{"x":{"max":0,"min":10000},"y":{"max":0,"min":10000},"z":{"max":0,"min":10000},"width":-9999,"height":-9999,"depth":-9999}',
-                    map.skybox || '',
-                    map.modes ? JSON.stringify(map.modes) : '{"FFA":true,"Teams":true}',
-                    map.availability || 'both',
-                    map.numPlayers || 18,
-                    Math.floor(Date.now() / 1000),
-                    Math.floor(Date.now() / 1000)
-                ],
-            );
-        };
-
-        //alphabetical order (cringe)
-        try {
-            await ss.runQuery('BEGIN TRANSACTION');
-            await ss.runQuery('CREATE TABLE maps_temp AS SELECT * FROM maps ORDER BY name');
-            await ss.runQuery('DROP TABLE maps');
-            await ss.runQuery('ALTER TABLE maps_temp RENAME TO maps');
-            await ss.runQuery('COMMIT');
-        } catch (error) {
-            await ss.runQuery('ROLLBACK');
-            console.error('Error reordering maps table:', error);
-        };
-
-        log.beige(`[Maps] Inserted ${maps.length} maps`);
+    
+            for (const map of maps) {
+                log.beige(`[Maps] Inserting: ${map.name}`);
+                await ss.runQuery(`
+                    INSERT OR REPLACE INTO maps ( name, sun, ambient, fog, data, palette, render, width, height, depth, surfaceArea, extents, skybox, modes, availability, numPlayers, dateCreated, dateModified ) 
+                    VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )
+                `, [
+                        map.name || 'Unknown map',
+                        map.sun ? JSON.stringify(map.sun) : '{"direction":{"x":0.2,"y":1,"z":-0.3},"color":"#FFFFFF"}',
+                        map.ambient || '#000000', //NOT USED! (other than map editor idfk)
+                        map.fog ? JSON.stringify(map.fog) : '{"density":0.01,"color":"#FFFFFF"}',
+                        map.data ? JSON.stringify(map.data) : '{}',
+                        map.palette ? JSON.stringify(map.palette) : '[null,null,null,null,null,null,null,null,null,null]',
+                        map.render ? JSON.stringify(map.render) : '{}',
+                        map.width || -9999,
+                        map.height || -9999,
+                        map.depth || -9999,
+                        map.surfaceArea || 0,
+                        map.extents ? JSON.stringify(map.extents) : '{"x":{"max":0,"min":10000},"y":{"max":0,"min":10000},"z":{"max":0,"min":10000},"width":-9999,"height":-9999,"depth":-9999}',
+                        map.skybox || '',
+                        map.modes ? JSON.stringify(map.modes) : '{"FFA":true,"Teams":true}',
+                        map.availability || 'both',
+                        map.numPlayers || 18,
+                        Math.floor(Date.now() / 1000),
+                        Math.floor(Date.now() / 1000)
+                    ],
+                );
+            };
+    
+            //alphabetical order (cringe)
+            try {
+                await ss.runQuery('BEGIN TRANSACTION');
+                await ss.runQuery('CREATE TABLE maps_temp AS SELECT * FROM maps ORDER BY name');
+                await ss.runQuery('DROP TABLE maps');
+                await ss.runQuery('ALTER TABLE maps_temp RENAME TO maps');
+                await ss.runQuery('COMMIT');
+            } catch (error) {
+                await ss.runQuery('ROLLBACK');
+                log.error('Error reordering maps table:', error);
+                reject(error);
+            };
+    
+            log.beige(`[Maps] Inserted ${maps.length} maps`);
+            resolve();
+        });
     },
     getCodeData: async (code_key, retainSensitive) => {
         try {
