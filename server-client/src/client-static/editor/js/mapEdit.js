@@ -19,10 +19,17 @@ const preferences = {
   //doubleNumForObjectMenuToggle: true
 }
 
-initPref("loremipsim", "loremIpsum", true, "dfs");
-initPref("playtestHotkey", "Playtest Hotkey", true, "enables the \"p\" hotkey for playtesting");
-initPref("pointerLockOnClose", "Pointerlock on close", true, "locks the pointer when the object menu is closed");
-initPref("doubleSlotForOM", "double-select", true, "opens the object menu when pressing the hotkey for the already selected slot again");
+//this IS called before DOMContentLoaded, hopefully.
+function createPreferences() { //alr nvm let's make it a func called before loadPreferences.
+  //this is 1) safer and 2) cleaner
+  //everything is only then called, when it should be.
+  //yeah I prefer it like this
+  //11pm monologue arc
+  initPref("loremipsim", "loremIpsum", true, "dfs");
+  initPref("playtestHotkey", "Playtest Hotkey", true, "enables the \"p\" hotkey for playtesting");
+  initPref("pointerLockOnClose", "Pointerlock on close", true, "locks the pointer when the object menu is closed");
+  initPref("doubleSlotForOM", "double-select", true, "opens the object menu when pressing the hotkey for the already selected slot again");
+}
 
 
 function initPref(internalName, displayName, val, description){
@@ -40,6 +47,7 @@ function pref(interNalName){
 //wow, this is NOT the best way to do this. Eh it's 1am ITS FINE //ye keeping this
 document.addEventListener("DOMContentLoaded", ()=>{
   //wowoowow DYNAMIC preference menu!!!111111
+  createPreferences();
   loadPreferences();
   const masterElem = document.getElementById("prefOpts");
   Object.keys(preferences).forEach((opt) => {
