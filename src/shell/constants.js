@@ -486,6 +486,8 @@ export class TimeoutManagerConstructor {
     };
 };
 
+export function isObject (val) { return val && typeof val === 'object' && !Array.isArray(val) };
+
 //(server-only-start)
 
 // export default { //why is this like this? because we need to define all these as vars in the client. kek. putting it all in one object kinda ugh ngl.

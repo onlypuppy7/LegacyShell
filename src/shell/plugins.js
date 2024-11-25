@@ -5,8 +5,9 @@ import path from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
 import { isServer } from '#constants';
 import { exec, execSync } from 'child_process';
+import { isObject } from '#constants';
 //legacyshell: ss
-import { ss } from '#misc';
+import misc, { ss } from '#misc';
 //legacyshell: logging
 import log from '#coloured-logging';
 //
@@ -160,6 +161,9 @@ export class PluginManager {
         if (this.listeners[event]) {
             for (const listener of this.listeners[event]) {
                 try {
+                    if (isObject(args[0])) {
+                        args[0].EVENT = event;
+                    };
                     await listener(...args, this);
                 } catch (error) {
                     console.error(`Error in listener for event ${event}:`, error);

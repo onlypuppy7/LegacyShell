@@ -283,7 +283,8 @@ export default async function run () {
                                     WHERE account_id = ?
                                 `, [userData.currentBalance, userData.kills, userData.streak, userData.account_id]);
     
-                                ws.send(JSON.stringify({
+                                await plugins.emit('addKill', { userData });
+                                if (!plugins.cancel) ws.send(JSON.stringify({
                                     currentBalance: userData.currentBalance,
                                     kills: userData.kills, //i dont think we really need this for anything, but doesnt hurt to show something happened
                                     streak: userData.streak
@@ -299,7 +300,8 @@ export default async function run () {
                                     WHERE account_id = ?
                                 `, [userData.deaths, userData.account_id]);
     
-                                ws.send(JSON.stringify({
+                                await plugins.emit('addDeath', { userData });
+                                if (!plugins.cancel) ws.send(JSON.stringify({
                                     deaths: userData.deaths, //again, i dont think we really need this for anything
                                 }));
                                 break;
@@ -313,22 +315,26 @@ export default async function run () {
                                     delete gameInfoForClient.rooms;
 
                                     servicesInfo.client.gameInfo[msg.thisServer] = gameInfoForClient;
+
+                                    await plugins.emit('servicesInfo', { gameInfo, gameInfoForClient, thisServer: msg.thisServer });
                                 };
 
                                 // console.log(servicesInfo);
                                 break;
                             // Client client commands
                             case 'validateLogin':
-                                accs.getUserData(msg.username, true, true).then(userData => {
+                                accs.getUserData(msg.username, true, true).then(async (userData) => {
                                     if (userData) {
                                         accs.comparePassword(userData, msg.password).then(async (isPasswordCorrect) => {
                                             if (isPasswordCorrect === true) {
                                                 userData.authToken = await accs.generateToken(msg.username);
                                                 userData.session = await sess.createSession(userData.account_id, ip);
                                                 delete userData.password;
-                                                ws.send(JSON.stringify(userData));
+                                                await plugins.emit('validateLoginSuccess', { userData });
+                                                if (!plugins.cancel) ws.send(JSON.stringify(userData));
                                             } else {
-                                                ss.config.services.protect_usernames ? ws.send(JSON.stringify({ error: "Username or password is incorrect." })) : ws.send(JSON.stringify({ error: "Password is incorrect." }));
+                                                await plugins.emit('validateLoginFail', { userData, error: "Password is incorrect" });
+                                                if (!plugins.cancel) ss.config.services.protect_usernames ? ws.send(JSON.stringify({ error: "Username or password is incorrect." })) : ws.send(JSON.stringify({ error: "Password is incorrect." }));
                                             };
                                         }).catch(error => {
                                             console.error('Error comparing passwords:', error);
@@ -336,10 +342,12 @@ export default async function run () {
                                         });
                                     } else {
                                         console.log('No data found for the given username.');
+                                        await plugins.emit('validateLoginFail', { userData, error: "User doesn't exist" });
                                         ss.config.services.protect_usernames ? ws.send(JSON.stringify({ error: "Username or password is incorrect." })) : ws.send(JSON.stringify({ error: "User doesn't exist" }));
                                     };
-                                }).catch((err) => {
+                                }).catch(async (err) => {
                                     console.error('Error:', err);
+                                    await plugins.emit('validateLoginFail', { userData, error: "Database error" });
                                     ws.send(JSON.stringify({ error: 'Database error.' }))
                                 });
                                 break;
@@ -352,11 +360,12 @@ export default async function run () {
                                                 userData.session = await sess.createSession(userData.account_id, ip);
                                                 delete userData.password;
                                                 ws.send(JSON.stringify(userData));
+                                                await plugins.emit('validateLoginViaAuthTokenSuccess', { userData });
                                             } else {
                                                 ws.send(JSON.stringify({ error: accessGranted }));
                                             };
                                         }).catch(error => {
-                                            console.error('Error comparing passwords:', error);
+                                            console.error('Error comparing auth tokens:', error);
                                             standardError(ws);
                                         });
                                     } else { //this case shouldnt happen
@@ -403,11 +412,13 @@ export default async function run () {
                                             userData.session = await sess.createSession(userData.account_id, ip);
                                             userData.authToken = newToken;
                                             ws.send(JSON.stringify(userData));
+                                            await plugins.emit('validateRegisterSuccess', { userData });
                                         } else {
                                             console.log('No data found for the given username.');
                                             ws.send(JSON.stringify({ error: 'Database error.' }));
                                         };
                                     } else {
+                                        await plugins.emit('validateRegisterFail', { username: msg.username, error: accountCreationResult });
                                         if (accountCreationResult === 'SQLITE_CONSTRAINT') {
                                             ws.send(JSON.stringify({ error: 'Username is already taken.' }));
                                         } else {
@@ -434,7 +445,11 @@ export default async function run () {
                                     }));
             
                                     fetch(ss.config.services.feedback, { method: 'POST', body: formData });
-                                } else log.blue('Feedback received, no discord webhook set!:'+JSON.stringify(msg));
+                                } else {
+                                    log.blue('Feedback received, no discord webhook set!:'+JSON.stringify(msg));
+                                };
+                                
+                                await plugins.emit('feedback', { msg });
             
                                 ws.send(JSON.stringify({ success: true }));
                                 break;
@@ -498,6 +513,7 @@ export default async function run () {
                                 try {
                                     if (userData) {
                                         buyingResult = await accs.addItemToPlayer(msg.item_id, userData, true, false);
+                                        await plugins.emit("buyingResult", {buyingResult, userData, msg});
                                     }; //ELSE -> achievement: how did we get here?
                                 } catch (error) {
                                     log.red("WHY IS THERE AN ERROR??");
@@ -517,6 +533,7 @@ export default async function run () {
                                 try {
                                     if (userData) {
                                         redeemResult = await accs.addCodeToPlayer(msg.code, userData);
+                                        await plugins.emit("redeemResult", {redeemResult, userData, msg});
                                     };
                                 } catch (error) {
                                     log.red("WHY IS THERE AN ERROR??");
@@ -545,8 +562,9 @@ export default async function run () {
                                     console.error(error);
                                 };
         
-                                let canBeUsed = previewResult ? (previewResult.uses > 0 ? (previewResult.used_by.includes(userData.id) ? "CODE_PREV_REDEEMED" : "SUCCESS") : "CODE_PREV_REDEEMED") : "CODE_NOT_FOUND";
+                                let canBeUsed = previewResult ? (previewResult.uses > 0 ? (previewResult.used_by.includes(userData.account_id) ? "CODE_PREV_REDEEMED" : "SUCCESS") : "CODE_PREV_REDEEMED") : "CODE_NOT_FOUND";
                                 console.log(canBeUsed, previewResult);
+                                await plugins.emit("previewResult", {canBeUsed, previewResult, userData, msg});
         
                                 if (canBeUsed !== "SUCCESS") previewResult = [];
             
@@ -611,7 +629,9 @@ export default async function run () {
                                                 WHERE account_id = ?
                                             `, [userData.upgradeExpiryDate, userData.upgradeAdFree, userData.upgradeMultiplier, userData.upgradeProductId, userData.account_id]);
             
-                                            ws.send(JSON.stringify({
+                                            await plugins.emit('tokenSuccess', { userData });
+
+                                            if (!plugins.cancel) ws.send(JSON.stringify({
                                                 token: 1, //sure. go with it.
                                             }));
                                         } else {

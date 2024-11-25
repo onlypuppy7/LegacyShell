@@ -27,6 +27,7 @@ export var pluginInstance = null;
 
 export var analDB;
 
+var analLogs = true;
 export class Plugin {
     constructor(plugins, thisDir) {
         this.plugins = plugins;
@@ -51,8 +52,149 @@ export class Plugin {
             });
     
             anal.initDB(analDB);
+
+            this.plugins.on('services:addKill', this.addKill.bind(this));
+            this.plugins.on('services:addDeath', this.addDeath.bind(this));
+            this.plugins.on('services:validateLoginSuccess', this.validateLoginSuccess.bind(this));
+            this.plugins.on('services:validateLoginFail', this.validateLoginFail.bind(this));
+            this.plugins.on('services:validateLoginViaAuthTokenSuccess', this.validateLoginViaAuthTokenSuccess.bind(this));
+            this.plugins.on('services:validateRegisterSuccess', this.validateRegisterSuccess.bind(this));
+            this.plugins.on('services:validateRegisterFail', this.validateRegisterFail.bind(this));
+            this.plugins.on('services:feedback', this.feedback.bind(this));
+            this.plugins.on('services:buyingResult', this.buyingResult.bind(this));
+            this.plugins.on('services:previewResult', this.redeemResult.bind(this));
+            this.plugins.on('services:redeemResult', this.redeemResult.bind(this));
+            this.plugins.on('services:tokenSuccess', this.tokenSuccess.bind(this));
         } else {
-            log.orange(`${PluginMeta.identifier} won't run on this server type.`);
+            log.orange(`${PluginMeta.identifier} db won't run on this server type.`);
         };
+    };
+
+    async addKill(data) {
+        var userData = data.userData;
+
+        analLogs && log.bgBlue(`analytics: Writing to analDB: Adding kill for ${userData.account_id}`);
+
+        await analDB.runQuery(`
+        INSERT OR IGNORE INTO player_kills (player_id, kills) VALUES (?, 1)
+        `, userData.account_id);
+    };
+
+    async addDeath(data) {
+        var userData = data.userData;
+
+        analLogs && log.bgBlue(`analytics: Writing to analDB: Adding death for ${userData.account_id}`);
+
+        await analDB.runQuery(`
+        INSERT OR IGNORE INTO player_deaths (player_id, deaths) VALUES (?, 1)
+        `, userData.account_id);
+    };
+
+    async validateLoginSuccess(data) {
+        var userData = data.userData;
+
+        analLogs && log.bgBlue(`analytics: Writing to analDB: Adding login success for ${userData.account_id}`);
+
+        await analDB.runQuery(`
+        INSERT OR IGNORE INTO player_logins (player_id) VALUES (?)
+        `, userData.account_id);
+    };
+
+    async validateLoginFail(data) {
+        var userData = data.userData;
+        var error = data.error;
+
+        analLogs && log.bgBlue(`analytics: Writing to analDB: Adding login fail for ${userData.account_id} ${error}`);
+
+        await analDB.runQuery(`
+        INSERT OR IGNORE INTO player_loginfails (player_id, error) VALUES (?, ?)
+        `, userData.account_id, error);
+    };
+
+    async validateLoginViaAuthTokenSuccess(data) {
+        var userData = data.userData;
+
+        analLogs && log.bgBlue(`analytics: Writing to analDB: Adding login via auth token success for ${userData.account_id}`);
+
+        await analDB.runQuery(`
+        INSERT OR IGNORE INTO player_tokenlogins (player_id) VALUES (?)
+        `, userData.account_id);
+    };
+
+    async validateRegisterSuccess(data) {
+        var userData = data.userData;
+
+        analLogs && log.bgBlue(`analytics: Writing to analDB: Adding register success for ${userData.account_id} ${userData.username}`);
+
+        await analDB.runQuery(`
+        INSERT OR IGNORE INTO player_registers (player_id, username) VALUES (?, ?)
+        `, userData.account_id, userData.username);
+    };
+
+    async validateRegisterFail(data) {
+        var username = data.username;
+        var error = data.error;
+
+        analLogs && log.bgBlue(`analytics: Writing to analDB: Adding register fail for ${username}`);
+
+        await analDB.runQuery(`
+        INSERT OR IGNORE INTO player_registerfails (username, error) VALUES (?, ?)
+        `, username, error);
+    };
+
+    async feedback(data) {
+        var feedback = JSON.stringify(data.msg);
+
+        analLogs && log.bgBlue(`analytics: Writing to analDB: Adding feedback ${feedback}`);
+
+        await analDB.runQuery(`
+        INSERT OR IGNORE INTO player_feedbacks (feedback) VALUES (?)
+        `, feedback);
+    };
+
+    async buyingResult(data) {
+        var userData = data.userData;
+        var buyingResult = data.buyingResult;
+        var msg = data.msg;
+
+        analLogs && log.bgBlue(`analytics: Writing to analDB: Adding ${data.EVENT} ${buyingResult} for ${userData.account_id}`);
+
+        if (buyingResult == "SUCCESS") {
+            await analDB.runQuery(`
+            INSERT OR IGNORE INTO item_purchases (player_id, item_id) VALUES (?, ?)
+            `, userData.account_id, msg.item_id);
+        } else {
+            await analDB.runQuery(`
+            INSERT OR IGNORE INTO item_purchasefails (player_id, item_id, buyingResult) VALUES (?, ?, ?)
+            `, userData.account_id, msg.item_id, buyingResult);
+        };
+    };
+
+    async redeemResult(data) { // and previewResult
+        var userData = data.userData;
+        var redeemResult = data?.redeemResult?.result || data?.canBeUsed || "idk?";
+        var msg = data.msg;
+
+        analLogs && log.bgBlue(`analytics: Writing to analDB: Adding ${data.EVENT} ${redeemResult} for ${userData.account_id}`);
+
+        if (redeemResult == "SUCCESS" && data.EVENT !== "services:previewResult") {
+            await analDB.runQuery(`
+            INSERT OR IGNORE INTO item_coderedeems (player_id, username, code) VALUES (?, ?, ?)
+            `, userData.account_id, userData.username, msg.code);
+        } else if (redeemResult !== "SUCCESS") {
+            await analDB.runQuery(`
+            INSERT OR IGNORE INTO item_coderedeemfails (player_id, username, code, redeemResult) VALUES (?, ?, ?, ?)
+            `, userData.account_id, userData.username, msg.code, redeemResult);
+        };
+    };
+
+    async tokenSuccess(data) {
+        var userData = data.userData;
+
+        analLogs && log.bgBlue(`analytics: Writing to analDB: Adding vip success for ${userData.account_id}`);
+
+        await analDB.runQuery(`
+        INSERT OR IGNORE INTO player_vipredeems (player_id, username) VALUES (?, ?)
+        `, userData.account_id, userData.username);
     };
 };
