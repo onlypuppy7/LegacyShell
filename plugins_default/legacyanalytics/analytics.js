@@ -23,37 +23,95 @@ const anal = {
         //PLAYER ACTIONS
         await analDB.runQuery(`
         CREATE TABLE IF NOT EXISTS player_logins (
-            player_id INTEGER PRIMARY KEY DEFAULT -1,
+            player_id INTEGER DEFAULT -1,
+            time INTEGER DEFAULT (strftime('%s', 'now'))
+        )
+        `);
+        await analDB.runQuery(`
+        CREATE TABLE IF NOT EXISTS player_loginfails (
+            player_id INTEGER DEFAULT -1,
+            error TEXT DEFAULT "error?",
+            time INTEGER DEFAULT (strftime('%s', 'now'))
+        )
+        `);
+        await analDB.runQuery(`
+        CREATE TABLE IF NOT EXISTS player_tokenlogins (
+            player_id INTEGER DEFAULT -1,
             time INTEGER DEFAULT (strftime('%s', 'now'))
         )
         `);
         await analDB.runQuery(`
         CREATE TABLE IF NOT EXISTS player_registers (
-            player_id INTEGER PRIMARY KEY DEFAULT -1,
-            username INTEGER DEFAULT -1,
+            player_id INTEGER DEFAULT -1,
+            username TEXT DEFAULT "user?",
+            time INTEGER DEFAULT (strftime('%s', 'now'))
+        )
+        `);
+        await analDB.runQuery(`
+        CREATE TABLE IF NOT EXISTS player_registerfails (
+            username TEXT DEFAULT "user?",
+            error TEXT DEFAULT "error?",
+            time INTEGER DEFAULT (strftime('%s', 'now'))
+        )
+        `);
+        await analDB.runQuery(`
+        CREATE TABLE IF NOT EXISTS player_vipredeems (
+            player_id INTEGER DEFAULT -1,
+            username TEXT DEFAULT "user?",
             time INTEGER DEFAULT (strftime('%s', 'now'))
         )
         `);
         await analDB.runQuery(`
         CREATE TABLE IF NOT EXISTS player_kills (
-            player_id INTEGER PRIMARY KEY DEFAULT -1,
+            player_id INTEGER DEFAULT -1,
             kills INTEGER DEFAULT 1,
             time INTEGER DEFAULT (strftime('%s', 'now'))
         )
         `);
         await analDB.runQuery(`
         CREATE TABLE IF NOT EXISTS player_deaths (
-            player_id INTEGER PRIMARY KEY DEFAULT -1,
+            player_id INTEGER DEFAULT -1,
             deaths INTEGER DEFAULT 1,
+            time INTEGER DEFAULT (strftime('%s', 'now'))
+        )
+        `);
+        await analDB.runQuery(`
+        CREATE TABLE IF NOT EXISTS player_feedbacks (
+            feedback TEXT DEFAULT "feedback?",
             time INTEGER DEFAULT (strftime('%s', 'now'))
         )
         `);
 
         //shop/items
         await analDB.runQuery(`
-        CREATE TABLE IF NOT EXISTS shop_purchases (
-            player_id INTEGER PRIMARY KEY DEFAULT -1,
+        CREATE TABLE IF NOT EXISTS item_purchases (
+            player_id INTEGER DEFAULT -1,
             item_id INTEGER DEFAULT -1,
+            time INTEGER DEFAULT (strftime('%s', 'now'))
+        )
+        `);
+        await analDB.runQuery(`
+        CREATE TABLE IF NOT EXISTS item_purchasefails (
+            player_id INTEGER DEFAULT -1,
+            item_id INTEGER DEFAULT -1,
+            buyingResult TEXT DEFAULT "buyingResult?",
+            time INTEGER DEFAULT (strftime('%s', 'now'))
+        )
+        `);
+        await analDB.runQuery(`
+        CREATE TABLE IF NOT EXISTS item_coderedeems (
+            player_id INTEGER DEFAULT -1,
+            username TEXT DEFAULT "user?",
+            code TEXT DEFAULT "code?",
+            time INTEGER DEFAULT (strftime('%s', 'now'))
+        )
+        `);
+        await analDB.runQuery(`
+        CREATE TABLE IF NOT EXISTS item_coderedeemfails (
+            player_id INTEGER DEFAULT -1,
+            username TEXT DEFAULT "user?",
+            code TEXT DEFAULT "code?",
+            redeemResult TEXT DEFAULT "redeemResult?",
             time INTEGER DEFAULT (strftime('%s', 'now'))
         )
         `);
