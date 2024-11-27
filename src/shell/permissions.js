@@ -648,7 +648,7 @@ class Command {
         };
 
         this.usage = usage || generatedUsage;
-        this.permissionLevel = this?.ctx?.perms?.cmds ? this.ctx.perms.cmds[identifier] : permissionLevel;
+        this.permissionLevel = this?.ctx?.perms?.cmds && this.ctx.perms.cmds[identifier] ? this.ctx.perms.cmds[identifier] : permissionLevel;
         this.inputType = inputType;
         this.executeClient = executeClient; //to execute on the client (immediately)
         this.executeServer = executeServer; //to execute on the server side (when received)
