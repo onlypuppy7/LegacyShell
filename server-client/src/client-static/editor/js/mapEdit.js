@@ -25,7 +25,7 @@ function createPreferences() { //alr nvm let's make it a func called before load
   //everything is only then called, when it should be.
   //yeah I prefer it like this
   //11pm monologue arc
-  initPref("loremipsim", "loremIpsum", true, "dfs");
+  initPref("loremipsim", "loremIpsum", true, "dfgs");
   initPref("playtestHotkey", "Playtest Hotkey", true, "enables the \"p\" hotkey for playtesting");
   initPref("pointerLockOnClose", "Pointerlock on close", true, "locks the pointer when the object menu is closed");
   initPref("doubleSlotForOM", "double-select", true, "opens the object menu when pressing the hotkey for the already selected slot again");
