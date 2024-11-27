@@ -101,14 +101,14 @@ export class Plugin {
     };
 
     async validateLoginFail(data) {
-        var userData = data.userData;
+        var msg = data.msg;
         var error = data.error;
 
         analLogs && log.bgBlue(`analytics: Writing to analDB: Adding login fail for ${userData.account_id} ${error}`);
 
         await analDB.runQuery(`
         INSERT OR IGNORE INTO player_loginfails (player_id, error) VALUES (?, ?)
-        `, userData.account_id, error);
+        `, msg.username, error);
     };
 
     async validateLoginViaAuthTokenSuccess(data) {

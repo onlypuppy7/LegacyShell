@@ -2,12 +2,12 @@
 import BABYLON from "babylonjs";
 import { Eggk47, DozenGauge, CSG1, RPEGG, Cluck9mm } from "#guns";
 //cba to change the imports for everything that uses constants
-import { isClient, isServer, devlog, clientlog, serverlog, getTimestamp } from "#isClientServer";
+import { isClient, isServer, devlog, clientlog, serverlog, getTimestamp, isObject } from "#isClientServer";
 //legacyshell: ss
 import { ss } from '#misc';
 //
 
-export { isClient, isServer, devlog, clientlog, serverlog, getTimestamp };
+export { isClient, isServer, devlog, clientlog, serverlog, getTimestamp, isObject };
 
 //(server-only-start)
 //(server-only-end)
@@ -485,8 +485,6 @@ export class TimeoutManagerConstructor {
         this.timeouts = {}
     };
 };
-
-export function isObject (val) { return val && typeof val === 'object' && !Array.isArray(val) };
 
 //(server-only-start)
 

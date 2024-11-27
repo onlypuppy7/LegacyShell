@@ -29,7 +29,7 @@ const anal = {
         `);
         await analDB.runQuery(`
         CREATE TABLE IF NOT EXISTS player_loginfails (
-            player_id INTEGER DEFAULT -1,
+            player_username TEXT DEFAULT "user?",
             error TEXT DEFAULT "error?",
             time INTEGER DEFAULT (strftime('%s', 'now'))
         )
