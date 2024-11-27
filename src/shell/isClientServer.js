@@ -37,3 +37,5 @@ export const getTimestamp = (noBrackets) => {
         ? `${day}-${month}-${year}_${hours}-${minutes}-${seconds}-${milliseconds}`
         : `[${day}-${month}-${year} ${hours}:${minutes}:${seconds}.${milliseconds}]`;
 };
+
+export function isObject (val) { return val && typeof val === 'object' && !Array.isArray(val) };

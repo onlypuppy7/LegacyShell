@@ -333,7 +333,7 @@ export default async function run () {
                                                 await plugins.emit('validateLoginSuccess', { userData });
                                                 if (!plugins.cancel) ws.send(JSON.stringify(userData));
                                             } else {
-                                                await plugins.emit('validateLoginFail', { userData, error: "Password is incorrect" });
+                                                await plugins.emit('validateLoginFail', { userData, msg, error: "Password is incorrect" });
                                                 if (!plugins.cancel) ss.config.services.protect_usernames ? ws.send(JSON.stringify({ error: "Username or password is incorrect." })) : ws.send(JSON.stringify({ error: "Password is incorrect." }));
                                             };
                                         }).catch(error => {
@@ -342,12 +342,12 @@ export default async function run () {
                                         });
                                     } else {
                                         console.log('No data found for the given username.');
-                                        await plugins.emit('validateLoginFail', { userData, error: "User doesn't exist" });
+                                        await plugins.emit('validateLoginFail', { userData, msg, error: "User doesn't exist" });
                                         ss.config.services.protect_usernames ? ws.send(JSON.stringify({ error: "Username or password is incorrect." })) : ws.send(JSON.stringify({ error: "User doesn't exist" }));
                                     };
                                 }).catch(async (err) => {
                                     console.error('Error:', err);
-                                    await plugins.emit('validateLoginFail', { userData, error: "Database error" });
+                                    await plugins.emit('validateLoginFail', { userData, msg, error: "Database error" });
                                     ws.send(JSON.stringify({ error: 'Database error.' }))
                                 });
                                 break;
