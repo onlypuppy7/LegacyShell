@@ -19,7 +19,7 @@ import { plugins } from '#plugins';
     events are specified by a start time and its duration
 */
 
-const defaultEvents = [{
+export const defaultEvents = [{
     name: 'spring',
     start: "W12-1",
     duration: "13w",
@@ -39,7 +39,108 @@ const defaultEvents = [{
     start: "W51-1",
     duration: "13w",
     data: {},
-}];
+}, {
+    name: 'christmas',
+    start: "W50-7",
+    duration: "1w",
+    data: {},
+}, {
+    name: 'new-year',
+    start: "W51-7",
+    duration: "1w",
+    data: {},
+}, {
+    name: 'easter',
+    start: "W12-4", //annoying holiday that moves around
+    duration: "4w",
+    data: {},
+}, {
+    name: 'halloween',
+    start: "W42-7",
+    duration: "1w",
+    data: {},
+}, {
+    name: 'valentines',
+    start: "W06-4",
+    duration: "1w",
+    data: {},
+}, {
+    name: 'april-fools',
+    start: "W13-2",
+    duration: "1w",
+    data: {},
+}, {
+    name: 'thanksgiving',
+    start: "W47-4",
+    duration: "1w",
+    data: {},
+}, {
+    name: 'independence-day',
+    start: "W27-7",
+    duration: "1w",
+    data: {},
+}, {
+    name:'january',
+    start: "W00-1",
+    duration: "31d",
+    data: {},
+}, {
+    name:'february',
+    start: "W04-4",
+    duration: "28d",
+    data: {},
+}, {
+    name:'march',
+    start: "W08-4",
+    duration: "31d",
+    data: {},
+}, {
+    name:'april',
+    start: "W13-2",
+    duration: "30d",
+    data: {},
+}, {
+    name:'may',
+    start: "W17-4",
+    duration: "31d",
+    data: {},
+}, {
+    name:'june',
+    start: "W21-7",
+    duration: "30d",
+    data: {},
+}, {
+    name:'july',
+    start: "W26-2",
+    duration: "31d",
+    data: {},
+}, {
+    name:'august',
+    start: "W30-4",
+    duration: "31d",
+    data: {},
+}, {
+    name:'september',
+    start: "W35-1",
+    duration: "30d",
+    data: {},
+}, {
+    name:'october',
+    start: "W39-3",
+    duration: "31d",
+    data: {},
+}, {
+    name:'november',
+    start: "W43-6",
+    duration: "30d",
+    data: {},
+}, {
+    name:'december',
+    start: "W47-7",
+    duration: "31d",
+    data: {},
+},
+];
 
 export class EventManager {
     constructor() {
