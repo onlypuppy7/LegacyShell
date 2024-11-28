@@ -1,5 +1,5 @@
 /*
-    Eggk47 default weapons
+    Cluck9mm default weapons
 
     Edit meta ids in the range 0-50,000
 
@@ -8,7 +8,13 @@
     Past that is fair game for custom items in other plugins
 */
 
-export default {
+/*
+    in the base game, we separate the classes into separate files
+    helps with organisation but here its better to keep them all in one file
+    since we need to do some manipulation on the items
+*/
+
+var items = {
     "Eggk47": [{
         "meta_id": 0,
         "id": 3100,
@@ -908,5 +914,505 @@ export default {
         },
         "is_available": false,
         "unlock": "manual"
-    }]
+    }],
+    "DozenGauge": [{
+        "meta_id": 0,
+        "id": 3600,
+        "name": "Dozen Gauge",
+        "price": 0,
+        "item_type_id": 3,
+        "item_type_name": "Primary",
+        "category_name": "Scrambler Primary Weapons",
+        "exclusive_for_class": 1,
+        "item_data": {
+            "class": "DozenGauge",
+            "meshName": "gun_dozenGauge"
+        },
+        "is_available": true
+    }, {
+        "meta_id": 1,
+        "id": 3601,
+        "name": "Dozen Gauge GOLD",
+        "price": 2000,
+        "item_type_id": 3,
+        "item_type_name": "Primary",
+        "category_name": "Scrambler Primary Weapons",
+        "exclusive_for_class": 1,
+        "item_data": {
+            "class": "DozenGauge",
+            "meshName": "gun_dozenGauge_Gold"
+        },
+        "is_available": true
+    }, {
+        "meta_id": 2,
+        "id": 3602,
+        "name": "Happy Gun Bear Dozen Gauge",
+        "price": 5000,
+        "item_type_id": 3,
+        "item_type_name": "Primary",
+        "category_name": "Scrambler Primary Weapons",
+        "exclusive_for_class": 1,
+        "item_data": {
+            "class": "DozenGauge",
+            "meshName": "gun_dozenGauge_Bear"
+        },
+        "is_available": true
+    }, {
+        "meta_id": 3,
+        "id": 3603,
+        "name": "Dozen Gauge Halloween",
+        "price": 3000,
+        "item_type_id": 3,
+        "item_type_name": "Primary",
+        "category_name": "Scrambler Primary Weapons",
+        "exclusive_for_class": 1,
+        "item_data": {
+            "class": "DozenGauge",
+            "meshName": "gun_dozenGauge_Halloween",
+            "tags": ["Halloween"]
+        },
+        "is_available": false
+    }, {
+        "meta_id": 4,
+        "id": 3604,
+        "name": "Dozen Gauge Thanksgiving",
+        "price": 3000,
+        "item_type_id": 3,
+        "item_type_name": "Primary",
+        "category_name": "Scrambler Primary Weapons",
+        "exclusive_for_class": 1,
+        "item_data": {
+            "class": "DozenGauge",
+            "meshName": "gun_dozenGauge_Turkey",
+            "tags": ["Thanksgiving"]
+        },
+        "is_available": false
+    }, {
+        "meta_id": 5,
+        "id": 3605,
+        "name": "Dozen Gauge Christmas",
+        "price": 3000,
+        "item_type_id": 3,
+        "item_type_name": "Primary",
+        "category_name": "Scrambler Primary Weapons",
+        "exclusive_for_class": 1,
+        "item_data": {
+            "class": "DozenGauge",
+            "meshName": "gun_dozenGauge_Present",
+            "tags": ["Christmas"]
+        },
+        "is_available": false
+    }, {
+        "meta_id": 6,
+        "id": 3606,
+        "name": "Dozen Gauge New Years",
+        "price": 3000,
+        "item_type_id": 3,
+        "item_type_name": "Primary",
+        "category_name": "Scrambler Primary Weapons",
+        "exclusive_for_class": 1,
+        "item_data": {
+            "class": "DozenGauge",
+            "meshName": "gun_dozenGauge_NewYear",
+            "tags": ["NewYears2019"]
+        },
+        "is_available": false
+    }, {
+        "meta_id": 7,
+        "id": 3607,
+        "name": "Dozen Gauge Groundhog",
+        "price": 3000,
+        "item_type_id": 3,
+        "item_type_name": "Primary",
+        "category_name": "Scrambler Primary Weapons",
+        "exclusive_for_class": 1,
+        "item_data": {
+            "class": "DozenGauge",
+            "meshName": "gun_dozenGauge_Groundhog",
+            "tags": ["GroundhogDay"]
+        },
+        "is_available": true
+    }, {
+        "meta_id": 8,
+        "id": 3608,
+        "name": "Dozen Gauge Buck Rogers",
+        "price": 0,
+        "item_type_id": 3,
+        "item_type_name": "Primary",
+        "category_name": "Scrambler Primary Weapons",
+        "exclusive_for_class": 1,
+        "item_data": {
+            "class": "DozenGauge",
+            "meshName": "gun_dozenGauge_Buck",
+            "tags": ["Promotional"]
+        },
+        "is_available": false
+    }],
+    "CSG1": [{
+        "meta_id": 0,
+        "id": 3400,
+        "name": "CSG1",
+        "price": 0,
+        "item_type_id": 3,
+        "item_type_name": "Primary",
+        "category_name": "Ranger Primary Weapons",
+        "exclusive_for_class": 2,
+        "item_data": {
+            "class": "CSG1",
+            "meshName": "gun_csg1"
+        },
+        "is_available": true
+    }, {
+        "meta_id": 1,
+        "id": 3401,
+        "name": "CSG1 GOLD",
+        "price": 2000,
+        "item_type_id": 3,
+        "item_type_name": "Primary",
+        "category_name": "Ranger Primary Weapons",
+        "exclusive_for_class": 2,
+        "item_data": {
+            "class": "CSG1",
+            "meshName": "gun_csg1_Gold"
+        },
+        "is_available": true
+    }, {
+        "meta_id": 2,
+        "id": 3402,
+        "name": "Happy Gun Bear CSG1",
+        "price": 5000,
+        "item_type_id": 3,
+        "item_type_name": "Primary",
+        "category_name": "Ranger Primary Weapons",
+        "exclusive_for_class": 2,
+        "item_data": {
+            "class": "CSG1",
+            "meshName": "gun_csg1_Bear"
+        },
+        "is_available": true
+    }, {
+        "meta_id": 3,
+        "id": 3403,
+        "name": "CSG1 Halloween",
+        "price": 3000,
+        "item_type_id": 3,
+        "item_type_name": "Primary",
+        "category_name": "Ranger Primary Weapons",
+        "exclusive_for_class": 2,
+        "item_data": {
+            "class": "CSG1",
+            "meshName": "gun_csg1_Halloween",
+            "tags": ["Halloween"]
+        },
+        "is_available": false
+    }, {
+        "meta_id": 4,
+        "id": 3404,
+        "name": "CSG1 Thanksgiving",
+        "price": 3000,
+        "item_type_id": 3,
+        "item_type_name": "Primary",
+        "category_name": "Ranger Primary Weapons",
+        "exclusive_for_class": 2,
+        "item_data": {
+            "class": "CSG1",
+            "meshName": "gun_csg1_Turkey",
+            "tags": ["Thanksgiving"]
+        },
+        "is_available": false
+    }, {
+        "meta_id": 5,
+        "id": 3405,
+        "name": "CSG1 Christmas",
+        "price": 3000,
+        "item_type_id": 3,
+        "item_type_name": "Primary",
+        "category_name": "Ranger Primary Weapons",
+        "exclusive_for_class": 2,
+        "item_data": {
+            "class": "CSG1",
+            "meshName": "gun_csg1_Present",
+            "tags": ["Christmas"]
+        },
+        "is_available": false
+    }, {
+        "meta_id": 6,
+        "id": 3406,
+        "name": "CSG1 New Years",
+        "price": 3000,
+        "item_type_id": 3,
+        "item_type_name": "Primary",
+        "category_name": "Ranger Primary Weapons",
+        "exclusive_for_class": 2,
+        "item_data": {
+            "class": "CSG1",
+            "meshName": "gun_csg1_NewYear",
+            "tags": ["NewYears2019"]
+        },
+        "is_available": false
+    }, {
+        "meta_id": 7,
+        "id": 3407,
+        "name": "CSG1 Groundhog",
+        "price": 3000,
+        "item_type_id": 3,
+        "item_type_name": "Primary",
+        "category_name": "Ranger Primary Weapons",
+        "exclusive_for_class": 2,
+        "item_data": {
+            "class": "CSG1",
+            "meshName": "gun_csg1_Groundhog",
+            "tags": ["GroundhogDay"]
+        },
+        "is_available": true
+    }, {
+        "meta_id": 8,
+        "id": 3408,
+        "name": "CSG1 Buck Rogers",
+        "price": 0,
+        "item_type_id": 3,
+        "item_type_name": "Primary",
+        "category_name": "Ranger Primary Weapons",
+        "exclusive_for_class": 2,
+        "item_data": {
+            "class": "CSG1",
+            "meshName": "gun_csg1_Buck",
+            "tags": ["Promotional"]
+        },
+        "is_available": false
+    }],
+    "Cluck9mm": [{
+        "meta_id": 0,
+        "id": 3000,
+        "name": "Cluck 9mm",
+        "price": 0,
+        "item_type_id": 4,
+        "item_type_name": "Secondary",
+        "category_name": "Shared Secondary Weapons",
+        "exclusive_for_class": null,
+        "item_data": {
+            "class": "Cluck9mm",
+            "meshName": "gun_cluck9mm"
+        },
+        "is_available": true
+    }, {
+        "meta_id": 1,
+        "id": 3001,
+        "name": "Cluck 9mm GOLD",
+        "price": 1500,
+        "item_type_id": 4,
+        "item_type_name": "Secondary",
+        "category_name": "Shared Secondary Weapons",
+        "exclusive_for_class": null,
+        "item_data": {
+            "class": "Cluck9mm",
+            "meshName": "gun_cluck9mm_Gold"
+        },
+        "is_available": true
+    }, {
+        "meta_id": 2,
+        "id": 3002,
+        "name": "Happy Gun Bear Cluck 9mm",
+        "price": 5000,
+        "item_type_id": 4,
+        "item_type_name": "Secondary",
+        "category_name": "Shared Secondary Weapons",
+        "exclusive_for_class": null,
+        "item_data": {
+            "class": "Cluck9mm",
+            "meshName": "gun_cluck9mm_Bear"
+        },
+        "is_available": true
+    }, {
+        "meta_id": 3,
+        "id": 3003,
+        "name": "Cluck 9mm Halloween",
+        "price": 3000,
+        "item_type_id": 4,
+        "item_type_name": "Secondary",
+        "category_name": "Shared Secondary Weapons",
+        "exclusive_for_class": null,
+        "item_data": {
+            "class": "Cluck9mm",
+            "meshName": "gun_cluck9mm_Halloween",
+            "tags": ["Halloween"]
+        },
+        "is_available": false
+    }, {
+        "meta_id": 4,
+        "id": 3004,
+        "name": "Cluck 9mm Thanksgiving",
+        "price": 3000,
+        "item_type_id": 4,
+        "item_type_name": "Secondary",
+        "category_name": "Shared Secondary Weapons",
+        "exclusive_for_class": null,
+        "item_data": {
+            "class": "Cluck9mm",
+            "meshName": "gun_cluck9mm_Turkey",
+            "tags": ["Thanksgiving"]
+        },
+        "is_available": false
+    }, {
+        "meta_id": 5,
+        "id": 3005,
+        "name": "Cluck 9mm Christmas",
+        "price": 3000,
+        "item_type_id": 4,
+        "item_type_name": "Secondary",
+        "category_name": "Shared Secondary Weapons",
+        "exclusive_for_class": null,
+        "item_data": {
+            "class": "Cluck9mm",
+            "meshName": "gun_cluck9mm_Present",
+            "tags": ["Christmas"]
+        },
+        "is_available": false
+    }, {
+        "meta_id": 6,
+        "id": 3006,
+        "name": "Cluck 9mm New Years",
+        "price": 3000,
+        "item_type_id": 4,
+        "item_type_name": "Secondary",
+        "category_name": "Shared Secondary Weapons",
+        "exclusive_for_class": null,
+        "item_data": {
+            "class": "Cluck9mm",
+            "meshName": "gun_cluck9mm_NewYear",
+            "tags": ["NewYears2019"]
+        },
+        "is_available": false
+    }, {
+        "meta_id": 7,
+        "id": 3007,
+        "name": "Cluck 9mm Groundhog",
+        "price": 3000,
+        "item_type_id": 4,
+        "item_type_name": "Secondary",
+        "category_name": "Shared Secondary Weapons",
+        "exclusive_for_class": null,
+        "item_data": {
+            "class": "Cluck9mm",
+            "meshName": "gun_cluck9mm_Groundhog",
+            "tags": ["GroundhogDay"]
+        },
+        "is_available": true
+    }, {
+        "meta_id": 8,
+        "id": 3008,
+        "name": "Cluck 9mm Buck Rogers",
+        "price": 0,
+        "item_type_id": 4,
+        "item_type_name": "Secondary",
+        "category_name": "Shared Secondary Weapons",
+        "exclusive_for_class": null,
+        "item_data": {
+            "class": "Cluck9mm",
+            "meshName": "gun_cluck9mm_Buck",
+            "tags": ["Promotional"]
+        },
+        "is_available": false
+    }],
+    "RPEGG": [{
+        "meta_id": 0,
+        "id": 3800,
+        "name": "RPEGG",
+        "price": 0,
+        "item_type_id": 3,
+        "item_type_name": "Primary",
+        "category_name": "Eggsploder Primary Weapons",
+        "exclusive_for_class": 3,
+        "item_data": {
+            "class": "RPEGG",
+            "meshName": "gun_rpegg"
+        },
+        "is_available": true
+    }, {
+        "meta_id": 4,
+        "id": 3804,
+        "name": "RPEGG Thanksgiving",
+        "price": 3000,
+        "item_type_id": 3,
+        "item_type_name": "Primary",
+        "category_name": "Eggsploder Primary Weapons",
+        "exclusive_for_class": 3,
+        "item_data": {
+            "class": "RPEGG",
+            "meshName": "gun_rpegg_Turkey",
+            "tags": ["Thanksgiving"]
+        },
+        "is_available": false
+    }, {
+        "meta_id": 5,
+        "id": 3805,
+        "name": "RPEGG Christmas",
+        "price": 3000,
+        "item_type_id": 3,
+        "item_type_name": "Primary",
+        "category_name": "Eggsploder Primary Weapons",
+        "exclusive_for_class": 3,
+        "item_data": {
+            "class": "RPEGG",
+            "meshName": "gun_rpegg_Present",
+            "tags": ["Christmas"]
+        },
+        "is_available": false
+    }, {
+        "meta_id": 6,
+        "id": 3806,
+        "name": "RPEGG New Years",
+        "price": 3000,
+        "item_type_id": 3,
+        "item_type_name": "Primary",
+        "category_name": "Eggsploder Primary Weapons",
+        "exclusive_for_class": 3,
+        "item_data": {
+            "class": "RPEGG",
+            "meshName": "gun_rpegg_NewYear",
+            "tags": ["NewYears2019"]
+        },
+        "is_available": false
+    }, {
+        "meta_id": 7,
+        "id": 3807,
+        "name": "RPEGG Groundhog",
+        "price": 3000,
+        "item_type_id": 3,
+        "item_type_name": "Primary",
+        "category_name": "Eggsploder Primary Weapons",
+        "exclusive_for_class": 3,
+        "item_data": {
+            "class": "RPEGG",
+            "meshName": "gun_rpegg_Groundhog",
+            "tags": ["GroundhogDay"]
+        },
+        "is_available": true
+    }, {
+        "meta_id": 8,
+        "id": 3808,
+        "name": "RPEGG Buck Rogers",
+        "price": 0,
+        "item_type_id": 3,
+        "item_type_name": "Primary",
+        "category_name": "Eggsploder Primary Weapons",
+        "exclusive_for_class": 3,
+        "item_data": {
+            "class": "RPEGG",
+            "meshName": "gun_rpegg_Buck",
+            "tags": ["Promotional"]
+        },
+        "is_available": false
+    }],
 };
+
+Object.keys(items).forEach(itemclass => {
+    for (var i in items[itemclass]) {
+        const gun = items[itemclass][i];
+        if (gun.unlock !== 'purchase') {
+            gun.is_available = false;
+        };
+    };
+});
+
+export default items;
