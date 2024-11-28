@@ -276,9 +276,11 @@ export default async function run () {
                             delete msg.servicesMeta;
                             
                             Object.assign(ss, {
-                                permissions: msg.permissions
+                                permissions: msg.permissions,
+                                events: msg.events,
                             });
                             delete msg.permissions;
+                            delete msg.events;
                 
                             ss.config.client = { ...ss.config.client, ...msg };
 

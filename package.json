@@ -48,6 +48,7 @@
         "#collider": "./src/shell/collider.js",
         "#comm": "./src/shell/comm.js",
         "#constants": "./src/shell/constants.js",
+        "#events": "./src/shell/events.js",
         "#gametypes": "./src/shell/gametypes.js",
         "#guns": "./src/shell/guns.js",
         "#isClientServer": "./src/shell/isClientServer.js",
