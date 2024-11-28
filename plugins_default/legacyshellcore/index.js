@@ -82,6 +82,7 @@ export class Plugin {
                 extraBabylons.push({
                     filepath: path.join(this.thisDir, 'models', file),
                     overwrite: false,
+                    location: PluginMeta.identifier,
                 });
             };
         };

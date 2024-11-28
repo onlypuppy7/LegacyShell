@@ -2,6 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 //plugin: samplecommand
+import { devlog } from '#isClientServer';
 //
 
 export const PluginMeta = {
@@ -26,6 +27,9 @@ export class Plugin {
         this.plugins.on('client:prepareBabylon', this.prepareBabylon.bind(this));
         this.plugins.on('game:prepareBabylon', this.prepareBabylon.bind(this));
 
+        this.plugins.on('client:prepareBabylonExtra', this.prepareBabylonExtra.bind(this));
+        this.plugins.on('game:prepareBabylonExtra', this.prepareBabylonExtra.bind(this));
+
         this.plugins.on('services:initTables', this.initTables.bind(this));
     };
 
@@ -41,7 +45,36 @@ export class Plugin {
                 extraBabylons.push({
                     filepath: path.join(this.thisDir, 'models', file),
                     overwrite: false,
+                    location: PluginMeta.identifier,
                 });
+            };
+        };
+    };
+
+    async prepareBabylonExtra(data) {
+        var extraBabylonData = data.extraBabylonData;
+        var item = data.item;
+        var filename = data.filename;
+        var babylon = data.baseBabylon;  
+
+        // console.log('prepareBabylonExtra', filename, item.location);
+
+        //rename meshes
+        if (item.location === PluginMeta.identifier) {
+            for (const mesh of extraBabylonData.meshes) {
+                var renames = {
+                    "gun_eggk47": "gun_eggk47_modern",
+                    "gun_dozenGauge": "gun_dozenGauge_modern",
+                    "gun_csg1": "gun_csg1_modern",
+                    "gun_rpegg": "gun_rpegg_modern",
+                    "gun_cluck9mm": "gun_cluck9mm_modern",
+                };
+
+                if (renames.hasOwnProperty(mesh.name)) {
+                    mesh.name = renames[mesh.name];
+                    mesh.id = mesh.name;
+                    devlog('renamed', mesh.name);
+                };
             };
         };
     };

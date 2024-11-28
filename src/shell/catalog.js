@@ -150,4 +150,15 @@ export function convertMetaIdToAbsoluteId(id, type, offsets = itemIdOffsetsByNam
     return id + offsets[type];
 };
 
+export function integrateItems(items, newitems) { //this is only for items js files
+    Object.keys(newitems).forEach(itemclass => {
+        if (!items[itemclass]) {
+            items[itemclass] = [];
+        };
+        newitems[itemclass].forEach(newitem => {
+            items[itemclass].push(newitem);
+        });
+    });
+};
+
 export default CatalogConstructor;
