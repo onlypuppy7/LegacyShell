@@ -79,6 +79,8 @@ export async function prepareBabylons(endBabylonsDir = path.join(ss.rootDir, 'st
                     var thisTimestamp = misc.getLastSavedTimestamp(extraBabylon);
                     if (thisTimestamp > timestamp) timestamp = thisTimestamp;
 
+                    await plugins.emit('prepareBabylonExtra', { filename, baseBabylon, extraBabylonData, item });
+
                     if (item.overwrite) {
                         baseBabylon.meshes = [
                             ...baseBabylon.meshes,

@@ -189,10 +189,11 @@ export async function prepareStamps() {
 
     await image.toFile(output);
 
+    log.italic('Stamps saved, modifying item data...');
     for (let composite of composites) {
         for (let item of items) {
             if (item.id === composite.id) {
-                log.italic('[Stamp] Adding:', item.name, 'to stamps.png at', composite.x, composite.y);
+                // log.italic('[Stamp] Adding:', item.name, 'to stamps.png at', composite.x, composite.y);
                 item.item_data.x = composite.x;
                 item.item_data.y = composite.y;
             };
