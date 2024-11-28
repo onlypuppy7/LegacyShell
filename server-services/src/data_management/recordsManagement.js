@@ -4,7 +4,7 @@ import yaml from 'js-yaml';
 import path from 'node:path';
 //legacyshell: recs
 import { pathToFileURL } from 'url';
-import { itemIdOffsetsByName } from '#constants';
+import { item_classes_strings, itemIdOffsetsByName } from '#constants';
 //legacyshell: logging
 import log from '#coloured-logging';
 //legacyshell: ss
@@ -369,6 +369,10 @@ const exported = {
                             };
 
                             while (item.name.endsWith(" ")) item.name=item.name.substr(0,item.name.length-1); //stupid Lyerpald stamp
+
+                            if (!item.item_data.class) {
+                                item.item_data.class = item_classes_strings[item.category_name];
+                            };
 
                             item.id = item.meta_id + offset;
 
