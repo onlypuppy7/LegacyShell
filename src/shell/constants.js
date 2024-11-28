@@ -77,6 +77,26 @@ export var item_classes = {
     "DozenGauge": DozenGauge,
     "RPEGG": RPEGG,
     "Eggk47": Eggk47,
+
+    "Shared Secondary Weapons": Cluck9mm,
+    "Ranger Primary Weapons": CSG1,
+    "Scrambler Primary Weapons": DozenGauge,
+    "Eggsploder Primary Weapons": RPEGG,
+    "Soldier Primary Weapons": Eggk47,
+};
+
+export var item_classes_strings = {
+    "Cluck9mm": "Cluck9mm",
+    "CSG1": "CSG1",
+    "DozenGauge": "DozenGauge",
+    "RPEGG": "RPEGG",
+    "Eggk47": "Eggk47",
+
+    "Shared Secondary Weapons": "Cluck9mm",
+    "Ranger Primary Weapons": "CSG1",
+    "Scrambler Primary Weapons": "DozenGauge",
+    "Eggsploder Primary Weapons": "RPEGG",
+    "Soldier Primary Weapons": "Eggk47",
 };
 
 /**
