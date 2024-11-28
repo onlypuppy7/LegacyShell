@@ -18,6 +18,7 @@ import { ss } from '#misc';
 //legacyshell: plugins
 import { plugins } from '#plugins';
 import { prepareBabylons } from '#prepare-babylons';
+import events from '#events';
 //
 
 //i know its called start, even though it should be the other way round. please excuse this.
@@ -196,8 +197,10 @@ export default async function run () {
                     
                             Object.assign(ss, {
                                 permissions: msg.permissions,
-                            })
+                                events: msg.events,
+                            });
                             delete msg.permissions;
+                            delete msg.events;
                 
                             ss.config.game = { ...ss.config.game, ...msg };
 

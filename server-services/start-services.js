@@ -16,13 +16,13 @@ import sess from '#sessionManagement';
 import recs from '#recordsManagement';
 import backups from '#backups';
 import { devlog } from '#isClientServer';
+import { events } from '#events';
 //legacyshell: logging
 import log from '#coloured-logging';
 //legacyshell: ss
 import { ss } from '#misc';
 //legacyshell: plugins
 import { plugins } from '#plugins';
-import { gameInfo } from '#roomManager';
 //
 
 //i know its called start, even though it should be the other way round. please excuse this.
@@ -51,6 +51,8 @@ export default async function run () {
     });
     
     extendMath(Math);
+
+    await events.init();
     
     await recs.initDB(ss.db);
     
@@ -214,6 +216,7 @@ export default async function run () {
                             distributed_game: ss.config.distributed_game,
     
                             permissions: ss.config.distributed_permissions,
+                            events: await events.getEventsAtTime(),
     
                             nugget_interval: ss.config.services.nugget_interval,
                             servicesMeta: {
