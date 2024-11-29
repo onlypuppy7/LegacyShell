@@ -264,7 +264,7 @@ class newClient {
                         if (this.player.canRespawn() && !this.player.playing) {
                           const spawnPoint = this.room.getBestSpawn(this.player);
 
-                          this.player.pitch = 0;
+                          this.player.pitch = 0; //directly forward
                           this.player.yaw = (Math.random() * Math.PI * 4) - Math.PI*2;
                           //random radiant angle ^^^ (rad -> min:-2π, max: 2π;)
                           //ergo random float between 0 and 4π minus 2π (due to how Math.random works.)

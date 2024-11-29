@@ -149,7 +149,7 @@ class Player {
             console.log("respawnTime", respawnTime);
         };
         this.resetDespawn(respawnTime);
-        
+
         this.jumpHeld = false;
         this.lastActivity = Date.now();
 
@@ -526,7 +526,7 @@ class Player {
 
             var cx = Math.floor(this.x);
             var cz = Math.floor(this.z);
-            
+
             var cell = this.getOccupiedCell(cx, Math.floor(this.y - 0.5), cz);
             if (cell) {
                 var mesh = cell.mesh;
@@ -911,7 +911,7 @@ class Player {
             firedPlayer.heal(damage * multiplier, this, dx, dz);
             this.firedPlayer = firedPlayer;
         };
-        
+
         var firedPlayerId = firedPlayer ? firedPlayer.id : null;
 
         if (damage > this.hp) { //no powerups in this version so whatever
@@ -937,7 +937,7 @@ class Player {
     };
     heal (health, damagedPlayer = this, dx = 0, dz = 0) {
         if (this.isDead() || (!this.playing) || health == 0) return;
-        
+
         if (health >= 0) {
             this.setHp(this.hp + health, this.id);
             if (isServer) {
@@ -1004,6 +1004,11 @@ class Player {
         this.yaw = newPos.yaw || this.yaw;
         this.pitch = newPos.pitch || this.pitch;
         this.firedPlayer = null;
+
+        //grrrr alr I'll do 4 indent instead of 2. GRRRRRRRRR
+        this.weaponIdx = 0; //switch to primary weapon.
+        //resetWeaponState is called later anyway, so no need to change any other var.
+        //TODO: make this behaviour changeable. See commit message for more (Seq 29. 11. 2k24)
 
         this.respawnQueued = false;
         this.playing = true;
