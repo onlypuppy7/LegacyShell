@@ -90,7 +90,7 @@ class newClient {
 
     async updateLoadout (classIdx, primary_item_id, secondary_item_id, colorIdx, hatId, stampId) {
         await plugins.emit('clientUpdateLoadout', { this: this, classIdx, primary_item_id, secondary_item_id, colorIdx, hatId, stampId });
-        
+
         //classIdx
         this.setClassIdx(classIdx);
         //gun skins
@@ -262,19 +262,25 @@ class newClient {
                         break;
                     case Comm.Code.requestRespawn:
                         if (this.player.canRespawn() && !this.player.playing) {
-                            const spawnPoint = this.room.getBestSpawn(this.player);
+                          const spawnPoint = this.room.getBestSpawn(this.player);
 
-                            this.player.respawn(spawnPoint);
+                          this.player.pitch = 0;
+                          this.player.yaw = (Math.random() * Math.PI * 4) - Math.PI*2;
+                          //random radiant angle ^^^ (rad -> min:-2π, max: 2π;)
+                          //ergo random float between 0 and 4π minus 2π (due to how Math.random works.)
+                          //and NO using randomInt is NOT an option.
 
-                            var output = new Comm.Out(12);
-                            output.packInt8U(Comm.Code.respawn);
-                            output.packInt8U(this.id);
-                            output.packFloat(this.player.x);
-                            output.packFloat(this.player.y);
-                            output.packFloat(this.player.z);
-                            output.packRadU(this.player.yaw);
-                            output.packRad(this.player.pitch);
-                            this.sendToAll(output, "respawn");
+                          this.player.respawn(spawnPoint);
+
+                          var output = new Comm.Out(12);
+                          output.packInt8U(Comm.Code.respawn);
+                          output.packInt8U(this.id);
+                          output.packFloat(this.player.x);
+                          output.packFloat(this.player.y);
+                          output.packFloat(this.player.z);
+                          output.packRadU(this.player.yaw);
+                          output.packRad(this.player.pitch);
+                          this.sendToAll(output, "respawn");
                         };
                         break;
                     case Comm.Code.chat:
