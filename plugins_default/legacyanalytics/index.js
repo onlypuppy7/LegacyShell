@@ -75,7 +75,7 @@ export class Plugin {
     async servicesInfoGame(data) {
         var gameInfo = data.gameInfo;
 
-        console.log(gameInfo);
+        // console.log(gameInfo);
 
         analLogs && log.bgBlue(`analytics: Writing to analDB: Adding game info ${gameInfo}`);
 
