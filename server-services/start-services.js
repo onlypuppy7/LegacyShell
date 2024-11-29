@@ -319,7 +319,7 @@ export default async function run () {
 
                                     servicesInfo.client.gameInfo[msg.thisServer] = gameInfoForClient;
 
-                                    await plugins.emit('servicesInfo', { gameInfo, gameInfoForClient, thisServer: msg.thisServer });
+                                    await plugins.emit('servicesInfoGame', { gameInfo, gameInfoForClient, msg, thisServer: msg.thisServer });
                                 };
 
                                 // console.log(servicesInfo);

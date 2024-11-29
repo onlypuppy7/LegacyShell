@@ -65,9 +65,31 @@ export class Plugin {
             this.plugins.on('services:previewResult', this.redeemResult.bind(this));
             this.plugins.on('services:redeemResult', this.redeemResult.bind(this));
             this.plugins.on('services:tokenSuccess', this.tokenSuccess.bind(this));
+
+            this.plugins.on('services:servicesInfoGame', this.servicesInfoGame.bind(this));
         } else {
             log.orange(`${PluginMeta.identifier} db won't run on this server type.`);
         };
+    };
+
+    async servicesInfoGame(data) {
+        var gameInfo = data.gameInfo;
+
+        console.log(gameInfo);
+
+        analLogs && log.bgBlue(`analytics: Writing to analDB: Adding game info ${gameInfo}`);
+
+        await analDB.runQuery(`
+        INSERT OR IGNORE INTO room_counts (public, private, both, public_gametypes, private_gametypes, both_gametypes) VALUES (?, ?, ?, ?, ?, ?)
+        `, gameInfo.roomCountTotal.public, gameInfo.roomCountTotal.private, gameInfo.roomCountTotal.both, JSON.stringify(gameInfo.roomCountPublic), JSON.stringify(gameInfo.roomCountPrivate), JSON.stringify(gameInfo.roomCountBoth));
+
+        await analDB.runQuery(`
+        INSERT OR IGNORE INTO room_playercounts (public, private, both, public_gametypes, private_gametypes, both_gametypes) VALUES (?, ?, ?, ?, ?, ?)
+        `, gameInfo.playerCountTotal.public, gameInfo.playerCountTotal.private, gameInfo.playerCountTotal.both, JSON.stringify(gameInfo.playerCountPublic), JSON.stringify(gameInfo.playerCountPrivate), JSON.stringify(gameInfo.playerCountBoth));
+
+        await analDB.runQuery(`
+        INSERT OR IGNORE INTO room_activerooms (rooms) VALUES (?)
+        `, JSON.stringify(gameInfo.rooms));
     };
 
     async addKill(data) {

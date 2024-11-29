@@ -20,6 +20,40 @@ const anal = {
         });
     },
     initTables: async (analDB) => {
+        //ROOMS
+        await analDB.runQuery(`
+        CREATE TABLE IF NOT EXISTS room_counts (
+            public INTEGER DEFAULT 0,
+            private INTEGER DEFAULT 0,
+            both INTEGER DEFAULT 0,
+
+            public_gametypes TEXT DEFAULT "[]",
+            private_gametypes TEXT DEFAULT "[]",
+            both_gametypes TEXT DEFAULT "[]",
+
+            time INTEGER DEFAULT (strftime('%s', 'now'))
+        )
+        `);
+        await analDB.runQuery(`
+        CREATE TABLE IF NOT EXISTS room_playercounts (
+            public INTEGER DEFAULT 0,
+            private INTEGER DEFAULT 0,
+            both INTEGER DEFAULT 0,
+
+            public_gametypes TEXT DEFAULT "[]",
+            private_gametypes TEXT DEFAULT "[]",
+            both_gametypes TEXT DEFAULT "[]",
+
+            time INTEGER DEFAULT (strftime('%s', 'now'))
+        )
+        `);
+        await analDB.runQuery(`
+        CREATE TABLE IF NOT EXISTS room_activerooms (
+            rooms TEXT DEFAULT "[]",
+
+            time INTEGER DEFAULT (strftime('%s', 'now'))
+        )
+        `);
         //PLAYER ACTIONS
         await analDB.runQuery(`
         CREATE TABLE IF NOT EXISTS player_logins (
