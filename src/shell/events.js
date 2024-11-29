@@ -163,7 +163,7 @@ export class EventManager {
             const duration = this.parseHumanToMs(event.duration);
             const end = start + duration;
 
-            console.log(event, time, start, duration, end)
+            // console.log(event, time, start, duration, end);
 
             if (start <= time && time <= end) {
                 devlog('event', event.name, 'is happening now');
