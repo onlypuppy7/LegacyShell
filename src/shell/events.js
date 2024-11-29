@@ -46,8 +46,8 @@ export const defaultEvents = [{
     data: {},
 }, {
     name: 'new-year',
-    start: "W51-7",
-    duration: "1w",
+    start: "W50-7",
+    duration: "2w",
     data: {},
 }, {
     name: 'easter',
