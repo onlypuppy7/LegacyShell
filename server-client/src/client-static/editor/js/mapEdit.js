@@ -37,6 +37,7 @@ function createPreferences() { //alr nvm let's make it a func called before load
   initPref("playtestHotkey", "Playtest Hotkey", true, "enables the \"p\" hotkey for playtesting");
   initPref("pointerLockOnClose", "Pointerlock on close", true, "locks the pointer when the object menu is closed");
   initPref("doubleSlotForOM", "double-select", true, "opens the object menu when pressing the hotkey for the already selected slot again");
+  initPref("renderWorkers", "render workes", 2, "how many workers should be used during rendering?");
 }
 
 
@@ -65,6 +66,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
     checkContainer.style.textWrap = "auto";
     checkContainer.style.borderStyle = "outset";
     //const check = extern.addCheckbox(checkContainer, preferences[opt].displayName, true);
+    if(typeof preferences[opt].val == "boolean" || (true &&false))
     { //check
       const check = document.createElement("input");
       check.type = "checkbox";
@@ -86,6 +88,20 @@ document.addEventListener("DOMContentLoaded", ()=>{
         cLabel.style.userSelect = "none";
       }
     }
+    /**/ 
+    if(typeof preferences[opt].val =="number"){
+      //spin
+      const spin = document.createElement("input");
+      spin.type = "number";
+      spin.style.marginRight = "0.25em";
+      spin.addEventListener("change", (event)=>{
+        changePreference(opt, parseInt(spin.value));
+        console.log("spin new val " + parseInt(spin.value));
+      });
+      spin.value = preferences[opt].val;
+      checkContainer.appendChild(spin);
+    }
+     /* */
     relativeMaster.style.border = "blueviolet"; //YESSS!!!! TOTALLY UNRELATED COLOR THAT IS NOWHERE ELSE!!!!111
     //relativeMaster.style.borderStyle = "ridge";
     relativeMaster.style.display = "flex";
@@ -88470,7 +88486,7 @@ var GI = class _GI {
       var tasks = 0;
       var indices = _GI.mesh.getIndices();
       var numIndices = indices.length;
-      var numWorkers = 2;
+      var numWorkers = pref("renderWorkers");
       var step = Math.ceil(numIndices / numWorkers);
       for (var i3 = 0; i3 < numIndices; i3 += step) {
         tasks++;
@@ -90767,6 +90783,7 @@ function setMapVisible(visible) {
 }
 function renderMap() {
   saveToLocal();
+  openDialog("renderBrokenWarn");
   var minMap2 = JSON.parse(localStorage.getItem("mapBackup"));
   MapTools.createMapCells(scene, buildMapEditorData(minMap2), minMap2, null, null, (mesh, particles) => {
     mesh = MapTools.stripTris(map.data, mapMeshes, mesh, particles);
