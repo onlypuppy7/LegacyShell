@@ -58,13 +58,20 @@ Things such as extra skins, stamps or other cosmetic stuff will never be accepte
 > This is an issue known to affect unix based systems.
 
 ## Starting up the server
-At the moment you have to start up each section separately. Perhaps in the future there can be a script for them all. I recommend using a program such as tmux (linux), or creating at least a quick batch script to open everything in separate terminal windows.
+LegacyShell provides startup scripts for Windows (.bat) and OSX (.command). If you want the three processes to run in a single terminal window with tabs, use the `start_all_tabs` script, if you prefer three seperate terminal windows, use the `start_all` script.
+
+If you want to start all three manually, execute the listed scripts in the following order:
+- `start_client`
+- `start_services`
+- `start_game`
+
+If you are on a different platform, or you prefer to start everything completely manually, run the following commands with three different terminal windows in the project's root folder:
 - `node run client`
 - `node run services`
 - `node run game`
 
 > [!NOTE]  
-> These commands will launch the server in a custom wrapper, designed to make keeping track of everything easy and configurable. It will restart in case of crashes, schedule daily restarts, log to files, automatically pull, restart upon updating and send logs to a Discord webhook (all dependent on config). To modify it's settings, modify the `perpetual_all.yaml`, config found in `/store/config/`.
+> These commands and scripts will launch the server in a custom wrapper, designed to make keeping track of everything easy and configurable. It will restart in case of crashes, schedule daily restarts, log to files, automatically pull, restart upon updating and send logs to a Discord webhook (all dependent on config). To modify it's settings, modify the `perpetual_all.yaml`, config found in `/store/config/`.
 
 ## Navigating the database
 The LegacyShellData.db database in /server-services/store houses most critical information.
