@@ -468,6 +468,16 @@
                     </div>
             </div>
 
+            <!-- render broken warn -->
+            <div id="renderBrokenWarn" class="dialog box">
+                <h1>WARNING</h1>
+                <hr>
+                <p>Rendering is currently broken.</p>
+                <p>The editor will still try to render now, but it'll get stuck at some point down the road.</p>
+                <p>It is recommended to cancel the rendering process.</p>
+                    <span class="button" onclick="extern.closeDialog('renderBrokenWarn');">OK</span>
+            </div>
+
             <!-- New map confirmation -->
             <div id="confirmNew" class="dialog box">
                 <h1>New Map</h1>
