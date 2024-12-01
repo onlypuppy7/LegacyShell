@@ -39,6 +39,7 @@ function createPreferences() { //alr nvm let's make it a func called before load
   initPref("doubleSlotForOM", "double-select", true, "opens the object menu when pressing the hotkey for the already selected slot again");
   initPref("renderWorkers", "render workes", 2, "how many workers should be used during rendering?");
   initPref("debugInfo", "show debug info", true, "displays a few dubg informationss");
+  initPref("prettyAngles", "pretty angles", true, "shows angles in factors of pi and degrees instead of raw radians");
 }
 
 
@@ -51,6 +52,7 @@ function initPref(internalName, displayName, val, description){
 }
 
 function pref(interNalName){
+  if (!preferences[interNalName]) return false;
   return preferences[interNalName].val;
 }
 
@@ -89267,12 +89269,20 @@ function doDebugMenu(){
   var pick = scene.pickWithRay(camera.getForwardRay());
   if (pick.hit && pick.pickedMesh.name != "ground") {
     var cel = getPickedCell(pick);
-    rotText.innerText = `rotation: ${pick.pickedMesh.rotation}`;
-    posText.innerText = `position: ${JSON.stringify(pick.pickedMesh.position)}`;
+    rotText.innerText = `rotation: ${formatPrettyRotationText(pick.pickedMesh.rotation)}`;
+    posText.innerText = `position: ${JSON.stringify(pick.pickedMesh.position)}`; //trol
   } else{
     rotText.innerText = `rotation: N/A`;
     posText.innerText = `position: N/A`;
   }
+}
+function formatPrettyRotationText(rotation){
+  if (!pref("prettyAngles")) return rotation;
+  const xxX = Math.round(rotation.x / Math.PI *2);
+  const yyY = Math.round(rotation.y / Math.PI *2);
+  const zzZ = Math.round(rotation.z / Math.PI *2);
+
+  return `{x: ${xxX/2}π (${xxX*90}°), y: ${yyY/2}π (${yyY*90}°), z: ${zzZ/2}π (${zzZ*90}°)}`;
 }
 function fillObjectMenu() {
   var sorted = [];
