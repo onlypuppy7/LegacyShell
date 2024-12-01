@@ -1,7 +1,7 @@
 LEGACYSHELLISCLIENTSERVER
 
 // [LS] ######## Events ---------------------------------
-// _____   _____ _  _ _____ ___ 
+// _____   _____ _  _ _____ ___
 // | __\ \ / / __| \| |_   _/ __|
 // | _| \ V /| _|| .` | | | \__ \
 // |___| \_/ |___|_|\_| |_| |___/
@@ -38,6 +38,7 @@ function createPreferences() { //alr nvm let's make it a func called before load
   initPref("pointerLockOnClose", "Pointerlock on close", true, "locks the pointer when the object menu is closed");
   initPref("doubleSlotForOM", "double-select", true, "opens the object menu when pressing the hotkey for the already selected slot again");
   initPref("renderWorkers", "render workes", 2, "how many workers should be used during rendering?");
+  initPref("debugInfo", "show debug info", true, "displays a few dubg informationss");
 }
 
 
@@ -88,7 +89,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
         cLabel.style.userSelect = "none";
       }
     }
-    /**/ 
+    /**/
     if(typeof preferences[opt].val =="number"){
       //spin
       const spin = document.createElement("input");
@@ -89240,6 +89241,8 @@ window.onload = function() {
       document.getElementById("filename").value = localStorage.getItem("mapBackupFilename") || "";
       engine.runRenderLoop(function() {
         scene.render();
+        if(pref("debugInfo"))
+        doDebugMenu();
       });
     });
   };
@@ -89257,6 +89260,20 @@ window.onresize = function() {
   engine.resize();
   resizeAxisViewport();
 };
+function doDebugMenu(){
+  const rotText = document.getElementById("ediCellRotation");
+  const posText = document.getElementById("ediCellCoord");
+  if (!rotText) return;
+  var pick = scene.pickWithRay(camera.getForwardRay());
+  if (pick.hit && pick.pickedMesh.name != "ground") {
+    var cel = getPickedCell(pick);
+    rotText.innerText = `rotation: ${pick.pickedMesh.rotation}`;
+    posText.innerText = `position: ${JSON.stringify(pick.pickedMesh.position)}`;
+  } else{
+    rotText.innerText = `rotation: N/A`;
+    posText.innerText = `position: N/A`;
+  }
+}
 function fillObjectMenu() {
   var sorted = [];
   for (var i3 = 1; i3 < mapMeshes.length; i3++) {
@@ -89554,6 +89571,7 @@ function rotateCell(axis) {
           pick.pickedMesh.rotation.z = rotation.z * Math.PI / 2;
           break;
       }
+      console.log(`new rot var: ${JSON.stringify(rotation)}, BUT: pickedMesh rotation: ${pick.pickedMesh.rotation}! (roated on ${axis}). max would be ${Math.PI*2}`);
     }
   }
 }

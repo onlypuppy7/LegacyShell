@@ -253,6 +253,15 @@
                 border-radius: 0.2em;
                 vertical-align: top;
             }
+
+            .strokeme {
+                color: white;
+                text-shadow:
+                -1px -1px 0 #000,
+                1px -1px 0 #000,
+                -1px 1px 0 #000,
+                1px 1px 0 #000;
+            }
         </style>
 
         <script src="js/mapEdit.js?1715283082"></script>
@@ -427,6 +436,12 @@
                 <div id="blueSpawns" style="margin-top: 0.5em">Blue Spawns: 0</div>
             </div>
         </div>
+
+        <div id="edDebugInfo" style="position: absolute; right: 1em; top: 25%; text-align: right">
+            <p id="ediCellRotation" class = "strokeme"> </p>
+            <p id="ediCellCoord" class = "strokeme"> </p>
+        </div>
+
 
         <!-- Dialog box -->
         <div id="dialog"
