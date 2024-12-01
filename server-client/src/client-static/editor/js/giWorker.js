@@ -17,7 +17,7 @@ BABYLON.Vector3.prototype.toArray = function (array, idx) {
 }
 
 onmessage = m => {
-	var d = m.data;
+  var d = m.data;
 	go(d);
 }
 
