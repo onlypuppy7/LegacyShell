@@ -69,6 +69,17 @@ document.addEventListener("DOMContentLoaded", ()=>{
     checkContainer.style.textWrap = "auto";
     checkContainer.style.borderStyle = "outset";
     //const check = extern.addCheckbox(checkContainer, preferences[opt].displayName, true);
+    //---Label---
+    const cLabel = document.createElement("label");
+    cLabel.innerText = preferences[opt].displayName;
+    //cLabel.appendChild(check);
+    checkContainer.appendChild(cLabel);
+    cLabel.style.display = "flex";
+    cLabel.style.flexDirection = "row-reverse";
+    cLabel.style.justifyContent = "flex-end";
+    cLabel.style.cursor = "pointer";
+    cLabel.style.userSelect = "none";
+    //---!Label!---
     if(typeof preferences[opt].val == "boolean" || (true &&false))
     { //check
       const check = document.createElement("input");
@@ -79,30 +90,21 @@ document.addEventListener("DOMContentLoaded", ()=>{
       check.checked = preferences[opt].val;
       check.style.marginRight = "0.25em";
       check.style.cursor = "pointer";
-      {//label
-        const cLabel = document.createElement("label");
-        cLabel.innerText = preferences[opt].displayName;
-        cLabel.appendChild(check);
-        checkContainer.appendChild(cLabel);
-        cLabel.style.display = "flex";
-        cLabel.style.flexDirection = "row-reverse";
-        cLabel.style.justifyContent = "flex-end";
-        cLabel.style.cursor = "pointer";
-        cLabel.style.userSelect = "none";
-      }
+      cLabel.appendChild(check);
     }
     /**/
     if(typeof preferences[opt].val =="number"){
       //spin
       const spin = document.createElement("input");
       spin.type = "number";
-      spin.style.marginRight = "0.25em";
+      spin.style.marginRight = "0.75em";
       spin.addEventListener("change", (event)=>{
         changePreference(opt, parseInt(spin.value));
         console.log("spin new val " + parseInt(spin.value));
       });
       spin.value = preferences[opt].val;
-      checkContainer.appendChild(spin);
+      //checkContainer.appendChild(spin);
+      cLabel.appendChild(spin);
     }
      /* */
     relativeMaster.style.border = "blueviolet"; //YESSS!!!! TOTALLY UNRELATED COLOR THAT IS NOWHERE ELSE!!!!111
@@ -89243,8 +89245,19 @@ window.onload = function() {
       document.getElementById("filename").value = localStorage.getItem("mapBackupFilename") || "";
       engine.runRenderLoop(function() {
         scene.render();
-        if(pref("debugInfo"))
-        doDebugMenu();
+        //SEQ RANT (v3 or smth)
+        //I. HATE. OVERRIDING. VALUES. EVERY. FRAME. LIKE. THAT!
+        //this MIGHT be expensive as FUCK performance wise.
+        //I HATE THIS.
+        //grrrrrrrr
+        //Readers added context they thought people might want to know
+        //this was talking about the visibility change BEFORE the half-assed "fix" where it only change if it's wrong.
+        //STILL APPLIES, but the actual text override can't really be done in any better way, can it?
+        if (pref("debugInfo"))
+          //TODO: mby only call this every third time or smth, seems to be fined performance wise though.
+          doDebugMenu();
+        else
+          dontDebugMenu();
       });
     });
   };
@@ -89262,6 +89275,10 @@ window.onresize = function() {
   engine.resize();
   resizeAxisViewport();
 };
+function dontDebugMenu(){
+  const MASTER = document.getElementById("edDebugInfo");
+  if (MASTER && MASTER.style.display != "none") MASTER.style.display = "none";
+}
 function doDebugMenu(){
   const rotText = document.getElementById("ediCellRotation");
   const posText = document.getElementById("ediCellCoord");
@@ -89275,6 +89292,8 @@ function doDebugMenu(){
     rotText.innerText = `rotation: N/A`;
     posText.innerText = `position: N/A`;
   }
+  const MASTER = document.getElementById("edDebugInfo");
+  if (MASTER && MASTER.style.display != "block") MASTER.style.display = "block";
 }
 function formatPrettyRotationText(rotation){
   if (!pref("prettyAngles")) return rotation;
