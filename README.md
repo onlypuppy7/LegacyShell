@@ -33,8 +33,9 @@ LegacyShell has an existing and potentially powerful modding API built in. If yo
 
 Things such as extra skins, stamps or other cosmetic stuff will never be accepted into the base game, as though the base isn't not close to vanilla we want to minimise direct tampering with that experience. You can PR these into the LegacyShellCore plugin, but this is still up to the discretion of onlypuppy7/the LS contributors.
 
-## Instructions
-### Prerequisites:
+# Instructions
+
+## Prerequisites:
 - Nodejs (bun or other replacements might work but are not supported)
 - (Optional but highly recommended) Git
 - Some kind of terminal
@@ -100,7 +101,7 @@ Personally I'd recommend combining this with something like tmux. This is how I 
 > [!NOTE]  
 > These commands and scripts will launch the server in a custom wrapper, designed to make keeping track of everything easy and configurable. It will restart in case of crashes, schedule daily restarts, log to files, automatically pull, restart upon updating and send logs to a Discord webhook (all dependent on config). To modify it's settings, modify the `perpetual_all.yaml`, config found in `/store/config/`.
 
-## Navigating the database
+# Navigating the database
 The LegacyShellData.db database in /server-services/store houses most critical information.
 
 > [!TIP]  
@@ -124,5 +125,5 @@ Here is a breakdown of the tables:
 |**sessions**|SYS-EDITABLE|This table holds records about sessions and their associated ips and account ids.|This is not a very interesting table to look at.|
 |**users**|SYS-EDITABLE|This table holds records about all registered accounts for the services server instance. You can change things like egg counts and inventories.||
 
-## Models
+# Models
 egg.babylon contains hats and egg/hand models
