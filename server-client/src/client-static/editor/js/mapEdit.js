@@ -40,9 +40,11 @@ function createPreferences() { //alr nvm let's make it a func called before load
   initPref("renderWorkers", "render workes", 2, "how many workers should be used during rendering?");
   initPref("debugInfo", "show debug info", true, "displays a few dubg informationss");
   initPref("prettyAngles", "pretty angles", true, "shows angles in factors of pi and degrees instead of raw radians");
+  /*
   initPref("loremipsim2", "very long text test check", true, "Piper's pillar, the hardest for thee, kneel behind his mark til the Piper you see.");
   initPref("loremipsim3", "very long text number check", 666, "LegacyShell provides startup scripts for Windows (.bat) and OSX (.command). If you want the three processes to run in a single terminal window with tabs, use the start_all_tabs script, if you prefer three seperate terminal windows, use the start_all script.");
-  initPref("loremipsim4", "very long text check check scrol", true, "                                 @@@@@     @%%%%%%@@                        \n" +
+  initPref("loremipsim4", "very long text check check scrol", true, 
+                  "                                 @@@@@     @%%%%%%@@                        \n" +
                   "                               @%####%@@@ @%@-..=#+%%%@                      \n" +
                   "                              %%+....:*%@@%%......:#%%%@@%@                  \n" +
                   "                              ##.*=...:*@@#++%##..:+%%%%%%%%@                \n" +
@@ -107,6 +109,7 @@ function createPreferences() { //alr nvm let's make it a func called before load
                   "                                       #####%@%####%@                        \n" +
                   "                                        %###%@ @%@@@                         \n" +
                   "                                          @  ");
+                  */
 
 }
 
