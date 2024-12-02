@@ -58,17 +58,40 @@ Things such as extra skins, stamps or other cosmetic stuff will never be accepte
 > This is an issue known to affect unix based systems.
 
 ## Starting up the server
-LegacyShell provides startup scripts for Windows (.bat) and OSX (.command). If you want the three processes to run in a single terminal window with tabs, use the `start_all_tabs` script, if you prefer three seperate terminal windows, use the `start_all` script.
 
-If you want to start all three manually, execute the listed scripts in the following order:
-- `start_client`
-- `start_services`
-- `start_game`
+### Easiest method: Combined running
 
-If you are on a different platform, or you prefer to start everything completely manually, run the following commands with three different terminal windows in the project's root folder:
-- `node run client`
-- `node run services`
-- `node run game`
+The simplest way to get going from the command line is just by entering:
+
+`npm run all`
+
+This will run all 3 components in one window/tab and is enough for anyone who isn't going to be delving into the code too much. This is all you need to do, and you can ignore the next section.
+
+Assuming you haven't changed any ports, just navigate to: http://localhost:13370/
+
+### Alt: Running with separated consoles
+
+If you plan on actually looking at the log output and/or want to do any dev, then separating out the logs will be essential for debugging. 
+
+LegacyShell provides startup scripts for Windows (.bat) and OSX/MacOS (.command). If you want the three processes to run in a single terminal window with tabs, use the `start_all_tabs` script, if you prefer three seperate terminal windows, use the `start_all` script.
+
+<center>
+<img src="./src/running.png" alt="running" width="40%">
+
+<i>Example of using tabs. Clearly the superior method.</i>
+</center>
+
+### Alt: Manually starting the servers
+
+If you are on a different platform such as Linux, or you prefer to start everything completely manually, run the following commands with three different terminal windows in the project's root folder:
+
+- `npm run client`
+- `npm run services`
+- `npm run game`
+
+There isn't any order for the execution, and all components will wait for each other to be initialised.
+
+Personally I'd recommend combining this with something like tmux. This is how I operate the production instances.
 
 > [!NOTE]  
 > These commands and scripts will launch the server in a custom wrapper, designed to make keeping track of everything easy and configurable. It will restart in case of crashes, schedule daily restarts, log to files, automatically pull, restart upon updating and send logs to a Discord webhook (all dependent on config). To modify it's settings, modify the `perpetual_all.yaml`, config found in `/store/config/`.
