@@ -69,6 +69,8 @@ This will run all 3 components in one window/tab and is enough for anyone who is
 
 Assuming you haven't changed any ports, just navigate to: http://localhost:13370/
 
+If you want to run a reduced amount of components, then this will not work for you, continue on to the next methods.
+
 ### Alt: Running with separated consoles
 
 If you plan on actually looking at the log output and/or want to do any dev, then separating out the logs will be essential for debugging. 
@@ -88,6 +90,8 @@ If you are on a different platform such as Linux, or you prefer to start everyth
 - `npm run client`
 - `npm run services`
 - `npm run game`
+
+For each, on Windows/MacOS there are also script files which can be executed by clicking.
 
 There isn't any order for the execution, and all components will wait for each other to be initialised.
 
