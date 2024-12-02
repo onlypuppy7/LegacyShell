@@ -20,7 +20,7 @@ There isn't a way to natively open .babylon files because they're so proprietary
 
 [Watch a video tutorial here](https://www.youtube.com/watch?v=vFK03cToTYM)
 
-1. Go to the BabylonJS playground: https://sandbox.babylonjs.com/
+1. Go to the [BabylonJS sandbox](https://sandbox.babylonjs.com/)  
 2. Open your .babylon file
 3. Ensure the right hand side panel named "Inspector" is visible
    - If it's not, press the third button from the right on the bottom panel
@@ -81,3 +81,27 @@ The plugin should work regardless of OS.
 On the top bar, go to: File > Export > Babylon.js ver 2.93.5
 
 This could take ages, which is normal. Expect it to raise warnings.
+
+## Common Issues
+
+### Where is x? What stuff is in y?
+
+Here is a small table telling you all you need to know:
+
+|File|Contents|Notes|
+|-|-|-|
+|egg.babylon|Contains the egg model and hats.|Note that by modifying the egg you will break the automatic UV scaler for stamps.<br>I'm sure you realise already that even without this there's a headache to be had regardless.|
+|gun_cluck9mm.babylon|Contains all the gun skins for the Cluck9mm.|All of the gun models require no elaboration, really.|
+|gun_csg1.babylon|Contains all the gun skins for the CSG1 (Free Ranger).|-|
+|gun_dozenGauge.babylon|Contains all the gun skins for the Dozen Gauge (Scrambler).|-|
+|gun_eggk47.babylon|Contains all the gun skins for the Eggk47 (Soldier).|-|
+|gun_rpegg.babylon|Contains all the gun skins for the RPEGG (Eggsploder).|-|
+|items.babylon|Contains all the models for ingame pickups such as ammo and grenades.|-|
+|map.babylon|Contains all the models for map blocks.|In this rare instance, simply adding a model here with a correctly formatted name is all that is needed to add a functioning, collidable block to the game.|
+|munitions.babylon|Contains the models for the bullet, rocket (from RPEGG) and grenade (model used when thrown).|In short these are the "live" versions of things you can fire.|
+|muzzleFlash.babylon|Contains the muzzle flash model.|This is the star shaped white object that you see when firing.|
+|reticle.babylon|Contains the reticle model.|It's a little confusing to work out what this does and I haven't put any time into working that out, truthfully.|
+
+### Why is my model not in the right size/position/rotation?
+
+Make sure for each object you've applied transformations in Blender. Do this with Ctrl + A (or Command + A) and select `All Transforms`.
