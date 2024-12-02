@@ -33,7 +33,7 @@ LegacyShell has an existing and potentially powerful modding API built in. If yo
 
 Things such as extra skins, stamps or other cosmetic stuff will never be accepted into the base game, as though the base isn't not close to vanilla we want to minimise direct tampering with that experience. You can PR these into the LegacyShellCore plugin, but this is still up to the discretion of onlypuppy7/the LS contributors.
 
-# Instructions
+# Installation Instructions
 
 ## Prerequisites:
 - Nodejs (bun or other replacements might work but are not supported)
