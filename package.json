@@ -7,6 +7,7 @@
     "scripts": {
         "init": "node src/scripts/init.js",
         "bcrypt": "node src/scripts/bcrypt-tester.js",
+        "all": "node src/scripts/perpetual.js --client & node src/scripts/perpetual.js --services & node src/scripts/perpetual.js --game",
         "client": "node src/scripts/perpetual.js --client",
         "services": "node src/scripts/perpetual.js --services",
         "game": "node src/scripts/perpetual.js --game",

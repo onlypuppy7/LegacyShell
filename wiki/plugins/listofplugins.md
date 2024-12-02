@@ -2,10 +2,13 @@
 
 Here is a list of known plugins for LegacyShell. (You may even notice a pattern with who made them!)
 
+> Links in the `Identifier` column indicate hyperlinks to documentation. Those in the `Installation info` column are for download pages.
+
 |Identifier|Author|Type|Description|Installation info|
 |-|-|-|-|-|
 |legacyshellcore|onlypuppy7|General|Contains custom maps, items, commands, gamemodes and other things which are used in the public instance.|Included in `/plugins_default`|
 |onlyguard7000|onlypuppy7|Security|Experimental anticheat, used in the public instance.|[Currently private](https://github.com/onlypuppy7/OnlyGuard7000)|
+|legacyanalytics|onlypuppy7|General|Collects info relating to how the game is being used.<br>Note: not specific user data, but things like room count trends.|Included in `/plugins_default`|
 |healthpackitem|onlypuppy7|Pickups|Adds a new item/ammo type which restores health upon collection|Included in `/plugins_default`|
 |sample1cmd|onlypuppy7|Sample|Adds a basic command.|Included in `/plugins_samples`|
 |sample2dependency|onlypuppy7|Sample|Adds a basic command, while leveraging an imported dependency.|Included in `/plugins_samples`|
@@ -13,5 +16,6 @@ Here is a list of known plugins for LegacyShell. (You may even notice a pattern 
 |modernmapblocks|onlypuppy7|Tiles|Readds newer maps blocks into LegacyShell|Included in `/plugins_default`|
 |modernshellhats|onlypuppy7|Cosmetics|Readds newer hats into LegacyShell|Included in `/plugins_default`|
 |modernshellstamps|onlypuppy7|Cosmetics|Readds newer stamps into LegacyShell|Included in `/plugins_default`|
+|modernshellguns|onlypuppy7|Cosmetics|Readds newer gun models into LegacyShell|Included in `/plugins_default`|
 
 Made your own plugin? List it :>
