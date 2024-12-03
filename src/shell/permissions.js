@@ -546,6 +546,25 @@ export class PermissionsConstructor {
                 };
             },
         });
+        this.newCommand({
+            identifier: "snowStormEnabled",
+            name: "snowstorm",
+            category: "weather",
+            description: "Enable/disable the snowstorm.",
+            example: "true",
+            permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
+            inputType: ["bool"],
+            executeClient: ({ player, opts, mentions }) => {},
+            executeServer: ({ player, opts, mentions }) => {
+                var changed = this.room.gameOptions.weather.snowStormEnabled != opts;
+                this.room.gameOptions.weather.snowStormEnabled = opts;
+
+                if (changed) {
+                    this.room.notify(`Snowstorm has been ${opts ? "enabled" : "disabled"}.`, 5);
+                    this.room.updateRoomParamsForClients();
+                };
+            },
+        });
 
 
         plugins.emit('permissionsAfterSetup', { this: this });
