@@ -52,6 +52,7 @@ export class newRoom {
         this.gameKey = info.gameKey;
         this.locked = info.locked;
         console.log("locked", this.locked, GameTypes[this.gameType]);
+        plugins.emit("roomInitGameOptions", {this: this});
 
         // this.items = info.items;
         this.mapJson = ss.maps[this.mapId];
@@ -88,7 +89,7 @@ export class newRoom {
         //timed rounds
         this.setRoundTimeout();
 
-        loadMapMeshes(this.scene, () => {
+        loadMapMeshes(this.scene, async () => {
             ss.config.verbose && console.log("done loadMapMeshes");
             const { map, spawnPoints, mapMeshes } = buildMapData(function (str) { log.error("The following map meshes were not found:\n\n" + str + "\nTry clearing your cache and reload the page!") });
 
@@ -106,7 +107,7 @@ export class newRoom {
             this.getValidItemSpawns();
             this.spawnItemsLoopObject = createLoop(this.spawnItems.bind(this), 30e3); //just in case, i guess?
 
-            plugins.emit('roomInitEnd', {this: this});
+            await plugins.emit('roomInitEnd', {this: this});
         });
     };
 
