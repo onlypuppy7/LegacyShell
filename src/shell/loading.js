@@ -37,7 +37,10 @@ export function make3DArray(width, height, depth, initVal) {
 
 export function iterateXYZ(width, height, depth, options, callback) {
     var opt = options || {};
-    opt.step = opt.step || 1, opt.x = opt.x || 0, opt.y = opt.y || 0, opt.z = opt.z || 0;
+    opt.step = opt.step || 1;
+    opt.x = opt.x || 0;
+    opt.y = opt.y || 0;
+    opt.z = opt.z || 0;
     for (var x = opt.x; x < width; x += opt.step)
         for (var y = opt.y; y < height; y += opt.step)
             for (var z = opt.z; z < depth; z += opt.step) callback(x, y, z)
@@ -275,7 +278,7 @@ export function buildMapData (errorFunc) { //[12th], (name from deobf leak)
             mesh.name = fields[1];
             mesh.colliderType = fields[2];
             mesh.softness = fields[3];
-
+            
             //le server code
             if (isServer && "SPECIAL" == mesh.theme && mesh.name.startsWith("spawn")) return void Object.values(meshData).forEach(function (cell) {
                 spawnPoints[0].push({

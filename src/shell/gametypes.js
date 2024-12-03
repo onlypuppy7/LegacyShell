@@ -55,6 +55,7 @@ export var defaultOptions = {
     weather: {
         rainEnabled: false,
         stormEnabled: false,
+        snowStormEnabled: false,
     },
     time: "day",
     lifesteal: [
