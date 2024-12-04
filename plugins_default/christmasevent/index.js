@@ -2,7 +2,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
 //plugin: samplecommand
-import { ChristmasEvent } from './shared.js';
 //
 
 export const PluginMeta = {
@@ -24,18 +23,18 @@ export class Plugin {
 
         pluginInstance = this;
 
-        ChristmasEvent.registerListeners(this.plugins);
-
         this.plugins.on('client:pluginSourceInsertion', this.pluginSourceInsertion.bind(this));
 
         this.plugins.on('client:prepareBabylon', this.prepareBabylon.bind(this));
         this.plugins.on('game:prepareBabylon', this.prepareBabylon.bind(this));
+        
+        this.plugins.on('game:roomInitGameOptions', this.roomInitGameOptions.bind(this));
     };
 
     pluginSourceInsertion(data) {
         data.pluginInsertion.files.push({
             insertBefore: '\nconsole.log("inserting before... (ChristmasEvent)");',
-            filepath: path.join(this.thisDir, 'shared.js'),
+            filepath: path.join(this.thisDir, 'client.js'),
             insertAfter: '\nconsole.log("inserting after... (ChristmasEvent)!");',
             position: 'before'
         });
@@ -56,6 +55,14 @@ export class Plugin {
                     location: PluginMeta.identifier,
                 });
             };
+        };
+    };
+
+    async roomInitGameOptions(data) {
+        if (events.currentArray.includes("december")) {
+            var ctx = data.this
+    
+            ctx.gameOptions.weather.snowStormEnabled = true;
         };
     };
 };
