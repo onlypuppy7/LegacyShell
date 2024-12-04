@@ -5,7 +5,7 @@ import { iterateXYZ } from "#loading";
 import { plugins } from '#plugins';
 //
 
-export var isChristmas = true;
+var isChristmas = events.currentArray.includes("december");
 
 export const ChristmasEvent = {
     registerListeners: function (pluginManager) {
@@ -14,17 +14,9 @@ export const ChristmasEvent = {
         this.plugins = pluginManager;
 
         if (isChristmas) {
-            this.plugins.on('game:roomInitGameOptions', this.roomInitGameOptions.bind(this));
-
             this.plugins.on('game:createMapCellsMapLoaded', this.createMapCellsMapLoaded.bind(this));
             this.plugins.on('game:createMapCells', this.createMapCells.bind(this));
         };
-    },
-
-    async roomInitGameOptions(data) {
-        var ctx = data.this
-
-        ctx.gameOptions.weather.snowStormEnabled = true;
     },
 
     async createMapCells(data) {

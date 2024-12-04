@@ -21,122 +21,122 @@ import { plugins } from '#plugins';
 
 export const defaultEvents = [{
     name: 'spring',
-    start: "W12-1",
+    start: "03-20",
     duration: "13w",
     data: {},
 }, {
     name: 'summer',
-    start: "W25-1",
+    start: "06-20",
     duration: "13w",
     data: {},
 }, {
     name: 'autumn',
-    start: "W38-1",
+    start: "09-22",
     duration: "13w",
     data: {},
 }, {
     name: 'winter',
-    start: "W51-1",
+    start: "12-21",
     duration: "13w",
     data: {},
 }, {
     name: 'christmas',
-    start: "W50-7",
-    duration: "1w",
+    start: "12-10",
+    duration: "4w",
     data: {},
 }, {
     name: 'new-year',
-    start: "W50-7",
+    start: "12-31",
     duration: "2w",
     data: {},
 }, {
     name: 'easter',
-    start: "W12-4", //annoying holiday that moves around
+    start: "03-24", //annoying holiday that moves around
     duration: "4w",
     data: {},
 }, {
     name: 'halloween',
-    start: "W42-7",
-    duration: "1w",
+    start: "10-15",
+    duration: "3w",
     data: {},
 }, {
     name: 'valentines',
-    start: "W06-4",
+    start: "02-14",
     duration: "1w",
     data: {},
 }, {
     name: 'april-fools',
-    start: "W13-2",
+    start: "04-01",
     duration: "1w",
     data: {},
 }, {
     name: 'thanksgiving',
-    start: "W47-4",
-    duration: "1w",
+    start: "11-22",
+    duration: "2w",
     data: {},
 }, {
     name: 'independence-day',
-    start: "W27-7",
+    start: "07-04",
     duration: "1w",
     data: {},
 }, {
     name:'january',
-    start: "W00-1",
+    start: "01-01",
     duration: "31d",
     data: {},
 }, {
     name:'february',
-    start: "W04-4",
+    start: "02-01",
     duration: "28d",
     data: {},
 }, {
     name:'march',
-    start: "W08-4",
+    start: "03-01",
     duration: "31d",
     data: {},
 }, {
     name:'april',
-    start: "W13-2",
+    start: "04-01",
     duration: "30d",
     data: {},
 }, {
     name:'may',
-    start: "W17-4",
+    start: "05-01",
     duration: "31d",
     data: {},
 }, {
     name:'june',
-    start: "W21-7",
+    start: "06-01",
     duration: "30d",
     data: {},
 }, {
     name:'july',
-    start: "W26-2",
+    start: "07-01",
     duration: "31d",
     data: {},
 }, {
     name:'august',
-    start: "W30-4",
+    start: "08-01",
     duration: "31d",
     data: {},
 }, {
     name:'september',
-    start: "W35-1",
+    start: "09-01",
     duration: "30d",
     data: {},
 }, {
     name:'october',
-    start: "W39-3",
+    start: "10-01",
     duration: "31d",
     data: {},
 }, {
     name:'november',
-    start: "W43-6",
+    start: "11-01",
     duration: "30d",
     data: {},
 }, {
     name:'december',
-    start: "W47-7",
+    start: "12-01",
     duration: "31d",
     data: {},
 },
@@ -144,6 +144,7 @@ export const defaultEvents = [{
 
 export class EventManager {
     constructor() {
+        this.printed = false;
     };
 
     async init() {
@@ -159,18 +160,20 @@ export class EventManager {
         this.currentArray = [];
 
         for (const event of this.events) {
-            const start = this.weekDayToUnix(event.start);
-            const duration = this.parseHumanToMs(event.duration);
+            const start = this.parseDate(event.start, time);
+            const duration = this.parseHumanToMs(event.duration, time);
             const end = start + duration;
 
-            // console.log(event, time, start, duration, end);
+            if (!this.printed) devlog(event, time, start, duration, end);
 
             if (start <= time && time <= end) {
-                devlog('event', event.name, 'is happening now');
+                if (!this.printed) log.bgCyan('event', event.name, 'is happening now');
                 this.current.push(event);
                 this.currentArray.push(event.name);
             };
         };
+
+        this.printed = true;
 
         return {
             current: this.current,
@@ -178,7 +181,50 @@ export class EventManager {
         };
     };
 
-    weekDayToUnix(weekDay) {
+    isActive(event) {
+        return this.getEventsAtTime().currentArray.includes(event);
+    };
+
+    parseDate(dateStr, timeNow = Date.now()) {
+        if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/) || dateStr.match(/^\d{2}-\d{2}$/)) {
+            return this.dateToUnix(dateStr, timeNow);
+        } else if (dateStr.match(/^W\d{2}-\d$/)) {
+            return this.weekDayToUnix(dateStr, timeNow);
+        } else {
+            throw new Error('Invalid format. Use YYYY-MM-DD or MM-DD or "W"WW-DD.');
+        };
+    };
+
+    dateToUnix(dateStr, timeNow = Date.now()) {
+        const currentYear = new Date().getFullYear();
+        let year, month, day, match;
+    
+        if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+            year = Number(match[1]);
+            month = Number(match[2]) - 1;
+            day = Number(match[3]);
+        } else if (dateStr.match(/^\d{2}-\d{2}$/)) {
+            match = dateStr.match(/^(\d{2})-(\d{2})$/);
+            year = currentYear;
+            month = Number(match[1]) - 1;
+            day = Number(match[2]);
+        } else {
+            throw new Error('Invalid format. Use YYYY-MM-DD or MM-DD.');
+        };
+    
+        const targetDate = new Date(year, month, day);
+        let time = targetDate.getTime();
+    
+        if (timeNow <= time) {
+            targetDate.setFullYear(targetDate.getFullYear() - 1);
+            time = targetDate.getTime();
+        };
+    
+        return time;
+    };
+
+    weekDayToUnix(weekDay, timeNow = Date.now()) {
         const currentYear = new Date().getFullYear();
         let year;
         let match;
@@ -208,7 +254,7 @@ export class EventManager {
 
         let time = Math.floor(targetDate.getTime());
 
-        if (Date.now() <= time) {
+        if (timeNow <= time) {
             //take away a year
             time -= 1e3*60*60*24*365;
         };
@@ -216,7 +262,7 @@ export class EventManager {
         return time;
     };
 
-    parseHumanToMs(input) { //takes inputs like 2w3d4h5min6s7ms (extreme example, more likely just 1w) and converts it to ms
+    parseHumanToMs(input, time = Date.now()) { //takes inputs like 2w3d4h5min6s7ms (extreme example, more likely just 1w) and converts it to ms
         const timeUnits = {
             w: 1e3*60*60*24*7,
             d: 1e3*60*60*24,
