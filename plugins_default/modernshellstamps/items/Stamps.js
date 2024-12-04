@@ -10,7 +10,7 @@
     Note that 0 is reserved for no stamp
 */
 
-export default {
+var items = {
     "Stamps": [{
         "meta_id": 1,
         "id": 2001,
@@ -9709,3 +9709,14 @@ export default {
         "unlock": "purchase"
     }]
 };
+
+Object.keys(items).forEach(itemclass => {
+    for (var i in items[itemclass]) {
+        const item = items[itemclass][i];
+        // if (item.unlock !== 'purchase' && item.unlock !== 'default') {
+            item.is_available = false;
+        // };
+    };
+});
+
+export default items;

@@ -26,7 +26,8 @@ export class Plugin {
         this.plugins.on('client:prepareBabylon', this.prepareBabylon.bind(this));
         this.plugins.on('game:prepareBabylon', this.prepareBabylon.bind(this));
 
-        this.plugins.on('services:initTables', this.initTables.bind(this));
+        this.plugins.on('services:initTablesStart', this.initTablesStart.bind(this));
+        this.plugins.on('services:initTablesBefore', this.initTablesBefore.bind(this));
     };
 
     async prepareBabylon(data) {
@@ -47,7 +48,13 @@ export class Plugin {
         };
     };
 
-    async initTables(data) { //async operation requires awaits to ensure proper order
+    async initTablesStart(data) { //this way we force the reinsertion of the default items, allowing us to add in the new items BEFORE the default items hence not overwriting them
+        await data.ss.runQuery(`DROP TABLE IF EXISTS items`);
+    
+        await data.ss.recs.initDB(data.ss.db);
+    };
+
+    async initTablesBefore(data) { //async operation requires awaits to ensure proper order
         await data.ss.recs.insertItems(path.join(this.thisDir, 'items'));
     };
 };

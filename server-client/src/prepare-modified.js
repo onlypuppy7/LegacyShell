@@ -6,6 +6,8 @@ import crypto from 'node:crypto';
 import UglifyJS from 'uglify-js';
 import extendMath from '#math';
 import { prepareBabylons } from '#prepare-babylons';
+import { cacheModified } from '#stampsGenerator';
+import { devlog } from '#isClientServer';
 //legacyshell: logging
 import log from '#coloured-logging';
 //legacyshell: ss
@@ -56,6 +58,43 @@ async function modifyFiles() {
     checkAndCreateDir(destinationEditorJsPath);
 
     try {
+        let code = {};
+
+        code.serversJs = fs.readFileSync(sourceServersJsPath, 'utf8');
+        code.serversJs = code.serversJs.replace(/LEGACYSHELLSERVICESPORT/g, ss.config.services.port || "13371");
+        code.serversJs = code.serversJs.replace(/LEGACYSHELLWEBSOCKETPORT/g, ss.config.game.port || "13372");
+        code.serversJs = code.serversJs.replace(/LEGACYSHELLSERVICESSERVER/g, ss.config.client.servicesURL || "wss://services.legacy.onlypuppy7.online:443");
+        code.serversJs = code.serversJs.replace(/LEGACYSHELLSERVERS/g, ss.cache.servers || "[{ name: 'LegacyShell', address: 'matchmaker.legacy.onlypuppy7.online:443' }]");
+
+        await plugins.emit('serversJs', { ss, code });
+
+        fs.writeFileSync(destinationServersJsPath, code.serversJs, 'utf8');
+        console.log(`servers.js copied and modified to ${destinationServersJsPath}`);
+
+        var fileBuffer = fs.readFileSync(destinationServersJsPath);
+        var hashSum = crypto.createHash('sha256');
+        hashSum.update(fileBuffer);
+        hashes.SERVERJSHASH = hashSum.digest('hex');
+
+        await plugins.emit('hashes', { ss, hashes });
+        log.italic(`SHA-256 hash of the modified SERVERJS: ${hashes.SERVERJSHASH}`);
+
+        code.htmlContent = fs.readFileSync(sourceHtmlPath, 'utf8');
+        code.htmlContent = code.htmlContent.replace(/SHELLSHOCKMINJSHASH/g, hashes.SHELLSHOCKMINJSHASH);
+        code.htmlContent = code.htmlContent.replace(/LEGACYSHELLVERSION/g, ss.packageJson.version);
+        code.htmlContent = code.htmlContent.replace(/LEGACYSHELLEXTVERSION/g, `${ss.packageJson.version} (${ss.versionHash}, ${ss.versionEnum})`);
+        code.htmlContent = code.htmlContent.replace(/LEGACYSHELLDISCORDSERVER/g, ss.config.client.discordServer); //outdated method
+        code.htmlContent = code.htmlContent.replace(/LEGACYSHELLGITHUB/g, ss.config.client.githubURL);
+        code.htmlContent = code.htmlContent.replace(/LEGACYSHELLSYNCURL/g, ss.config.client.sync_server);
+        code.htmlContent = code.htmlContent.replace(/LEGACYSHELLCLIENTURL/g, ss.config.client.this_url);
+        code.htmlContent = code.htmlContent.replace(/LEGACYSHELLCONFIG/g, ss.distributed_config.replace(/\n/g, '<br>'));
+        code.htmlContent = code.htmlContent.replace(/LEGACYSHELLFAQ/g, fs.readFileSync(path.join(ss.currentDir, 'src', 'client-static', 'faq.html'), 'utf8'));
+
+        await plugins.emit('htmlContent', { ss, code });
+
+        fs.writeFileSync(destinationHtmlPath, code.htmlContent, 'utf8');
+        log.bold(`index.html copied and modified to ${destinationHtmlPath}`);
+
         var pluginInsertion = {};
         pluginInsertion.stringBefore = "";
         pluginInsertion.stringAfter = "";
@@ -86,8 +125,6 @@ async function modifyFiles() {
                 };
             };
         });
-
-        let code = {};
 
         code.sourceJs = fs.readFileSync(sourceShellJsPath, 'utf8');
         code.mapEditorJs = fs.readFileSync(sourceEditorJsPath, 'utf8');
@@ -196,6 +233,13 @@ async function modifyFiles() {
             await plugins.emit('minificationSkipped', { this: this, ss, code });
         };
 
+        if (plugins.type === "client") {
+            await new Promise(resolve => {
+                const check = () => cacheModified ? resolve() : setTimeout(check, 100);
+                check(); devlog("cacheModified", cacheModified);
+            });
+        };
+
         const replacementAfter = [
             { pattern: /LEGACYSHELLITEMS/g, insertion: ss.cache.items },
             { pattern: /LEGACYSHELLMINMAPS/g, insertion: ss.cache.maps },
@@ -216,47 +260,12 @@ async function modifyFiles() {
         fs.writeFileSync(destinationEditorJsPath, code.mapEditorJs, 'utf8');
         log.bold(`mapEdit.js copied and modified to ${destinationEditorJsPath}`);
 
-        let fileBuffer = fs.readFileSync(destinationShellJsPath);
-        let hashSum = crypto.createHash('sha256');
+        fileBuffer = fs.readFileSync(destinationShellJsPath);
+        hashSum = crypto.createHash('sha256');
         hashSum.update(fileBuffer);
         hashes.SHELLSHOCKMINJSHASH = hashSum.digest('hex');
         log.italic(`SHA-256 hash of the minified SHELLSHOCKMINJS: ${hashes.SHELLSHOCKMINJSHASH}`);
         await plugins.emit('hashes', { ss, hashes });
-
-        code.serversJs = fs.readFileSync(sourceServersJsPath, 'utf8');
-        code.serversJs = code.serversJs.replace(/LEGACYSHELLSERVICESPORT/g, ss.config.services.port || "13371");
-        code.serversJs = code.serversJs.replace(/LEGACYSHELLWEBSOCKETPORT/g, ss.config.game.port || "13372");
-        code.serversJs = code.serversJs.replace(/LEGACYSHELLSERVICESSERVER/g, ss.config.client.servicesURL || "wss://services.legacy.onlypuppy7.online:443");
-        code.serversJs = code.serversJs.replace(/LEGACYSHELLSERVERS/g, ss.cache.servers || "[{ name: 'LegacyShell', address: 'matchmaker.legacy.onlypuppy7.online:443' }]");
-
-        await plugins.emit('serversJs', { ss, code });
-
-        fs.writeFileSync(destinationServersJsPath, code.serversJs, 'utf8');
-        console.log(`servers.js copied and modified to ${destinationServersJsPath}`);
-
-        fileBuffer = fs.readFileSync(destinationServersJsPath);
-        hashSum = crypto.createHash('sha256');
-        hashSum.update(fileBuffer);
-        hashes.SERVERJSHASH = hashSum.digest('hex');
-
-        await plugins.emit('hashes', { ss, hashes });
-        log.italic(`SHA-256 hash of the modified SERVERJS: ${hashes.SERVERJSHASH}`);
-
-        code.htmlContent = fs.readFileSync(sourceHtmlPath, 'utf8');
-        code.htmlContent = code.htmlContent.replace(/SHELLSHOCKMINJSHASH/g, hashes.SHELLSHOCKMINJSHASH);
-        code.htmlContent = code.htmlContent.replace(/LEGACYSHELLVERSION/g, ss.packageJson.version);
-        code.htmlContent = code.htmlContent.replace(/LEGACYSHELLEXTVERSION/g, `${ss.packageJson.version} (${ss.versionHash}, ${ss.versionEnum})`);
-        code.htmlContent = code.htmlContent.replace(/LEGACYSHELLDISCORDSERVER/g, ss.config.client.discordServer); //outdated method
-        code.htmlContent = code.htmlContent.replace(/LEGACYSHELLGITHUB/g, ss.config.client.githubURL);
-        code.htmlContent = code.htmlContent.replace(/LEGACYSHELLSYNCURL/g, ss.config.client.sync_server);
-        code.htmlContent = code.htmlContent.replace(/LEGACYSHELLCLIENTURL/g, ss.config.client.this_url);
-        code.htmlContent = code.htmlContent.replace(/LEGACYSHELLCONFIG/g, ss.distributed_config.replace(/\n/g, '<br>'));
-        code.htmlContent = code.htmlContent.replace(/LEGACYSHELLFAQ/g, fs.readFileSync(path.join(ss.currentDir, 'src', 'client-static', 'faq.html'), 'utf8'));
-
-        await plugins.emit('htmlContent', { ss, code });
-
-        fs.writeFileSync(destinationHtmlPath, code.htmlContent, 'utf8');
-        log.bold(`index.html copied and modified to ${destinationHtmlPath}`);
     } catch (error) {
         console.error('An error occurred during the file processing:', error);
     };

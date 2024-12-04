@@ -20,6 +20,69 @@ import { plugins } from '#plugins';
 */
 
 export const defaultEvents = [{
+    name: 'default',
+    start: "01-01",
+    duration: "999w",
+    data: {
+        shop: {
+            itemsPerm: [
+                150001, // meta id: 1, Cluck 9mm GOLD  
+                200001, // meta id: 1, Eggk47 GOLD  
+                250001, // meta id: 1, CSG1 GOLD  
+                300001, // meta id: 1, Dozen Gauge GOLD
+
+                50023, // meta id: 23, Happy Gun Bear Hat  
+                50024, // meta id: 24, Happy Gun Bear Hunting Hat  
+                100019, // meta id: 19, Happy Gun Bear  
+                150002, // meta id: 2, Happy Gun Bear Cluck 9mm  
+                200002, // meta id: 2, Happy Gun Bear Eggk47  
+                250002, // meta id: 2, Happy Gun Bear CSG1  
+                300002, // meta id: 2, Happy Gun Bear Dozen Gauge
+            ], //items that are always in the shop
+            itemsTemp: [], //items that are only in the shop for the duration of the event
+
+            itemsTier1: [], //one item from this list will be chosen if chance is met
+            itemsTier2: [], //one item from this list will always be chosen
+            tier2count: 1,
+            itemsTier3: [], //five items from this list will always be chosen
+            tier3count: 5,
+        }
+    },
+}, {
+    name: 'groundhog-day',
+    start: "02-02",
+    duration: "2w",
+    data: {
+        shop: {
+            itemsTemp: [ //items that are only in the shop for the duration of the event
+                "GroundhogDay" //tag
+
+                /*
+                50070, // meta id: 70, Spring Sapling Hat  
+                50071, // meta id: 71, Winter Sapling Hat
+
+                50072,  // meta id: 72, Groundhog Hat  
+                100045, // meta id: 45, Groundhog  
+                150007, // meta id: 7, Cluck 9mm Groundhog  
+                200007, // meta id: 7, Eggk47 Groundhog  
+                250007, // meta id: 7, CSG1 Groundhog  
+                300007, // meta id: 7, Dozen Gauge Groundhog  
+                350007, // meta id: 7, RPEGG Groundhog
+                */
+            ],
+        }
+    },
+}, {
+    name: 'legacyshellanniversary',
+    start: "12-07",
+    duration: "2w",
+    data: {},
+}, {
+    name: 'shellshockersanniversary',
+    start: "09-01",
+    duration: "2w",
+    data: {},
+}, {
     name: 'spring',
     start: "03-20",
     duration: "13w",
@@ -160,20 +223,20 @@ export class EventManager {
         this.currentArray = [];
 
         for (const event of this.events) {
-            const start = this.parseDate(event.start, time);
-            const duration = this.parseHumanToMs(event.duration, time);
-            const end = start + duration;
+            event.timeStart = this.parseDate(event.start, time);
+            event.timeDuration = this.parseHumanToMs(event.duration, time);
+            event.timeEnd = event.timeStart + event.timeDuration;
 
-            if (!this.printed) devlog(event, time, start, duration, end);
+            if (!this.printed) devlog(event.name, event.start, event.duration, 'starts at', new Date(event.timeStart), 'and ends at', new Date(event.timeEnd), event.timeDuration/(60e3*60*24), event.data);
 
-            if (start <= time && time <= end) {
+            if (event.timeStart <= time && time <= event.timeEnd) {
                 if (!this.printed) log.bgCyan('event', event.name, 'is happening now');
                 this.current.push(event);
                 this.currentArray.push(event.name);
             };
         };
 
-        this.printed = true;
+        this.printed = true; //only print once because it's annoying
 
         return {
             current: this.current,
