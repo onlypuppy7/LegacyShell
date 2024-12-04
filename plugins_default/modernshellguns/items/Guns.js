@@ -4913,10 +4913,10 @@ integrateItems(items, {
 
 Object.keys(items).forEach(itemclass => {
     for (var i in items[itemclass]) {
-        const gun = items[itemclass][i];
-        if (gun.unlock !== 'purchase' && gun.unlock !== 'default') {
-            gun.is_available = false;
-        };
+        const item = items[itemclass][i];
+        // if (item.unlock !== 'purchase' && item.unlock !== 'default') {
+            item.is_available = false;
+        // };
     };
 });
 

@@ -82,11 +82,15 @@ export default async function run () {
             await recs.updateUserDefaults();
 
             async function doItems () {
+                await plugins.emit('initTablesStart', { ss });
+
                 ss.config.verbose && log.bgCyan("services: Reading from DB: count items");
                 if ((await ss.getOne('SELECT COUNT(*) AS count FROM items')).count > 0) {
                     log.green('No need to init items table');
                 } else {
                     log.blue('Items table is empty. Initializing with JSON data...');
+
+                    await plugins.emit('initTablesBefore', { ss });
             
                     await recs.insertItems();
                     

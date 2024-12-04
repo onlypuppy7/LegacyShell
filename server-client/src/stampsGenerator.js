@@ -19,6 +19,7 @@ export function filterName(name) {
 
 export var widthheight = 32; //fyi 127 is max (assuming 128x128 stamps)
 export var widthheightDetermined = false;
+export var cacheModified = false;
 
 export async function prepareStamps() {
     let items = JSON.parse(ss.cache.items);
@@ -176,20 +177,8 @@ export async function prepareStamps() {
     
         x++;
     };
-    
-    image.composite(composites);
 
-    var output = path.join(ss.currentDir, 'store', 'client-modified', 'img', 'stamps.png');
-
-    if (!fs.existsSync(path.dirname(output))) {
-        fs.mkdirSync(path.dirname(output), {recursive: true});
-    };
-
-    log.info('Saving stamps to', output);
-
-    await image.toFile(output);
-
-    log.italic('Stamps saved, modifying item data...');
+    log.italic('[Stamps] Modifying item data...');
     for (let composite of composites) {
         for (let item of items) {
             if (item.id === composite.id) {
@@ -201,6 +190,21 @@ export async function prepareStamps() {
     };
 
     ss.cache.items = JSON.stringify(items);
+
+    cacheModified = true;
+    
+    log.italic('[Stamps] Compositing images...');
+    image.composite(composites);
+
+    var output = path.join(ss.currentDir, 'store', 'client-modified', 'img', 'stamps.png');
+
+    if (!fs.existsSync(path.dirname(output))) {
+        fs.mkdirSync(path.dirname(output), {recursive: true});
+    };
+
+    log.info('[Stamps] Saving stamps to', output);
+
+    await image.toFile(output);
 };
 
 export const needsBorderCheck = async (sharpInstance) => {
@@ -240,7 +244,6 @@ export async function createStampsUV(wh = widthheight, skipWait) {
     log.info('Creating stamps UV...', wh);
 
     if (plugins.type === "client") {
-        //dont proceed until complete=true
         await new Promise(resolve => {
             const check = () => widthheightDetermined ? resolve() : setTimeout(check, 100);
             check(); devlog("widthheightDetermined", widthheightDetermined);
