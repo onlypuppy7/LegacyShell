@@ -69,7 +69,7 @@ export const misc = {
 
             var config = {};
         
-            const yamlFiles = files.filter(file => path.extname(file) === '.yaml');
+            let yamlFiles = files.filter(file => path.extname(file) === '.yaml');
             //remove ._ files
             yamlFiles = yamlFiles.filter(file => !file.startsWith("._")); //i hate macos
 
