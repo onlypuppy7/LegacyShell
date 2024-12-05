@@ -22,6 +22,8 @@ export var widthheightDetermined = false;
 export var cacheModified = false;
 
 export async function prepareStamps() {
+    let startTime = Date.now();
+
     let items = JSON.parse(ss.cache.items);
     //filter out items which arent stamps
     let stamps = items.filter((item) => item.item_type_name === 'Stamp');
@@ -205,6 +207,8 @@ export async function prepareStamps() {
     log.info('[Stamps] Saving stamps to', output);
 
     await image.toFile(output);
+
+    log.success('Stamps prepared in', Date.now() - startTime, 'ms');
 };
 
 export const needsBorderCheck = async (sharpInstance) => {

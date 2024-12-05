@@ -5,7 +5,7 @@ import { iterateXYZ } from "#loading";
 import { plugins } from '#plugins';
 //
 
-var isChristmas = events.currentArray.includes("december");
+var isChristmas = events.currentArray.includes("christmas");
 
 export const ChristmasEvent = {
     registerListeners: function (pluginManager) {

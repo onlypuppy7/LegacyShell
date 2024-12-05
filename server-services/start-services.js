@@ -136,7 +136,7 @@ export default async function run (runStart) {
                 ]);
                 log.success('All start-services promises resolved in '+(Date.now()-timeStart)+'ms!');
             } catch (error) {
-                log.error('One of the start-client promises rejected:', error);
+                log.error('One of the start-services promises rejected:', error);
             };
 
             // await doItems();
