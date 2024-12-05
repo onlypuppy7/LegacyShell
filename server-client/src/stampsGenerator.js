@@ -50,6 +50,8 @@ export async function prepareStamps() {
         };
 
         let files = fs.readdirSync(dir);
+        //remove ._ files
+        files = files.filter(file => !file.startsWith('._')); //i hate macos
 
         for (let file of files) {
             var ext = path.extname(file);
