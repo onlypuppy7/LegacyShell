@@ -71,4 +71,13 @@ if (fs.existsSync(stampsDir)) {
     });
 };
 
+Object.keys(items).forEach(itemclass => {
+    for (var i in items[itemclass]) {
+        const item = items[itemclass][i];
+        // if (item.unlock !== 'purchase' && item.unlock !== 'default') {
+            item.is_available = false;
+        // };
+    };
+});
+
 export default items;

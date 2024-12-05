@@ -17,10 +17,11 @@ import recs from '#recordsManagement';
 import backups from '#backups';
 import { devlog } from '#isClientServer';
 import { events } from '#events';
+import { setUpShopAvailable } from '#catalog';
 //legacyshell: logging
 import log from '#coloured-logging';
 //legacyshell: ss
-import { ss } from '#misc';
+import misc, { ss } from '#misc';
 //legacyshell: plugins
 import { plugins } from '#plugins';
 //
@@ -28,7 +29,8 @@ import { plugins } from '#plugins';
 //i know its called start, even though it should be the other way round. please excuse this.
 //i just didnt want to break old configs for the perpetual wrapper.
 
-export default async function run () {
+export default async function run (runStart) {
+
     var dbPath = path.join(ss.rootDir, 'server-services', 'store', 'LegacyShellData.db');
     var backupPath = path.join(ss.rootDir, 'server-services', 'store', 'backups');
     
@@ -57,6 +59,8 @@ export default async function run () {
     await recs.initDB(ss.db);
     
     log.green('Account DB set up! (if it didnt exist already i suppose)');
+    
+    await misc.getServicesSeed();
 
     plugins.emit('servicesOnLoad', { ss });
     
@@ -76,12 +80,18 @@ export default async function run () {
     
     async function initTables () {
         try {
+            let initTablesStarted = Date.now();
+
             //ITEMS TABLE
             ss.config.verbose && log.bgCyan("services: Reading from DB: perform outdated items/user table check");
             await recs.performConversionCheck();
             await recs.updateUserDefaults();
 
             async function doItems () {
+                let timeStart = Date.now();
+    
+                ss.runQuery("BEGIN TRANSACTION");
+
                 await plugins.emit('initTablesStart', { ss });
 
                 ss.config.verbose && log.bgCyan("services: Reading from DB: count items");
@@ -93,31 +103,38 @@ export default async function run () {
                     await plugins.emit('initTablesBefore', { ss });
             
                     await recs.insertItems();
-                    
-                    log.green('Items table initialized with JSON data.');
                 };
 
                 await plugins.emit('initTables', { ss }); //technically this should be for the end but now ive already been using it to insert items so lets just pretend it does that now
+
+                ss.runQuery("COMMIT");
+                    
+                log.green('Items table initialised with JSON data in '+(Date.now()-timeStart)+'ms.');
+
+                await setUpShopAvailable();
             };
     
             async function doMaps () {
+                let timeStart = Date.now();
                 log.blue('Initializing maps from JSON data...');
             
                 ss.config.verbose && log.bgPurple(`services: Deleting from DB: all maps`);
                 await ss.runQuery('DELETE FROM maps;');
     
                 await recs.insertMaps();
+
+                await plugins.emit('initTablesMaps', { ss });
         
-                log.green('Maps table initialized with JSON data.');
+                log.green('Maps table initialised with JSON data in '+(Date.now()-timeStart)+'ms.');
             };
 
-            
+            let timeStart = Date.now();
             try {
                 await Promise.all([
                     doItems(),
                     doMaps(),
                 ]);
-                log.success('All start-services promises resolved!');
+                log.success('All start-services promises resolved in '+(Date.now()-timeStart)+'ms!');
             } catch (error) {
                 log.error('One of the start-client promises rejected:', error);
             };
@@ -126,8 +143,10 @@ export default async function run () {
             // await doMaps();
 
             await plugins.emit('initTablesFinish', { ss });
+
+            log.success('initTables finished in '+(Date.now()-initTablesStarted)+'ms');
         } catch (error) {
-            console.error('Error initializing items table:', error);
+            console.error('Error initialising items table:', error);
         };
     };
     
@@ -670,6 +689,6 @@ export default async function run () {
         });
     
         ss.config.distributed_all.closed && log.bgRed('Server is running in closed mode.');
-        log.success('WebSocket server is running on ws://localhost:' + port);
+        log.success('WebSocket server is running on ws://localhost:' + port + ' in '+(Date.now()-runStart)+'ms');
     });
 };

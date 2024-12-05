@@ -1,16 +1,28 @@
 //legacyshell: catalog
-import { isClient, ItemType, CharClass, Slot, item_classes, itemIdOffsets, itemIdOffsetsOLD, itemIdOffsetsByName, itemIdOffsetsByNameOLD } from '#constants';
+import { isClient, ItemType, CharClass, Slot, item_classes, itemIdOffsets, itemIdOffsetsOLD, itemIdOffsetsByName, itemIdOffsetsByNameOLD, devlog } from '#constants';
+//legacyshell: logging
+import log from '#coloured-logging';
+//legacyshell: ss
+import { ss } from '#misc';
+//legacyshell: plugins
+import { plugins } from '#plugins';
+import events from '#events';
+import extendMath from '#math';
 //
 
 //(server-only-start)
 //(server-only-end)
 
 // [LS] Catalog CONSTRUCTOR
-export const CatalogConstructor = function (importedItems) {
-    if (null == importedItems) throw "Items is undefined or null, cannot create Catalog";
-    this.isSetup = false;
-    this.Items = importedItems;
-    this.filterItems = function (itemList, filterFunc) {
+export class CatalogConstructor {
+    constructor (importedItems) {
+        if (null == importedItems) throw "Items is undefined or null, cannot create Catalog";
+        this.isSetup = false;
+        this.Items = importedItems;
+        false === this.isSetup && this.setupCatalog();
+    };
+
+    filterItems (itemList, filterFunc) {
         var filteredItems = [];
         for (var i = 0; i < itemList.length; i++) {
             if (filterFunc(itemList[i])) {
@@ -19,15 +31,13 @@ export const CatalogConstructor = function (importedItems) {
         };
         return filteredItems;
     };
-    this.findItemInListById = function (itemId, itemList) {
-        for (var i = 0; i < itemList.length; i++)
-            if (itemList[i] && itemList[i].id === itemId) return itemList[i];
-        return null
+    findItemInListById (itemId, itemList) {
+        return findItemInListById(itemId, itemList); //i want to use this
     };
-    this.findItemById = function (itemId) {
+    findItemById (itemId) {
         return this.findItemInListById(itemId, this.Items)
     };
-    this.findItemBy8BitItemId = function (itemType, classIdx, itemId8Bit, itemIdOffsetsP = itemIdOffsets) {
+    findItemBy8BitItemId (itemType, classIdx, itemId8Bit, itemIdOffsetsP = itemIdOffsets) {
         if (!this.isSetup) {
             this.setupCatalog();
         };
@@ -55,7 +65,7 @@ export const CatalogConstructor = function (importedItems) {
         }
     };
     //its not really 8bit any more
-    this.get8BitItemId = function (item, classIdx, itemIdOffsetsP = itemIdOffsets) {
+    get8BitItemId (item, classIdx, itemIdOffsetsP = itemIdOffsets) {
         if (item === null) return 0;
         if (!this.isSetup) {
             this.setupCatalog();
@@ -84,14 +94,14 @@ export const CatalogConstructor = function (importedItems) {
         };
         return itemId8Bit;
     };    
-    this.addWeaponFunctions = function (weaponItem) {
+    addWeaponFunctions (weaponItem) {
         weaponItem.instantiateNew = function (avatar) {
             const ItemClass = item_classes[this.item_data.class];
             var instance = new ItemClass(avatar, this.item_data.meshName);
             return avatar.actor && avatar.actor.setWeaponSkeleton(instance.actor.skeleton), instance
         }
     };
-    this.getTaggedItems = function (tag) {
+    getTaggedItems (tag) {
         return this.filterItems(this.Items, function (item) {
             if (void 0 !== item.item_data.tags && null !== item.item_data.tags && 0 < item.item_data.tags.length)
                 for (var i = 0; i < item.item_data.tags.length; i++)
@@ -99,7 +109,7 @@ export const CatalogConstructor = function (importedItems) {
             return false
         })
     };
-    this.setupCatalog = function () {
+    setupCatalog () {
         this.hats = [], this.stamps = [], this.primaryWeapons = [], this.secondaryWeapons = [], this.forClass = [];
         for (var i = 0; i < this.Items.length; i++) switch (this.Items[i].item_type_id) {
             case ItemType.Hat:
@@ -139,7 +149,12 @@ export const CatalogConstructor = function (importedItems) {
         }
         this.isSetup = true
     };
-    false === this.isSetup && this.setupCatalog();
+};
+
+export function findItemInListById (itemId, itemList) {
+    for (var i = 0; i < itemList.length; i++)
+        if (itemList[i] && itemList[i].id === itemId) return itemList[i];
+    return null
 };
 
 export function convertOldItemIdToMetaId(id, type, oldOffsets = itemIdOffsetsByNameOLD) {
@@ -159,6 +174,139 @@ export function integrateItems(items, newitems) { //this is only for items js fi
             items[itemclass].push(newitem);
         });
     });
+};
+
+export function getItemsByTag(items, tag) {
+    return items.filter(item => {
+        return item?.item_data?.tags && item.item_data.tags.includes(tag);
+    });
+};
+
+export function convertMixedPoolToPurePool(mixedPool, items, event) {
+    let purePool = [];
+    //convert any tags to ids
+    for (let i = 0; i < mixedPool.length; i++) {
+        if (typeof mixedPool[i] === 'string') {
+            let tag = getItemsByTag(items, mixedPool[i]);
+            tag.forEach(item => {
+                item.sourceTag = mixedPool[i];
+                if (event) {
+                    item.event = event;
+                };
+                purePool.push(item);
+            });
+        } else if (typeof mixedPool[i] === 'number') {
+            let item = findItemInListById(mixedPool[i], items);
+            if (item) {
+                if (event) {
+                    item.event = event;
+                };
+                purePool.push(item);
+            };
+        } else {
+            purePool.push(mixedPool[i]);
+        };
+    };
+    //remove duplicates
+    purePool = purePool.filter((item, index) => {
+        return purePool.indexOf(item) === index;
+    });
+    return purePool;
+};
+
+export async function setUpShopAvailable(seed = ss.servicesSeed) {
+    let items = await ss.recs.getAllItemData();
+
+    extendMath(Math);
+
+    Math.seed = seed;
+
+    const shop = {
+        items: [],
+        perm: [],
+        temp: [],
+
+        tier1chosen: null,
+        tier1pool: [],
+        tier1chance: (Math.seededRandomInt(0, 25) + (Math.seededRandomChance(0.2) ? Math.seededRandomInt(0, 75) : Math.seededRandomInt(0, 20)))/100,
+        tier2pool: [],
+        tier3pool: [],
+    };
+
+    await plugins.emit('setUpShopAvailableBeforeEventLoop', { shop, Math, items });
+
+    events.current.forEach(event => {
+        if (event?.data?.shop) {
+            if (shop.perm) {
+                shop.perm = shop.perm.concat(convertMixedPoolToPurePool(event.data.shop.perm, items, event.name));
+            };
+            if (shop.temp) {
+                shop.temp = shop.temp.concat(convertMixedPoolToPurePool(event.data.shop.temp, items, event.name));
+            };
+
+            if (event.data.shop.tier1pool) { //highest rarity
+                shop.tier1pool = shop.tier1pool.concat(convertMixedPoolToPurePool(event.data.shop.tier1pool, items, event.name));
+            };
+
+            if (event.data.shop.tier2pool) { //high rarity
+                let pool = Math.seededShuffleArray(convertMixedPoolToPurePool(event.data.shop.tier2pool, items, event.name));
+                let count = event.data.shop.tier2count || 1;
+                count = Math.min(count, pool.length);
+
+                //choose random count of items from pool without duplicates
+                shop.tier2pool = shop.tier2pool.concat(pool.slice(0, count));
+
+                // devlog('tier2pool', pool.slice(0, count), count, shop.tier2pool);
+            };
+            if (event.data.shop.tier3pool) { //medium rarity
+                let pool = Math.seededShuffleArray(convertMixedPoolToPurePool(event.data.shop.tier3pool, items, event.name));
+                let count = event.data.shop.tier3count || 1;
+                count = Math.min(count, pool.length);
+                
+                //choose random count of items from pool without duplicates
+                shop.tier3pool = shop.tier3pool.concat(pool.slice(0, count));
+            };
+        };
+    });
+
+    //for removing dupes, tags already handled
+    shop.perm = convertMixedPoolToPurePool(shop.perm, items);
+    shop.temp = convertMixedPoolToPurePool(shop.temp, items);
+
+    shop.tier1pool = convertMixedPoolToPurePool(shop.tier1pool, items);
+    // console.log(shop.tier2pool);
+    shop.tier2pool = convertMixedPoolToPurePool(shop.tier2pool, items);
+    // console.log(shop.tier2pool);
+    shop.tier3pool = convertMixedPoolToPurePool(shop.tier3pool, items);
+
+    shop.items = shop.items.concat(shop.perm, shop.temp, shop.tier2pool, shop.tier3pool);
+
+    if (Math.seededRandomChance(shop.tier1chance)) {
+        shop.tier1chosen = Math.seededRandomFromList(shop.tier1pool);
+        shop.items.push(shop.tier1chosen);
+    };
+
+    await plugins.emit('setUpShopAvailableBeforeApply', { shop, Math, items });
+
+    // console.log('shop', shop);
+
+    log.info("[Shop] Available retrieval complete, applying to database");
+
+    //begin transaction
+    ss.runQuery("BEGIN TRANSACTION");
+
+    try {
+        shop.items.forEach(item => {
+            ss.runQuery("UPDATE items SET is_available = 1 WHERE id = ?", item.id);
+        });
+    
+        //commit transaction
+        ss.runQuery("COMMIT");
+    } catch (error) {
+        //rollback transaction
+        ss.runQuery("ROLLBACK");
+        log.error("[Shop] Error applying available items to database", error);
+    };
 };
 
 export default CatalogConstructor;

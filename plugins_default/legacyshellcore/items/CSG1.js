@@ -8,7 +8,7 @@
     Past that is fair game for custom items in other plugins
 */
 
-export default {
+var items = {
     "CSG1": [{
         "meta_id": 10000,
         "name": "Classic CSG1",
@@ -24,3 +24,14 @@ export default {
         "is_available": false
     }]
 };
+
+Object.keys(items).forEach(itemclass => {
+    for (var i in items[itemclass]) {
+        const item = items[itemclass][i];
+        // if (item.unlock !== 'purchase' && item.unlock !== 'default') {
+            item.is_available = false;
+        // };
+    };
+});
+
+export default items;

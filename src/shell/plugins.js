@@ -27,6 +27,8 @@ export class PluginManager {
             try {
                 const pluginPath = path.join(pluginsDir, pluginFolder, 'index.js');
                 if (fs.existsSync(pluginPath) && !pluginFolder.startsWith("_")) {
+                    let pluginLoadStart = Date.now();
+            
                     log.info(`Loading plugin: ${pluginFolder}...`);
                     (async () => {
                         const gitPath = path.join(pluginsDir, pluginFolder, '.git');
@@ -104,7 +106,7 @@ export class PluginManager {
 
                     const pluginInstance = new Plugin(this, path.join(pluginsDir, pluginFolder));
                     this.plugins[PluginMeta.identifier || pluginFolder] = pluginInstance;
-                    log.success(`Loaded plugin -> ${PluginMeta.name} v${PluginMeta.version} by ${PluginMeta.author}: ${PluginMeta.descriptionShort}`);
+                    log.success(`Loaded plugin -> ${PluginMeta.name} v${PluginMeta.version} by ${PluginMeta.author}: ${PluginMeta.descriptionShort} (${Date.now() - pluginLoadStart}ms)`);
                 };
             } catch (error) {
                 log.error(`Failed to load plugin ${pluginFolder}:`, error);
@@ -113,6 +115,8 @@ export class PluginManager {
     };
 
     async loadPlugins(type) {
+        let pluginLoadStart = Date.now();
+
         this.type = type;
 
         log.info(`####################\nLoading plugins for ${type}...`);
@@ -140,7 +144,7 @@ export class PluginManager {
             await this.loadPluginsFromDir(pluginFolder, type, ss);
         };
 
-        log.info('Finished loading plugins.\n####################');
+        log.info(`Finished loading plugins in ${Date.now() - pluginLoadStart}ms.\n####################`);
     };
 
     on(event, listener) { //when a plugin registers a listener

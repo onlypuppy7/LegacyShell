@@ -152,6 +152,17 @@ export const misc = {
         log.green(`Created ss Object! Commit hash: ${ss.versionHash} (${ss.versionEnum})`);
         (!noConfig) && ss.config.verbose && log.bgGray("VERBOSE LOGGING ENABLED!!!!!!");
     },
+    getServicesSeed: async function () {
+        //if seed not exists in flag sqlite table, generate a new one
+        let seed = await ss.getOne(`SELECT * FROM flags WHERE name = 'servicesSeed'`);
+
+        if (!seed) {
+            seed = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+            ss.runQuery("INSERT INTO flags (name, value) VALUES ('servicesSeed', ?)", seed);
+        };
+        ss.servicesSeed = seed;
+        return seed;
+    },
     hashtagToPath: function (hashtag) {
         try {
             if (!hashtag.startsWith("#")) hashtag = `#${hashtag}`;
