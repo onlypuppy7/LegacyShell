@@ -113,7 +113,7 @@ export const misc = {
                         process.exit(1);
                     };
                 } catch (error) {
-                    console.error(`Error reading ${file}:`, err);
+                    console.error(`Error reading ${file}:`, error);
                     process.exit(1);
                 };
             });
