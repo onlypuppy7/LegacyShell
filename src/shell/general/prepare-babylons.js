@@ -16,6 +16,8 @@ import { plugins } from '#plugins';
 var debuggingLogs = false;
 
 export async function prepareBabylons(endBabylonsDir = path.join(ss.rootDir, 'store', 'export-static', 'models'), baseBabylonsDir = path.join(ss.rootDir, 'src', 'base-babylons')) {
+    let startTime = Date.now();
+
     if (!fs.existsSync(endBabylonsDir)) fs.mkdirSync(endBabylonsDir, { recursive: true });
 
     log.info("Preparing babylons...");
@@ -173,27 +175,29 @@ export async function prepareBabylons(endBabylonsDir = path.join(ss.rootDir, 'st
             log.error(`Error preparing babylon ${babylon}:`, error);
         };
     };
-function saveZip(zip, zipName) {
-    const tempDir = path.join(endBabylonsDir, "temp_" + zipName);
-    const zipDir = path.join(endBabylonsDir, zipName)
 
-    return new Promise((resolve, reject) => {
-        zip.generateNodeStream({
-                type: 'nodebuffer',
-                streamFiles: true,
-                compression: "DEFLATE"
-            }).pipe(fs.createWriteStream(tempDir))
-            .on('finish', function () {
-                fs.renameSync(tempDir, zipDir);
-                log.green(`${zipName} written.`);
-                resolve();
-            })
-            .on('error', function (err) {
-                log.red(`Error writing ${zipName}: ${err}`);
-                reject(err);
-            });
-    });
-};
+    function saveZip(zip, zipName) {
+        let startTime = Date.now();
+        const tempDir = path.join(endBabylonsDir, "temp_" + zipName);
+        const zipDir = path.join(endBabylonsDir, zipName)
+
+        return new Promise((resolve, reject) => {
+            zip.generateNodeStream({
+                    type: 'nodebuffer',
+                    streamFiles: true,
+                    compression: "DEFLATE"
+                }).pipe(fs.createWriteStream(tempDir))
+                .on('finish', function () {
+                    fs.renameSync(tempDir, zipDir);
+                    log.green(`${zipName} written in ${Date.now() - startTime}ms.`);
+                    resolve();
+                })
+                .on('error', function (err) {
+                    log.red(`Error writing ${zipName}: ${err}`);
+                    reject(err);
+                });
+        });
+    };
 
     var promise = Promise.all([
         saveZip(modelsZip, 'models.zip'),
@@ -201,10 +205,11 @@ function saveZip(zip, zipName) {
     ]);
 
     if (fileChanged) {
-        log.info("Babylons changed. Waiting for zip to save before proceeding.");
+        log.info(`Babylons changed in ${Date.now() - startTime}ms. Waiting for zip to save before proceeding.`);
+        let promiseTime = Date.now();
         await promise;
-        log.success("All zips saved. Proceeding.");
+        log.success(`All zips saved ${Date.now() - promiseTime}ms, total: ${Date.now() - startTime}ms. Proceeding.`);
     } else {
-        log.green("No babylons changed.");
+        log.green(`No babylons changed (${Date.now() - startTime}ms).`);
     };
 };

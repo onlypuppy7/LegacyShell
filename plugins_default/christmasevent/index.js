@@ -59,7 +59,7 @@ export class Plugin {
     };
 
     async roomInitGameOptions(data) {
-        if (events.currentArray.includes("december")) {
+        if (events.currentArray.includes("christmas")) {
             var ctx = data.this
     
             ctx.gameOptions.weather.snowStormEnabled = true;

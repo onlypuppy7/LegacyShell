@@ -17,12 +17,14 @@ import { plugins } from '#plugins';
 //
 
 async function prepareModified() {
+    let startTimestamp = Date.now();
+
     try {
         await Promise.all([
             prepareBabylons(path.join(ss.rootDir, 'server-client', 'store', 'client-modified', 'models')),
             modifyFiles(),
         ]);
-        log.success('All prepareModified promises resolved!');
+        log.success('All prepareModified promises resolved in ' + (Date.now() - startTimestamp) + 'ms');
     } catch (error) {
         log.error('One of the prepareModified promises rejected:', error);
     };

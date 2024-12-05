@@ -41,6 +41,8 @@ export default async function run () {
 
     async function startServer() {
         try {
+            let serverStartTime = Date.now();
+
             const app = express();
 
             await plugins.emit('onStartServer', { ss, app, ws });
@@ -95,12 +97,14 @@ export default async function run () {
                 retrieved = 2;
 
                 try {
+                    let promiseStart = Date.now();
+
                     await Promise.all([
                         prepareStamps(),
                         prepareModified(),
                         buildWiki()
                     ]);
-                    log.success('All start-client promises resolved!');
+                    log.success('All start-client promises resolved in ' + (Date.now() - promiseStart) + 'ms');
 
                     delete ss.cache; //MEMORY LEAK FUCKING MI-Mi-mi-MITIGATED!!!
                 } catch (error) {
@@ -142,7 +146,7 @@ export default async function run () {
             app.use('/assets/', express.static(assetsPath));
 
             app.listen(port, async ()=>{
-                log.success(`\nServer is running on http://localhost:${port}`);
+                log.success(`\nServer is running on http://localhost:${port} in ${Date.now() - serverStartTime}ms`);
                 await plugins.emit('onServerRunning', { ss, app });
             });
         } catch (error) {
@@ -151,6 +155,8 @@ export default async function run () {
     };
 
     async function buildWiki () {
+        let wikiStart = Date.now();
+
         log.info('Starting VuePress build...');
 
         return new Promise((resolve, reject) => {
@@ -166,7 +172,7 @@ export default async function run () {
             });
     
             vuepressBuild.on('close', (code) => {
-                log.success(`VuePress build complete. Wiki will be available at http://localhost:${port}/wiki`);
+                log.success(`VuePress build complete in ${Date.now() - wikiStart}ms. Wiki will be available at http://localhost:${port}/wiki`);
                 resolve();
             });
     
