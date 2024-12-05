@@ -4844,7 +4844,7 @@ integrateItems(items, {
         "exclusive_for_class": 0,
         "item_data": {
             "meshName": "gun_eggk47_modern",
-            "tags": ["default", "Blue", "Purple"]
+            "tags": ["default", "Blue", "Purple", "ModernShellGuns"]
         },
         "is_available": true,
         "unlock": "purchase"
@@ -4859,7 +4859,7 @@ integrateItems(items, {
         "exclusive_for_class": 1,
         "item_data": {
             "meshName": "gun_dozenGauge_modern",
-            "tags": ["default", "Blue", "Purple"]
+            "tags": ["default", "Blue", "Purple", "ModernShellGuns"]
         },
         "is_available": true,
         "unlock": "purchase"
@@ -4874,7 +4874,7 @@ integrateItems(items, {
         "exclusive_for_class": 2,
         "item_data": {
             "meshName": "gun_csg1_modern",
-            "tags": ["default", "Blue", "Purple"]
+            "tags": ["default", "Blue", "Purple", "ModernShellGuns"]
         },
         "is_available": true,
         "unlock": "purchase"
@@ -4889,7 +4889,7 @@ integrateItems(items, {
         "exclusive_for_class": 3,
         "item_data": {
             "meshName": "gun_rpegg_modern",
-            "tags": ["default", "Blue", "Purple"]
+            "tags": ["default", "Blue", "Purple", "ModernShellGuns"]
         },
         "is_available": true,
         "unlock": "purchase"
@@ -4904,7 +4904,7 @@ integrateItems(items, {
         "exclusive_for_class": null,
         "item_data": {
             "meshName": "gun_cluck9mm_modern",
-            "tags": ["default", "Blue", "Purple"]
+            "tags": ["default", "Blue", "Purple", "ModernShellGuns"]
         },
         "is_available": true,
         "unlock": "purchase"

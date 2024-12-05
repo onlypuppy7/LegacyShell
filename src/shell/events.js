@@ -25,11 +25,12 @@ export const defaultEvents = [{
     duration: "999w",
     data: {
         shop: {
-            itemsPerm: [
+            perm: [
                 150001, // meta id: 1, Cluck 9mm GOLD  
                 200001, // meta id: 1, Eggk47 GOLD  
                 250001, // meta id: 1, CSG1 GOLD  
                 300001, // meta id: 1, Dozen Gauge GOLD
+                // 350001, // meta id: 1, RPEGG GOLD (part of the modern guns plugin)
 
                 50023, // meta id: 23, Happy Gun Bear Hat  
                 50024, // meta id: 24, Happy Gun Bear Hunting Hat  
@@ -39,12 +40,17 @@ export const defaultEvents = [{
                 250002, // meta id: 2, Happy Gun Bear CSG1  
                 300002, // meta id: 2, Happy Gun Bear Dozen Gauge
             ], //items that are always in the shop
-            itemsTemp: [], //items that are only in the shop for the duration of the event
+            temp: [
+            ], //items that are only in the shop for the duration of the event
 
-            itemsTier1: [], //one item from this list will be chosen if chance is met
-            itemsTier2: [], //one item from this list will always be chosen
+            tier1pool: [250008], //one item from this list will be chosen if chance is met
+
+            tier2pool: [ //one (tier2count) item from this list will always be chosen
+                "GroundhogDay" //tag
+            ],
             tier2count: 1,
-            itemsTier3: [], //five items from this list will always be chosen
+
+            tier3pool: [300045], //five (tier3count) items from this list will always be chosen
             tier3count: 5,
         }
     },

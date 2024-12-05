@@ -10,7 +10,7 @@
     Note that 0 is reserved for no hat
 */
 
-export default {
+var items = {
     "Hats": [{
         "meta_id": 10000,
         "name": "LegacyShell Beta",
@@ -25,3 +25,14 @@ export default {
         }
     }]
 };
+
+Object.keys(items).forEach(itemclass => {
+    for (var i in items[itemclass]) {
+        const item = items[itemclass][i];
+        // if (item.unlock !== 'purchase' && item.unlock !== 'default') {
+            item.is_available = false;
+        // };
+    };
+});
+
+export default items;

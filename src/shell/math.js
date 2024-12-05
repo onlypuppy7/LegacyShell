@@ -74,6 +74,13 @@ function extendMath (Math) {
         };
         return array;
     };
+    Math.seededShuffleArray = function (array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.seededRandomInt(0, i);
+            [array[i], array[j]] = [array[j], array[i]];
+        };
+        return array;
+    };
     
     //scrambled functions from sfbt
     Math.getRandomInt = function (min, max) {
@@ -82,6 +89,9 @@ function extendMath (Math) {
     
     Math.getRandomChance = function (chance) {
         return (Math.random() <= chance);
+    };
+    Math.seededRandomChance = function (chance) {
+        return (Math.seededRandom(0, 1) <= chance);
     };
     
     Math.getRandomChar = function () {
@@ -123,6 +133,9 @@ function extendMath (Math) {
 
     Math.getRandomFromList = function (list) {
         return list[Math.getRandomInt(0, list.length - 1)];
+    };
+    Math.seededRandomFromList = function (list) {
+        return list[Math.seededRandomInt(0, list.length - 1)];
     };
     return Math;
 };

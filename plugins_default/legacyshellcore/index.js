@@ -36,6 +36,7 @@ export class Plugin {
 
         this.plugins.on('client:stampImageDirs', this.stampImageDirs.bind(this));
         this.plugins.on('services:initTables', this.initTables.bind(this));
+        this.plugins.on('services:initTablesMaps', this.initTablesMaps.bind(this));
         
         this.plugins.on('game:metaLoop', this.metaLoopHook.bind(this));
         this.plugins.on('game:clientPackSyncLoop', this.clientPackSyncLoopHook.bind(this));
@@ -90,7 +91,10 @@ export class Plugin {
 
     async initTables(data) { //async operation requires awaits to ensure proper order
         await data.ss.recs.insertItems(path.join(this.thisDir, 'items'));
-        await data.ss.recs.insertMaps(path.join(this.thisDir, 'maps'));
+    };
+
+    async initTablesMaps(data) {
+        await data.ss.recs.insertMaps(path.join(this.thisDir, 'maps')); //hopefully avoid the annoying startup crash
     };
 
     metaLoopHook(data) {

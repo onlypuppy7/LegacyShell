@@ -24,10 +24,10 @@ export class Plugin {
         pluginInstance = this;
 
 
-        this.plugins.on('services:initTables', this.initTables.bind(this));
+        this.plugins.on('services:initTablesMaps', this.initTablesMaps.bind(this));
     };
 
-    async initTables(data) { //async operation requires awaits to ensure proper order
+    async initTablesMaps(data) { //async operation requires awaits to ensure proper order
         await data.ss.recs.insertMaps(path.join(this.thisDir, 'maps'));
     };
 };

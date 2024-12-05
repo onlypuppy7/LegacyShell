@@ -399,7 +399,7 @@ const exported = {
                     maps.push(JSON.parse(fileContent));
                 };
             };
-    
+
             for (const map of maps) {
                 log.beige(`[Maps] Inserting: ${map.name}`);
                 await ss.runQuery(`
@@ -427,16 +427,24 @@ const exported = {
                     ],
                 );
             };
+            
+            try {
+                await ss.runQuery('COMMIT');
+                await ss.runQuery('BEGIN TRANSACTION');
+            } catch (error) { };
+
+            log.beige(`[Maps] Reordering maps table`);
     
             //alphabetical order (cringe)
             try {
-                await ss.runQuery('BEGIN TRANSACTION');
                 await ss.runQuery('CREATE TABLE maps_temp AS SELECT * FROM maps ORDER BY name');
                 await ss.runQuery('DROP TABLE maps');
                 await ss.runQuery('ALTER TABLE maps_temp RENAME TO maps');
-                await ss.runQuery('COMMIT');
+                try {
+                    await ss.runQuery('COMMIT');
+                    await ss.runQuery('BEGIN TRANSACTION');
+                } catch (error) { };
             } catch (error) {
-                await ss.runQuery('ROLLBACK');
                 log.error('Error reordering maps table:', error);
                 reject(error);
             };

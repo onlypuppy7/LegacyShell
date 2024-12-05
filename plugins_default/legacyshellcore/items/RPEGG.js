@@ -10,7 +10,7 @@
 
 //no custom items exist yet for RPEGG
 
-export default {
+var items = {
     // "RPEGG": [{
     //     "meta_id": 10000,
     //     "name": "RPEGG",
@@ -26,3 +26,14 @@ export default {
     //     "is_available": true
     // }]
 };
+
+Object.keys(items).forEach(itemclass => {
+    for (var i in items[itemclass]) {
+        const item = items[itemclass][i];
+        // if (item.unlock !== 'purchase' && item.unlock !== 'default') {
+            item.is_available = false;
+        // };
+    };
+});
+
+export default items;
