@@ -9,6 +9,7 @@ import log from '#coloured-logging';
 import { ss } from '#misc';
 //legacyshell: plugins
 import { plugins } from '#plugins';
+import events, { defaultEvents } from '#events';
 //
 
 export const PluginMeta = {
@@ -40,11 +41,27 @@ export class Plugin {
         this.plugins.on('services:setUpShopAvailableBeforeApply', this.setUpShopAvailableBeforeApply.bind(this));
     };
 
-    setUpShopAvailableBeforeApply(data) {
+    async setUpShopAvailableBeforeApply(data) {
         var shop = data.shop;
         var mondayStart = data.mondayStart;
         var eventsMonday = data.eventsMonday;
 
+        if (this.config.last < mondayStart) {
+            console.log('Sending shop update');
+    
+            var msgsPub = await this.shop2info(shop, mondayStart, eventsMonday);
+            var msgsDev = await this.shop2info(shop, mondayStart, eventsMonday, true);
+
+            console.log(msgsDev);
+
+            this.sendWebhook(msgsPub, this.config.webhook);
+            this.sendWebhook(msgsDev, this.config.webhookdev);
+        };
+
+        this.config.last = Date.now();
+    };
+
+    async shop2info(shop, mondayStart, eventsMonday, dev = false) {
         var msgs = [
 `#  LegacyShell Shop Update
 ## Week beginning <t:${mondayStart/1000}:F>
@@ -55,7 +72,7 @@ export class Plugin {
         });
         msgs.push('\nHere are the items available this week in the shop:');
 
-        console.log('shop', shop);
+        // console.log('shop', shop);
 
         if (shop.temp && shop.temp.length > 0) {
             log.italic('[autoshopnotifications] Temp Event Items');
@@ -75,22 +92,38 @@ export class Plugin {
             msgs.push(...this.createTable(shop.tier2pool));
         };
 
-        msgs.push(`### This Week's Tier 1 Chance\n||\`${shop.tier1chance}%\`||\n${this.config.ping}`);
+        msgs.push(`### This Week's Tier 1 Chance\n||\`${shop.tier1chance}%\`||`);
 
-        msgs = this.compress2kChars(msgs);
+        if (dev) {
+            var tier1chosen = shop.tier1chosen ? [shop.tier1chosen] : [];
 
-        console.log('msgs', msgs);
+            msgs.push(`\n### [dev] Tier 1 chosen:\n${this.createTable(tier1chosen)[0]}`);
 
-        this.sendWebhook(msgs);
+            msgs.push(`### [dev] All items in shop`);
+
+            msgs.push(...this.createTable(shop.items));
+        };
+
+        var eventsNextWeek = await events.getEventsAtTime(mondayStart + 7 * 24 * 60 * 60 * 1000);
+
+        // console.log('eventsNextWeek', eventsNextWeek, eventsNextWeek.currentArray);
+
+        msgs.push(`\nNext week's events:`);
+        eventsNextWeek.currentArray.forEach(event => {
+            msgs.push(`> - ${event}`);
+        });
+
+        msgs.push(`\n${this.config.ping}`);
+
+        return this.compress2kChars(msgs);
     };
 
-    async sendWebhook(msgs) { //sends messages via webhook. waits for each message to be sent before sending the next. retries if failed
-        if (!this.config.webhook) {
+    async sendWebhook(msgs, webhook) { //sends messages via webhook. waits for each message to be sent before sending the next. retries if failed
+        if (webhook == '' || !webhook) {
             log.warning('[autoshopnotifications] No webhook set. Please set a webhook in the config file.');
             return;
         };
 
-        const webhook = this.config.webhook;
         for (var i = 0; i < msgs.length; i++) {
             console.log("Sending msg:", i, "of", msgs.length);
             try {
@@ -100,6 +133,8 @@ export class Plugin {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
+                        username: "LegacyShell Shop Notifications",
+                        avatar_url: "https://cdn.onlypuppy7.online/legacyshell/shop.png",
                         content: msgs[i],
                     }),
                 });
@@ -108,6 +143,10 @@ export class Plugin {
                 log.warning('[autoshopnotifications] Failed to send message', msgs[i], 'to webhook', webhook, error);
             };
         };
+
+        log.green('[autoshopnotifications] Sent all messages to webhook', webhook);
+
+        this.saveConfig(this.config);
     };
 
     getConfig() {
@@ -116,6 +155,7 @@ export class Plugin {
             fs.writeFileSync(configPath, JSON.stringify({
                 last: 0,
                 webhook: '',
+                webhookdev: '',
                 ping: '@ping',
             }, null, 4));
             log.beige('[autoshopnotifications] Config file created at', configPath);
@@ -124,7 +164,7 @@ export class Plugin {
     };
 
     saveConfig(config) {
-        const configPath = path.join(this.storeFolder, 'config', 'autoshopnotifications.json');
+        const configPath = path.join(this.storeFolder, 'autoshopnotifications.json');
         fs.writeFileSync(configPath, JSON.stringify(config, null, 4));
     };
 
