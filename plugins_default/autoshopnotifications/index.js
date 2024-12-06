@@ -55,7 +55,7 @@ export class Plugin {
             console.log(msgsDev);
 
             this.sendWebhook(msgsPub, this.config.webhook);
-            this.sendWebhook(msgsDev, this.config.webhookdev);
+            this.sendWebhook(msgsDev, this.config.webhookdev, true);
         };
 
         this.config.last = Date.now();
@@ -118,7 +118,7 @@ export class Plugin {
         return this.compress2kChars(msgs);
     };
 
-    async sendWebhook(msgs, webhook) { //sends messages via webhook. waits for each message to be sent before sending the next. retries if failed
+    async sendWebhook(msgs, webhook,  dev = false) { //sends messages via webhook. waits for each message to be sent before sending the next. retries if failed
         if (webhook == '' || !webhook) {
             log.warning('[autoshopnotifications] No webhook set. Please set a webhook in the config file.');
             return;
@@ -133,8 +133,8 @@ export class Plugin {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        username: "LegacyShell Shop Notifications",
-                        avatar_url: "https://cdn.onlypuppy7.online/legacyshell/shop.png",
+                        username: `LegacyShell Shop Notifications${dev ? " [dev]" : ""}` ,
+                        avatar_url: "https://cdn.onlypuppy7.online/legacyshell/shop.png?v=2",
                         content: msgs[i],
                     }),
                 });
