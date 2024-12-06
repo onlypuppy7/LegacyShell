@@ -214,43 +214,52 @@ export function convertMixedPoolToPurePool(mixedPool, items, event) {
     return purePool;
 };
 
-export async function setUpShopAvailable(seed = ss.servicesSeed) {
-    let items = await ss.recs.getAllItemData();
+export async function setUpShopAvailable(seed = ss.servicesSeed.value.split("").reduce((hash, char, idx) => hash + char.charCodeAt(0) * (idx + 1), 0)) { //seed must be a number
+    let items = await ss.recs.getAllItemData(true);
 
     extendMath(Math);
 
-    Math.seed = seed;
+    const mondayStart = new Date(new Date().setDate(new Date().getDate() - ((new Date().getDay() || 7) - 1))).setHours(0, 0, 0, 0);
+
+    var eventsMonday = await events.getEventsAtTime(mondayStart);
+
+    Math.seed = seed + mondayStart;
+
+    devlog('seed', seed, ss.servicesSeed, Math.seed, mondayStart, eventsMonday);
 
     const shop = {
         items: [],
         perm: [],
         temp: [],
 
-        tier1chosen: null,
         tier1pool: [],
         tier1chance: (Math.seededRandomInt(0, 25) + (Math.seededRandomChance(0.2) ? Math.seededRandomInt(0, 75) : Math.seededRandomInt(0, 20)))/100,
+        tier1chosen: null,
+
         tier2pool: [],
+
         tier3pool: [],
     };
 
-    await plugins.emit('setUpShopAvailableBeforeEventLoop', { shop, Math, items });
+    await plugins.emit('setUpShopAvailableBeforeEventLoop', { shop, Math, items, mondayStart, eventsMonday });
 
-    events.current.forEach(event => {
+    eventsMonday.current.forEach(event => {
         if (event?.data?.shop) {
-            if (shop.perm) {
-                shop.perm = shop.perm.concat(convertMixedPoolToPurePool(event.data.shop.perm, items, event.name));
+            const eventShop = event.data.shop;
+            if (eventShop.perm) {
+                shop.perm = shop.perm.concat(convertMixedPoolToPurePool(eventShop.perm, items, event.name));
             };
-            if (shop.temp) {
-                shop.temp = shop.temp.concat(convertMixedPoolToPurePool(event.data.shop.temp, items, event.name));
-            };
-
-            if (event.data.shop.tier1pool) { //highest rarity
-                shop.tier1pool = shop.tier1pool.concat(convertMixedPoolToPurePool(event.data.shop.tier1pool, items, event.name));
+            if (eventShop.temp) {
+                shop.temp = shop.temp.concat(convertMixedPoolToPurePool(eventShop.temp, items, event.name));
             };
 
-            if (event.data.shop.tier2pool) { //high rarity
-                let pool = Math.seededShuffleArray(convertMixedPoolToPurePool(event.data.shop.tier2pool, items, event.name));
-                let count = event.data.shop.tier2count || 1;
+            if (eventShop.tier1pool) { //highest rarity
+                shop.tier1pool = shop.tier1pool.concat(convertMixedPoolToPurePool(eventShop.tier1pool, items, event.name));
+            };
+
+            if (eventShop.tier2pool) { //high rarity
+                let pool = Math.seededShuffleArray(convertMixedPoolToPurePool(eventShop.tier2pool, items, event.name));
+                let count = eventShop.tier2count || 1;
                 count = Math.min(count, pool.length);
 
                 //choose random count of items from pool without duplicates
@@ -258,9 +267,9 @@ export async function setUpShopAvailable(seed = ss.servicesSeed) {
 
                 // devlog('tier2pool', pool.slice(0, count), count, shop.tier2pool);
             };
-            if (event.data.shop.tier3pool) { //medium rarity
-                let pool = Math.seededShuffleArray(convertMixedPoolToPurePool(event.data.shop.tier3pool, items, event.name));
-                let count = event.data.shop.tier3count || 1;
+            if (eventShop.tier3pool) { //medium rarity
+                let pool = Math.seededShuffleArray(convertMixedPoolToPurePool(eventShop.tier3pool, items, event.name));
+                let count = eventShop.tier3count || 1;
                 count = Math.min(count, pool.length);
                 
                 //choose random count of items from pool without duplicates
@@ -286,9 +295,27 @@ export async function setUpShopAvailable(seed = ss.servicesSeed) {
         shop.items.push(shop.tier1chosen);
     };
 
-    await plugins.emit('setUpShopAvailableBeforeApply', { shop, Math, items });
+    await plugins.emit('setUpShopAvailableBeforeApply', { shop, Math, items, mondayStart, eventsMonday });
 
-    // console.log('shop', shop);
+    devlog(
+        'shop',
+        'items',
+        shop.items.map(item => item.name),
+        'perm',
+        shop.perm.map(item => item.name),
+        'temp',
+        shop.temp.map(item => item.name),
+        'tier1pool',
+        shop.tier1pool.map(item => item.name),
+        'tier1chosen',
+        shop.tier1chosen?.name,
+        'tier1chance',
+        shop.tier1chance,
+        'tier2pool',
+        shop.tier2pool.map(item => item.name),
+        'tier3pool',
+        shop.tier3pool.map(item => item.name),
+    );
 
     log.info("[Shop] Available retrieval complete, applying to database");
 
@@ -302,6 +329,7 @@ export async function setUpShopAvailable(seed = ss.servicesSeed) {
     
         //commit transaction
         ss.runQuery("COMMIT");
+        log.success("[Shop] Available items applied to database");
     } catch (error) {
         //rollback transaction
         ss.runQuery("ROLLBACK");

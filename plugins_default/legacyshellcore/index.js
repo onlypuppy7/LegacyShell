@@ -37,9 +37,50 @@ export class Plugin {
         this.plugins.on('client:stampImageDirs', this.stampImageDirs.bind(this));
         this.plugins.on('services:initTables', this.initTables.bind(this));
         this.plugins.on('services:initTablesMaps', this.initTablesMaps.bind(this));
+
+        this.plugins.on('services:eventsInit', this.eventsInit.bind(this));
         
         this.plugins.on('game:metaLoop', this.metaLoopHook.bind(this));
         this.plugins.on('game:clientPackSyncLoop', this.clientPackSyncLoopHook.bind(this));
+    };
+
+    async eventsInit(data) {
+        var events = data.events;
+        events.push({
+            name: '_legacyshellcore',
+            start: "01-01",
+            duration: "999w",
+            data: {
+                shop: {
+                    perm: [ //items that are always in the shop
+                    ], 
+                    temp: [ //items that are only in the shop for the duration of the event; functionally the same as perm but is used to denote elsewhere that these items are temporary
+                    ],
+        
+                    tier1pool: [ //one item from this list will be chosen if chance is met
+                        "Promotional",
+                        "Snek"
+                    ],
+        
+                    tier2pool: [ //one (tier2count) item from this list will always be chosen
+                        "Pixel",
+                        "Eggwalker",
+                        "EggyCash",
+                    ],
+                    tier2count: 3,
+        
+                    tier3pool: [ //five (tier3count) items from this list will always be chosen
+                        "Mobile",
+                        "eggyp",
+                        "Meme",
+                        "Food",
+                        "Eggolorian",
+                        "StPatricksDay",
+                    ],
+                    tier3count: 7,
+                }
+            },
+        });
     };
 
     pluginSourceInsertion(data) {

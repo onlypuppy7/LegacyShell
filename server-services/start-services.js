@@ -239,7 +239,7 @@ export default async function run (runStart) {
                             distributed_game: ss.config.distributed_game,
     
                             permissions: ss.config.distributed_permissions,
-                            events: await events.getEventsAtTime(),
+                            events: await events.initEvents(),
     
                             nugget_interval: ss.config.services.nugget_interval,
                             servicesMeta: {

@@ -20,37 +20,36 @@ import { plugins } from '#plugins';
 */
 
 export const defaultEvents = [{
-    name: 'default',
+    name: '_default',
     start: "01-01",
     duration: "999w",
     data: {
         shop: {
-            perm: [
-                150001, // meta id: 1, Cluck 9mm GOLD  
-                200001, // meta id: 1, Eggk47 GOLD  
-                250001, // meta id: 1, CSG1 GOLD  
-                300001, // meta id: 1, Dozen Gauge GOLD
-                // 350001, // meta id: 1, RPEGG GOLD (part of the modern guns plugin)
+            perm: [ //items that are always in the shop
+                "Permanent",
 
-                50023, // meta id: 23, Happy Gun Bear Hat  
-                50024, // meta id: 24, Happy Gun Bear Hunting Hat  
-                100019, // meta id: 19, Happy Gun Bear  
-                150002, // meta id: 2, Happy Gun Bear Cluck 9mm  
-                200002, // meta id: 2, Happy Gun Bear Eggk47  
-                250002, // meta id: 2, Happy Gun Bear CSG1  
-                300002, // meta id: 2, Happy Gun Bear Dozen Gauge
-            ], //items that are always in the shop
-            temp: [
-            ], //items that are only in the shop for the duration of the event
+                "PermCluck9mm",
+                "PermEggk47",
+                "PermCSG1",
+                "PermDozenGauge",
+                "PermRPEGG",
 
-            tier1pool: [250008], //one item from this list will be chosen if chance is met
+                "GOLDset",
+                "HappyGunBear",
+            ], 
+            temp: [ //items that are only in the shop for the duration of the event; functionally the same as perm but is used to denote elsewhere that these items are temporary
+                // "Halloween",
+            ],
+
+            tier1pool: [ //one item from this list will be chosen if chance is met
+            ],
 
             tier2pool: [ //one (tier2count) item from this list will always be chosen
-                "GroundhogDay" //tag
             ],
             tier2count: 1,
 
-            tier3pool: [300045], //five (tier3count) items from this list will always be chosen
+            tier3pool: [ //five (tier3count) items from this list will always be chosen
+            ],
             tier3count: 5,
         }
     },
@@ -60,21 +59,8 @@ export const defaultEvents = [{
     duration: "2w",
     data: {
         shop: {
-            itemsTemp: [ //items that are only in the shop for the duration of the event
+            temp: [ //items that are only in the shop for the duration of the event
                 "GroundhogDay" //tag
-
-                /*
-                50070, // meta id: 70, Spring Sapling Hat  
-                50071, // meta id: 71, Winter Sapling Hat
-
-                50072,  // meta id: 72, Groundhog Hat  
-                100045, // meta id: 45, Groundhog  
-                150007, // meta id: 7, Cluck 9mm Groundhog  
-                200007, // meta id: 7, Eggk47 Groundhog  
-                250007, // meta id: 7, CSG1 Groundhog  
-                300007, // meta id: 7, Dozen Gauge Groundhog  
-                350007, // meta id: 7, RPEGG Groundhog
-                */
             ],
         }
     },
@@ -87,7 +73,13 @@ export const defaultEvents = [{
     name: 'shellshockersanniversary',
     start: "09-01",
     duration: "2w",
-    data: {},
+    data: {
+        shop: {
+            temp: [ //items that are only in the shop for the duration of the event
+                50020, //shell shockers cap
+            ],
+        }
+    },
 }, {
     name: 'spring',
     start: "03-20",
@@ -112,37 +104,79 @@ export const defaultEvents = [{
     name: 'christmas',
     start: "12-10",
     duration: "4w",
-    data: {},
+    data: {
+        shop: {
+            temp: [ //items that are only in the shop for the duration of the event
+                "Christmas",
+            ],
+        }
+    },
 }, {
     name: 'new-year',
     start: "12-31",
     duration: "2w",
-    data: {},
+    data: {
+        shop: {
+            temp: [ //items that are only in the shop for the duration of the event
+                "NewYears2019",
+            ],
+        }
+    },
 }, {
     name: 'easter',
     start: "03-24", //annoying holiday that moves around
     duration: "4w",
-    data: {},
+    data: {
+        shop: {
+            temp: [ //items that are only in the shop for the duration of the event
+                "Easter",
+            ],
+        },
+    },
 }, {
     name: 'halloween',
     start: "10-15",
     duration: "3w",
-    data: {},
+    data: {
+        shop: {
+            temp: [ //items that are only in the shop for the duration of the event
+                "Halloween",
+            ],
+        },
+    },
 }, {
     name: 'valentines',
     start: "02-14",
     duration: "1w",
-    data: {},
+    data: {
+        shop: {
+            temp: [ //items that are only in the shop for the duration of the event
+                "ValentinesDay",
+            ],
+        },
+    },
 }, {
     name: 'april-fools',
     start: "04-01",
     duration: "1w",
-    data: {},
+    data: {
+        "shop": {
+            temp: [
+                "AprilFools"
+            ],
+        },
+    },
 }, {
     name: 'thanksgiving',
     start: "11-22",
     duration: "2w",
-    data: {},
+    data: {
+        shop: {
+            temp: [ //items that are only in the shop for the duration of the event
+                "Thanksgiving",
+            ],
+        },
+    },
 }, {
     name: 'independence-day',
     start: "07-04",
@@ -221,12 +255,18 @@ export class EventManager {
 
         await plugins.emit('eventsInit', { events: this.events, this: this });
 
-        await this.getEventsAtTime();
+        await this.initEvents();
+    };
+
+    async initEvents(events) {
+        let eventsNow = this.getEventsAtTime();
+        Object.assign(eventsNow, events);
+        return eventsNow;
     };
 
     async getEventsAtTime(time = Date.now()) {
-        this.current = [];
-        this.currentArray = [];
+        let current = [];
+        let currentArray = [];
 
         for (const event of this.events) {
             event.timeStart = this.parseDate(event.start, time);
@@ -237,16 +277,16 @@ export class EventManager {
 
             if (event.timeStart <= time && time <= event.timeEnd) {
                 if (!this.printed) log.bgCyan('event', event.name, 'is happening now');
-                this.current.push(event);
-                this.currentArray.push(event.name);
+                current.push(event);
+                currentArray.push(event.name);
             };
         };
 
         this.printed = true; //only print once because it's annoying
 
         return {
-            current: this.current,
-            currentArray: this.currentArray,
+            current,
+            currentArray,
         };
     };
 

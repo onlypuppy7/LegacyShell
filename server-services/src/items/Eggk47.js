@@ -20,7 +20,8 @@ export default {
         "exclusive_for_class": 0,
         "item_data": {
             "class": "Eggk47",
-            "meshName": "gun_eggk47"
+            "meshName": "gun_eggk47",
+            "tags": ["DefaultUnlocks"]
         },
         "is_available": true
     }, {
@@ -34,9 +35,10 @@ export default {
         "exclusive_for_class": 0,
         "item_data": {
             "class": "Eggk47",
-            "meshName": "gun_eggk47_Gold"
+            "meshName": "gun_eggk47_Gold",
+            "tags": ["Permanent", "PermEggk47", "GOLDset"]
         },
-        "is_available": true
+        "is_available": false
     }, {
         "meta_id": 2,
         "id": 3102,
@@ -48,9 +50,10 @@ export default {
         "exclusive_for_class": 0,
         "item_data": {
             "class": "Eggk47",
-            "meshName": "gun_eggk47_Bear"
+            "meshName": "gun_eggk47_Bear",
+            "tags": ["Permanent", "PermEggk47", "HappyGunBear"]
         },
-        "is_available": true
+        "is_available": false
     }, {
         "meta_id": 3,
         "id": 3103,
@@ -125,7 +128,7 @@ export default {
             "meshName": "gun_eggk47_Groundhog",
             "tags": ["GroundhogDay"]
         },
-        "is_available": true
+        "is_available": false
     }, {
         "meta_id": 8,
         "id": 3108,

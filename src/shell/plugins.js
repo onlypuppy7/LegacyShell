@@ -80,14 +80,15 @@ export class PluginManager {
                                     // log.dim(`${dependency} is already installed.`);
                                 } catch (error) {
                                     log.warning(`${dependency} is not installed. Attempting to install (${version})...`);
-                                    execSync(`npm install ${dependency}@${version} --no-save`, (error, stdout, stderr) => {
+                                    console.log(`Install result:\n`, execSync(`npm install ${dependency}@${version} --no-save`, (error, stdout, stderr) => {
+                                        console.log(`.\n.\n.\n.\n.\n.\n.\n.\n`);
                                         if (error) {
                                             console.error(`exec error: ${error}`);
                                             return;
                                         };
                                         console.log(`stdout: ${stdout}`);
                                         console.error(`stderr: ${stderr}`);
-                                    });
+                                    }).toString());
                                 };
                             };
                         };

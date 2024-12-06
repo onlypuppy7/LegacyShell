@@ -21,7 +21,8 @@ export default {
         "category_name": "Hats",
         "exclusive_for_class": null,
         "item_data": {
-            "meshName": "hat_ballCap"
+            "meshName": "hat_ballCap",
+            "tags": ["DefaultUnlocks"]
         },
         "is_available": true
     }, {
@@ -34,7 +35,8 @@ export default {
         "category_name": "Hats",
         "exclusive_for_class": null,
         "item_data": {
-            "meshName": "hat_boatHat"
+            "meshName": "hat_boatHat",
+            "tags": ["DefaultUnlocks"]
         },
         "is_available": true
     }, {
@@ -47,7 +49,8 @@ export default {
         "category_name": "Hats",
         "exclusive_for_class": null,
         "item_data": {
-            "meshName": "hat_topHat"
+            "meshName": "hat_topHat",
+            "tags": ["DefaultUnlocks"]
         },
         "is_available": true
     }, {
@@ -60,7 +63,8 @@ export default {
         "category_name": "Hats",
         "exclusive_for_class": null,
         "item_data": {
-            "meshName": "hat_derby"
+            "meshName": "hat_derby",
+            "tags": ["DefaultUnlocks"]
         },
         "is_available": true
     }, {
@@ -73,7 +77,8 @@ export default {
         "category_name": "Hats",
         "exclusive_for_class": null,
         "item_data": {
-            "meshName": "hat_mounty"
+            "meshName": "hat_mounty",
+            "tags": ["DefaultUnlocks"]
         },
         "is_available": true
     }, {
@@ -86,7 +91,8 @@ export default {
         "category_name": "Hats",
         "exclusive_for_class": null,
         "item_data": {
-            "meshName": "hat_cowSheriff"
+            "meshName": "hat_cowSheriff",
+            "tags": ["DefaultUnlocks"]
         },
         "is_available": true
     }, {
@@ -99,9 +105,10 @@ export default {
         "category_name": "Hats",
         "exclusive_for_class": null,
         "item_data": {
-            "meshName": "hat_bandanaBlue"
+            "meshName": "hat_bandanaBlue",
+            "tags": ["Permanent", "PermHat"]
         },
-        "is_available": true
+        "is_available": false
     }, {
         "meta_id": 8,
         "id": 1008,
@@ -112,9 +119,10 @@ export default {
         "category_name": "Hats",
         "exclusive_for_class": null,
         "item_data": {
-            "meshName": "hat_batman"
+            "meshName": "hat_batman",
+            "tags": ["Permanent", "PermHat"]
         },
-        "is_available": true
+        "is_available": false
     }, {
         "meta_id": 9,
         "id": 1009,
@@ -125,9 +133,10 @@ export default {
         "category_name": "Hats",
         "exclusive_for_class": null,
         "item_data": {
-            "meshName": "hat_cop"
+            "meshName": "hat_cop",
+            "tags": ["Permanent", "PermHat"]
         },
-        "is_available": true
+        "is_available": false
     }, {
         "meta_id": 10,
         "id": 1010,
@@ -138,9 +147,10 @@ export default {
         "category_name": "Hats",
         "exclusive_for_class": null,
         "item_data": {
-            "meshName": "hat_badEgg2"
+            "meshName": "hat_badEgg2",
+            "tags": ["Permanent", "PermHat"]
         },
-        "is_available": true
+        "is_available": false
     }, {
         "meta_id": 11,
         "id": 1011,
@@ -151,9 +161,10 @@ export default {
         "category_name": "Hats",
         "exclusive_for_class": null,
         "item_data": {
-            "meshName": "hat_bandanaRed"
+            "meshName": "hat_bandanaRed",
+            "tags": ["Permanent", "PermHat"]
         },
-        "is_available": true
+        "is_available": false
     }, {
         "meta_id": 12,
         "id": 1012,
@@ -164,9 +175,10 @@ export default {
         "category_name": "Hats",
         "exclusive_for_class": null,
         "item_data": {
-            "meshName": "hat_bowPink"
+            "meshName": "hat_bowPink",
+            "tags": ["Permanent", "PermHat"]
         },
-        "is_available": true
+        "is_available": false
     }, {
         "meta_id": 13,
         "id": 1013,
@@ -177,9 +189,10 @@ export default {
         "category_name": "Hats",
         "exclusive_for_class": null,
         "item_data": {
-            "meshName": "hat_glasses"
+            "meshName": "hat_glasses",
+            "tags": ["Permanent", "PermHat"]
         },
-        "is_available": true
+        "is_available": false
     }, {
         "meta_id": 14,
         "id": 1014,
@@ -190,9 +203,10 @@ export default {
         "category_name": "Hats",
         "exclusive_for_class": null,
         "item_data": {
-            "meshName": "hat_pompadour"
+            "meshName": "hat_pompadour",
+            "tags": ["Permanent", "PermHat"]
         },
-        "is_available": true
+        "is_available": false
     }, {
         "meta_id": 15,
         "id": 1015,
@@ -203,9 +217,10 @@ export default {
         "category_name": "Hats",
         "exclusive_for_class": null,
         "item_data": {
-            "meshName": "hat_plagueDoctor"
+            "meshName": "hat_plagueDoctor",
+            "tags": ["Permanent", "PermHat"]
         },
-        "is_available": true
+        "is_available": false
     }, {
         "meta_id": 16,
         "id": 1016,
@@ -216,9 +231,10 @@ export default {
         "category_name": "Hats",
         "exclusive_for_class": null,
         "item_data": {
-            "meshName": "hat_poop"
+            "meshName": "hat_poop",
+            "tags": ["Permanent", "PermHat"]
         },
-        "is_available": true
+        "is_available": false
     }, {
         "meta_id": 17,
         "id": 1017,
@@ -229,9 +245,10 @@ export default {
         "category_name": "Hats",
         "exclusive_for_class": null,
         "item_data": {
-            "meshName": "hat_unicorn"
+            "meshName": "hat_unicorn",
+            "tags": ["Permanent", "PermHat"]
         },
-        "is_available": true
+        "is_available": false
     }, {
         "meta_id": 18,
         "id": 1018,
@@ -242,9 +259,10 @@ export default {
         "category_name": "Hats",
         "exclusive_for_class": null,
         "item_data": {
-            "meshName": "hat_pimp"
+            "meshName": "hat_pimp",
+            "tags": ["Permanent", "PermHat"]
         },
-        "is_available": true
+        "is_available": false
     }, {
         "meta_id": 19,
         "id": 1019,
@@ -255,48 +273,10 @@ export default {
         "category_name": "Hats",
         "exclusive_for_class": null,
         "item_data": {
-            "meshName": "hat_pirateHat"
+            "meshName": "hat_pirateHat",
+            "tags": ["Permanent", "PermHat"]
         },
-        "is_available": true
-    }, {
-        "meta_id": 23,
-        "id": 1023,
-        "name": "Happy Gun Bear Hat",
-        "price": 3500,
-        "item_type_id": 1,
-        "item_type_name": "Hat",
-        "category_name": "Hats",
-        "exclusive_for_class": null,
-        "item_data": {
-            "meshName": "hat_hunting"
-        },
-        "is_available": true
-    }, {
-        "meta_id": 24,
-        "id": 1024,
-        "name": "Happy Gun Bear Hunting Hat",
-        "price": 3500,
-        "item_type_id": 1,
-        "item_type_name": "Hat",
-        "category_name": "Hats",
-        "exclusive_for_class": null,
-        "item_data": {
-            "meshName": "hat_huntingBear"
-        },
-        "is_available": true
-    }, {
-        "meta_id": 25,
-        "id": 1025,
-        "name": "Crown",
-        "price": 20000,
-        "item_type_id": 1,
-        "item_type_name": "Hat",
-        "category_name": "Hats",
-        "exclusive_for_class": null,
-        "item_data": {
-            "meshName": "hat_crown"
-        },
-        "is_available": true
+        "is_available": false
     }, {
         "meta_id": 20,
         "id": 1020,
@@ -307,9 +287,10 @@ export default {
         "category_name": "Hats",
         "exclusive_for_class": null,
         "item_data": {
-            "meshName": "hat_shellshockers"
+            "meshName": "hat_shellshockers",
+            "tags": ["PaidFor"]
         },
-        "is_available": true
+        "is_available": false
     }, {
         "meta_id": 21,
         "id": 1021,
@@ -320,9 +301,10 @@ export default {
         "category_name": "Hats",
         "exclusive_for_class": null,
         "item_data": {
-            "meshName": "hat_fryingPan"
+            "meshName": "hat_fryingPan",
+            "tags": ["PaidFor"]
         },
-        "is_available": true
+        "is_available": false
     }, {
         "meta_id": 22,
         "id": 1022,
@@ -333,9 +315,52 @@ export default {
         "category_name": "Hats",
         "exclusive_for_class": null,
         "item_data": {
-            "meshName": "hat_horns"
+            "meshName": "hat_horns",
+            "tags": ["PaidFor"]
         },
-        "is_available": true
+        "is_available": false
+    }, {
+        "meta_id": 23,
+        "id": 1023,
+        "name": "Happy Gun Bear Hat",
+        "price": 3500,
+        "item_type_id": 1,
+        "item_type_name": "Hat",
+        "category_name": "Hats",
+        "exclusive_for_class": null,
+        "item_data": {
+            "meshName": "hat_hunting",
+            "tags": ["Permanent", "PermHat", "HappyGunBear"]
+        },
+        "is_available": false
+    }, {
+        "meta_id": 24,
+        "id": 1024,
+        "name": "Happy Gun Bear Hunting Hat",
+        "price": 3500,
+        "item_type_id": 1,
+        "item_type_name": "Hat",
+        "category_name": "Hats",
+        "exclusive_for_class": null,
+        "item_data": {
+            "meshName": "hat_huntingBear",
+            "tags": ["Permanent", "PermHat", "HappyGunBear"]
+        },
+        "is_available": false
+    }, {
+        "meta_id": 25,
+        "id": 1025,
+        "name": "Crown",
+        "price": 20000,
+        "item_type_id": 1,
+        "item_type_name": "Hat",
+        "category_name": "Hats",
+        "exclusive_for_class": null,
+        "item_data": {
+            "meshName": "hat_crown",
+            "tags": ["Permanent", "PermHat"]
+        },
+        "is_available": false
     }, {
         "meta_id": 26,
         "id": 1026,
@@ -965,7 +990,7 @@ export default {
             "meshName": "hat_spring",
             "tags": ["GroundhogDay"]
         },
-        "is_available": true
+        "is_available": false
     }, {
         "meta_id": 71,
         "id": 1071,
@@ -979,7 +1004,7 @@ export default {
             "meshName": "hat_winter",
             "tags": ["GroundhogDay"]
         },
-        "is_available": true
+        "is_available": false
     }, {
         "meta_id": 72,
         "id": 1072,
@@ -993,7 +1018,7 @@ export default {
             "meshName": "hat_groundhog",
             "tags": ["GroundhogDay"]
         },
-        "is_available": true
+        "is_available": false
     }, {
         "meta_id": 73,
         "id": 1073,
