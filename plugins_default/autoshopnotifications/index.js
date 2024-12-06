@@ -41,26 +41,6 @@ export class Plugin {
         this.plugins.on('services:setUpShopAvailableBeforeApply', this.setUpShopAvailableBeforeApply.bind(this));
     };
 
-    async setUpShopAvailableBeforeApply(data) {
-        var shop = data.shop;
-        var mondayStart = data.mondayStart;
-        var eventsMonday = data.eventsMonday;
-
-        if (this.config.last < mondayStart) {
-            console.log('Sending shop update');
-    
-            var msgsPub = await this.shop2info(shop, mondayStart, eventsMonday);
-            var msgsDev = await this.shop2info(shop, mondayStart, eventsMonday, true);
-
-            console.log(msgsDev);
-
-            this.sendWebhook(msgsPub, this.config.webhook);
-            this.sendWebhook(msgsDev, this.config.webhookdev, true);
-        };
-
-        this.config.last = Date.now();
-    };
-
     async shop2info(shop, mondayStart, eventsMonday, dev = false) {
         var msgs = [
 `#  LegacyShell Shop Update
@@ -118,14 +98,41 @@ export class Plugin {
         return this.compress2kChars(msgs);
     };
 
+    async setUpShopAvailableBeforeApply(data) {
+        var shop = data.shop;
+        var mondayStart = data.mondayStart;
+        var eventsMonday = data.eventsMonday;
+
+        if (this.config.last < mondayStart) {
+            (async () => {
+                console.log('Sending shop update');
+        
+                var msgsPub = await this.shop2info(shop, mondayStart, eventsMonday);
+                var msgsDev = await this.shop2info(shop, mondayStart, eventsMonday, true);
+    
+                console.log(msgsDev);
+    
+                if (
+                    await this.sendWebhook(msgsPub, this.config.webhook) &&
+                    await this.sendWebhook(msgsDev, this.config.webhookdev, true)
+                ) {
+                    this.config.last = Date.now();
+
+                    this.saveConfig(this.config);
+                };
+            })();
+        };
+
+    };
+
     async sendWebhook(msgs, webhook,  dev = false) { //sends messages via webhook. waits for each message to be sent before sending the next. retries if failed
         if (webhook == '' || !webhook) {
             log.warning('[autoshopnotifications] No webhook set. Please set a webhook in the config file.');
-            return;
+            return false;
         };
 
         for (var i = 0; i < msgs.length; i++) {
-            console.log("Sending msg:", i, "of", msgs.length);
+            console.log(dev, "Sending msg:", i, "of", msgs.length);
             try {
                 await fetch(webhook, {
                     method: 'POST',
@@ -145,8 +152,7 @@ export class Plugin {
         };
 
         log.green('[autoshopnotifications] Sent all messages to webhook', webhook);
-
-        this.saveConfig(this.config);
+        return true;
     };
 
     getConfig() {
