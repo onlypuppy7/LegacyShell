@@ -1,19 +1,12 @@
 # LegacyShell
 > No clucks given.
 
-Remake of Shell Shocker's web servers, for a classic version. Then, maybe even extending it.
+Fully functional reverse engineering of the Shell Shockers backend and client servers, with further extensions.
 
-## Forewarning:
+[If you just want to skip to installation, click here.](#installation-instructions)
 
-> [!CAUTION]  
-> LegacyShell is currently in active development and is not ready for production use. Tables in databases may appear or disappear between updates and configs will need manually updating.
-
-## Explanation:
+## Explanation of Components:
 In order to emulate all the parts of the webgame shellshock.io, one must replicate the following:
-
-
-
-
 
 | **Component** | **Purpose** | **Notes** |
 |-------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -22,6 +15,37 @@ In order to emulate all the parts of the webgame shellshock.io, one must replica
 | **Game Server** | This server allows gameplay to take place. It simulates the game being played and sends packets to all the players, keeping them in sync.|- So long as the game server is added and authorised by the owner of the services server, then there can be as many as desired to increase the region count.|
 
 So depending on your use case, you could either be using all or some of the servers.
+
+### Aims Of The LegacyShell Project:
+
+- [x] To have a fully working backend that accurately reimplements everything from the website when it was on 0.17.0
+- [x] To preserve the game faithfully, such that no matter what the future holds Shell Shockers will forever be archived in a playable state
+- [x] To have code for the game in which the backend and clients both share the same code, making modifying seamless
+- [x] To be able to extend any part of the project without having to modify the source code at all by using plugins and a modding API
+- [x] To be a project which is easy to set up with nothing more required than just NodeJS, on any system
+- [x] To have the ability to easily upscale the servers with new regions that require minimal setup
+- [x] To be privacy respecting, with no telemetry and secure password encryption
+- [x] To include the necessary optimisations such as caching, multi-threaded game servers and the most cut down backend code
+
+### Improvements Introduced By LegacyShell:
+
+- All tracking removed
+- Commands system, allowing for players to access dozens of options
+  - For example, a player can create a private room, enable timed mode, give everyone half speed and lock it to create their own minigame (even if that example doesn't sound that fun)
+- Brand new gamemodes and mechanics such as weather and time of day
+- Overhauled the way gamemodes work, implementing a gameoptions system allowing for fine grained control and easy creation of custom modes
+- Overhauled the items system, allowing for effectively limitless items and stamps
+- Plugins system
+- Map editor improved and integrated into the game
+  - Icon on homescreen for easy access
+  - Extra keybinds and buttons
+  - Up to 15 levels of undo
+  - Many more skyboxes
+- A clean wiki integrated into the site
+  - Also has a homescreen icon
+  - Contains plugin docs, trivia and LS documentation
+- Recovery of the cancelled timed round mode
+- Overhauled sound system which uses Howler instead of Babylon
 
 ## Contributing
 
@@ -35,6 +59,11 @@ Things such as extra skins, stamps or other cosmetic stuff will never be accepte
 
 # Installation Instructions
 
+### Forewarning:
+
+> [!CAUTION]  
+> LegacyShell is currently in active development and may not be ready for production use. Tables in databases may appear or disappear between updates and configs can require manually updating.
+
 ## Prerequisites:
 - Nodejs (bun or other replacements might work but are not supported)
   - These are some versions that have been used during development:
@@ -45,10 +74,11 @@ Things such as extra skins, stamps or other cosmetic stuff will never be accepte
 - (Optional but highly recommended) Git
 - Some kind of terminal
 
-## Installation
-1. Navigate to the root directory in your terminal of choice.
-2. Enter: `npm install`
-3. Enter: `npm run init` to set up the config (just roll with it for now).
+## Cloning and Setup
+1. Clone the repository via git: `git clone git@github.com:onlypuppy7/LegacyShell.git`
+2. Navigate to the root directory in your terminal of choice (the folder which has package.json).
+3. Enter: `npm install`
+4. Enter: `npm run init` to set up the config (just roll with it for now).
 
 > [!IMPORTANT]  
 > If you get issues with installing the canvas package, try this:
@@ -129,6 +159,3 @@ Here is a breakdown of the tables:
 |**maps**|SYS-READONLY|This table holds records about the maps that the game recognises.<br>**You cannot directly edit this table**.<br>It is generated from the json files in /server-services/src/maps and it is intended to instead modify those files.<br>The json files in that directory are directly compatible with those exported from the Shell Shockers map editor.|To add maps, add jsons to the src folder or leverage a plugin (see LegacyShellCore)|
 |**sessions**|SYS-EDITABLE|This table holds records about sessions and their associated ips and account ids.|This is not a very interesting table to look at.|
 |**users**|SYS-EDITABLE|This table holds records about all registered accounts for the services server instance. You can change things like egg counts and inventories.||
-
-# Models
-egg.babylon contains hats and egg/hand models
