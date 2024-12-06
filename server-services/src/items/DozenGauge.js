@@ -20,7 +20,8 @@ export default {
         "exclusive_for_class": 1,
         "item_data": {
             "class": "DozenGauge",
-            "meshName": "gun_dozenGauge"
+            "meshName": "gun_dozenGauge",
+            "tags": ["DefaultUnlocks"]
         },
         "is_available": true
     }, {
@@ -34,9 +35,10 @@ export default {
         "exclusive_for_class": 1,
         "item_data": {
             "class": "DozenGauge",
-            "meshName": "gun_dozenGauge_Gold"
+            "meshName": "gun_dozenGauge_Gold",
+            "tags": ["Permanent", "PermDozenGauge", "GOLDset"]
         },
-        "is_available": true
+        "is_available": false
     }, {
         "meta_id": 2,
         "id": 3602,
@@ -48,9 +50,10 @@ export default {
         "exclusive_for_class": 1,
         "item_data": {
             "class": "DozenGauge",
-            "meshName": "gun_dozenGauge_Bear"
+            "meshName": "gun_dozenGauge_Bear",
+            "tags": ["Permanent", "PermDozenGauge", "HappyGunBear"]
         },
-        "is_available": true
+        "is_available": false
     }, {
         "meta_id": 3,
         "id": 3603,
@@ -125,7 +128,7 @@ export default {
             "meshName": "gun_dozenGauge_Groundhog",
             "tags": ["GroundhogDay"]
         },
-        "is_available": true
+        "is_available": false
     }, {
         "meta_id": 8,
         "id": 3608,

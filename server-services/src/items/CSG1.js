@@ -20,9 +20,10 @@ export default {
         "exclusive_for_class": 2,
         "item_data": {
             "class": "CSG1",
-            "meshName": "gun_csg1"
+            "meshName": "gun_csg1",
+            "tags": ["DefaultUnlocks"]
         },
-        "is_available": true
+        "is_available": false
     }, {
         "meta_id": 1,
         "id": 3401,
@@ -34,7 +35,8 @@ export default {
         "exclusive_for_class": 2,
         "item_data": {
             "class": "CSG1",
-            "meshName": "gun_csg1_Gold"
+            "meshName": "gun_csg1_Gold",
+            "tags": ["Permanent", "PermCSG1", "GOLDset"]
         },
         "is_available": true
     }, {
@@ -48,9 +50,10 @@ export default {
         "exclusive_for_class": 2,
         "item_data": {
             "class": "CSG1",
-            "meshName": "gun_csg1_Bear"
+            "meshName": "gun_csg1_Bear",
+            "tags": ["Permanent", "PermCSG1", "HappyGunBear"]
         },
-        "is_available": true
+        "is_available": false
     }, {
         "meta_id": 3,
         "id": 3403,
@@ -125,7 +128,7 @@ export default {
             "meshName": "gun_csg1_Groundhog",
             "tags": ["GroundhogDay"]
         },
-        "is_available": true
+        "is_available": false
     }, {
         "meta_id": 8,
         "id": 3408,

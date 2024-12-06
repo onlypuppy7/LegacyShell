@@ -22,7 +22,8 @@ export default {
         "exclusive_for_class": null,
         "item_data": {
             "x": 1,
-            "y": 0
+            "y": 0,
+            "tags": ["DefaultUnlocks"]
         },
         "is_available": true
     }, {
@@ -36,7 +37,8 @@ export default {
         "exclusive_for_class": null,
         "item_data": {
             "x": 2,
-            "y": 0
+            "y": 0,
+            "tags": ["DefaultUnlocks"]
         },
         "is_available": true
     }, {
@@ -50,7 +52,8 @@ export default {
         "exclusive_for_class": null,
         "item_data": {
             "x": 3,
-            "y": 0
+            "y": 0,
+            "tags": ["DefaultUnlocks"]
         },
         "is_available": true
     }, {
@@ -64,7 +67,8 @@ export default {
         "exclusive_for_class": null,
         "item_data": {
             "x": 4,
-            "y": 0
+            "y": 0,
+            "tags": ["DefaultUnlocks"]
         },
         "is_available": true
     }, {
@@ -78,7 +82,8 @@ export default {
         "exclusive_for_class": null,
         "item_data": {
             "x": 5,
-            "y": 0
+            "y": 0,
+            "tags": ["DefaultUnlocks"]
         },
         "is_available": true
     }, {
@@ -92,7 +97,8 @@ export default {
         "exclusive_for_class": null,
         "item_data": {
             "x": 6,
-            "y": 0
+            "y": 0,
+            "tags": ["DefaultUnlocks"]
         },
         "is_available": true
     }, {
@@ -106,9 +112,10 @@ export default {
         "exclusive_for_class": null,
         "item_data": {
             "x": 1,
-            "y": 2
+            "y": 2,
+            "tags": ["Permanent", "PermStamp"]
         },
-        "is_available": true
+        "is_available": false
     }, {
         "meta_id": 8,
         "id": 2008,
@@ -120,9 +127,10 @@ export default {
         "exclusive_for_class": null,
         "item_data": {
             "x": 3,
-            "y": 3
+            "y": 3,
+            "tags": ["Permanent", "PermStamp"]
         },
-        "is_available": true
+        "is_available": false
     }, {
         "meta_id": 9,
         "id": 2009,
@@ -134,9 +142,10 @@ export default {
         "exclusive_for_class": null,
         "item_data": {
             "x": 4,
-            "y": 5
+            "y": 5,
+            "tags": ["Permanent", "PermStamp"]
         },
-        "is_available": true
+        "is_available": false
     }, {
         "meta_id": 10,
         "id": 2010,
@@ -148,9 +157,10 @@ export default {
         "exclusive_for_class": null,
         "item_data": {
             "x": 2,
-            "y": 6
+            "y": 6,
+            "tags": ["Permanent", "PermStamp"]
         },
-        "is_available": true
+        "is_available": false
     }, {
         "meta_id": 11,
         "id": 2011,
@@ -162,9 +172,10 @@ export default {
         "exclusive_for_class": null,
         "item_data": {
             "x": 0,
-            "y": 1
+            "y": 1,
+            "tags": ["Permanent", "PermStamp"]
         },
-        "is_available": true
+        "is_available": false
     }, {
         "meta_id": 12,
         "id": 2012,
@@ -176,9 +187,10 @@ export default {
         "exclusive_for_class": null,
         "item_data": {
             "x": 2,
-            "y": 1
+            "y": 1,
+            "tags": ["Permanent", "PermStamp"]
         },
-        "is_available": true
+        "is_available": false
     }, {
         "meta_id": 13,
         "id": 2013,
@@ -190,9 +202,10 @@ export default {
         "exclusive_for_class": null,
         "item_data": {
             "x": 3,
-            "y": 2
+            "y": 2,
+            "tags": ["Permanent", "PermStamp"]
         },
-        "is_available": true
+        "is_available": false
     }, {
         "meta_id": 14,
         "id": 2014,
@@ -204,9 +217,10 @@ export default {
         "exclusive_for_class": null,
         "item_data": {
             "x": 0,
-            "y": 5
+            "y": 5,
+            "tags": ["Permanent", "PermStamp"]
         },
-        "is_available": true
+        "is_available": false
     }, {
         "meta_id": 15,
         "id": 2015,
@@ -218,9 +232,10 @@ export default {
         "exclusive_for_class": null,
         "item_data": {
             "x": 0,
-            "y": 6
+            "y": 6,
+            "tags": ["Permanent", "PermStamp"]
         },
-        "is_available": true
+        "is_available": false
     }, {
         "meta_id": 16,
         "id": 2016,
@@ -232,9 +247,10 @@ export default {
         "exclusive_for_class": null,
         "item_data": {
             "x": 0,
-            "y": 7
+            "y": 7,
+            "tags": ["Permanent", "PermStamp"]
         },
-        "is_available": true
+        "is_available": false
     }, {
         "meta_id": 17,
         "id": 2017,
@@ -246,9 +262,10 @@ export default {
         "exclusive_for_class": null,
         "item_data": {
             "x": 2,
-            "y": 7
+            "y": 7,
+            "tags": ["Permanent", "PermStamp"]
         },
-        "is_available": true
+        "is_available": false
     }, {
         "meta_id": 18,
         "id": 2018,
@@ -260,9 +277,10 @@ export default {
         "exclusive_for_class": null,
         "item_data": {
             "x": 6,
-            "y": 5
+            "y": 5,
+            "tags": ["Permanent", "PermStamp"]
         },
-        "is_available": true
+        "is_available": false
     }, {
         "meta_id": 19,
         "id": 2019,
@@ -274,9 +292,10 @@ export default {
         "exclusive_for_class": null,
         "item_data": {
             "x": 4,
-            "y": 8
+            "y": 8,
+            "tags": ["Permanent", "PermStamp", "HappyGunBear"]
         },
-        "is_available": true
+        "is_available": false
     }, {
         "meta_id": 20,
         "id": 2020,
@@ -666,7 +685,7 @@ export default {
             "y": 11,
             "tags": ["GroundhogDay"]
         },
-        "is_available": true
+        "is_available": false
     }, {
         "meta_id": 46,
         "id": 2046,
@@ -681,7 +700,7 @@ export default {
             "y": 12,
             "tags": ["GroundhogDay"]
         },
-        "is_available": true
+        "is_available": false
     }, {
         "meta_id": 47,
         "id": 2047,
@@ -696,6 +715,6 @@ export default {
             "y": 12,
             "tags": ["GroundhogDay"]
         },
-        "is_available": true
+        "is_available": false
     }]
 };

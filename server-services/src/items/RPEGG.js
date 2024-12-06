@@ -20,7 +20,8 @@ export default {
         "exclusive_for_class": 3,
         "item_data": {
             "class": "RPEGG",
-            "meshName": "gun_rpegg"
+            "meshName": "gun_rpegg",
+            "tags": ["DefaultUnlocks"]
         },
         "is_available": true
     }, {
@@ -82,7 +83,7 @@ export default {
             "meshName": "gun_rpegg_Groundhog",
             "tags": ["GroundhogDay"]
         },
-        "is_available": true
+        "is_available": false
     }, {
         "meta_id": 8,
         "id": 3808,

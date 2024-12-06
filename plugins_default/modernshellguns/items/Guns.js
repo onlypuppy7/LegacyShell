@@ -4917,6 +4917,14 @@ Object.keys(items).forEach(itemclass => {
         // if (item.unlock !== 'purchase' && item.unlock !== 'default') {
             item.is_available = false;
         // };
+
+        if (item.price === 0) {
+            item.price = 2e3;
+        } else if (item.price < 50) {
+            item.price *= 1e3;
+        } else if (item.price > 1e8) {
+            item.price = 5e3;
+        };
     };
 });
 

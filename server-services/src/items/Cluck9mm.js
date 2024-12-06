@@ -20,9 +20,10 @@ export default {
         "exclusive_for_class": null,
         "item_data": {
             "class": "Cluck9mm",
-            "meshName": "gun_cluck9mm"
+            "meshName": "gun_cluck9mm",
+            "tags": ["DefaultUnlocks"]
         },
-        "is_available": true
+        "is_available": false
     }, {
         "meta_id": 1,
         "id": 3001,
@@ -34,9 +35,10 @@ export default {
         "exclusive_for_class": null,
         "item_data": {
             "class": "Cluck9mm",
-            "meshName": "gun_cluck9mm_Gold"
+            "meshName": "gun_cluck9mm_Gold",
+            "tags": ["Permanent", "PermCluck9mm", "GOLDset"]
         },
-        "is_available": true
+        "is_available": false
     }, {
         "meta_id": 2,
         "id": 3002,
@@ -48,9 +50,10 @@ export default {
         "exclusive_for_class": null,
         "item_data": {
             "class": "Cluck9mm",
-            "meshName": "gun_cluck9mm_Bear"
+            "meshName": "gun_cluck9mm_Bear",
+            "tags": ["Permanent", "PermCluck9mm", "HappyGunBear"]
         },
-        "is_available": true
+        "is_available": false
     }, {
         "meta_id": 3,
         "id": 3003,
@@ -125,7 +128,7 @@ export default {
             "meshName": "gun_cluck9mm_Groundhog",
             "tags": ["GroundhogDay"]
         },
-        "is_available": true
+        "is_available": false
     }, {
         "meta_id": 8,
         "id": 3008,
