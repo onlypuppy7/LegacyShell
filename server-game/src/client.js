@@ -48,7 +48,7 @@ class newClient {
         this.uuid = info.uuid || Math.randomInt(1,4294967295);
         this.account_id = this.loggedIn ? this.userData.account_id : null; //reminder this is the ID of the actual account
         this.nickname = info.nickname; //todo check this is legal length and stuff
-        this.username = this.loggedIn ? this.userData.username : "Guest_"+misc.getRandomAsciiChars(5, this.uuid);
+        this.username = this.loggedIn ? this.userData.username : "Guest_"+Math.seededRandomAlphaNumeric(5, this.uuid);
         this.id = info.id; //place in list
         this.classIdx = info.classIdx;
 

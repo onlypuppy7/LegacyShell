@@ -161,9 +161,23 @@ export const misc = {
         if (!seed) {
             seed = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
             ss.runQuery("INSERT INTO flags (name, value) VALUES ('servicesSeed', ?)", seed);
-        };
+        } else seed = seed.value;
+        
         ss.servicesSeed = seed;
         return seed;
+    },
+    getSQLPassword: async function () {
+        //if seed not exists in flag sqlite table, generate a new one
+        let sqlPassword = await ss.getOne(`SELECT * FROM flags WHERE name = 'sqlPassword'`);
+
+        if (!sqlPassword) {
+            //make seed extremely long and complex
+            sqlPassword = Math.getRandomAsciiChars(64);
+            ss.runQuery("INSERT INTO flags (name, value) VALUES ('sqlPassword', ?)", sqlPassword);
+        } else sqlPassword = sqlPassword.value;
+
+        ss.sqlPassword = sqlPassword;
+        return sqlPassword;
     },
     hashtagToPath: function (hashtag) {
         try {
@@ -193,25 +207,6 @@ export const misc = {
         file = file.replaceAll("\n//(server-only-start)", "\n/*(server-only-start)");
         file = file.replaceAll("\n//(server-only-end)", "\n(server-only-end)*/");
         return file;
-    },
-    getRandomAsciiChars: function (count, uuid) {
-        Math.seed = uuid;
-
-        const charTypes = [
-          { min: 65, max: 90 },  // A-Z
-          { min: 97, max: 122 }, // a-z
-          { min: 48, max: 57 },  // 0-9
-        ];
-        let result = '';
-      
-        for (let i = 0; i < count; i++) {
-          const randomTypeIndex = Math.seededRandomInt(0, charTypes.length - 1);
-          const randomType = charTypes[randomTypeIndex];
-          const randomCode = Math.seededRandomInt(randomType.min, randomType.max);
-          result += String.fromCharCode(randomCode);
-        };
-      
-        return result;
     },
 };
 

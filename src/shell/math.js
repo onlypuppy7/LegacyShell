@@ -137,7 +137,44 @@ function extendMath (Math) {
     Math.seededRandomFromList = function (list) {
         return list[Math.seededRandomInt(0, list.length - 1)];
     };
-    return Math;
+    Math.seededRandomAlphaNumeric = function (count, uuid) {
+        Math.seed = uuid;
+
+        const charTypes = [
+            { min: 65, max: 90 },  // A-Z
+            { min: 97, max: 122 }, // a-z
+            { min: 48, max: 57 },  // 0-9
+        ];
+        let result = '';
+    
+        for (let i = 0; i < count; i++) {
+            const randomType = Math.getRandomFromList(charTypes);
+            const randomCode = Math.seededRandomInt(randomType.min, randomType.max);
+            result += String.fromCharCode(randomCode);
+        };
+    
+        return result;
+    };
+    Math.getRandomAsciiChars = function (count) {
+        const charTypes = [
+            { min: 65, max: 90 },  // A-Z
+            { min: 97, max: 122 }, // a-z
+            { min: 48, max: 57 },  // 0-9
+            { min: 33, max: 47 },  // !-/
+            { min: 58, max: 64 },  // :-@
+            { min: 91, max: 96 },  // [-`
+            { min: 123, max: 126 },// {-~
+        ];
+        let result = '';
+    
+        for (let i = 0; i < count; i++) {
+            const randomType = Math.getRandomFromList(charTypes);
+            const randomCode = Math.getRandomInt(randomType.min, randomType.max);
+            result += String.fromCharCode(randomCode);
+        };
+    
+        return result;
+    };
 };
 
 export default extendMath;
