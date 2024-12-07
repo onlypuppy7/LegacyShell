@@ -5,6 +5,7 @@ import path from 'node:path';
 //legacyshell: config reqs
 import WebSocket, { WebSocketServer } from 'ws';
 import { isObject } from '#constants';
+import accs from '#accountManagement';
 //legacyshell: logging
 import log from '#coloured-logging';
 //legacyshell: dirname resolving
@@ -162,7 +163,7 @@ export const misc = {
             seed = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
             ss.runQuery("INSERT INTO flags (name, value) VALUES ('servicesSeed', ?)", seed);
         } else seed = seed.value;
-        
+
         ss.servicesSeed = seed;
         return seed;
     },
@@ -173,7 +174,16 @@ export const misc = {
         if (!sqlPassword) {
             //make seed extremely long and complex
             sqlPassword = Math.getRandomAsciiChars(64);
-            ss.runQuery("INSERT INTO flags (name, value) VALUES ('sqlPassword', ?)", sqlPassword);
+            ss.runQuery("INSERT INTO flags (name, value) VALUES ('sqlPassword', ?)", accs.hashPassword(sqlPassword));
+
+            log.orange(`
+                ############################################################
+                #                                                          #
+                # New SQL Password generated, please store this securely   #
+                #                                                          #
+                ############################################################
+                `);
+            log.bold(sqlPassword);
         } else sqlPassword = sqlPassword.value;
 
         ss.sqlPassword = sqlPassword;
