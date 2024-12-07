@@ -214,7 +214,7 @@ export function convertMixedPoolToPurePool(mixedPool, items, event) {
     return purePool;
 };
 
-export async function setUpShopAvailable(seed = ss.servicesSeed.value.split("").reduce((hash, char, idx) => hash + char.charCodeAt(0) * (idx + 1), 0)) { //seed must be a number
+export async function setUpShopAvailable(seed = ss.servicesSeed.split("").reduce((hash, char, idx) => hash + char.charCodeAt(0) * (idx + 1), 0)) { //seed must be a number
     let items = await ss.recs.getAllItemData(true);
 
     extendMath(Math);

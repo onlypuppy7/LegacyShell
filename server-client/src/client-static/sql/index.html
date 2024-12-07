@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LegacyShell SQL Request Tool</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        form {
+            margin: 20px 0;
+            width: 80%;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        form input {
+            padding: 10px;
+            font-size: 16px;
+        }
+
+        form button {
+            padding: 10px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .query-type {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .container {
+            display: flex;
+            justify-content: center;
+            width: 100%;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .box {
+            flex: 1;
+            border: 1px solid #ccc;
+            padding: 10px;
+            height: 300px;
+            overflow: auto;
+        }
+
+        .sql-input {
+            height: 100%;
+            width: 100%;
+            border: none;
+            outline: none;
+            resize: none;
+            font-size: 16px;
+        }
+
+        .output {
+            background-color: #f9f9f9;
+            font-family: 'Courier New', Courier, monospace;
+            white-space: pre-wrap; /* Preserve formatting of line breaks and spaces */
+            word-wrap: break-word; /* Break long words to fit within the box */
+        }
+    </style>
+</head>
+<body>
+    <h1>LegacyShell SQL Request Tool</h1>
+    <form id="credentialsForm">
+        <input type="text" id="servicesServer" placeholder="Services Server" required>
+        <input type="password" id="gameServerAuthKey" placeholder="Game Server Auth Key" required>
+        <input type="password" id="sqlPassword" placeholder="SQL Password" required>
+
+        <!-- Radio Buttons for Query Type -->
+        <div class="query-type">
+            <label><input type="radio" name="queryType" value="runQuery" checked> Run Query</label>
+            <label><input type="radio" name="queryType" value="getOne"> Get One</label>
+            <label><input type="radio" name="queryType" value="getAll"> Get All</label>
+        </div>
+
+        <button type="submit">Submit</button>
+    </form>
+    <div class="container">
+        <div class="box">
+            <textarea class="sql-input" id="sqlRequest" placeholder="Enter your SQL request here"></textarea>
+        </div>
+        <div class="box output" id="outputBox"></div>
+    </div>
+
+    <script>
+        // Load saved credentials from localStorage
+        document.getElementById('servicesServer').value = localStorage.getItem('servicesServer') || '';
+        document.getElementById('gameServerAuthKey').value = localStorage.getItem('gameServerAuthKey') || '';
+        document.getElementById('sqlPassword').value = localStorage.getItem('sqlPassword') || '';
+        document.getElementById('sqlRequest').value = localStorage.getItem('sqlRequest') || '';
+        const savedQueryType = localStorage.getItem('queryType') || 'runQuery';
+        document.querySelector(`input[name="queryType"][value="${savedQueryType}"]`).checked = true;
+
+        // Save the form values to localStorage
+        function saveCredentials() {
+            localStorage.setItem('servicesServer', document.getElementById('servicesServer').value);
+            localStorage.setItem('gameServerAuthKey', document.getElementById('gameServerAuthKey').value);
+            localStorage.setItem('sqlPassword', document.getElementById('sqlPassword').value);
+            localStorage.setItem('sqlRequest', document.getElementById('sqlRequest').value);
+
+            const queryType = document.querySelector('input[name="queryType"]:checked').value;
+            localStorage.setItem('queryType', queryType);
+        }
+
+        let sql, sqlType;
+
+        // Event listener for form submission
+        document.getElementById('credentialsForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            // Get form values
+            const servicesServer = document.getElementById('servicesServer').value;
+            const gameServerAuthKey = document.getElementById('gameServerAuthKey').value;
+            const sqlPassword = document.getElementById('sqlPassword').value;
+
+            // Save the credentials to localStorage
+            saveCredentials();
+
+            const ws = new WebSocket(servicesServer);
+
+            sql = document.getElementById('sqlRequest').value;
+            sqlType = document.querySelector('input[name="queryType"]:checked').value;
+
+            ws.onopen = function () {
+                console.log('Connected to the server!');
+                const req = {
+                    cmd: "sqlRequest",
+                    sql,
+                    auth_key: gameServerAuthKey,
+                    sqlPassword,
+                    sqlType
+                }; console.log(req);
+                ws.send(JSON.stringify(req));
+            };
+
+            ws.onmessage = function (event) {
+                const outputBox = document.getElementById('outputBox');
+                outputBox.textContent = JSON.stringify(JSON.parse(event.data), null, 2);
+                console.log(event);
+                ws.close();
+            };
+
+            ws.onerror = function (error) {
+                alert('WebSocket error: ' + error.message);
+                document.getElementById('outputBox').textContent = "WebSocket couldn't connect.";
+            };
+        });
+
+        document.getElementById('sqlRequest').addEventListener('input', function () {
+            sql = document.getElementById('sqlRequest').value;
+            sqlType = document.querySelector('input[name="queryType"]:checked').value;
+
+            // Save the SQL query and type to localStorage as well
+            localStorage.setItem('sqlRequest', sql);
+            localStorage.setItem('queryType', sqlType);
+        });
+    </script>
+</body>
+</html>

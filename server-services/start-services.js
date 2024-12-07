@@ -61,6 +61,7 @@ export default async function run (runStart) {
     log.green('Account DB set up! (if it didnt exist already i suppose)');
     
     await misc.getServicesSeed();
+    await misc.getSQLPassword();
 
     plugins.emit('servicesOnLoad', { ss });
     
@@ -175,6 +176,7 @@ export default async function run (runStart) {
                         "getUser", //modify this i guess
                         "addKill",
                         "addDeath",
+                        "sqlRequest",
                     ];
                     auth_commands.includes(msg.cmd) && (cmdType = 'auth_required');
                     
@@ -286,6 +288,37 @@ export default async function run (runStart) {
                         }, ss.config.distributed_all.servicesInfoSendInterval * 1e3);
                     } else if (ss.config.distributed_all.closed !== true) {
                         switch (msg.cmd) {
+                            // Admin commands
+                            case 'sqlRequest':
+                                if (msg.sqlPassword === ss.sqlPassword && msg.sql) {
+                                    try {
+                                        let result;
+                                        switch (msg.sqlType) {
+                                            case 'getOne':
+                                                log.beige('getOne');
+                                                result = await ss.getOne(msg.sql);
+                                                break;
+                                            case 'getAll':
+                                                log.beige('getAll');
+                                                result = await ss.getAll(msg.sql);
+                                                break;
+                                            case 'runQuery':
+                                                log.beige('runQuery');
+                                                result = await ss.runQuery(msg.sql);
+                                                break;
+                                            default:
+                                                result = 'Invalid SQL type';
+                                                break;
+                                        };
+                                        ws.send(JSON.stringify({ result }));
+                                    } catch (error) {
+                                        log.error('Error in SQL request:', error);
+                                        ws.send(JSON.stringify({ error }));
+                                    };
+                                } else {
+                                    ws.send(JSON.stringify({ error: 'Invalid SQL password' }));
+                                };
+                                break;
                             // Game server commands
                             case 'getUser':
                                 ws.send(JSON.stringify({
