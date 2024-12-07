@@ -40,6 +40,8 @@ function createPreferences() { //alr nvm let's make it a func called before load
   initPref("renderWorkers", "render workes", 2, "how many workers should be used during rendering?");
   initPref("debugInfo", "show debug info", true, "displays a few dubg informationss");
   initPref("prettyAngles", "pretty angles", true, "shows angles in factors of pi and degrees instead of raw radians");
+  //below are just tests for how the system would behave in extreme situations.
+  //there's still stuff to do (mainly with spinners), so it's going to stay commented out, but not deleted
   /*
   initPref("loremipsim2", "very long text test check", true, "Piper's pillar, the hardest for thee, kneel behind his mark til the Piper you see.");
   initPref("loremipsim3", "very long text number check", 666, "LegacyShell provides startup scripts for Windows (.bat) and OSX (.command). If you want the three processes to run in a single terminal window with tabs, use the start_all_tabs script, if you prefer three seperate terminal windows, use the start_all script.");
@@ -113,7 +115,13 @@ function createPreferences() { //alr nvm let's make it a func called before load
 
 }
 
-
+/**
+* initializes a preference.
+* @param {String} internalName the internal names, used for code and value retreival
+* @param {String} displayName the name displayed to the user in the preferences menu
+* @param {any} val the standard value of this preference (NOTE: the system will auto-detect the type and set the input typed accordingly)
+* @param {String} description the description displayed to the user
+*/
 function initPref(internalName, displayName, val, description){
   preferences[internalName] = {
     displayName,
@@ -122,6 +130,11 @@ function initPref(internalName, displayName, val, description){
   }
 }
 
+/**
+*  retrieves the value of a preference
+* @param {String} interNalName internal name of the preference
+* @returns the preference's value
+*/
 function pref(interNalName){
   if (!preferences[interNalName]) return false;
   return preferences[interNalName].val;
@@ -131,7 +144,9 @@ function pref(interNalName){
 document.addEventListener("DOMContentLoaded", ()=>{
   //wowoowow DYNAMIC preference menu!!!111111
   createPreferences();
+  // ^^^ create preferences with default values
   loadPreferences();
+  // ^^^ set the preferences to the values stored in localstorage or idk how it's called, wrote this like 3 weeks ago
   const masterElem = document.getElementById("prefOpts");
   Object.keys(preferences).forEach((opt) => {
     const relativeMaster = document.createElement("div");
@@ -204,16 +219,28 @@ document.addEventListener("DOMContentLoaded", ()=>{
   });
 });
 
+/**
+* changes a preference's value. Exposed to the window in extern bzw exports.
+* @param {String} setting internalName of the preference
+* @param {*} val new value of the preference
+*/
 const changePreference  = function(setting, val){
   preferences[setting].val = val;
   console.log(`changePreference called for ${setting}, new val: ${val}`);
   savePreferences();
 }
 
+/**
+* saves the preferences' values to localStorage
+*/
 function savePreferences(){
   localStorage.setItem("edPreferences", JSON.stringify(preferences));
 }
 
+/**
+* loads the saved prefereces from localstorage and, if it succeeded, sets the preferences to the loaded values.
+* NOTE: this needs to be called AFTER preferences have been initialized!
+*/
 function loadPreferences(){
   if(localStorage.getItem("edPreferences")){
     let lp = JSON.parse(localStorage.getItem("edPreferences"));
