@@ -599,7 +599,7 @@ class Player {
             if (this.actor) {
                 this.actor.setShellColor(shellColor);
                 if (this.id == meId) {
-                    var output = new Comm.Out(7);
+                    var output = new Comm.Out();
                     output.packInt8U(Comm.Code.changeCharacter);
                     output.packInt8U(newClassIdx);
                     output.packInt16U(catalog.get8BitItemId(primaryWeaponItem, newClassIdx));
