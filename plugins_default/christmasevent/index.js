@@ -2,13 +2,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
 //plugin: samplecommand
+import events from '#events';
 //
 
 export const PluginMeta = {
     identifier: "christmasevent",
     name: 'Christmas Event',
     author: 'onlypuppy7',
-    version: '1.0.0',
+    version: '1.0.1',
     descriptionShort: 'Adds stuff for a Christmas event', //displayed when loading
     descriptionLong: 'Adds stuff for a Christmas event',
     legacyShellVersion: 374, //legacy shell version, can be found in /versionEnum.txt, or just on the homescreen
@@ -59,7 +60,7 @@ export class Plugin {
     };
 
     async roomInitGameOptions(data) {
-        if (events.currentArray.includes("christmas")) {
+        if (events.getEventsAtTime().currentArray.includes("christmas")) {
             var ctx = data.this
     
             ctx.gameOptions.weather.snowStormEnabled = true;
