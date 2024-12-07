@@ -38,6 +38,7 @@ So depending on your use case, you could either be using all or some of the serv
 - Plugins system
 - Map editor improved and integrated into the game
   - Icon on homescreen for easy access
+  - Test mode works
   - Extra keybinds and buttons
   - Up to 15 levels of undo
   - Many more skyboxes
