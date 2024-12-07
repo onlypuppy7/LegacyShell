@@ -5,8 +5,11 @@
 import { TransformNode, Vector3 } from "babylonjs";
 import { Howl, Howler } from "howler";
 
-const APOLLO_VERSION = 7;
+//this needs to be manually updated.
+const APOLLO_VERSION = 8;
 
+//why did I make it used a custom logging system you may ask? It's
+//art, so it's open for interpretation :joe_cool:
 const APOLLO_LOG = devmode;
 
 const APOLLO_GLOBAL_PANNER_ATTRB =
@@ -96,6 +99,11 @@ function setSound(name, val) {
   sounds[name] = val;
 }
 
+/**
+* loads an audio cue based on an array of sound source locations
+* @param {String} name - the name this cue is stored in
+* @param {Array} srcs - the source paths (as Strings)
+*/
 function loadCue(name, srcs) {
   if (APOLLO_LOG)
     console.log(`APOLLO: loadCue() called for ${name} via ${srcs} `);
@@ -324,6 +332,7 @@ class Emitter {
         inst.id,
       );
       //FIXME:? this is a hack! Is it?
+      //this isn't a hack, this is a sin, but I'm keeping it anyway
     }
     if (!this.parent) return;
     /**@type {Vector3} */
@@ -383,11 +392,20 @@ class Cue {
   name = "DEFAULTCUENAME";
   isCue = true; //ye this might not be the cleanest way to do this but it works..
 
+  /**
+  * creates the Cue and loads all its sounds
+  * @param {String} name - the name of the cue
+  * @param {Array} srcs - String array of the source paths
+  */
   constructor(name, srcs) {
     this.name = name;
     if (srcs) srcs.forEach((src) => this.addSound(src));
   }
 
+  /**
+  * this can be overwritten by the user to create custom/dynamic sound behavior. Default returns random sound
+  * @returns the selected sound
+  */
   selectSound = function () {
     return this.sounds[Math.floor(Math.random() * this.sounds.length)];
   };
