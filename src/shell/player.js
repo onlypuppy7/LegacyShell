@@ -613,7 +613,7 @@ class Player {
                     this.actor.applyStamp(this.stampItem);
                 };
             } else { //server code woohoo!
-                var output = new Comm.Out(8);
+                var output = new Comm.Out();
                 output.packInt8(Comm.Code.changeCharacter);
                 output.packInt8(this.id);
                 output.packInt8(newClassIdx);
