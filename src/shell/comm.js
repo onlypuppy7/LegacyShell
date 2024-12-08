@@ -1,5 +1,6 @@
 //legacyshell: basic
 import { isClient } from '#constants';
+import { plugins } from '#plugins';
 //
 
 // FYI: This file is designed to be imported into the shell JS too. What does this mean? IDK. I cba to explain.
@@ -610,6 +611,33 @@ const Comm = {
         const foundEntry = commCodeEntries.find(([key, value]) => value === code);
         return foundEntry ? foundEntry[0] : 'unknownCode';
     },
-}
+};
+
+function addCommCode(name) {
+    let code = 0;
+
+    //get list of all codes
+    let codes = [];
+    Object.values(Comm.Code).forEach((val) => {
+        codes.push(val);
+    });
+
+    //find next available code
+    codes.sort((a, b) => a - b);
+    for (let i = 0; i < codes.length; i++) {
+        if (codes[i] !== i) {
+            code = i;
+            break;
+        };
+    };
+    
+    Comm.Code[name] = code;
+
+    return code;
+};
+
+(async () => {
+    await plugins.emit('addCommCode', {Comm, addCommCode});
+})();
 
 export default Comm;
