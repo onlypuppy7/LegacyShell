@@ -1,6 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- CodeMirror CSS and JS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/theme/dracula.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/sql/sql.min.js"></script>
+    
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LegacyShell SQL Request Tool</title>
@@ -70,6 +76,14 @@
             white-space: pre-wrap; /* Preserve formatting of line breaks and spaces */
             word-wrap: break-word; /* Break long words to fit within the box */
         }
+
+        .template-container {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            flex-direction: column;
+            align-items: flex-start;
+        }
     </style>
 </head>
 <body>
@@ -95,21 +109,226 @@
         <div class="box output" id="outputBox"></div>
     </div>
 
+    <!-- Template selection and Apply button -->
+    <div class="template-container">
+        <select id="templateSelect">
+            <option value="">Select a template</option>
+        </select>
+        <button id="applyTemplateButton">Apply Template</button>
+    </div>
+
     <script>
-        // Load saved credentials from localStorage
-        document.getElementById('servicesServer').value = localStorage.getItem('servicesServer') || '';
-        document.getElementById('gameServerAuthKey').value = localStorage.getItem('gameServerAuthKey') || '';
-        document.getElementById('sqlPassword').value = localStorage.getItem('sqlPassword') || '';
-        document.getElementById('sqlRequest').value = localStorage.getItem('sqlRequest') || '';
-        const savedQueryType = localStorage.getItem('queryType') || 'runQuery';
-        document.querySelector(`input[name="queryType"][value="${savedQueryType}"]`).checked = true;
+        // List of SQL templates
+        const templates = [
+            { name: "Get All Users", code: "SELECT * FROM users;" },
+            { name: "Get User by Account ID", code: "SELECT * FROM users WHERE account_id = ?;" },
+            { name: "Get User by Username", code: "SELECT * FROM users WHERE username = ?;" },
+            { name: "Insert New User", code: `
+INSERT INTO users (username, password, authToken) 
+VALUES (?, ?, ?) 
+RETURNING *;
+            `},
+            { name: "Update User Stats", code: `
+UPDATE users 
+SET kills = ?, deaths = ?, streak = ? 
+WHERE account_id = ? 
+RETURNING *;
+            `},
+            { name: "Update User Balance", code: `
+UPDATE users 
+SET currentBalance = ? 
+WHERE account_id = ? 
+RETURNING *;
+            `},
+            { name: "Delete User by Account ID", code: `
+DELETE FROM users 
+WHERE account_id = ? 
+RETURNING *;
+            `},
+            { name: "Add Item to User Owned Items", code: `
+UPDATE users 
+SET ownedItemIds = json_set(ownedItemIds, '$[#]', ?) 
+WHERE account_id = ? 
+RETURNING *;
+            `},
+            { name: "Set User Upgrade Duration", code: `
+UPDATE users 
+SET upgradeExpiryDate = strftime('%s', 'now') + ? 
+WHERE account_id = ? 
+RETURNING *;
+            `},
+            { name: "Reset User Upgrades", code: `
+UPDATE users 
+SET upgradeProductId = 0, 
+    upgradeMultiplier = NULL, 
+    upgradeAdFree = TRUE, 
+    upgradeExpiryDate = 0 
+WHERE account_id = ? 
+RETURNING *;
+            `},
+            { name: "Update User Upgrade Multiplier", code: `
+    UPDATE users 
+    SET upgradeMultiplier = ? 
+    WHERE account_id = ? 
+    RETURNING *;
+            `},
+            { name: "Set User Admin Role", code: `
+UPDATE users 
+SET adminRoles = ?
+WHERE account_id = ? 
+RETURNING *;
+            `},
+            { name: "Get User Admin Role", code: `
+SELECT adminRoles
+FROM users
+WHERE account_id = ?;
+            `},
+            { name: "Update User Username", code: `
+UPDATE users 
+SET username = ? 
+WHERE account_id = ? 
+RETURNING *;
+            `},
+            { name: "Update User Password", code: `
+UPDATE users 
+SET password = ? 
+WHERE account_id = ? 
+RETURNING *;
+            `},
+            { name: "Log User Out", code: `
+DELETE FROM sessions 
+WHERE user_id = ? 
+RETURNING *;
+            `},
+            { name: "Get User Loadout", code: `
+SELECT loadout
+FROM users 
+WHERE account_id = ?;
+            `},
+            { name: "Set User Loadout", code: `
+UPDATE users 
+SET loadout = ? 
+WHERE account_id = ? 
+RETURNING *;
+            `},
+            { name: "Get All Items", code: "SELECT * FROM items;" },
+            { name: "Get Available Items", code: "SELECT * FROM items WHERE is_available = 1;" },
+            { name: "Insert New Item", code: `
+INSERT INTO items (name, price, item_class, item_type_id, item_data) 
+VALUES (?, ?, ?, ?, ?) 
+RETURNING *;
+            `},
+            { name: "Update Item Info", code: `
+UPDATE items 
+SET name = ?, price = ?, is_available = ?, item_data = ? 
+WHERE id = ? 
+RETURNING *;
+            `},
+            { name: "Delete Item by ID", code: `
+DELETE FROM items 
+WHERE id = ? 
+RETURNING *;
+            `},
+            { name: "Get All Sessions", code: "SELECT * FROM sessions;" },
+            { name: "Create New Session", code: `
+INSERT INTO sessions (session_id, user_id, ip_address, expires_at) 
+VALUES (?, ?, ?, ?) 
+RETURNING *;
+            `},
+            { name: "Delete Session by ID", code: `
+DELETE FROM sessions 
+WHERE session_id = ? 
+RETURNING *;
+            `},
+            { name: "Get All Game Servers", code: "SELECT * FROM game_servers;" },
+            { name: "Add New Game Server", code: `
+INSERT INTO game_servers (auth_key, name, address) 
+VALUES (?, ?, ?) 
+RETURNING *;
+            `},
+            { name: "Update Game Server Info", code: `
+UPDATE game_servers 
+SET name = ?, address = ? 
+WHERE auth_key = ? 
+RETURNING *;
+            `},
+            { name: "Get Map by Name", code: "SELECT * FROM maps WHERE name = ?;" },
+            { name: "Insert New Map", code: `
+INSERT INTO maps (name, sun, fog, data, numPlayers) 
+VALUES (?, ?, ?, ?, ?) 
+RETURNING *;
+            `},
+            { name: "Update Map Info", code: `
+UPDATE maps 
+SET sun = ?, fog = ?, data = ?, numPlayers = ? 
+WHERE name = ? 
+RETURNING *;
+            `},
+            { name: "Delete Map by Name", code: `
+DELETE FROM maps 
+WHERE name = ? 
+RETURNING *;
+            `},
+            { name: "Get All Flags", code: "SELECT * FROM flags;" },
+            { name: "Update Flag Value", code: `
+UPDATE flags 
+SET value = ? 
+WHERE name = ? 
+RETURNING *;
+            `},
+        ];
+
+        // Populate the dropdown with templates
+        const templateSelect = document.getElementById('templateSelect');
+        templates.forEach(template => {
+            const option = document.createElement('option');
+            option.value = template.code;
+            option.textContent = template.name;
+            templateSelect.appendChild(option);
+        });
+
+        var sqlEditor;
+
+        // Initialize CodeMirror for SQL syntax highlighting
+        document.addEventListener('DOMContentLoaded', function() {
+            sqlEditor = CodeMirror.fromTextArea(document.getElementById('sqlRequest'), {
+                mode: 'sql', // Enable SQL syntax highlighting
+                theme: 'dracula', // Use the Dracula theme (or any other theme you prefer)
+                lineNumbers: true, // Show line numbers
+                lineWrapping: true, // Wrap long lines
+                matchBrackets: true, // Highlight matching brackets
+                autoCloseBrackets: true, // Auto-close brackets
+                extraKeys: {"Ctrl-Space": "autocomplete"} // Enable auto-complete (optional)
+            });
+
+            // Listen for changes to update localStorage
+            sqlEditor.on('change', function() {
+                localStorage.setItem('sqlRequest', sqlEditor.getValue());
+            });
+
+            document.getElementById('servicesServer').value = localStorage.getItem('servicesServer') || '';
+            document.getElementById('gameServerAuthKey').value = localStorage.getItem('gameServerAuthKey') || '';
+            document.getElementById('sqlPassword').value = localStorage.getItem('sqlPassword') || '';
+            const savedQueryType = localStorage.getItem('queryType') || 'runQuery';
+            document.querySelector(`input[name="queryType"][value="${savedQueryType}"]`).checked = true;
+
+            // Load the saved SQL query into the editor from localStorage
+            sqlEditor.setValue(localStorage.getItem('sqlRequest') || '');
+        });
+
+        // Event listener for Apply Template button
+        document.getElementById('applyTemplateButton').addEventListener('click', function() {
+            const selectedTemplateCode = templateSelect.value;
+            if (selectedTemplateCode) {
+                sqlEditor.setValue(selectedTemplateCode);  // Insert the template at the cursor position
+            }
+        });
 
         // Save the form values to localStorage
         function saveCredentials() {
             localStorage.setItem('servicesServer', document.getElementById('servicesServer').value);
             localStorage.setItem('gameServerAuthKey', document.getElementById('gameServerAuthKey').value);
             localStorage.setItem('sqlPassword', document.getElementById('sqlPassword').value);
-            localStorage.setItem('sqlRequest', document.getElementById('sqlRequest').value);
 
             const queryType = document.querySelector('input[name="queryType"]:checked').value;
             localStorage.setItem('queryType', queryType);
@@ -131,7 +350,7 @@
 
             const ws = new WebSocket(servicesServer);
 
-            sql = document.getElementById('sqlRequest').value;
+            sql = sqlEditor.getValue()
             sqlType = document.querySelector('input[name="queryType"]:checked').value;
 
             ws.onopen = function () {
@@ -157,15 +376,6 @@
                 alert('WebSocket error: ' + error.message);
                 document.getElementById('outputBox').textContent = "WebSocket couldn't connect.";
             };
-        });
-
-        document.getElementById('sqlRequest').addEventListener('input', function () {
-            sql = document.getElementById('sqlRequest').value;
-            sqlType = document.querySelector('input[name="queryType"]:checked').value;
-
-            // Save the SQL query and type to localStorage as well
-            localStorage.setItem('sqlRequest', sql);
-            localStorage.setItem('queryType', sqlType);
         });
     </script>
 </body>

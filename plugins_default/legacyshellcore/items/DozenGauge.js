@@ -19,6 +19,7 @@ var items = {
         "exclusive_for_class": 1,
         "item_data": {
             "class": "DozenGauge",
+            "tags": ["ClassicGuns"],
             "meshName": "old.dozenGauge"
         },
         "is_available": false

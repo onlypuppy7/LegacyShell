@@ -19,6 +19,7 @@ var items = {
         "exclusive_for_class": 2,
         "item_data": {
             "class": "CSG1",
+            "tags": ["ClassicGuns"],
             "meshName": "old.csg1"
         },
         "is_available": false
