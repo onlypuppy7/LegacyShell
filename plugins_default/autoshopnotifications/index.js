@@ -146,6 +146,7 @@ export class Plugin {
                     }),
                 });
                 log.green('[autoshopnotifications] Sent message', i, 'to webhook', webhook);
+                await new Promise(resolve => setTimeout(resolve, 1000));
             } catch (error) {
                 log.warning('[autoshopnotifications] Failed to send message', msgs[i], 'to webhook', webhook, error);
             };

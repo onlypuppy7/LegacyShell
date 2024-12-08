@@ -19,6 +19,7 @@ var items = {
         "exclusive_for_class": 0,
         "item_data": {
             "class": "Eggk47",
+            "tags": ["ClassicGuns"],
             "meshName": "old.eggk47"
         },
         "is_available": false

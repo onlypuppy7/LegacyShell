@@ -128,7 +128,7 @@ export function loadMeshes(scene, meshNames, onMeshLoaded, onComplete) { //[srvr
         for (var idx = 0; idx < meshCount; idx++) {
             var meshName = meshNames[idx];
             var meshPath = meshName + ".babylon";
-            // console.log("loading mesh", meshPath);
+            devlog("loading mesh from individual URL:", meshPath);
     
             if (isServer && ss) {
                 meshPath = path.join(ss.rootDir, 'server-game', 'store', 'models', meshPath);

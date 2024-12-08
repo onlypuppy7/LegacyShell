@@ -18,8 +18,9 @@ var items = {
         "category_name": "Shared Secondary Weapons",
         "exclusive_for_class": null,
         "item_data": {
+            "meshName": "old.cluck9mm",
+            "tags": ["ClassicGuns"],
             "class": "Cluck9mm",
-            "meshName": "old.cluck9mm"
         },
         "is_available": false
     }]

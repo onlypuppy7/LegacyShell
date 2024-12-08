@@ -81,22 +81,6 @@ async function modifyFiles() {
         await plugins.emit('hashes', { ss, hashes });
         log.italic(`SHA-256 hash of the modified SERVERJS: ${hashes.SERVERJSHASH}`);
 
-        code.htmlContent = fs.readFileSync(sourceHtmlPath, 'utf8');
-        code.htmlContent = code.htmlContent.replace(/SHELLSHOCKMINJSHASH/g, hashes.SHELLSHOCKMINJSHASH);
-        code.htmlContent = code.htmlContent.replace(/LEGACYSHELLVERSION/g, ss.packageJson.version);
-        code.htmlContent = code.htmlContent.replace(/LEGACYSHELLEXTVERSION/g, `${ss.packageJson.version} (${ss.versionHash}, ${ss.versionEnum})`);
-        code.htmlContent = code.htmlContent.replace(/LEGACYSHELLDISCORDSERVER/g, ss.config.client.discordServer); //outdated method
-        code.htmlContent = code.htmlContent.replace(/LEGACYSHELLGITHUB/g, ss.config.client.githubURL);
-        code.htmlContent = code.htmlContent.replace(/LEGACYSHELLSYNCURL/g, ss.config.client.sync_server);
-        code.htmlContent = code.htmlContent.replace(/LEGACYSHELLCLIENTURL/g, ss.config.client.this_url);
-        code.htmlContent = code.htmlContent.replace(/LEGACYSHELLCONFIG/g, ss.distributed_config.replace(/\n/g, '<br>'));
-        code.htmlContent = code.htmlContent.replace(/LEGACYSHELLFAQ/g, fs.readFileSync(path.join(ss.currentDir, 'src', 'client-static', 'faq.html'), 'utf8'));
-
-        await plugins.emit('htmlContent', { ss, code });
-
-        fs.writeFileSync(destinationHtmlPath, code.htmlContent, 'utf8');
-        log.bold(`index.html copied and modified to ${destinationHtmlPath}`);
-
         var pluginInsertion = {};
         pluginInsertion.stringBefore = "";
         pluginInsertion.stringAfter = "";
@@ -268,6 +252,23 @@ async function modifyFiles() {
         hashes.SHELLSHOCKMINJSHASH = hashSum.digest('hex');
         log.italic(`SHA-256 hash of the minified SHELLSHOCKMINJS: ${hashes.SHELLSHOCKMINJSHASH}`);
         await plugins.emit('hashes', { ss, hashes });
+
+        code.htmlContent = fs.readFileSync(sourceHtmlPath, 'utf8');
+        code.htmlContent = code.htmlContent.replace(/SERVERJSHASH/g, hashes.SERVERJSHASH);
+        code.htmlContent = code.htmlContent.replace(/SHELLSHOCKMINJSHASH/g, hashes.SHELLSHOCKMINJSHASH);
+        code.htmlContent = code.htmlContent.replace(/LEGACYSHELLVERSION/g, ss.packageJson.version);
+        code.htmlContent = code.htmlContent.replace(/LEGACYSHELLEXTVERSION/g, `${ss.packageJson.version} (${ss.versionHash}, ${ss.versionEnum})`);
+        code.htmlContent = code.htmlContent.replace(/LEGACYSHELLDISCORDSERVER/g, ss.config.client.discordServer); //outdated method
+        code.htmlContent = code.htmlContent.replace(/LEGACYSHELLGITHUB/g, ss.config.client.githubURL);
+        code.htmlContent = code.htmlContent.replace(/LEGACYSHELLSYNCURL/g, ss.config.client.sync_server);
+        code.htmlContent = code.htmlContent.replace(/LEGACYSHELLCLIENTURL/g, ss.config.client.this_url);
+        code.htmlContent = code.htmlContent.replace(/LEGACYSHELLCONFIG/g, ss.distributed_config.replace(/\n/g, '<br>'));
+        code.htmlContent = code.htmlContent.replace(/LEGACYSHELLFAQ/g, fs.readFileSync(path.join(ss.currentDir, 'src', 'client-static', 'faq.html'), 'utf8'));
+
+        await plugins.emit('htmlContent', { ss, code });
+
+        fs.writeFileSync(destinationHtmlPath, code.htmlContent, 'utf8');
+        log.bold(`index.html copied and modified to ${destinationHtmlPath}`);
     } catch (error) {
         console.error('An error occurred during the file processing:', error);
     };
