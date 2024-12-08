@@ -47,6 +47,8 @@ export default async function run () {
 
             const app = express();
 
+            app.listen(port);
+
             await plugins.emit('onStartServer', { ss, app, ws });
 
             app.use(express.static(path.join(ss.currentDir, 'src', 'client-imgs')));
@@ -58,9 +60,6 @@ export default async function run () {
             app.use(async (req, res, next) => {
                 await plugins.emit('onRequest', { ss, req, res, next });
                 if (!plugins.cancel) next();
-            });
-
-            app.listen(port, async ()=>{
             });
 
             if (ss.config.client.closed) {
@@ -81,15 +80,11 @@ export default async function run () {
             } else {
                 await plugins.emit('openBeforeDefault', { ss, app });
 
-                app.use(express.static(path.join(ss.currentDir, 'src', 'client-startup')));
+                //delete index.html from client-modified
+                fs.rmSync(path.join(ss.currentDir, 'store', 'client-modified', 'index.html'), { force: true });
 
-                app.use((req, res, next) => {
-                    if ((!started) && req.path !== '/discord') {
-                        res.redirect('/startup');
-                    } else {
-                        next();
-                    };
-                });
+                app.use(express.static(path.join(ss.currentDir, 'store', 'client-modified')));
+                app.use(express.static(path.join(ss.currentDir, 'src', 'client-static')));
 
                 try {
                     if (ss.config.client.login.enabled) {
@@ -100,9 +95,6 @@ export default async function run () {
                     console.log("Starting client server failed:", error);
                     // process.exit(1);
                 };
-
-                app.use(express.static(path.join(ss.currentDir, 'store', 'client-modified')));
-                app.use(express.static(path.join(ss.currentDir, 'src', 'client-static')));
 
                 app.use((req, res, next) => {
                     console.log(req.path);
