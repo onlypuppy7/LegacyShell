@@ -268,6 +268,8 @@ export class EventManager {
         let current = [];
         let currentArray = [];
 
+        if (!this.events) await this.init();
+
         for (const event of this.events) {
             event.timeStart = this.parseDate(event.start, time);
             event.timeDuration = this.parseHumanToMs(event.duration, time);
