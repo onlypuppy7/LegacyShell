@@ -39,7 +39,7 @@ async function modifyFiles() {
     const sourceServersJsPath = path.join(ss.currentDir, 'src', 'client-static', 'src', 'servers.js');
     const destinationServersJsPath = path.join(ss.currentDir, 'store', 'client-modified', 'src', 'servers.js');
 
-    const sourceHtmlPath = path.join(ss.currentDir, 'src', 'client-static', 'index.html');
+    const sourceHtmlPath = path.join(ss.currentDir, 'src', 'index.html');
     const destinationHtmlPath = path.join(ss.currentDir, 'store', 'client-modified', 'index.html');
 
     const sourceEditorJsPath = path.join(ss.currentDir, 'src', 'client-static', 'editor', 'js', 'mapEdit.js');

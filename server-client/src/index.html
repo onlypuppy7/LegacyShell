@@ -1,0 +1,1968 @@
+<!doctype html>
+<html>
+
+    <head>
+        <title>LegacyShell</title>
+        <link href="https://fonts.googleapis.com/css?family=Sigmar+One|Nunito:400,600,700,900" rel="stylesheet">
+        <link href="./includes/stylesheet.css?1548028299" rel="stylesheet" type="text/css">
+        <link href="./includes/game.css?1548021319" rel="stylesheet" type="text/css">
+        <meta charset="UTF-8" />
+        <meta name="description"
+            content="Welcome to LegacyShell, the world's most advanced egg-based private server! It's like your favorite egg-based multiplayer shooter but... older!" />
+        <meta property="og:url" content="https://LEGACYSHELLCLIENTURL" />
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content="LegacyShell | Play in your browser for Free!" />
+        <meta property="og:description"
+            content="Welcome to LegacyShell, the world's most advanced egg-based private server! It's like your favorite egg-based multiplayer shooter but... older!" />
+        <meta property="og:image" content="https://LEGACYSHELLCLIENTURL/img/logo.png" />
+        <link rel="manifest" href="/manifest.json" />
+        
+        <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+        <link rel="shortcut icon" href="/favicon.ico" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+        <meta name="apple-mobile-web-app-title" content="LS Map" />
+        <link rel="manifest" href="/site.webmanifest" />
+
+
+        <!-- Language CSV to Javascript Object conversion -->
+        <script>
+            var currentLanguage = 1 - 1;
+            var csv = [
+                ["string_id", "English", "French", "Russian"],
+                [null],
+                ["---------------------- Game Settings -----------------------"],
+                [null],
+                ["game_title", "Shell Shockers"],
+                ["game_subtitle", "Play in your browser for Free!"],
+                ["game_description", "Welcome to Shell Shockers, the world's most advanced egg-based multiplayer shooter! It's like your favorite battlefield game but... with eggs."],
+                [null],
+                ["game_specialmessage_hide", "Testing timed rounds and other things at <a href=\\\"http:\/\/dev.shellshock.io\\\">dev.shellshock.io<\/a>!"],
+                [null],
+                [""],
+                [null],
+                ["---------------------- Game Text -----------------------"],
+                ["ui_title_equip", "Equip"],
+                ["ui_game_loading", "Loading"],
+                ["ui_game_waitforit", "Wait for it..."],
+                ["ui_game_noresponse", "No response"],
+                [null],
+                ["ui_game_gameplaytip", "To improve your accuracy, try aiming with more betterness"],
+                ["ui_game_tiptitle", "TIP OF THE DAY"],
+                ["ui_game_changeequip", "CHANGE<br>EQUIPMENT"],
+                ["ui_game_play", "PLAY"],
+                ["ui_game_home", "Home"],
+                ["ui_game_equip", "Equip", ""],
+                ["ui_game_spectate", "Spectate", ""],
+                ["ui_game_advertisement", "Advertisement"],
+                ["ui_game_blue", "Blue"],
+                ["ui_game_red", "Red"],
+                ["ui_game_totalkills", "Total Kills"],
+                ["ui_game_controls", "CONTROLS"],
+                ["ui_game_controlsmove", "Move"],
+                ["ui_game_controlsjump", "Jump"],
+                ["ui_game_controlsfire", "Fire"],
+                ["ui_game_controlsaim", "Aim"],
+                ["ui_game_controlsreload", "Reload"],
+                ["ui_game_controlsweapon", "Weapon"],
+                ["ui_game_controlsgrenade", "Grenade"],
+                ["ui_game_controlschange", "Change"],
+                ["ui_game_lb_name", "name"],
+                ["ui_game_lb_score", "score"],
+                ["ui_game_lb_kills", "kills"],
+                ["ui_game_lb_deaths", "deaths"],
+                ["ui_game_lb_streak", "streak"],
+                ["ui_game_beststreak", "BEST STREAK"],
+                ["ui_game_youkilled", "YOU KILLED"],
+                ["ui_game_killedby", "YOU WERE KILLED BY"],
+                ["ui_game_ping", "PING"],
+                ["ui_game_fps", "FPS"],
+                [null],
+                ["ui_game_fairteams_header", "Let's keep it fair!"],
+                ["ui_game_fairteams_text", "The other team has enough players already.<br>Try again later!"],
+                [null],
+                ["ui_game_locked", "This map is now locked to the public.<br>Join a new game to find more players!"],
+                [null],
+                ["ui_game_playeractions_header", "Select an action for this player:"],
+                ["ui_game_playeractions_boot", "Boot"],
+                ["ui_game_playeractions_mute", "Mute"],
+                ["ui_game_playeractions_unmute", "Un-mute"],
+                [null],
+                ["ui_itemselect_back", "Back"],
+                ["ui_itemselect_buyeggs", "BUY EGGS!"],
+                ["ui_itemselect_lookingood", "Lookin' Good!"],
+                ["ui_itemselect_naw", "Naw..."],
+                ["ui_itemselect_buyit", "BUY IT!"],
+                ["ui_itemselect_needmoreeggs", "U need more eggs, bro!"],
+                ["ui_itemselect_hookmeup", "Hook me up"],
+                ["ui_itemselect_buyphysical", "Buy a REAL THING to unlock this item!"],
+                ["ui_itemselect_letsgo", "LET'S GO!"],
+                [null],
+                ["---------------------- Feedback -----------------------"],
+                [null],
+                ["ui_feedback_line1", "Please check the <a href=\"https:\/\/LEGACYSHELLCLIENTURL\/faq.html?v=1\" target=\"_window\">FAQ<\/a> before submitting. Your question or issue may have already been addressed!"],
+                ["ui_feedback_line2", "Your email address will never be distributed!"],
+                ["ui_feedback_opt_questions", "Comments & Questions"],
+                ["ui_feedback_opt_features", "Feature Requests"],
+                ["ui_feedback_opt_bugs", "Bug Reports"],
+                ["ui_feedback_opt_purchases", "Item & Egg Purchases"],
+                ["ui_feedback_opt_privacy", "Account & Privacy"],
+                ["ui_feedback_opt_abuse", "Report Abuse"],
+                ["ui_feedback_opt_other", "Other"],
+                ["ui_feedback_email", "Email"],
+                ["ui_feedback_yourmessage", "Your message"],
+                [null],
+                ["---------------------- Login Bar & Play Menu -----------------------"],
+                [null],
+                ["ui_loginbar_logout", "Logout"],
+                ["ui_login_info", "Log in to save your progress and customize your character!"],
+                ["ui_login_login", "Login"],
+                [null],
+                ["ui_gamemode_play", "PLAY"],
+                ["ui_gamemode_private", "Private Games"],
+                ["ui_gamemode_create", "Create"],
+                ["ui_gamemode_join", "Join"],
+                ["ui_gamemode_gamecode", "Enter Game Code"],
+                ["ui_gamemode_back", "Back"],
+                ["ui_gamemode_map", "Select Map"],
+                [null],
+                ["ui_twitch_header", "streaming<br>LIVE!"],
+                [null],
+                ["---------------------- Alert Dialog -----------------------"],
+                [null],
+                ["ui_alert_cancel", "Cancel"],
+                ["ui_alert_ok", "OK"],
+                [null],
+                ["---------------------- Redeem and Reward -----------------------"],
+                ["ui_givereward_ok", "OK"],
+                ["ui_redeem_entercode", "Enter Code"],
+                ["ui_redeem_cancel", "Cancel"],
+                ["ui_redeem_ok", "OK"],
+                [null],
+                ["---------------------- Buy Pass -----------------------"],
+                ["ui_buypass_button", "GOLD CHICKEN"],
+                ["ui_buypass_title", "GOLDEN CHICKEN"],
+                ["ui_buypass_price", "ONLY $9.99!"],
+                ["ui_buypass_textegg", "EGG DOUBLER! <img src=\"img\/egg_icon2.png\" class=\"inline_image\">x2 PER KILL!"],
+                ["ui_buypass_textcolor", "MORE EGGSHELL <span class=\"text_red\">C<\/span><span class=\"text_orange\">O<\/span><span class=\"text_white\">L<\/span><span class=\"text_darkgreen\">O<\/span><span class=\"text_darkblue\">R<\/span><span class=\"text_purple\">S<\/span>!"],
+                ["ui_buypass_textnoads", "NO MORE ADS!"],
+                ["ui_buypass_textexpiry", "LASTS FOR 30 DAYS!"],
+                ["ui_buypass_cta", "BUCKAWK!!<br>POWER UP WITH A GOLDEN CHICKEN!"],
+                ["ui_buypass_cancel", "Shell No."],
+                ["ui_buypass_ok", "Cluck Yeah!!!"],
+                ["ui_buypass_nugget", "Gimme That Nugget!"],
+                ["ui_buynugget_title", "CHICKEN NUGGET"],
+                ["ui_buynugget_price", "FREE!"],
+                ["ui_buynugget_textexpiry", "LASTS FOR 1 HOUR"],
+                [null],
+                ["ui_nugget_instruction", "CLICK THE EGG!"],
+                ["ui_nugget_done", "CHICKEN NUGGET UNLOCKED FOR 1 HOUR!"],
+                ["ui_nugget_button", "CHEEP CHEEP!"],
+                [null],
+                [null],
+                ["---------------------- Customization -----------------------"],
+                [null],
+                ["ui_custom_weapons", "Weapons"],
+                ["ui_custom_appearance", "Appearance"],
+                ["ui_custom_shellcolor", "Shell Color"],
+                ["ui_custom_back", "Back"],
+                ["ui_custom_entercode", "Enter Code"],
+                [null],
+                ["---------------------- Stats Bar -----------------------"],
+                [null],
+                ["ui_stats_kills", "Kills"],
+                ["ui_stats_deaths", "Deaths"],
+                ["ui_stats_kdr", "KDR"],
+                ["ui_stats_streak", "Streak"],
+                [null],
+                ["ui_weapon_damage", "Damage"],
+                ["ui_weapon_accuracy", "Accuracy"],
+                ["ui_weapon_firerate", "Fire Rate"],
+                ["ui_weapon_range", "Range"],
+                [null],
+                ["---------------------- Footer -----------------------"],
+                ["ui_footer_version", "v"],
+                ["ui_footer_privacy", "Privacy Policy"],
+                ["ui_footer_terms", "Terms of Service"],
+                ["ui_footer_copyright", "Copyright &copy;2018 Blue Wizard Digital"],
+                [null],
+                ["---------------------- Settings Panel -----------------------"],
+                ["ui_settings_header_bindings", "Control Bindings"],
+                ["ui_settings_bind_up", "Forward"],
+                ["ui_settings_bind_down", "Backward"],
+                ["ui_settings_bind_left", "Left"],
+                ["ui_settings_bind_right", "Right"],
+                ["ui_settings_bind_jump", "Jump"],
+                ["ui_settings_bind_fire", "Fire"],
+                ["ui_settings_bind_scope", "Aim"],
+                ["ui_settings_bind_reload", "Reload"],
+                ["ui_settings_bind_weapon", "Swap Weapon"],
+                ["ui_settings_bind_grenade", "Grenade"],
+                ["ui_settings_bind_unfocus", "Unfocus"],
+                ["ui_settings_mastervol", "Master Volume"],
+                ["ui_settings_musicvol", "Music Volume"],
+                ["ui_settings_mousespeed", "Mouse Speed"],
+                ["ui_settings_invertmouse", "Invert Mouse"],
+                ["ui_settings_autodetail", "Auto Detail"],
+                ["ui_settings_holdtoaim", "Hold To Aim"],
+                ["ui_settings_shadows", "Shadows"],
+                ["ui_settings_chat", "Enable chat"],
+                ["ui_settings_highres", "High Resolution"],
+                ["ui_settings_privacyoptions", "Privacy Options"],
+                ["ui_settings_defaults", "Reset to Defaults"],
+                ["ui_settings_close", "Close"],
+                ["ui_settings_undefined", "undefined"],
+                ["ui_settings_bindinput", "Press A Key"]
+            ];
+            var language = {};
+            for (var idx in csv) {
+                var a = csv[idx];
+                var key = a.shift();
+                if (key && !key.startsWith('-')) {
+                    language[key] = a;
+                }
+            }
+        </script>
+
+        <!-- Parse URL -->
+        <script>
+            var parsedUrl = (function parseUrl() {
+                var url = {};
+                var loc = window.location;
+                url.root = loc.origin + loc.pathname;
+
+                var query = loc.search.substring(1).split('&');
+                url.query = {};
+
+                for (var i in query) {
+                    var arr = query[i].split('=');
+                    if (arr[0]) {
+                        if (arr[1] === undefined) {
+                            arr[1] = true;
+                        } else if (!isNaN(arr[1])) {
+                            arr[1] = parseFloat(arr[1]);
+                        }
+                        url.query[arr[0]] = arr[1];
+                    }
+                }
+
+                url.hash = loc.hash.substring(1);
+                if (url.hash.length == 0) url.hash = undefined;
+                return url;
+            })();
+        </script>
+
+        <!-- legacyshell libs (not bloat) -->
+        <script src="/libs/sha256.min.js"></script>
+        <script src="/libs/jszip-3.7.1.min.js"></script>
+            <!-- legacyshell sound thing -->
+            <script src="/libs/howler-2.2.3.min.js"></script>
+
+
+
+        <!-- bloat vv TODO remove this bs -->
+        <!-- <script src="https://cdn.onesignal.com/sdks/OneSignalSDK.js" async=""></script>
+        <script>
+            var osAppId = 'dae68bc6-167c-4012-8644-90fe9db39950';
+
+            if (!location.hostname.startsWith('shellshock')) {
+                if (location.hostname.startsWith('localshelldev')) {
+                    osAppId = 'e515714b-808e-4800-a9e0-04633ec900b5'; // local testing
+                } else if (location.hostname.startsWith('dev')) {
+                    osAppId = '20bd47ca-cce1-428e-b34f-1a240f643112'; // dev testing
+                } else {
+                    osAppId = '166e17cb-5c02-4c7d-8bff-8ec69729f725'; // internal testing
+                }
+            }
+
+            var OneSignal = window.OneSignal || [];
+            OneSignal.push(function () {
+                OneSignal.init({
+                    appId: osAppId,
+                });
+            });
+        </script> -->
+
+        <!-- Ad blocker detection (BLOAT) -->
+        <script src="src/ads.js?1545890169"></script>
+
+        <script type="application/ld+json">
+	{
+	  "@context": "http://schema.org",
+	  "name": "Shell Shockers | Play in your browser for Free!",
+	  "url": "https://LEGACYSHELLCLIENTURL",
+	  "sameAs": ["https://www.facebook.com/ShellShockersGame", "https://twitter.com/eggcombat"],
+	  "description": "Welcome to Shell Shockers, the world's most advanced egg-based multiplayer shooter! It's like your favorite battlefield game but... with eggs.",
+	  "@type": "VideoGame",
+	  "applicationCategory": "Game",
+	  "applicationSubCategory": "Action",
+	  "genre": "First-Person Shooter",
+	  "gamePlatform": ["PC", "Mac", "Chromebook"],
+	  "operatingSystem": ["Windows", "OSX", "Linux", "ChromeOS"],
+	  "playMode": "Multi-Player",
+	  "aggregateRating":{
+	    "@type":"AggregateRating",
+	    "ratingValue":"5.0",
+	    "ratingCount":"49"
+	  },
+	  "image": "/img/largeIcon.jpg",
+	  "logo": "/img/largeIcon.jpg"
+	}
+	</script>
+
+        <!-- European Union detection -->
+        <script>isFromEU = 0 ? true : false</script>
+        <!-- AdInPlay (BLOAT) -->
+        <meta name="viewport"
+            content="minimal-ui, user-scalable=no, initial-scale=1, maximum-scale=1, width=device-width" />
+        <!-- <script async src="//api.adinplay.com/libs/aiptag/pub/SSK/LEGACYSHELLCLIENTURL/tag.min.js"></script> -->
+        <!-- <script>
+            var aiptag = aiptag || {};
+            aiptag.cmd = aiptag.cmd || [];
+            aiptag.cmd.display = aiptag.cmd.display || [];
+            aiptag.cmd.player = aiptag.cmd.player || [];
+        </script> -->
+
+        <!-- Firebase (BLOAT)
+        <script>var firebase</script>
+        <script src="https://www.gstatic.com/firebasejs/4.11.0/firebase.js"></script>
+        <script src="https://cdn.firebase.com/libs/firebaseui/2.7.0/firebaseui.js"></script>
+        <link type="text/css" rel="stylesheet" href="https://cdn.firebase.com/libs/firebaseui/2.7.0/firebaseui.css" />
+        -->
+
+        <!-- Facebook Pixel Code (GLOWING BLOAT)
+        <script>
+            // !function (f, b, e, v, n, t, s) {
+            //     if (f.fbq) return; n = f.fbq = function () {
+            //         n.callMethod ?
+            //         n.callMethod.apply(n, arguments) : n.queue.push(arguments)
+            //     }; if (!f._fbq) f._fbq = n;
+            //     n.push = n; n.loaded = !0; n.version = '2.0'; n.queue = []; t = b.createElement(e); t.async = !0;
+            //     t.src = v; s = b.getElementsByTagName(e)[0]; s.parentNode.insertBefore(t, s)
+            // }(window,
+            //     document, 'script', 'https://connect.facebook.net/en_US/fbevents.js');
+            // fbq('init', '771186996377132');
+            // fbq('track', 'PageView');
+        </script>
+        <noscript>
+            <img height="1" width="1" style="display:none"
+                src="https://www.facebook.com/tr?id=771186996377132&ev=PageView&noscript=1" />
+        </noscript>
+        DO NOT MODIFY (I WILL) -->
+        <!-- End Facebook Pixel Code -->
+
+        <!-- Ironsource BLOAT -->
+        <!--
+	<script src="https://static.ultra-rv.com/rv-min.js"></script>
+	<script type="text/javascript">
+		var ironRV = IronRV.getInstance({
+		    applicationKey      : '6ed1a5f5',
+		    applicationUserId   : 'testID'
+		 });
+	</script>
+	-->
+        <!-- End Ironsource -->
+
+        <script>var version = 'LEGACYSHELLVERSION';</script>
+        <script>var versionExtended = 'LEGACYSHELLEXTVERSION';</script>
+        <script src="src/servers.js?SERVERJSHASH"></script>
+        <script src="src/gameplayTips.js?GAMEPLAYTIPSHASH"></script>
+        <script src="src/shellshock.min.js?SHELLSHOCKMINJSHASH"></script>
+    </head>
+
+    <body>
+
+        <img id="noItemImg" src="img/noItem.png" style="display: none" />
+        <img id="noHatImg" src="img/noHat.png" style="display: none" />
+        <img id="noStampImg" src="img/noStamp.png" style="display: none" />
+
+        <!-- Changelog -->
+        <div id="changelog" class="hideme">
+            <ul>
+                <li>Massive ordinance collision detection overhaul
+                <li>A lot more work on grenade dynamics
+                <li>Changes to grenade and rocket blast radius and damage
+                <li>Updates to some particle effects
+            </ul>
+        </div>
+
+        <!-- Config -->
+        <div id="config" class="hideme">
+            <ul style="list-style-type: none; padding-left: 0; margin: 0;">
+                <li style="margin-bottom: 10px;">
+                    <strong>Sync URL:</strong>
+                    <div style="padding: 5px; background-color: #fff; border: 1px solid #ccc; border-radius: 3px;">
+                        LEGACYSHELLSYNCURL
+                    </div>
+                </li>
+                <li>
+                    <strong>Config:</strong>
+                    <div style="padding: 5px; background-color: #fff; border: 1px solid #ccc; border-radius: 3px;">
+                        LEGACYSHELLCONFIG
+                    </div>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Feedback -->
+        <div id="feedback" class="hideme">
+
+            <p>Please check the <a href="/faq.html?v=0" target="_window">FAQ</a> before
+                submitting. Your question or issue may have already been addressed!</p>
+            <p>Your email address will never be distributed!</p>
+
+            <select style="width: 100%; margin-bottom: 0.5em" id="feedbackTypeSelect">
+                <option>Comments & Questions</option>
+                <option>Feature Requests</option>
+                <option>Bug Reports</option>
+                <option>Item & Egg Purchases</option>
+                <option>Account & Privacy</option>
+                <option>Report Abuse</option>
+                <option>Other</option>
+            </select>
+
+            <input class="textInput" type="textbox" name="email" placeholder="Email" id="feedbackEmail" maxlength="384"
+                oninput="extern.feedbackChanged()" />
+
+            <textarea type="text" name="comments" id="feedbackComments" maxlength="4096" rows="10"
+                placeholder="Your message" oninput="extern.feedbackChanged()"></textarea>
+        </div>
+        <!-- Game Canvas -->
+        <canvas id="canvas" class="fill"></canvas>
+
+        <!-- Main Menu -->
+        <div id="mainMenu" class="unselectable fill hideme">
+
+            <!-- Special message -->
+            <!-- <div style="position: absolute; left: 50%; transform: translateX(-50%); top: 1.5em;">
+                Testing timed rounds and other things at <a href="https://dev.shellshock.io/">dev.shellshock.io</a>!
+            </div> -->
+
+            <!-- Title Screen -->
+            <!-- Login bar -->
+            <div style="display: flex; margin-left: 1em; margin-top: 1em">
+                <div id="user-greeting" style="margin-right: 0.95em; font-size: 1.2em; margin-top: 3px;">
+                    Welcome back, @username
+                </div>
+                <div id="logout">
+                    <img id="profilePic" />
+                    <button class="ssbutton red" onclick="extern.logout()">
+                        Logout </button>
+                </div>
+                <div class="clickable" id="serverName" onclick="extern.openServerList()"></div>
+            </div>
+
+            <div style="position: absolute; top: 4em; width: 100%">
+                <!-- Logo -->
+                <div id="logo">
+                    <a id="logoLink" target="_blank" rel="noopener">
+                        <img src="img/logo.png?v=1" />
+                    </a>
+                </div>
+                <script>
+                    document.getElementById('logoLink').href = window.location.origin;
+                </script>
+
+                <!-- Main menu container -->
+                <div class="flexRow" style="text-align: center">
+                    <div style="flex: 1; transform: translateY(-3em)">
+                        <div style="display: flex; justify-content: right; gap: 1em;">
+                            <!-- Editor Icon -->
+                            <div id="editorIcon">
+                                <a href="/editor" target="_blank" rel="noopener">
+                                    <img src="img/editorIcon.png" alt="Editor" style="width: 6.5em; height: 6.5em; cursor: pointer;">
+                                </a>
+                            </div>
+                            <!-- Wiki Icon -->
+                            <div id="wikiIcon">
+                                <a href="/wiki" target="_blank" rel="noopener">
+                                    <img src="img/wikiIcon.png" alt="Wiki" style="width: 6.5em; height: 6.5em; cursor: pointer;">
+                                </a>
+                            </div>
+                        </div>
+
+                        <div style="flex: 1"></div>
+                        <div style="float: right; text-align: left">
+                            <div id="twitchContainer">
+                                <img src="img/twitchIcon.png" id="twitchIcon">
+                                <h1 id="twitchHeader">streaming<br>LIVE!</h1>
+                                <div id="twitchStreams"></div>
+                            </div>
+                            <!-- <div id="menuAdContainer" class="shadedPane" style="
+                    margin-top: 1em;
+                    pointer-events: all;
+                    padding: 0.2em;
+                "></div> -->
+                        </div>
+                    </div>
+
+                    <!-- Egg -->
+                    <div style="display: inline-block; vertical-align: top; width: 20em; margin: 2em"
+                        onmouseenter="document.getElementById('playerStatsContainer').style.display = 'none'; document.getElementById('weaponStatsContainer').style.display = 'block'"
+                        onmouseleave="document.getElementById('playerStatsContainer').style.display = 'block'; document.getElementById('weaponStatsContainer').style.display = 'none'">
+                        <div id="mainMenuClassSelectorContainer" style="width: 20em; margin-top: 16em">
+                            <!-- Class selection -->
+                            <div id="classSelector" class="flexRow">
+                                <img class="arrow" src="img/arrowLeft.png"
+                                    onclick="extern.customizer.pickNextClass(-1)" />
+                                <div style="width: 12em; margin-top: 1em">
+                                    <h2 class="whiteHeader" id="className"></h2>
+
+                                    <button id="customizeButton" class="ssbutton orange"
+                                        style="width: 9em; height: 2.25em; margin-top: 1em;"
+                                        onclick="extern.openCustomizerFromMainMenu()">
+                                        <h3>Equip</h3>
+                                    </button>
+                                    <!--
+                        <button id="customizerBackButton" class="ssbutton red" style="display: none; width: 9em; height: 2.25em; margin-top: 1em;" onclick="extern.customizer.close()">
+                            <h3>Back</h3>
+                        </button>
+
+                        <button id="redeemCodeButton" class="ssbutton orange" style="display: none; width: 9em; height: 2.25em; margin-top: 1em;" onclick="extern.openRedeemCodeDialog()">
+                            <h3>Enter Code</h3>
+                        </button>-->
+
+                                </div>
+                                <img class="arrow" src="img/arrowRight.png"
+                                    onclick="extern.customizer.pickNextClass(1)" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Player stats and game launch UI -->
+                    <div style="flex: 1; width: 14em;">
+                        <div id="playerStatsContainer" style="width: 14em">
+                            <p id="statsMessage" style="display: none"></p>
+                            <div id="login" style="display: none">
+                                <p>Log in to save your progress and customize your character!</p>
+                                <button class="ssbutton purple" style="width: 8em" onclick="extern.openLoginDialog()">
+                                    Login </button>
+                            </div>
+
+                            <!-- Player stats -->
+                            <div id="playerStats" class="flexRow" style="
+                    display: none;
+                    padding-top: 1em;
+                ">
+                                <div style="
+                        flex: 1;
+                        padding-right: 0.5em;
+                        text-align: right;
+                        font-size: 1.25em;
+                        font-weight: 900;
+                        border-right: solid;
+                        border-width: 0.1em;
+                    ">
+                                    Kills<br>
+                                    Deaths<br>
+                                    KDR<br>
+                                    Streak </div>
+                                <div id="playerStatValues"
+                                    style="flex: 1; text-align: left; font-size: 1.25em; padding-left: 0.5em"></div>
+                            </div>
+                        </div>
+
+                        <!-- Weapon stats -->
+                        <div id="weaponStatsContainer" style="display: none; width: 14em">
+                            <h3 id="classWeapon"></h3>
+                            <table style="width: 100%">
+                                <tr>
+                                    <td class="statLabel">Damage</td>
+                                    <td>
+                                        <div id="damage" class="statBar"></div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="statLabel">Accuracy</td>
+                                    <td>
+                                        <div id="accuracy" class="statBar"></div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="statLabel">Fire Rate</td>
+                                    <td>
+                                        <div id="fireRate" class="statBar"></div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="statLabel">Range</td>
+                                    <td>
+                                        <div id="range" class="statBar"></div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+
+                        <!-- Play Game stuff -->
+                        <div style="position: absolute; top: 20em; width: 14em;">
+                            <!-- Name and game mode -->
+                            <input class="textInput" placeholder="Nickname" id="nickname"
+                                style="width: 100%; font-size: 1.2em" maxlength="32" type="textbox" />
+
+                            <div style="display: flex; gap: 0.5em; margin-top: 0.25em;">
+                                <select style="flex: 1; width: 14em;" id="gameTypeSelect" onchange="extern.selectGameType(this.selectedIndex)"></select>
+                                <button class="ssbutton blue" style="flex: 0 0 auto;height: 2em;width: 2em;" onclick="extern.fetchServicesInfo(true)">
+                                    <h3 style="
+                                        margin-left: 0.1em;
+                                    ">⟳</h3>
+                                </button>
+                            </div>
+
+                            <!-- Enter, Create, or Join game -->
+                            <button class="ssbutton green" style="width: 100%; height: 3em; margin-top: 0.25em"
+                                onclick="extern.play()">
+                                <h2>▶ PLAY&nbsp;</h2>
+                            </button>
+
+                            <div class="flexRow" style="margin-top: 1em">
+                                <div id="customGame" style="width: 100%">
+                                    <h3>Private Games</h3>
+                                    <button class="ssbutton blue" style="width: 45%"
+                                        onclick="extern.openCreateBox()">Create</button>
+                                    <button class="ssbutton blue" style="width: 45%"
+                                        onclick="extern.openJoinBox()">Join</button>
+                                </div>
+
+                                <!-- Join game -->
+                                <div id="joinGame" style="display: none; width: 100%">
+                                    <h3>Enter Game Code</h3>
+                                    <input class="textInput" id="joinCode" type="textbox" size="8" maxlength="8" />
+                                    <button class="ssbutton red" style="width: 5em;"
+                                        onclick="extern.closeJoinBox()">Back</button>
+                                </div>
+
+                                <!-- Create game pane -->
+                                <div id="createGame" style="display: none; width: 100%">
+                                    <h3>Select Map</h3>
+                                    <select style="width: 100%; margin-top: 0.25em" id="mapSelect"></select>
+                                    <button class="ssbutton red" style="width: 100%; margin-top: 0.2em"
+                                        onclick="extern.closeCreateBox()">Back</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div id="sociallinks">
+                <!-- COMMENTED OUT (BLOAT)
+    <div class="fb-like" data-href="https://www.facebook.com/ShellShockersGame" data-layout="ssbutton" data-action="like" data-size="small" data-show-faces="false" data-share="true"></div>
+    <a class="merch-container" target="_blank" rel="noopener" href="https://shell-shockers.myshopify.com/collections/all">
+        <img class="merch-icon" src="img/ico_merch.png">
+    </a>
+    <a target="_blank" rel="noopener" href="https://www.facebook.com/ShellShockersGame"><img src="img/fbLogo.png"></a>
+    <a target="_blank" rel="noopener" href="https://twitter.com/eggcombat"><img src="img/twitterLogo.png"></a>
+    -->
+                <a target="_blank" rel="noopener" href="/discord"><img
+                        src="img/discordLogo.png"></a>
+                <a target="_blank" rel="noopener" href="LEGACYSHELLGITHUB"><img
+                        src="img/githubLogo.png"></a>
+            </div>
+
+            <div id="versionlink">
+
+            </div>
+
+            <div id="footerlinks">
+                <a class="clickable" onclick="extern.showChangelog()">Based on: v 0.17.0</a>
+                &nbsp;|&nbsp;
+                <a class="clickable" onclick="extern.showConfig()">LegacyShell:
+                    <script>document.write(versionExtended);</script>
+                </a>
+                <!-- more bloat
+    &nbsp;|&nbsp;
+    <a href="https://www.bluewizard.com/privacypolicy" target="_window">Privacy Policy</a>
+    &nbsp;|&nbsp;
+    <a href="https://www.bluewizard.com/terms" target="_window">Terms of Service</a>
+    -->
+                <br>
+                <a href="http://www.bluewizard.com" target="_blank">Copyright &copy;2019 BWD, 2024 LegacyShell Team</a>
+            </div>
+
+            <div class="lightPane pane_faq">
+                LEGACYSHELLFAQ
+            </div>
+        </div>
+
+        <!-- Customization Menu -->
+        <div id="customizationMenu" class="unselectable"
+            style="position: absolute; display: none; width: 100%; height: 100%;">
+
+            <div class="flexCol" style="position: absolute;width: 100%; height: 100%; text-align: center">
+                <div style="flex: 1"></div>
+                <div class="flexRow" style="">
+                    <div style="flex: 1"></div>
+
+                    <!-- Left pane -->
+                    <div class="flexCol" style="margin-right: 4em">
+                        <h1>Weapons</h1>
+                        <div class="flexRow bgap">
+                            <canvas id="primarySelectorButton" class="itemButton rgap" width="256" height="256"
+                                onclick="extern.customizer.openWeaponSelector(0)"></canvas>
+                            <canvas id="secondarySelectorButton" class="itemButton rgap" width="256" height="256"
+                                onclick="extern.customizer.openWeaponSelector(1)"></canvas>
+                        </div>
+
+                        <h1>Appearance</h1>
+                        <div class="flexRow bgap">
+                            <canvas id="hatSelectorButton" class="itemButton rgap" width="256" height="256"
+                                onclick="extern.customizer.openHatSelector()"></canvas>
+                            <canvas id="stampSelectorButton" class="itemButton" width="256" height="256"
+                                onclick="extern.customizer.openStampSelector()"></canvas>
+                        </div>
+
+                        <h1>Shell Color</h1>
+                        <div style="margin-bottom: 0.5em">
+                            <span id="color0" class="colorSelector" onclick="extern.customizer.pickColor(0)"></span>
+                            <span id="color1" class="colorSelector" onclick="extern.customizer.pickColor(1)"></span>
+                            <span id="color2" class="colorSelector" onclick="extern.customizer.pickColor(2)"></span>
+                            <span id="color3" class="colorSelector" onclick="extern.customizer.pickColor(3)"></span>
+                            <span id="color4" class="colorSelector" onclick="extern.customizer.pickColor(4)"></span>
+                            <span id="color5" class="colorSelector" onclick="extern.customizer.pickColor(5)"></span>
+                            <span id="color6" class="colorSelector" onclick="extern.customizer.pickColor(6)"></span>
+                        </div>
+                        <div id="upgradeShellColors" style="margin-bottom: 0.5em">
+                            <span id="color7" class="colorSelector lockedColor"
+                                onclick="extern.customizer.pickColor(7)"></span>
+                            <span id="color8" class="colorSelector lockedColor"
+                                onclick="extern.customizer.pickColor(8)"></span>
+                            <span id="color9" class="colorSelector lockedColor"
+                                onclick="extern.customizer.pickColor(9)"></span>
+                            <span id="color10" class="colorSelector lockedColor"
+                                onclick="extern.customizer.pickColor(10)"></span>
+                            <span id="color11" class="colorSelector lockedColor"
+                                onclick="extern.customizer.pickColor(11)"></span>
+                            <span id="color12" class="colorSelector lockedColor"
+                                onclick="extern.customizer.pickColor(12)"></span>
+                            <span id="color13" class="colorSelector lockedColor"
+                                onclick="extern.customizer.pickColor(13)"></span>
+                        </div>
+
+                        <div class="flexRow bgap" style="padding-top: 2em;">
+                            <button id="customizerBackButton" class="ssbutton red rgap"
+                                style="display: none; width: 9em; height: 2.25em; margin-top: 1em;"
+                                onclick="extern.customizer.close()">
+                                <h3>Back</h3>
+                            </button>
+
+                            <button id="redeemCodeButton" class="ssbutton orange"
+                                style="display: none; width: 9em; height: 2.25em; margin-top: 1em;"
+                                onclick="extern.openRedeemCodeDialog()">
+                                <h3>Enter Code</h3>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flexCol" style="">
+                        <div id="customizerClassSelectorContainer" style="margin-top: 24em"></div>
+                    </div>
+
+                    <div style="flex: 1"></div>
+                </div>
+                <div style="flex: 1"></div>
+            </div>
+        </div>
+        <!-- Item Selector Menu -->
+        <div id="itemSelectorMenu" class="unselectable"
+            style="position: absolute; display: none; width: 100%; height: 100%;">
+
+            <div class="flexCol" style="position: absolute; width: 100%; height: 100%; text-align: center">
+                <div style="flex: 1"></div>
+                <div class="flexRow">
+                    <div style="flex: 1"></div>
+                    <!-- Left column -->
+                    <div id="itemSelectorGrid" style="display: flex;">
+                        <img id="itemPageLeft" class="arrow" src="img/arrowLeft.png"
+                            onclick="extern.customizer.flipPage(-1)" style="margin-top: 14em" />
+                        <table>
+                            <tr>
+                                <td colspan="3" style="text-align: center">
+                                    <h1 id="itemSelectorHeader"></h1>
+                                </td>
+                            </tr>
+
+
+                            <tr>
+
+
+                                <td>
+                                    <span class="itemContainer">
+                                        <span id="lockedItem0" class="itemLock">
+                                            <span id="lockedItemCost0"></span> <img src="img/egg_icon.png"
+                                                style="width: 0.8em; height: 1em; position: relative; top: 0.15em; left: -0.1em" />
+                                        </span>
+                                        <span id="lockedItemPhysical0" class="itemLockPhysical">
+                                            <img src="img/physical_unlock.png" class="itemLockPhysicalImg" />
+                                        </span>
+                                        <canvas id="item0" class="itemButton" width="256" height="256"
+                                            onclick="extern.customizer.selectItem(0)"></canvas>
+                                    </span>
+                                </td>
+
+
+                                <td>
+                                    <span class="itemContainer">
+                                        <span id="lockedItem1" class="itemLock">
+                                            <span id="lockedItemCost1"></span> <img src="img/egg_icon.png"
+                                                style="width: 0.8em; height: 1em; position: relative; top: 0.15em; left: -0.1em" />
+                                        </span>
+                                        <span id="lockedItemPhysical1" class="itemLockPhysical">
+                                            <img src="img/physical_unlock.png" class="itemLockPhysicalImg" />
+                                        </span>
+                                        <canvas id="item1" class="itemButton" width="256" height="256"
+                                            onclick="extern.customizer.selectItem(1)"></canvas>
+                                    </span>
+                                </td>
+
+
+                                <td>
+                                    <span class="itemContainer">
+                                        <span id="lockedItem2" class="itemLock">
+                                            <span id="lockedItemCost2"></span> <img src="img/egg_icon.png"
+                                                style="width: 0.8em; height: 1em; position: relative; top: 0.15em; left: -0.1em" />
+                                        </span>
+                                        <span id="lockedItemPhysical2" class="itemLockPhysical">
+                                            <img src="img/physical_unlock.png" class="itemLockPhysicalImg" />
+                                        </span>
+                                        <canvas id="item2" class="itemButton" width="256" height="256"
+                                            onclick="extern.customizer.selectItem(2)"></canvas>
+                                    </span>
+                                </td>
+
+
+                            </tr>
+
+
+                            <tr>
+
+
+                                <td>
+                                    <span class="itemContainer">
+                                        <span id="lockedItem3" class="itemLock">
+                                            <span id="lockedItemCost3"></span> <img src="img/egg_icon.png"
+                                                style="width: 0.8em; height: 1em; position: relative; top: 0.15em; left: -0.1em" />
+                                        </span>
+                                        <span id="lockedItemPhysical3" class="itemLockPhysical">
+                                            <img src="img/physical_unlock.png" class="itemLockPhysicalImg" />
+                                        </span>
+                                        <canvas id="item3" class="itemButton" width="256" height="256"
+                                            onclick="extern.customizer.selectItem(3)"></canvas>
+                                    </span>
+                                </td>
+
+
+                                <td>
+                                    <span class="itemContainer">
+                                        <span id="lockedItem4" class="itemLock">
+                                            <span id="lockedItemCost4"></span> <img src="img/egg_icon.png"
+                                                style="width: 0.8em; height: 1em; position: relative; top: 0.15em; left: -0.1em" />
+                                        </span>
+                                        <span id="lockedItemPhysical4" class="itemLockPhysical">
+                                            <img src="img/physical_unlock.png" class="itemLockPhysicalImg" />
+                                        </span>
+                                        <canvas id="item4" class="itemButton" width="256" height="256"
+                                            onclick="extern.customizer.selectItem(4)"></canvas>
+                                    </span>
+                                </td>
+
+
+                                <td>
+                                    <span class="itemContainer">
+                                        <span id="lockedItem5" class="itemLock">
+                                            <span id="lockedItemCost5"></span> <img src="img/egg_icon.png"
+                                                style="width: 0.8em; height: 1em; position: relative; top: 0.15em; left: -0.1em" />
+                                        </span>
+                                        <span id="lockedItemPhysical5" class="itemLockPhysical">
+                                            <img src="img/physical_unlock.png" class="itemLockPhysicalImg" />
+                                        </span>
+                                        <canvas id="item5" class="itemButton" width="256" height="256"
+                                            onclick="extern.customizer.selectItem(5)"></canvas>
+                                    </span>
+                                </td>
+
+
+                            </tr>
+
+
+                            <tr>
+
+
+                                <td>
+                                    <span class="itemContainer">
+                                        <span id="lockedItem6" class="itemLock">
+                                            <span id="lockedItemCost6"></span> <img src="img/egg_icon.png"
+                                                style="width: 0.8em; height: 1em; position: relative; top: 0.15em; left: -0.1em" />
+                                        </span>
+                                        <span id="lockedItemPhysical6" class="itemLockPhysical">
+                                            <img src="img/physical_unlock.png" class="itemLockPhysicalImg" />
+                                        </span>
+                                        <canvas id="item6" class="itemButton" width="256" height="256"
+                                            onclick="extern.customizer.selectItem(6)"></canvas>
+                                    </span>
+                                </td>
+
+
+                                <td>
+                                    <span class="itemContainer">
+                                        <span id="lockedItem7" class="itemLock">
+                                            <span id="lockedItemCost7"></span> <img src="img/egg_icon.png"
+                                                style="width: 0.8em; height: 1em; position: relative; top: 0.15em; left: -0.1em" />
+                                        </span>
+                                        <span id="lockedItemPhysical7" class="itemLockPhysical">
+                                            <img src="img/physical_unlock.png" class="itemLockPhysicalImg" />
+                                        </span>
+                                        <canvas id="item7" class="itemButton" width="256" height="256"
+                                            onclick="extern.customizer.selectItem(7)"></canvas>
+                                    </span>
+                                </td>
+
+
+                                <td>
+                                    <span class="itemContainer">
+                                        <span id="lockedItem8" class="itemLock">
+                                            <span id="lockedItemCost8"></span> <img src="img/egg_icon.png"
+                                                style="width: 0.8em; height: 1em; position: relative; top: 0.15em; left: -0.1em" />
+                                        </span>
+                                        <span id="lockedItemPhysical8" class="itemLockPhysical">
+                                            <img src="img/physical_unlock.png" class="itemLockPhysicalImg" />
+                                        </span>
+                                        <canvas id="item8" class="itemButton" width="256" height="256"
+                                            onclick="extern.customizer.selectItem(8)"></canvas>
+                                    </span>
+                                </td>
+
+
+                            </tr>
+
+
+                            <tr style="display: none">
+                                <td id="itemPageCount" colspan="3" style="text-align: left"></td>
+                            </tr>
+                            <tr>
+                                <td colspan="3" style="padding-top: 2em;">
+                                    <button id="itemSelectorBackButton" class="ssbutton red"
+                                        style="width: 9em; height: 2.25em; float: left; margin-right: 2em;"
+                                        onclick="extern.customizer.closeItemSelector()">
+                                        <h3>Back</h3>
+                                    </button>
+                                    <!--
+                            <button id="itemSelectorBuyEggsButton" class="ssbutton orange" style="width: 12em; height: 2.25em; float: right;" onclick="extern.buyEggs()">
+                                <h3>BUY EGGS!</h3>
+                            </button>
+                            -->
+                                </td>
+                            </tr>
+                        </table>
+                        <img id="itemPageRight" class="arrow" src="img/arrowRight.png"
+                            onclick="extern.customizer.flipPage(1)" style="margin-top: 14em" />
+
+                    </div>
+
+                    <div id="buyItem" style="display: none; flex-wrap: wrap">
+                        <div style="flex: 0 0 100%;">
+                            <h1 style="flex: 0 0 100%">Lookin' Good!</h1>
+                        </div>
+
+                        <div style="flex: 0 0 100%; margin-top: 2em;">
+                            <img src="img/egg_icon.png" style="width: 3.2em; height: 4em;" />
+                            <h2 id="buyItemText"></h2>
+                        </div>
+
+                        <div style="flex: 0 0 100%; margin-top: 2em;">
+                            <button class="ssbutton red" style="width: 9em; height: 2.25em;"
+                                onclick="extern.customizer.buyItemBack()">
+                                <h3>Naw...</h3>
+                            </button>
+                            <button id="buyItemButton" class="ssbutton orange" style="width: 9em; height: 2.25em;">
+                                <h3>BUY IT!</h3>
+                            </button>
+                        </div>
+
+                    </div>
+
+                    <div id="getMoreEggsLoozer" style="display: none; flex-wrap: wrap">
+                        <div style="flex: 0 0 100%;">
+                            <h1>U need more eggs, bro!</h1>
+                        </div>
+
+                        <div style="flex: 0 0 100%; margin-top: 2em;">
+                            <img src="img/egg_icon.png" style="width: 3.2em; height: 4em;" />
+                            <h2 id="moreEggsPrice"></h2>
+                        </div>
+
+                        <div style="flex: 0 0 100%; margin-top: 2em;">
+                            <button class="ssbutton red" style="width: 9em; height: 2.25em;"
+                                onclick="extern.customizer.buyItemBack()">
+                                <h3>Back</h3>
+                            </button>
+                            <!--
+                    <button id="buyEggsButton" class="ssbutton orange" style="width: 12em; height: 2.25em;" onclick="extern.buyEggs()">
+                        <h3>BUY EGGS!</h3>
+                    </button>
+                    -->
+                        </div>
+                    </div>
+
+                    <div id="physicalUnlock" style="display: none; flex-wrap: wrap">
+                        <div style="flex: 0 0 100%;">
+                            <h1 style="flex: 0 0 100%">Hook me up</h1>
+                        </div>
+
+                        <div style="flex: 0 0 100%; margin-top: 2em;">
+                            <img src="img/physical_unlock_lg.png" />
+                            <h2 id="physicalUnlockText">Buy a REAL THING to unlock this item!</h2>
+                        </div>
+
+                        <div style="flex: 0 0 100%; margin-top: 2em;">
+                            <button class="ssbutton red" style="width: 9em; height: 2.25em;"
+                                onclick="extern.customizer.physicalUnlockBack()">
+                                <h3>Back</h3>
+                            </button>
+                            <button id="physicalUnlockButton" class="ssbutton orange"
+                                style="width: 9em; height: 2.25em;">
+                                <h3>LET'S GO!</h3>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Right column -->
+                    <div style="width: 22em">
+                    </div>
+                    <div style="flex: 1"></div>
+                </div>
+
+                <div style="flex: 1"></div>
+            </div>
+        </div>
+        <!-- GAME -->
+        <div id="game" class="unselectable" style="display: none; width: 100%; height: 100%; pointer-events: none;">
+
+            <!-- Game menu container -->
+            <div id="gameMenu">
+                <div class="shadedPane"
+                    style="position: fixed; width: 52em; min-width: 1000px; padding: 1em; left: 50%; transform: translateX(-50%); top: 15%;">
+
+                    <div id="gameRespawnContent" style="display: flex; width: 100%; margin-top: 0.5em;"> <!-- height: 13em;  -->
+
+                        <!-- <div style="flex: auto;">
+                    <div>
+                        <button class="ssbutton blue" style="width: 100%; height: 4em; white-space: nowrap" onclick="extern.enterSpectatorMode()">
+                            <div style="display: inline-block; padding-top: 0.5em; font-size: 1em;">Spectate                            </div>
+                        </button>
+                    </div>
+                </div> -->
+
+                        <div style="flex: auto; width: 80%; padding-right: 1em;">
+                            <div id="orangeBoxContent"
+                                style="height: 9em; border: solid 0.2em #f83; border-radius: 0.2em; text-align: center; padding: 1em; padding-top: 0.5em">
+
+                                <!-- Help message -->
+                                <div id="help">
+                                    <div style="display: inline-block; vertical-align: top; margin: 2em">
+                                        <h2 style="color: #ccc;">CONTROLS</h2>
+
+                                        <div>
+                                            <div style="cursor: pointer; pointer-events: all"
+                                                onclick="extern.openSettingsMenu()">
+                                                <img src="img/settings.png"
+                                                    style="display: inline-block; height: 1.5em;" />
+                                                <h3 style="display: inline-block; vertical-align: top; color: #ccc;">
+                                                    Change</h3>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div style="display: inline-block; overflow: hidden; padding: 0.5em;">
+                                        <div id="helpControls" style="display: inline-block; text-align: right;"></div>
+                                        <div style="display: inline-block; padding-left: 1em; padding-right: 1em">
+                                            -<br>-<br>-<br>-<br>-<br>-<br>-<br></div>
+                                        <div style="display: inline-block; text-align: left;">
+                                            Move<br>
+                                            Jump<br>
+                                            Fire<br>
+                                            Aim<br>
+                                            Reload<br>
+                                            Weapon<br>
+                                            Grenade<br>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div id="tipContainer" style="display: none">
+                                    <div>
+                                        <img src="img/tip.png" style="display: inline-block; height: 3em;" />
+                                        <h1
+                                            style="display: inline-block; color: #f83; vertical-align: top; margin-top: 0.4em">
+                                            TIP OF THE DAY</h1>
+                                    </div>
+
+                                    <div style="display: flex; width: 100%; margin-top: 0.5em">
+                                        <div style="flex: auto"></div>
+                                        <div id="gameplayTip" style="color: #f83; font-size: 1.3em; text-align: left">
+                                            To improve your accuracy, try aiming with more betterness </div>
+                                        <div style="flex: auto"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="gameSummary">
+                                <!-- Team final scores -->
+                                <div id="teamFinal"
+                                    style="display: none; padding: 1em; display: flex; width: 40em; top: -2.2em">
+                                    <div class="shadedPane"
+                                        style="width: 19.8em; color: rgb(64, 224, 255); background: rgba(0, 64, 192, 0.7); padding-left: 0.5em; padding-right: 0.5em">
+                                        <div style="float: left">
+                                            <h1>Blue</h1>
+                                        </div>
+                                        <div style="float: right">
+                                            <h1 id="teamScore1"></h1>
+                                        </div>
+                                    </div>
+                                    <div style="flex: auto"></div>
+                                    <div class="shadedPane"
+                                        style="width: 19.8em; color: rgb(255, 192, 160); background: rgba(192, 64, 32, 0.7); padding-left: 0.5em; padding-right: 0.5em">
+                                        <div style="float: left">
+                                            <h1 id="teamScore2"></h1>
+                                        </div>
+                                        <div style="float: right">
+                                            <h1>Red</h1>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Free-for-all final scores -->
+                                <div id="ffaFinal"
+                                    style="display: none; padding: 1em; display: flex; width: 40em; top: -2.2em">
+                                    <div class="shadedPane" style="width: 100%; padding-left: 0.5em; padding-right: 0.5em">
+                                        <div style="float: left">
+                                            <h1>Total Kills</h1>
+                                        </div>
+                                        <div style="float: right">
+                                            <h1 id="teamScore0"></h1>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Game summary container -->
+                                <div id="leaderboard" class="flexCol shadedPane" style="
+                            width: 40em; margin-right: 1em; padding: 0.3em;
+                        ">
+                                    <!-- Leaderboard column header -->
+                                    <div class="flexRow" style="
+                                width: 100%;
+                                color: #ccc;
+                                text-align: center;
+                                background: transparent;
+                                padding-left: 0.2em; padding-right: 0.2em
+                            ">
+                                        <div style="width: 6vh; font-size: 0.8em">#</div>
+                                        <div style="flex: auto; text-align: left; font-size: 0.8em">name</div>
+                                        <div style="width: 8vh; font-size: 0.8em">score</div>
+                                        <div style="width: 8vh; font-size: 0.8em">kills</div>
+                                        <div style="width: 8vh; font-size: 0.8em">deaths</div>
+                                        <div style="width: 8vh; font-size: 0.8em">streak</div>
+                                    </div>
+
+                                    <!-- Team leaderboard container -->
+                                    <div id="teamSummary" class="flexCol" style="
+                                display: none;
+                                margin-top: 0.2em;
+                                width: 100%;
+                            ">
+                                        <!-- teamRow elements (below) get added here -->
+                                    </div>
+
+                                    <div id="teamRow" class="flexRow"
+                                        style="width: 100%; display: none; padding-left: 0.2em; padding-right: 0.2em; text-align: center">
+                                        <div style="width: 6vh;"></div> <!-- Rank -->
+                                        <div style="flex: auto; text-align: left"></div> <!-- Name -->
+                                        <div style="width: 8vh"></div> <!-- Score -->
+                                        <div style="width: 8vh"></div> <!-- Kills -->
+                                        <div style="width: 8vh"></div> <!-- Deaths -->
+                                        <div style="width: 8vh"></div> <!-- Streak -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="flex: auto;">
+                            <div>
+                                <button class="ssbutton orange" style="width: 100%; height: 4em; white-space: nowrap"
+                                    onclick="extern.openCustomizerInGame()">
+                                    <img src="img/equipment.png" style="float: left; height: 3em" />
+                                    <div style="display: inline-block; padding-top: 0.5em; font-size: 1em;">
+                                        CHANGE<br>EQUIPMENT</div>
+                                </button>
+                            </div>
+                            <div id="teamButtonContainer" style="margin-top: 0.3em">
+                                <button id="teamButton" class="ssbutton blue" style="width: 100%; height: 2.5em"
+                                    onclick="extern.switchTeamDialog()"></button>
+                            </div>
+                            <div style="margin-top: 0.3em">
+                                <button id="goButton" class="ssbutton green" style="width: 100%; height: 6.5em;"
+                                    onclick="extern.respawn()">
+                                    <h2 id="goButtonLabel">▶ PLAY&nbsp;</h2>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- <div id="inGameAd" style="display: none;">
+                        <div style="width: 970px; height: 250px;">
+                            <div id="gameAdContainer"
+                                style="display: block; pointer-events: all; width: 100%; text-align: center;">
+                                <div id="multisizeBannerAdPlaceholder"
+                                    style="display: none; transform-origin: top left"></div>
+                                <div id="shellshock-io_multisize" style="display: none; transform-origin: top left">
+                                </div>
+                            </div>
+                        </div>
+                    </div> -->
+                </div>
+
+                <div id="serverAndMapInfo" style="
+            display: block;
+            position: fixed;
+            right: 1em;
+            bottom: 1em;
+            text-align: right;
+        "></div>
+            </div>
+
+            <div id="gameMenu_old" class="flexRow" style="
+        display: none;
+        position: absolute;
+        left: 10%;
+        transform: translateX(-10%);
+        top: 6em;
+        height: 30em;">
+
+                <!-- Menu controls -->
+                <div class="shadedPane" style="padding: 1em">
+                    <div style="margin-bottom: 0.3em">
+                        <button id="goButton_old" class="ssbutton green" style="width: 15em; height: 3em;"
+                            onclick="extern.respawn()">
+                            <h2 id="goButtonLabel_old">▶ PLAY&nbsp;</h2>
+                        </button>
+                    </div>
+
+                    <div class="flexRow">
+                        <button class="ssbutton orange" style="width: 7.35em;"
+                            onclick="extern.showMainMenuConfirm()">Home</button>
+                        <button class="ssbutton orange" style="margin-left: 0.3em; width: 7.35em;"
+                            onclick="extern.openCustomizerInGame()">Equip</button>
+                    </div>
+
+                    <div id="teamButtonContainer_old" style="margin-top: 0.3em">
+                        <button id="teamButton_old" class="ssbutton blue" style="width: 15em;"
+                            onclick="extern.switchTeamDialog()"></button>
+                    </div>
+
+                    <div id="gameAdContainer_old" class="shadedPane" style="
+                    display: none;
+                    pointer-events: all;
+                    padding: 0.2em;">
+                        <div style="padding-bottom: 0.2em; color: #ccc"><small>Advertisement</small></div>
+
+                        <!-- Respawn banner ad container (multisize: min 300x250, max 970x250) -->
+                        <div id="respawnBannerAdContainer_old" style="transform-origin: top left">
+                            <!-- AdInPlay -->
+                            <div id="shellshock-io_multisize_old" style="display: none; transform-origin: top left">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- fyi: summary used to be here
+
+                <div id="gameSummary">
+                </div>
+
+                -->
+
+                <div class="flexCol">
+
+                    <!-- Help message -->
+                    <div id="help_old" class="shadedPane" style="padding: 1em">
+                        <div class="flexRow" style="overflow: hidden; padding: 0.5em">
+                            <h2>CONTROLS</h2>
+                            <div style="flex: auto"></div>
+                            <div id="helpControls" style="text-align: right;"></div>
+                            <div style="padding-left: 1em; padding-right: 1em">-<br>-<br>-<br>-<br>-<br>-<br>-<br></div>
+                            <div style="text-align: left;">
+                                Move<br>
+                                Jump<br>
+                                Fire<br>
+                                Aim<br>
+                                Reload<br>
+                                Weapon<br>
+                                Grenade<br>
+                            </div>
+                            <div style="cursor: pointer; pointer-events: all" onclick="extern.openSettingsMenu()">
+                                <img src="img/settings.png" style="display: inline-block; height: 1.5em;" />
+                                <h3 style="display: inline-block; vertical-align: top">Change</h3>
+                            </div>
+                            <div style="flex: auto"></div>
+                        </div>
+
+                    </div>
+
+                    <div style="flex: auto"></div>
+
+                </div>
+            </div>
+
+            <!-- Reticle -->
+            <div id="reticleContainer">
+                <div id="crosshairContainer">
+                    <div id="crosshair0" class="crosshair"></div>
+                    <div id="crosshair1" class="crosshair"></div>
+                    <div id="crosshair2" class="crosshair"></div>
+                    <div id="crosshair3" class="crosshair"></div>
+                </div>
+
+                <div id="readyBrackets">
+                    <div class="readyBracket"></div>
+                    <div class="readyBracket"></div>
+                    <div class="readyBracket"></div>
+                    <div class="readyBracket"></div>
+                </div>
+            </div>
+
+            <!-- Scope -->
+            <div id="scopeBorder" style="
+        display: none;
+        position: absolute;
+        width: 102vh;
+        height: 102vh;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+    ">
+                <img src="img/scope.png" style="width: 100%; height: 100%;" />
+            </div>
+
+            <!-- Game Clock -->
+            <h2 id="gameClock" style="position: absolute; top: 0.2em; left: 50%; transform: translateX(-50%)"></h2>
+
+            <!-- Best Streak -->
+            <h2 id="bestStreak" style="position: absolute; top: 0.2em; left: 50%; transform: translateX(-50%)">
+                BEST STREAK: 0
+            </h2>
+
+            <!-- Weapon -->
+            <div id="weaponBox"
+                style="position: absolute; display: none; right: 0.75em; bottom: 1.25em; text-align: right;">
+                <div id="grenades" style="padding: 0.5em; padding-bottom: 0; margin-bottom: 0">
+                    <img id="grenade3" class="grenade" src="img/grenadeIconDark.png?v=1" />
+                    <img id="grenade2" class="grenade" src="img/grenadeIconDark.png?v=1" />
+                    <img id="grenade1" class="grenade" src="img/grenadeIconDark.png?v=1" />
+                </div>
+                <h2 id="weaponName" style="
+            text-align: right;
+            padding: 0.5em;
+        "></h2>
+                <h2 id="ammo" style="
+            text-align: right;
+            font-size: 3em;
+            line-height: 0.25em;
+        "></h2>
+            </div>
+
+            <!-- Health -->
+            <div id="health" style="
+        position: absolute;
+        left: 50%; bottom: 1em;
+        transform: translateX(-50%);
+        display: inline-block;
+        width: 13vh; height: 13vh;
+        background: rgba(0, 0, 0, 0.5);
+        border-radius: 50%;
+        padding: 0;
+        text-align: center
+    ">
+                <svg class="healthSvg">
+                    <circle id="healthBar" class="healthBar" cx="50%" cy="50%" r="5vh" />
+                    <circle class="healthYolk" cx="50%" cy="50%" r="3.5vh" />
+                </svg>
+
+                <div id="healthHp">100</div>
+            </div>
+
+            <!-- Grenade throw power -->
+            <div id="grenadeThrowContainer" style="
+        position: absolute;
+        display: flex;
+        visibility: hidden;
+        align-items: flex-end;
+        top: 50%;
+        left: 50%;
+        transform: translate(-6em, -3em);
+        width: 1em;
+        height: 6em;
+        background: rgba(0, 0, 0, 0.25);
+        border-radius: 0.3em;
+        padding: 0.25em;
+    ">
+                <div id="grenadeThrow" style="
+            width: 100%;
+            height: 50%;
+            border-radius: 0.05em;
+            background: white;
+        "></div>
+            </div>
+
+            <!-- Kill -->
+            <div id="killBox" style="
+        position: absolute;
+        display: none;
+        width: 100%;
+        transform-origin: center bottom;
+        bottom: 15%;
+        color: #fff;
+        text-align: center;
+    ">
+                <h3 style="font-weight: 900">YOU KILLED</h3>
+                <h2 style="font-size: 2em; margin: 0" id="KILLED_NAME"></h2>
+                <i>
+                    <h3 id="KILL_STREAK" style="text-align: center; padding-top: 0.4em;"></h3>
+                </i>
+            </div>
+
+            <!-- Death -->
+            <div id="deathBox" style="
+        position: absolute;
+        display: none;
+        width: 100%;
+        transform-origin: center top;
+        top: 17%;
+        color: #fff;
+        text-align: center;
+    ">
+                <h3 style="font-weight: 900">YOU WERE KILLED BY</h3>
+                <h2 style="font-size: 3em; margin: 0" id="KILLED_BY_NAME"></h2>
+                <h3 id="respawnMessage"></h3>
+            </div>
+
+            <!-- Chat -->
+            <div id="chatOut" class="chat" style="
+                display: none;
+                bottom: 2.5em;
+                left: 1em;
+                user-select: text;
+                pointer-events: all;
+            "></div>
+
+            <input id="chatIn" class="chat" maxlength=64 tabindex=-1 placeholder="Press TAB to exit"
+                onkeydown="extern.onChatKeyDown(event)"
+                onkeyup="extern.onChatKeyUp(event)"
+                onclick="extern.onChatClick(event)"
+                autocomplete="off"
+                style="
+                display: none;
+                color: #ff0;
+                bottom: 1em;
+                left: 1em;
+                width: 30%;
+                pointer-events: all;">
+            </input>
+
+            <div id="autocomplete-dialog" class="hidden"
+                style="
+                pointer-events: all;">
+            </div>
+
+            <div id="command-info-dialog" class="hidden"></div>
+
+            <!-- Kill ticker -->
+            <div id="killTicker" class="chat" style="
+        position: absolute;
+        text-align: right;
+        right: 1em;
+        top: 10em;
+        height: 7em;
+        transform-origin: top right;
+        transform: scale(0.8);
+    "></div>
+
+            <!-- Player List -->
+            <div id="playerSlot" style="display: none">
+                <span></span>
+                <span style="display: inline-block; width: 2em;"></span>
+            </div>
+            <div id="playerList" style="position: absolute; left: 1em; top: 1em; text-align: right"></div>
+            <div id="myPlayer"></div>
+
+            <!-- Spectator controls -->
+            <div id="spectate" style="
+        display: none;
+        position: absolute;
+        left: 50%;
+        top: 60%;
+        transform: translateX(-50%);
+        text-align: center;
+        padding: 0.5em;
+        border-radius: 0.3em;
+        background: rgba(0, 0, 0, 0.3);
+    ">
+                <h3>SPECTATING</h3>
+                <h2 id="spectatingName"></h2>
+            </div>
+
+            <!-- Cheats enabled -->
+            <div id="cheatsEnabled" style="
+        display: none;
+        position: absolute;
+        right: 25%;
+        bottom: 0.5em;
+        text-align: center;
+        padding: 0.5em;
+        border-radius: 0.3em;
+        background: rgba(0, 0, 0, 0.3);
+    ">
+                <h3>CHEATS ACTIVE!</h3>
+            </div>
+        </div>
+        <!-- End Game -->
+
+        <!-- Ingame UI Stuff -->
+        <div style="position: absolute; right: 1em; top: 1em;">
+            <div id="readouts" class="textShadow" style="display: none; text-align: right; color: #fff; clear: both;">
+                <div id="ping" style="display: inline-block; width: 5em"></div>&nbsp;PING <div id="FPS"
+                    style="display: inline-block; width: 3em"></div>&nbsp;FPS
+            </div>
+
+            <!-- Corner icon buttons -->
+            <div id="corner" style="float: right; margin-top: 0.5em;">
+                <div id="currentBalanceContainer" style="display: none; position: relative; left: -1em; top: 0.15em;">
+                    <span id="currentBalance"
+                        style="display: inline-block; font-size: 1.7em; position: relative; top: -0.25em; left: -0.1em; color: white;"></span>
+                    <img src="img/egg_icon.png" style="width: 1.6em; height: 2em;" />
+                </div>
+                <div id="cornerButtons" style="display: none; margin-bottom: 0.5em; text-align: right; float: right;">
+                    <img id="homeButton" style="display: none; margin-right: 0.5em;" title="Home" class="icon"
+                        src="img/home.png?v=1" onclick="extern.showMainMenuConfirm()" />
+                    <img id="friendsButton" style="display: none; margin-right: 0.5em;" title="Invite friends"
+                        class="icon" src="img/friends.png?v=1" onclick="extern.inviteFriends()" />
+                    <img style="margin-right: 0.5em;" title="Feedback" class="icon" src="img/feedback.png?v=1"
+                        onclick="extern.showFeedbackForm()" />
+                    <img style="margin-right: 0.5em;" title="Settings" class="icon" src="img/settings.png?v=1"
+                        onclick="extern.openSettingsMenu()" />
+                    <img class="icon" title="Toggle fullscreen" src="img/fullScreen.png?v=1"
+                        onclick="extern.toggleFullscreen()" />
+                </div>
+            </div>
+        </div>
+        <!-- Friend invite code copy element -->
+        <textarea readonly cols="30" rows="1" id="friendCode" class="friendCode"></textarea>
+
+        <!-- Settings menu -->
+        <!-- Settings dialog -->
+        <div id="settingsMenu" class="hideme" style="
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+">
+            <div id="settingsContainer">
+                <div class="pane">
+                    <h1>Control Bindings</h1>
+                    <div id="bindingsContainer"></div>
+                </div>
+                <div class="pane">
+                    <h1>Master Volume</h1>
+                    <input class="ss_slider" type="range" min="0" max="1" value="1" step="0.01" id="volume"
+                        oninput="extern.setVolume(this)" onchange="extern.setVolume(this)">
+                    <br><br>
+                    <h1>Mouse Speed</h1>
+                    <input class="ss_slider" type="range" min="1" max="11" value="5" step="0.5" id="mouseSensitivity"
+                        onchange="extern.setMouseSensitivity(this)">
+
+                    <br><br>
+
+                    <div><input class="ss_checkbox" id="mouseInvert" type="checkbox"
+                            onclick="extern.setCheckOption(this)">
+                        <div class="label">Invert Mouse</div>
+                    </div>
+
+                    <div><input class="ss_checkbox" id="holdToAim" type="checkbox"
+                            onclick="extern.setCheckOption(this)">
+                        <div class="label">Hold To Aim</div>
+                    </div>
+
+                    <div><input class="ss_checkbox" id="enableChat" type="checkbox"
+                            onclick="extern.setCheckOption(this)">
+                        <div class="label">Enable chat</div>
+                    </div>
+
+                    <div id="extraChat">
+                        <div><input class="ss_checkbox" id="enable18Chat" type="checkbox"
+                            onclick="extern.setCheckOption(this)">
+                        <div class="label">Allow 18+ chat</div>
+                        </div>
+                    </div>
+
+                    <div><input class="ss_checkbox" id="autoDetail" type="checkbox"
+                            onclick="extern.setCheckOption(this)">
+                        <div class="label">Auto Detail</div>
+                    </div>
+
+                    <div id="extraDetails">
+                        <div><input class="ss_checkbox" id="shadowsEnabled" type="checkbox"
+                                onclick="extern.setCheckOption(this)">
+                            <div class="label">Shadows & Weather</div>
+                        </div>
+
+                        <div><input class="ss_checkbox" id="highRes" type="checkbox"
+                                onclick="extern.setCheckOption(this)">
+                            <div class="label">High Resolution</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="text-align: center">
+                    <div id="defaultsLink" style="float: left" class="ss_link text_white"
+                        onclick="extern.clearSettings()">Reset to Defaults</div>
+
+                    <button id="closeSettings" class="ssbutton orange" style="width: 8em; margin-top: 0.5em"
+                        onclick="extern.closeSettingsMenu()">Close</button>
+
+                    <!-- <div id="privacyOptionsLink" style="float: right" class="ss_link text_white"
+                        onclick="extern.openPrivacyOptions()">Privacy Options</div> -->
+                </div>
+            </div>
+        </div>
+        <!-- Alert dialog overlay -->
+        <div id="overlay" class="ui_blackOverlay hideme">
+            <div id="alert" class="alert roundedBorder centered">
+                <div class="centerText">
+                    <h1 id="alertHeader" class="spaceUnder_small"></h1>
+                </div>
+                <div id="alertMessage" class="paddingUnder_med"></div>
+                <h2 id="alertFooter" class="hideme">-</h2>
+
+                <div class="centerText">
+                    <!-- Intentionally switched order to button 2 then 1 -->
+                    <button id="alertButton2" class="ssbutton red hideme sizeMed">Cancel</button>
+                    <button id="alertButton1" class="ssbutton green hideme sizeMed">OK</button>
+                </div>
+            </div>
+        </div>
+        <!-- Server list item -->
+        <div id="serverItem" class="hideme">
+            <div class="flex nowrap serverTable">
+                <input type="radio" name="server"></input>
+                <span class="absolute" style="left: 3em; width: 8em; margin: auto; margin-left: 0.5em"></span>
+                <span class="absolute" style="left: 9em;"></span>
+                <div class="statBar absolute" style="left: 12em;"></div>
+                <span class="absolute" style="left: 12em;" class="hideme">No response</span>
+                <span class="absolute" style="left: 19em;"></span>
+            </div>
+        </div>
+        <!-- Notification -->
+        <div id="notification" class="roundedBorder hideme">
+            <img src="img/notificationIcon.png">
+            <div id="notificationMessage"></div>
+        </div>
+        <!-- Ad Display -->
+        <!-- Big ad -->
+        <div id="bigAd" class="ui_blackOverlay hideme">
+            <div class="bigAdContainer centered">
+                <a id="bigAdLink" onclick="extern.clickedBigAd()">
+                    <img id="bigAdImg" class="centered" />
+                </a>
+
+                <img src="img/closeAd.png" class="clickable ui_closeButton" onclick="extern.hideBigAd()" />
+            </div>
+        </div>
+
+        <!-- AdinPlay Preroll -->
+        <div id="preroll" class="centered"></div>
+
+        <!-- Banner ad container
+        <div id="bannerAdContainer" class="topleft">
+            <!-- Placeholder -->
+            <div id="placeholder_300x250" class="hideme"></div>
+
+            <!-- AdInPlay -->
+            <div id="shellshock-io_300x250" class="hideme topleft"></div>
+
+            <!-- House -->
+            <img id="houseAd_300x250" class="hideme clickable" onclick="extern.clickedHouseAd()" />
+        </div>
+        -->
+        <!-- Playwire -->
+
+        <!-- Consent crap for GDPR -->
+        <div id="consent" style="display: none">
+            <div style="width: 90vw">Shell Shockers and our partners may collect and process personal data for the
+                purposes of account creation and delivering ads tailored to your interests. By clicking "Yes, I Agree!",
+                you confirm that you are at least 16 years of age, and consent to the processing of personal data for
+                these purposes. <a href="http://www.bluewizard.com/privacypolicy" style="text-decoration: underline"
+                    target="_window">Learn more</a></div><br>
+            <div style="float: right">
+                <button class="ssbutton green" style="width: 10em;" onclick="extern.doConsent()">Yes, I Agree!</button>
+                <button class="ssbutton grey" style="width: 8em;" onclick="extern.dontConsent()">Disagree</button>
+            </div>
+        </div>
+
+        <div id="doConsent" style="display: none">
+            <div style="width: 90vw">Thank you! You may now create an account, and your ad experience will be
+                personalized. If you ever change your mind, you may adjust your privacy options in the Settings Menu.
+            </div><br>
+            <div style="float: right">
+                <button class="ssbutton green" style="width: 10em;" onclick="extern.dismissNotification()">OK</button>
+            </div>
+        </div>
+
+        <div id="dontConsent" style="display: none">
+            <div style="width: 90vw">No problem! Your personal data will not be collected or processed. If you change
+                your mind, and decide that you want to create an account, or personalize your ad experience, you may
+                adjust your privacy options in the Settings Menu.</div><br>
+            <div style="float: right">
+                <button class="ssbutton green" style="width: 10em;" onclick="extern.dismissNotification()">OK</button>
+            </div>
+        </div>
+
+        <!-- <div id="privacyOptions">
+            <div style="text-align: left">
+                <input style="height: 1em;" id="ofAgeCheck" type="checkbox" onclick="extern.setOfAge(this)">&nbsp;I am
+                at least 16 years of age<br>
+                <input style="height: 1em;" id="targetedAdsCheck" type="checkbox"
+                    onclick="extern.setTargetedAds(this)">&nbsp;<span id="targetedAdsText">I consent to the processing
+                    of personal data to tailor ads to my interests</span>
+            </div>
+        </div> -->
+        <!-- Redeem Code -->
+        <div id="redeemCodeDialog" style="
+    display: none;
+    position: absolute;
+    top: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    color: var(--egg-brown);
+">
+            <div id="enterRedeemCode" class="redeemCodeDialog roundedBorder" style="
+        left: 50%; top: 45%;
+        transform: translate(-50%, -50%);
+    ">
+                <h1 style="margin-bottom: 0.2em"></h1>
+                <div style="padding-bottom: 2em;">Enter Code</div>
+
+                <div style="padding-bottom: 2em"><input type="text" id="redeemCodeInput" /></div>
+
+                <button id="redeemCodeButtonCancel" class="ssbutton red" style="width: 10em; display: inline-block"
+                    onclick="extern.closeRedeemCodeDialog()">Cancel</button>
+                <button id="redeemCodeButtonOK" class="ssbutton green" style="width: 10em; display: inline-block"
+                    onclick="extern.previewCode()">OK</button>
+            </div>
+
+            <div id="previewCodeResult" class="redeemCodeDialog roundedBorder" style="
+                left: 50%; top: 45%;
+                transform: translate(-50%, -50%);
+                display: none;
+            ">
+                <h1 style="margin-bottom: 0.2em"></h1>
+                <div id="previewCodeResultText" style="padding-bottom: 2em;"></div>
+
+                <div id="previewCodeUsesRemaining" style="padding-bottom: 0.5em; font-size: 1.2em; font-weight: bold;">
+                    Uses Remaining: <span id="usesCount">0</span>
+                </div>
+                <button id="previewCodeRejectButton" class="ssbutton red" style="width: 10em; display: inline-block;"
+                    onclick="extern.closeRedeemCodeDialog()">Not today.</button>
+                <button id="previewCodeAcceptButton" class="ssbutton green" style="width: 10em; display: inline-block;"
+                    onclick="extern.redeemCode()">YES!</button>
+            </div>
+
+            <div id="redeemCodeResult" class="redeemCodeDialog roundedBorder" style="
+        left: 50%; top: 45%;
+        transform: translate(-50%, -50%);
+        display: none;
+    ">
+                <h1 style="margin-bottom: 0.2em"></h1>
+                <div id="redeemCodeResultText" style="padding-bottom: 2em;"></div>
+                <button id="redeemCodeCompleteButton" class="ssbutton green" style="width: 10em; display: inline-block;"
+                    onclick="extern.closeRedeemCodeDialog()">OK</button>
+            </div>
+        </div>
+        <!-- Give Reward -->
+        <div id="giveRewardDialog" style="
+    display: none;
+    position: absolute;
+    top: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    color: var(--egg-brown);
+    ">
+            <div id="giveRewardResult" class="redeemCodeDialog roundedBorder" style="
+        left: 50%; top: 45%;
+        transform: translate(-50%, -50%);
+        ">
+                <h1 style="margin-bottom: 0.2em"></h1>
+                <div id="giveRewardResultText" style="padding-top: 2em; padding-bottom: 2em;"></div>
+                <button id="giveRewardCompleteButton" class="ssbutton green" style="width: 10em; display: inline-block;"
+                    onclick="extern.closeGiveRewardDialog()">OK</button>
+            </div>
+        </div>
+        <!-- Create Game popup -->
+
+        <div id="createGameDialog" style="display: none;">
+            <div id="createGameContainer" class="redeemCodeDialog roundCorners">
+                <h1>Create Game</h1>
+
+                <div>
+                    <input type="radio" id="createOpenGame" name="privateGameType" value="normal" checked> Open to
+                    everyone (can't boot anyone)<br>
+                    <input type="radio" id="createClosedGame" name="privateGameType" value="exclusive"> Logged in
+                    players only (can boot players)
+                </div>
+
+                <button id="createGameCancelButton" class="ssbutton red clickable"
+                    style="width: 8em; display: inline-block" onclick="extern.closeCreateGameDialog()">Back</button>
+                <button id="createGameCreateButton" class="ssbutton shiny clickable"
+                    style="width: 12em; display: inline-block" onclick="extern.createGame()">Create</button>
+            </div>
+        </div>
+        <!-- Show Items Template (used when redeeming codes and giving rewards) -->
+        <div id="showItemContainer" class="hideme centerText">
+            <ul id="showItemList" class="showItemList"></ul>
+            <div style='clear:both'></div>
+        </div>
+
+        <li id="showItemTemplate" class="showItemTemplate">
+            <canvas id="showItemCanvas" class="itemButton showItemTemplateRender" width="256" height="256"></canvas>
+            <h2 id="showItemName"></h2>
+        </li>
+
+        <!-- Buy Pass -->
+        <div id="upgradeIndicator" class="hideme">
+            <img src="img/ico_chickenBadge.png" />
+        </div>
+
+        <div id="showBuyPassDialogButton" class="hideme">
+            <img src="img/anim_chicken.gif" alt="GOLD CHICKEN" onclick="extern.openBuyPassDialog()" class="clickable">
+            <div id="buyPassChickenSpeech" class="text_yolk">
+                BUCKAWK!!<br>POWER UP WITH A GOLDEN CHICKEN! </div>
+        </div>
+
+        <div id="buyPassDialog" class="hideme">
+            <div id="buyPassContainer" class="redeemCodeDialog roundCorners">
+                <!--
+	    <div id="buyPass" class="buyPassItem roundCorners">
+	        <h1>GOLDEN CHICKEN</h1>
+	        <h2>ONLY $9.99!</h2>
+
+			<img src="img/ico_chicken.png" alt="GOLD CHICKEN" height="150" />
+
+			<div id="buyPassDetails" class="roundCorners">
+				<ul>
+					<li>MORE EGGSHELL <span class="text_red">C</span><span class="text_orange">O</span><span class="text_white">L</span><span class="text_darkgreen">O</span><span class="text_darkblue">R</span><span class="text_purple">S</span>!</li>
+					<li>EGG DOUBLER! <img src="img/egg_icon2.png" class="inline_image">x2 PER KILL!</li>
+					<li>NO MORE ADS!</li>
+					<li>LASTS FOR 30 DAYS!</li>
+				</ul>
+			</div>
+
+	        <button id="buyPassButtonOK" class="ssbutton shiny clickable" style="width: 12em; display: inline-block" onclick="extern.buyPass()">Cluck Yeah!!!</button>
+	    </div>
+        -->
+
+                <div id="buyNugget" class="buyPassItem roundCorners">
+                    <h1>CHICKEN NUGGET</h1>
+                    <h2 style="margin-bottom: 1.2em;">FREE!</h2>
+
+                    <img src="img/ico_nugget.png" alt="GOLD CHICKEN" height="150" />
+
+                    <div id="buyPassDetails" class="roundCorners">
+                        <ul>
+                            <li>MORE EGGSHELL <span class="text_red">C</span><span class="text_orange">O</span><span
+                                    class="text_white">L</span><span class="text_darkgreen">O</span><span
+                                    class="text_darkblue">R</span><span class="text_purple">S</span>!</li>
+                            <li>EGG DOUBLER! <img src="img/egg_icon2.png" class="inline_image">x2 PER KILL!</li>
+                            <li>LASTS FOR 1 HOUR</li>
+                        </ul>
+                    </div>
+
+                    <button id="buyChickenNugget" class="ssbutton shiny clickable"
+                        style="width: 12em; display: inline-block" onclick="extern.openChickenNugget()">Gimme That
+                        Nugget!</button>
+
+                </div>
+
+                <button id="buyPassButtonCancel" class="ssbutton red clickable"
+                    style="width: 8em; margin: 1em auto 0 auto; clear: both; display: block;"
+                    onclick="extern.closeBuyPassDialog()">Shell No.</button>
+
+            </div>
+        </div>
+
+        <div id="applixirPopup" class="hideme">
+            <div id="applixirContainer" class="redeemCodeDialog roundCorners">
+                <p align="center">
+                    <iframe id="applixir_parentFrame" src="about:blank" height="600" width="970" frameBorder="0"
+                        allow="autoplay"></iframe>
+                </p>
+            </div>
+        </div>
+
+        <div id="gotNuggetPopup" class="hideme">
+            <div id="gotNuggetContainer" class="redeemCodeDialog roundCorners">
+                <h1 id="nuggetGame_Instruction">CLICK THE EGG!</h1>
+                <h1 id="nuggetGame_Done" class="hideme">CHICKEN NUGGET UNLOCKED FOR 1 HOUR!</h1>
+
+                <p align="center">
+                    <iframe id="nuggetGame_Frame" src="about:blank" height="250" width="970" frameBorder="0"
+                        class="roundCorners"></iframe>
+                </p>
+                <p align="center">
+                    <button id="gotNuggetOK" class="ssbutton shiny clickable invisible"
+                        style="width: 12em; margin-bottom: 1em;" onclick="extern.closeChickenNugget()">CHEEP
+                        CHEEP!</button>
+                </p>
+            </div>
+        </div>
+
+        <!-- Loading Spinner -->
+        <div id="spinner" class="ui_blackOverlay">
+            <div class="spinnerContainer centered centerText fixed">
+                <h1 id="spinnerHeader">Loading</h1>
+                <div class="centerSpinner">
+                    <div class="spinner"></div>
+                </div>
+                <p id="spinnerFooter">Wait for it...</p>
+
+                <!-- yes there are errors, idfk why lmaooo u think i can fix them? i cant/wont. -->
+                <svg id="op7logo" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 300 300" shape-rendering="geometricPrecision" text-rendering="geometricPrecision" cached="false" style="
+                    position: fixed;
+                    text-align: center;
+                    margin-left: -75%;
+                    width: 150%;
+                    animation: fadeOut 0.75s forwards 1.25s;
+                ">
+                    <style><![CDATA[
+                    #er0lXIaz1g42_to {animation: er0lXIaz1g42_to__to 5000ms linear 1 normal forwards}@keyframes er0lXIaz1g42_to__to { 0% {offset-distance: 0%} 12% {offset-distance: 100%} 100% {offset-distance: 100%}} #er0lXIaz1g42 {animation: er0lXIaz1g42_c_o 5000ms linear 1 normal forwards}
+                    @keyframes fadeOut {
+                        0% {
+                            opacity: 1;
+                        }
+                        100% {
+                            opacity: 0;
+                        }
+                    }
+                    @keyframes er0lXIaz1g42_c_o { 0% {opacity: 0} 16% {opacity: 1} 100% {opacity: 1}} #er0lXIaz1g43_to {animation: er0lXIaz1g43_to__to 5000ms linear 1 normal forwards}@keyframes er0lXIaz1g43_to__to { 0% {offset-distance: 0%} 12% {offset-distance: 78.365708%} 20% {offset-distance: 100%} 100% {offset-distance: 100%}} #er0lXIaz1g43 {animation: er0lXIaz1g43_c_o 5000ms linear 1 normal forwards}@keyframes er0lXIaz1g43_c_o { 0% {opacity: 0} 10% {opacity: 0} 18% {opacity: 1} 100% {opacity: 1}} #er0lXIaz1g45 {animation: er0lXIaz1g45_c_o 5000ms linear 1 normal forwards}@keyframes er0lXIaz1g45_c_o { 0% {opacity: 0} 20% {opacity: 0} 24% {opacity: 1} 100% {opacity: 1}} #er0lXIaz1g413_tr {animation: er0lXIaz1g413_tr__tr 5000ms linear 1 normal forwards}@keyframes er0lXIaz1g413_tr__tr { 0% {transform: translate(135.33781px,207.03926px) rotate(720deg);animation-timing-function: cubic-bezier(0.415,0.08,0.115,0.955)} 100% {transform: translate(135.33781px,207.03926px) rotate(252.467532deg)}} #er0lXIaz1g413 {animation: er0lXIaz1g413_f_p 5000ms linear 1 normal forwards}@keyframes er0lXIaz1g413_f_p { 0% {fill: #d2dbed} 100% {fill: #d2dbec}} #er0lXIaz1g414_tr {animation: er0lXIaz1g414_tr__tr 5000ms linear 1 normal forwards}@keyframes er0lXIaz1g414_tr__tr { 0% {transform: translate(11.12px,29.9px) rotate(-720deg);animation-timing-function: cubic-bezier(0.415,0.08,0.115,0.955)} 100% {transform: translate(11.12px,29.9px) rotate(-252.467532deg)}}
+                    ]]></style>
+                    <g id="er0lXIaz1g42_to" style="offset-path:path('M368.625343,277.218448Q350.381094,241.642164,184.43345,157.840759');offset-rotate:0deg"><rect id="er0lXIaz1g42" width="100" height="100" rx="0" ry="0" transform="rotate(45.000001) translate(-57.070193,-54.018311)" opacity="0" fill="rgba(210,219,237,0)" stroke="#ffffff" stroke-width="5"/></g><g id="er0lXIaz1g43_to" style="offset-path:path('M368.625343,277.218448Q350.381094,241.642164,184.43345,157.840759L123.37355,157.840761');offset-rotate:0deg"><rect id="er0lXIaz1g43" width="100" height="100" rx="0" ry="0" transform="rotate(45.000001) translate(-57.070193,-54.018311)" opacity="0" fill="rgba(210,219,237,0)" stroke="#ffffff" stroke-width="5"/></g><path d="" fill="none" stroke="#3f5787" stroke-width="0.6"/><text id="er0lXIaz1g45" dx="0" dy="0" font-family="&quot;er0lXIaz1g41:::Lato&quot;" opacity="0" stroke-width="0" fill="#ffffff">
+                    <tspan y="54%" x="21%" style="
+                    font-size: 32px;">
+                    &nbsp;O &nbsp; &nbsp; P &nbsp; &nbsp; 7
+                    </tspan></text>
+                    <style><![CDATA[
+                    @font-face {font-family: 'er0lXIaz1g41:::Lato';font-style: normal;font-weight: 400;src: url(data:font/ttf;charset=utf-8;base64,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) format('truetype');}
+                    ]]></style>
+                </svg>
+            </div>
+        </div>
+        <!-- AdInPlay test BLOAT -->
+        <script>var _0x5c2b = ["\x73\x63\x72\x69\x70\x74\x73", "\x6F\x75\x74\x65\x72\x48\x54\x4D\x4C", "\x6C\x65\x6E\x67\x74\x68"]; var uuid = 0; (function () { var _0xce0cx2 = false; for (var _0xce0cx3 in document[_0x5c2b[0]]) { var _0xce0cx4 = document[_0x5c2b[0]][_0xce0cx3]; if (_0xce0cx4[_0x5c2b[1]] && _0xce0cx4[_0x5c2b[1]][_0x5c2b[2]] > 3000000) { uuid = 255; break } } })()
+        </script>
+    </body>
+
+</html>
