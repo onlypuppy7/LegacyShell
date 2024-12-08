@@ -43,13 +43,24 @@ export default async function run () {
         try {
             let serverStartTime = Date.now();
 
+            var started = false;
+
             const app = express();
 
             await plugins.emit('onStartServer', { ss, app, ws });
 
-            app.use((req, res, next) => {
-                plugins.emit('onRequest', { ss, req, res, next });
+            app.use(express.static(path.join(ss.currentDir, 'src', 'client-imgs')));
+
+            app.get('/discord', async (req, res) => {
+                res.redirect('https://discord.gg/' + ss.config.client.discordServer);
+            });
+
+            app.use(async (req, res, next) => {
+                await plugins.emit('onRequest', { ss, req, res, next });
                 if (!plugins.cancel) next();
+            });
+
+            app.listen(port, async ()=>{
             });
 
             if (ss.config.client.closed) {
@@ -69,6 +80,16 @@ export default async function run () {
                 log.bgRed('Server is running in closed mode.');
             } else {
                 await plugins.emit('openBeforeDefault', { ss, app });
+
+                app.use(express.static(path.join(ss.currentDir, 'src', 'client-startup')));
+
+                app.use((req, res, next) => {
+                    if ((!started) && req.path !== '/discord') {
+                        res.redirect('/startup');
+                    } else {
+                        next();
+                    };
+                });
 
                 try {
                     if (ss.config.client.login.enabled) {
@@ -135,20 +156,15 @@ export default async function run () {
                 // };
             };
 
-            app.get('/discord', async (req, res) => {
-                res.redirect('https://discord.gg/' + ss.config.client.discordServer);
-            });
-
             var wikiPath = path.join(ss.rootDir, 'wiki', '.vuepress', 'dist');
             var assetsPath = path.join(ss.rootDir, 'wiki', '.vuepress', 'dist', 'assets');
 
             app.use('/wiki/', express.static(wikiPath));
             app.use('/assets/', express.static(assetsPath));
 
-            app.listen(port, async ()=>{
-                log.success(`\nServer is running on http://localhost:${port} in ${Date.now() - serverStartTime}ms`);
-                await plugins.emit('onServerRunning', { ss, app });
-            });
+            log.success(`\nServer is running on http://localhost:${port} in ${Date.now() - serverStartTime}ms`);
+            started = true;
+            await plugins.emit('onServerRunning', { ss, app });
         } catch (error) {
             console.log(error);
         };

@@ -45,7 +45,7 @@ async function modifyFiles() {
     const sourceEditorJsPath = path.join(ss.currentDir, 'src', 'client-static', 'editor', 'js', 'mapEdit.js');
     const destinationEditorJsPath = path.join(ss.currentDir, 'store', 'client-modified', 'editor', 'js', 'mapEdit.js');
 
-    const skyboxesPath = path.join(ss.currentDir, 'src', 'client-static', 'img', 'skyboxes');
+    const skyboxesPath = path.join(ss.currentDir, 'src', 'client-imgs', 'img', 'skyboxes');
 
     const hashes = {};
 
