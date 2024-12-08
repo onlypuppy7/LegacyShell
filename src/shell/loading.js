@@ -60,8 +60,12 @@ export function loadMeshes(scene, meshNames, onMeshLoaded, onComplete) { //[srvr
     let rootUrl = "models/";
 
     function decrement () {
-        // console.log("decrementing mesh count", meshCount, meshNames, meshesLoaded);
-        0 == --meshCount && onComplete && onComplete.call(that);
+        meshCount--;
+        devlog("decrementing mesh count", meshCount, meshNames, meshesLoaded);
+        if (meshCount === 0 && onComplete) {
+            devlog("mesh loading complete");
+            onComplete.call(that);
+        };
     };
 
     function load(rootUrl, meshPath, scene, meshName) {

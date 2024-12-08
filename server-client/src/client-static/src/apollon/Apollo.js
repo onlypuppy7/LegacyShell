@@ -76,8 +76,30 @@ stopAllSounds = function () {
 function loadSound(src, name, onLoadingComplete) {
   if (APOLLO_LOG)
     console.log(`APOLLO: loadSound() called for ${name} via ${src} `);
-  let snd = new Howl({ src, onload: onLoadingComplete }); //create howl object
-  setSound(name, snd);
+  const loadTimeout = setTimeout(() => {
+    console.warn(
+      `APOLLO: loadSound() called for ${name}, but the sound did not load in time!`,
+    );
+    onLoadingComplete();
+  }, 5e3);
+  const onload = (err) => {
+    if (!err) devlog(`APOLLO: sound ${name} loaded!`);
+    clearTimeout(loadTimeout);
+    onLoadingComplete();
+  };
+  let snd = new Howl({ src, onload: ()=>{
+    setSound(name, snd);
+    onload();
+  }, onloaderror: (err, err2)=>{
+    devlog(`APOLLO: sound ${name} failed to load!`, err, err2);
+    if (src.split(".").pop() == "mp3") {
+      devlog("APOLLO: trying to load ogg instead for sound", name);
+      clearTimeout(loadTimeout);
+      loadSound(src.replace("mp3", "ogg"), name, onLoadingComplete);
+    } else {
+      onload(err2);
+    };
+  }}); //create howl object
 }
 
 /**
@@ -122,8 +144,14 @@ function loadCue(name, srcs) {
 function loadSoundsFromList(list, onComplete) { //i hate this formatting, delete the code NOW or I will kill you
   var loadsComplete = 0;
 
+  devlog("apollo loadSoundsFromList", list.length, list);
+
   function catComplete() {
-    list.length == ++loadsComplete && onComplete();
+    loadsComplete++
+    devlog("apollo catcomplete", loadsComplete, list.length);
+    if (list.length == loadsComplete) {
+      onComplete();
+    };
   }
 
   for (var i = 0; i < list.length; i++) {
