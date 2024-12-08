@@ -211,6 +211,8 @@ export async function prepareStamps() {
     await image.toFile(output);
 
     log.success('Stamps prepared in', Date.now() - startTime, 'ms');
+
+    await plugins.emit('stampsPrepared', {this: this, items, composites, image, output});
 };
 
 export const needsBorderCheck = async (sharpInstance) => {
