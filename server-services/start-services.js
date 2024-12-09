@@ -232,6 +232,24 @@ export default async function run (runStart) {
                         ss.config.verbose && console.log("items", items.maxDateModified, msg.lastItems);
                         ss.config.verbose && console.log("maps", maps.maxDateModified, msg.lastMaps);
                         ss.config.verbose && console.log("game_servers", game_servers.maxDateModified, msg.lastServers);
+
+                        let restartTime = null;
+                        if (ss.isPerpetual) {
+                            let config = ss.config.perpetual_all.services;
+                            if (config.dailyrestart_enable) {
+                                const now = new Date();
+                                const [restartHour, restartMinute] = config.dailyrestart_time.split(':').map(Number);
+                                const nextRestart = new Date();
+                                nextRestart.setHours(restartHour, restartMinute, 0, 0);
+                        
+                                if (nextRestart < now) {
+                                    nextRestart.setDate(nextRestart.getDate() + 1);
+                                };
+
+                                restartTime = nextRestart.getTime();
+                                // devlog("Next restart:", nextRestart, restartTime);
+                            };
+                        };
     
                         let response = {
                             cmd: 'requestConfig',
@@ -249,6 +267,8 @@ export default async function run (runStart) {
                                 versionHash: ss.versionHash,
                                 startTime: ss.startTime,
                             },
+
+                            restartTime,
                         };
     
                         // console.log(ss.config.distributed_client);
