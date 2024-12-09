@@ -2,10 +2,15 @@
 import Comm from '#comm';
 import { Worker } from 'worker_threads';
 import { GameTypes, getMapPool } from '#gametypes';
+import { devlog } from '#constants';
 //legacyshell: servicesWs
 import { ws as servicesWs } from '../start-game.js';
+//legacyshell: logging
+import log from '#coloured-logging';
 //legacyshell: ss
 import { ss } from '#misc';
+//legacyshell: plugins
+import { plugins } from '#plugins';
 //
 
 const id_length = 3; //btw you cant just modify this without also adjusting the client's code. do you ever NEED to modify this? no. just have it static.
@@ -152,7 +157,7 @@ class newRoomManager {
     };
 
     createRoom(info) {
-        info.mapId
+        // info.mapId
 
         info.gameId = this.getUnusedID();
         // info.gameKey = Math.getRandomInt(10, Math.pow(36, 2) - 10);
@@ -174,8 +179,19 @@ class newRoomManager {
                     try {
                         ws.close();
                         console.log("Mass closed WS connection to wsId:", ws.wsId);
-                    } catch (error) { }
+                    } catch (error) { 
+                        log.error("error in closeAllWs", error);
+                    };
                 });
+            },
+            terminate: () => {
+                try {
+                    log.info("terminating room:", createdRoom.gameId);
+                    createdRoom.closeAllWs();
+                    worker.terminate();
+                } catch (error) {
+                    log.error("error in terminate", error);
+                };
             },
             bootedIps: [],
         };
@@ -185,6 +201,8 @@ class newRoomManager {
                 const [ msgType, content, wsId ] = msg;
                 var room = this.getRoom(info.gameId);
                 const ws = room.wsMap.get(wsId);
+
+                // devlog("RoomManager received message", msgType, content, wsId, msg);
     
                 switch (msgType) {
                     case Comm.Worker.send: //send stuff to ws
@@ -203,23 +221,38 @@ class newRoomManager {
                         room.bootedIps.push(ws.ip);
                         ws.close(Comm.Close.booted);
                         break;
+                    case Comm.Worker.closeAllWs: //close all ws
+                        room.closeAllWs();
+                        break;
+                    case Comm.Worker.terminate:
+                        room.terminate();
+                        break;
                     default:
                         break;
                 };
             } catch (error) {
-                console.error(error);
+                log.error(error);
             };
         });
 
         worker.on('error', (error) => {
-            createdRoom.closeAllWs();
-            console.error('The game thread for', info.gameId, "errored out, now look at this:", error);
+            try {
+                createdRoom.terminate();
+                log.error('The game thread for', info.gameId, "errored out, now look at this:", error);
+            } catch (error) {
+                log.error("Wtf? Error in worker error", error);  
+            };
             // this.removeRoom(info.gameId); //unnecessary, is removed on exit
         });
 
         worker.on('exit', (code) => {
-            console.log('Worker exited.', info.gameId);
-            this.removeRoom(info.gameId);
+            try {
+                console.log('Worker exited.', code, info.gameId);
+                createdRoom.terminate();
+                this.removeRoom(info.gameId);
+            } catch (error) {
+                log.error("Error in worker exit", code, error);
+            };
         });
 
         worker.postMessage(["setSS", {

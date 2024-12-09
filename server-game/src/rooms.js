@@ -358,9 +358,11 @@ export class newRoom {
             this.metaLoopObject.stop();
         } catch (error) { } //possible that some wasnt initted, or something
 
-        parentPort.close();
+        parentPort.postMessage([Comm.Worker.terminate, this.gameId]);
 
-        process.exit(0);
+        // parentPort.close();
+
+        // process.exit(0);
     };
 
     async sync() {

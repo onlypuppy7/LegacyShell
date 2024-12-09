@@ -61,7 +61,7 @@ export function loadMeshes(scene, meshNames, onMeshLoaded, onComplete) { //[srvr
 
     function decrement () {
         meshCount--;
-        devlog("decrementing mesh count", meshCount, meshNames, meshesLoaded);
+        devlog("decrementing mesh count", meshCount, meshNames); //, meshesLoaded
         if (meshCount === 0 && onComplete) {
             devlog("mesh loading complete");
             onComplete.call(that);

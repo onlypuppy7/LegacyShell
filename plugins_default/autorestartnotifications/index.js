@@ -42,7 +42,7 @@ export class Plugin {
 
         let ctx = data.this;
 
-        console.log('Time left: ' + timeLeft);
+        // console.log('Time left: ' + timeLeft);
 
         this.notifies.forEach((notify) => {
             if (notify.time >= timeLeft && !notify.executed) {
