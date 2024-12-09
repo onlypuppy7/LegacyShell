@@ -17,7 +17,7 @@ const exported = {
     },
     comparePassword: async (userData, receivedPassword) => {
         try {
-            console.log(receivedPassword, userData.password);
+            // console.log(receivedPassword, userData.password);
             return bcrypt.compareSync(receivedPassword, userData.password);
         } catch (error) {
             console.error(error); return "Database error.";

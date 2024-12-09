@@ -125,6 +125,7 @@ export class Plugin {
     async validateLoginFail(data) {
         var msg = data.msg;
         var error = data.error;
+        var userData = data.userData || { account_id: "unknownerror" };
 
         analLogs && log.bgBlue(`analytics: Writing to analDB: Adding login fail for ${userData.account_id} ${error}`);
 
