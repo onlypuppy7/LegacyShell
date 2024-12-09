@@ -256,6 +256,10 @@ const autoRestart = () => {
         const [restartHour, restartMinute] = options.dailyrestart_time.split(':').map(Number);
         const nextRestart = new Date();
         nextRestart.setHours(restartHour, restartMinute, 0, 0);
+
+        if (nextRestart < now) {
+            nextRestart.setDate(nextRestart.getDate() + 1);
+        };
         
         let timeUntilRestart = nextRestart - now;
         if (timeUntilRestart <= 0) {
