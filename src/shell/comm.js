@@ -321,6 +321,8 @@ const Comm = {
         close: 1,
         updateRoom: 2,
         boot: 3,
+        closeAllWs: 4,
+        terminate: 5,
     },
 
     Chat: {
