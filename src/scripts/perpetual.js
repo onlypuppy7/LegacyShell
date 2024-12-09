@@ -45,8 +45,9 @@ const options = {
     //daily restart
     dailyrestart_enable:    passed.dailyrestart_enable      || false,
     dailyrestart_time:      passed.dailyrestart_time        || "4:00",
+    dailyrestart_quickpull: passed.dailyrestart_quickpull,
     //file logging
-    logfile_enable:         passed.logfile_enable           || true,
+    logfile_enable:         passed.logfile_enable,
     logfile_location:       path.join(ss.rootDir, "store", "logs", server_type), //no editing kek
     //webhook logging
     webhook_url:            passed.webhook_url              || "", //false or empty is disabled
@@ -270,9 +271,14 @@ const autoRestart = () => {
         restartScheduled = true;
     
         setTimeout(() => {
+            if (options.dailyrestart_quickpull) {
+                logSend(`Quick-pulling before restart.`);
+                executeCommand('git', ['pull'], 'ignore');
+            };
             logSend(`Auto-restarting process.`);
             startProcess();
             restartScheduled = false;
+            autoRestart();
         }, timeUntilRestart);
     };
 };
