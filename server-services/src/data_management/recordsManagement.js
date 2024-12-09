@@ -5,11 +5,13 @@ import path from 'node:path';
 //legacyshell: recs
 import { pathToFileURL } from 'url';
 import { item_classes_strings, itemIdOffsetsByName } from '#constants';
+import { convertMetaIdToAbsoluteId, convertOldItemIdToMetaId } from '#catalog';
+//legacyshell: plugins
+import { plugins } from '#plugins';
 //legacyshell: logging
 import log from '#coloured-logging';
 //legacyshell: ss
 import { ss } from '#misc'
-import { convertMetaIdToAbsoluteId, convertOldItemIdToMetaId } from '#catalog';
 //
 
 var usersTable = `
@@ -402,6 +404,9 @@ const exported = {
 
             for (const map of maps) {
                 log.beige(`[Maps] Inserting: ${map.name}`);
+
+                await plugins.emit('insertMaps', {this: this, jsonDir, map});
+
                 await ss.runQuery(`
                     INSERT OR REPLACE INTO maps ( name, sun, ambient, fog, data, palette, render, width, height, depth, surfaceArea, extents, skybox, modes, availability, numPlayers, dateCreated, dateModified ) 
                     VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )

@@ -238,6 +238,54 @@ export const LegacyShellCorePlugin = {
                 ],
             }
         });
+
+        GameTypes.push({
+            shortName: "Hiroshima (FFA)",
+            longName: "Hiroshima (FFA)",
+            codeName: "hiroshimaffa", //used for creation of GameType enum
+            mapPool: "Hiroshima", //the pool of maps to use. helps with avoiding having to assign game types to maps retroactively when making a new game mode
+            options: {
+                teamsEnabled: true,
+                scale: [
+                    2, //ffa
+                    2, //team1
+                    2, //team2
+                ],
+                speedModifier: [
+                    4, //ffa
+                    4, //team1
+                    4, //team2
+                ],
+                plugins: {
+                    infinijump: [true, true, true],
+                    pistolrpg: [true, true, true],
+                },
+            }
+        });
+
+        GameTypes.push({
+            shortName: "Hiroshima (Teams)",
+            longName: "Hiroshima (Teams)",
+            codeName: "hiroshimateams", //used for creation of GameType enum
+            mapPool: "Hiroshima", //the pool of maps to use. helps with avoiding having to assign game types to maps retroactively when making a new game mode
+            options: {
+                teamsEnabled: true,
+                scale: [
+                    2, //ffa
+                    2, //team1
+                    2, //team2
+                ],
+                speedModifier: [
+                    4, //ffa
+                    4, //team1
+                    4, //team2
+                ],
+                plugins: {
+                    infinijump: [true, true, true],
+                    pistolrpg: [true, true, true],
+                },
+            }
+        });
     },
     
     registerSampleCommand: function (data) {

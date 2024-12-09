@@ -4,6 +4,8 @@ import path from 'node:path';
 //plugin: samplecommand
 import { LegacyShellCorePlugin } from './shared.js';
 import Comm from '#comm';
+import { devlog } from '#constants';
+import e from 'express';
 //
 
 export const PluginMeta = {
@@ -42,6 +44,8 @@ export class Plugin {
         
         this.plugins.on('game:metaLoop', this.metaLoopHook.bind(this));
         this.plugins.on('game:clientPackSyncLoop', this.clientPackSyncLoopHook.bind(this));
+
+        this.plugins.on('services:insertMaps', this.insertMaps.bind(this));
     };
 
     async eventsInit(data) {
@@ -202,6 +206,30 @@ export class Plugin {
             output.packInt8U(state.controlKeys);
             output.packInt8U(state.yaw);
             output.packInt8U(state.pitch);
+        };
+    };
+
+    async insertMaps(data) { //better than modifying the maps directly
+        var map = data.map;
+
+        devlog('insertMaps', map.name);
+
+        let hiroshimaMaps = [
+            "Ruins",
+            "Shellville",
+            "Shipyard",
+        ];
+
+        if (hiroshimaMaps.includes(map.name)) {
+            if (map.modes) {
+                map.modes.Hiroshima = true;
+            } else {
+                map.modes = {
+                    FFA: true,
+                    Teams: true,
+                    Hiroshima: true,
+                };
+            };
         };
     };
 };
