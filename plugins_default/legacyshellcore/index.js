@@ -5,7 +5,6 @@ import path from 'node:path';
 import { LegacyShellCorePlugin } from './shared.js';
 import Comm from '#comm';
 import { devlog } from '#constants';
-import e from 'express';
 //
 
 export const PluginMeta = {
@@ -216,7 +215,7 @@ export class Plugin {
 
         let hiroshimaMaps = [
             "Ruins",
-            "Shellville",
+            // "Shellville", //actually it sucks for hiroshima
             "Shipyard",
         ];
 

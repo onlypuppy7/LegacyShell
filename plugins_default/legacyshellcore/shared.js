@@ -245,7 +245,6 @@ export const LegacyShellCorePlugin = {
             codeName: "hiroshimaffa", //used for creation of GameType enum
             mapPool: "Hiroshima", //the pool of maps to use. helps with avoiding having to assign game types to maps retroactively when making a new game mode
             options: {
-                teamsEnabled: true,
                 scale: [
                     2, //ffa
                     2, //team1
