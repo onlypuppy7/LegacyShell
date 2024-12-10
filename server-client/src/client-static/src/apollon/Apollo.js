@@ -6,7 +6,7 @@ import { TransformNode, Vector3 } from "babylonjs";
 import { Howl, Howler } from "howler";
 
 //this needs to be manually updated.
-const APOLLO_VERSION = 8;
+const APOLLO_VERSION = 9;
 
 //why did I make it used a custom logging system you may ask? It's
 //art, so it's open for interpretation :joe_cool:
@@ -173,7 +173,7 @@ function getSound(name) {
     );
     return APOLLO_EMERGENCY_FALLBACK_SOUND;
   }
-  if (sounds[sName].isCue) sName = sounds[sName].getSound();
+  if (sounds[sName] instanceof Cue) sName = sounds[sName].getSound();
   return sounds[sName];
 }
 
@@ -418,7 +418,8 @@ class Cue {
    */
   sounds = [];
   name = "DEFAULTCUENAME";
-  isCue = true; //ye this might not be the cleanest way to do this but it works..
+  //isCue = true; //ye this might not be the cleanest way to do this but it works..
+  //UPDATE (10. 12. 24): I couldn't take it anymore. Replaced with instanceof. Let's hope this doesnt break anything else.... ˜Sq
 
   /**
   * creates the Cue and loads all its sounds
