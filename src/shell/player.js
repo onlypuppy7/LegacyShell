@@ -679,8 +679,10 @@ class Player {
         return AllItems[kind].collect(this, applyToWeaponIdx);
     };
     isSteady() {
-        return !this.weapon.subClass.readySpread ||
-            5 * this.weapon.subClass.readySpread >= this.shotSpread + this.weapon.subClass.accuracy;
+      const readySSelected = isServer ? this.weapon.subClass.readySpread * 1.3 : this.weapon.subClass.readySpread;
+      //idk if 1.3 is too much or not enough; Should do the job though.
+      return !this.weapon.subClass.readySpread ||
+        5 * readySSelected >= this.shotSpread + this.weapon.subClass.accuracy;
     };
     isAtReady(scoped) {
         return !(!(this.playing && this.weapon && this.reloadCountdown <= 0 && this.swapWeaponCountdown <= 0 && this.grenadeCountdown <= 0) || this.actor && 0 != grenadePowerUp);
