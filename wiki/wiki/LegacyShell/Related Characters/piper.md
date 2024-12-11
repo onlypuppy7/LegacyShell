@@ -1,5 +1,5 @@
 # The Piper
-The Piper is a boss from Scott Cawthon's 2008 game *"Iffermoon"*. 
+The Piper is a boss from Scott Cawthon's 2008 game *"Iffermoon"*.
 
 ![Piper](<IffermoonPiperBattle.png>)
 
@@ -21,7 +21,7 @@ By repeatedly kneeling behind the pillar, the game will enter the battle.
 ## The bossfight
 - The Piper's fight uses Castle Dinost's battle background.
 - The boss is depicted flying in the battle.
-- The fight uses the song *"Dark Cloud"* by *Flying Hands*, labeled as ["*BigBoss*"](https://www.youtube.com/watch?v=rQUlMdb_Hd0) in the game files.
+- The fight uses the song *"Dark Cloud"* by *Flying Hands*, labeled as ["*bigboss2*"](https://www.youtube.com/watch?v=rQUlMdb_Hd0) in the game files.
 
 ## Beating the Piper
 The Piper's stats are incredibly overpowered. In fact, the boss is so hard, it has taken 16 years for someone to beat it while recording. The [first recording](https://www.youtube.com/watch?v=qMj5otPN3xA) of someone beating the Piper was released on the ninth of March 2024 by [MrMcCowLicks](https://www.youtube.com/@MrMcCowLicks) on youtube.
