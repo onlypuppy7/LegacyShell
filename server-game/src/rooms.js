@@ -13,6 +13,7 @@ import { ItemManagerConstructor } from '#itemManager';
 import { PermissionsConstructor } from '#permissions';
 import BABYLON from "babylonjs";
 import { censor } from "#censor";
+import { removeCanvasResources } from '#stringWidth';
 //legacyshell: logging
 import log from '#coloured-logging';
 //legacyshell: plugins
@@ -357,6 +358,8 @@ export class newRoom {
             this.updateLoopObject.stop();
             this.metaLoopObject.stop();
         } catch (error) { } //possible that some wasnt initted, or something
+
+        removeCanvasResources();
 
         parentPort.postMessage([Comm.Worker.terminate, this.gameId]);
 

@@ -18,10 +18,10 @@
         "cn": "lsof -t -i :13371 | xargs kill -9 && lsof -t -i :13370 | xargs kill -9 && lsof -t -i :13372 | xargs kill -9"
     },
     "dependencies": {
+        "@napi-rs/canvas": "^0.1.65",
         "@vuepress/theme-default": "^2.0.0-rc.60",
         "babylonjs": "3.3.0",
         "bcrypt": "^5.1.1",
-        "canvas": "^3.0.0-rc2",
         "chalk": "^5.3.0",
         "cross-spawn": "^7.0.3",
         "express": "^4.21.0",
