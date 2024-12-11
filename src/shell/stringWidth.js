@@ -1,16 +1,18 @@
 //legacyshell: string width
 import { isClient } from '#constants';
-import { createCanvas } from 'canvas';
+import { createCanvas, registerFont } from 'canvas';
 //
 
 //(server-only-start)
+registerFont('./src/Nunito-Bold.ttf', { family: 'Nunito' });
+
 const nameTestCanvas = createCanvas(200, 50);
 //(server-only-end)
 
 export function getStringWidth(str) {
     const context = nameTestCanvas.getContext('2d');
     
-    context.font = '1em Nunito, sans-serif'; // same font definition on both environments
+    context.font = 'bold 1em Nunito, sans-serif'; // same font definition on both environments
 
     return context.measureText(str).width / (isClient ? 1 : 2); //dont ask abt the division
 };
