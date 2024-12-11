@@ -294,7 +294,7 @@ class newClient {
                             if (text.startsWith("/")) {
                                 this.room.perm.inputCmd(this.player, text);
                             } else if (!this.room.censor.detect(text, true)) { //todo, ratelimiting
-                                text = fixStringWidth(text, maxChatWidth);
+                                text = fixStringWidth(text, maxChatWidth * 1.25); // giving slight leeway to prevent cutoffs
                                 var output = new Comm.Out();
                                 if (text.startsWith("@")) {
                                     var {mentions} = parseMentions(text, this);
