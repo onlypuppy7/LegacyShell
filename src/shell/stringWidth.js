@@ -28,6 +28,8 @@ export function getStringHeight(str) {
 };
 
 export function fixStringWidth(str, len = 80) {
+    console.log(getStringWidth(str));
+
     while (getStringWidth(str) > len) {
         str = str.substr(0, str.length - 1);
     };
