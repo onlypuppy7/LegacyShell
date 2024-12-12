@@ -302,6 +302,8 @@ class Player {
             };
         } else this.jumpHeld = false;
 
+        serverlog({x: this.x, y: this.y, z: this.z}, {dx: this.dx, dy: this.dy, dz: this.dz}, {yaw: this.yaw, pitch: this.pitch});
+
         if (this.climbing) {
             this.setJumping(false);
             var pdy = this.dy;
@@ -424,6 +426,7 @@ class Player {
             } else if (oldMethod ? 0 < this.shotsQueued : this.controlKeys & CONTROL.fire) {
                 this.lastActivity = Date.now();
                 this.fire();
+                devlog("fire");
             };
             this.stateBuffer[this.stateIdx].x = this.x;
             this.stateBuffer[this.stateIdx].y = this.y;

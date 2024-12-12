@@ -67,7 +67,10 @@ Gun.prototype.fire = function () {
     };
 };
 Gun.prototype.equip = function () {
-    this.player.weaponIdx = this.player.equipWeaponIdx, this.player.weapon = this.player.weapons[this.player.weaponIdx], this.player.weapon.actor.equip(), this.player.id == meId && updateAmmoUi()
+    this.player.weaponIdx = this.player.equipWeaponIdx;
+    this.player.weapon = this.player.weapons[this.player.weaponIdx];
+    this.player.weapon.actor.equip();
+    this.player.id == meId && updateAmmoUi()
 };
 
 // [LS] Eggk47 CONSTRUCTOR
@@ -130,7 +133,11 @@ DozenGauge.velocity = .45;
 DozenGauge.prototype.fireMunitions = function (pos, dir) {
     plugins.emit("fireDozenGauge", {this: this, pos, dir, DozenGauge});
     for (var i = 0; i < 20; i++) {
-        this.v1.set(dir.x + Math.seededRandom(-.14, .14) * DozenGauge.range, dir.y + Math.seededRandom(-.09, .09) * DozenGauge.range, dir.z + Math.seededRandom(-.14, .14) * DozenGauge.range);
+        this.v1.set(
+            dir.x + Math.seededRandom(-.14, .14) * DozenGauge.range,
+            dir.y + Math.seededRandom(-.09, .09) * DozenGauge.range,
+            dir.z + Math.seededRandom(-.14, .14) * DozenGauge.range
+        );
         plugins.emit("fireDozenGaugeBullet", {this: this, pos, v1: this.v1, DozenGauge});
         if (!plugins.cancel) Bullet.fire(this.player, pos, this.v1, DozenGauge);
     };
