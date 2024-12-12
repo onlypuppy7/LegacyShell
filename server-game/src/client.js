@@ -293,8 +293,8 @@ class newClient {
                         } else if ("" != text) {
                             if (text.startsWith("/")) {
                                 this.room.perm.inputCmd(this.player, text);
-                            } else if (!this.room.censor.detect(text, true)) { //todo, ratelimiting
-                                text = fixStringWidth(text, maxChatWidth * 1.25); // giving slight leeway to prevent cutoffs
+                            } else if (!this.room.censor.detect(text, true)) {
+                                text = fixStringWidth(text, maxChatWidth * 1.25); // giving slight leeway to prevent cutoffs 
                                 var output = new Comm.Out();
                                 if (text.startsWith("@")) {
                                     var {mentions} = parseMentions(text, this);
@@ -309,9 +309,8 @@ class newClient {
                                     this.sendToOthers(output, this.id, "chat: " + text);
                                 };
                             };
+                            this.player.chatLineCap--;
                         };
-
-                        this.player.chatLineCap--;
                         break;
                     case Comm.Code.reload:
                         this.player.reload();

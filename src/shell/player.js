@@ -418,9 +418,10 @@ class Player {
                     this.throwGrenade();
                 };
             };
+            var oldMethod = false; //new method might be better
             if (this.actor) {
                 this.id == meId && this.triggerPulled && this.fire()
-            } else if (0 < this.shotsQueued) {
+            } else if (oldMethod ? 0 < this.shotsQueued : this.controlKeys & CONTROL.fire) {
                 this.lastActivity = Date.now();
                 this.fire();
             };
