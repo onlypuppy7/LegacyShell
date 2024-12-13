@@ -101,7 +101,7 @@ Bullet.prototype.fireThis = function (player, pos, dir, weaponClass) {
     this.x = pos.x;
     this.y = pos.y;
     this.z = pos.z;
-    this.velocity = weaponClass.velocity * 2; //making the multiplier 0.02 is actually pretty cool
+    this.velocity = weaponClass.velocity * 1.5; //making the multiplier 0.02 is actually pretty cool
 
     Bullet.direction.copyFrom(dir).normalize();
     this.dx = Bullet.direction.x * this.velocity;
