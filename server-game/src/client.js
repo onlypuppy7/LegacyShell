@@ -309,7 +309,7 @@ class newClient {
                                     this.sendToOthers(output, this.id, "chat: " + text);
                                 };
                             };
-                            this.player.chatLineCap--;
+                            this.player.chatLineCap -= -.75; // on client its 1.25, this is just a measure to make it more obvious to the player
                         };
                         break;
                     case Comm.Code.reload:
