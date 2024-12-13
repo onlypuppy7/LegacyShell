@@ -302,7 +302,7 @@ class Player {
             };
         } else this.jumpHeld = false;
 
-        serverlog({x: this.x, y: this.y, z: this.z}, {dx: this.dx, dy: this.dy, dz: this.dz}, {yaw: this.yaw, pitch: this.pitch});
+        // serverlog({x: this.x, y: this.y, z: this.z}, {dx: this.dx, dy: this.dy, dz: this.dz}, {yaw: this.yaw, pitch: this.pitch});
 
         if (this.climbing) {
             this.setJumping(false);
@@ -421,9 +421,10 @@ class Player {
                 };
             };
             var oldMethod = false; //new method might be better
-            if (this.actor) {
-                this.id == meId && this.triggerPulled && this.fire()
-            } else if (oldMethod ? 0 < this.shotsQueued : this.controlKeys & CONTROL.fire) {
+            if (this.actor) { //client
+                if (!this.triggerPulled) this.controlKeys ^= this.controlKeys & CONTROL.fire;
+                this.id == meId && this.triggerPulled && this.fire();
+            } else if (oldMethod ? 0 < this.shotsQueued : this.controlKeys & CONTROL.fire) { //server, old/new method
                 this.lastActivity = Date.now();
                 this.fire();
                 devlog("fire");
@@ -704,7 +705,7 @@ class Player {
                 } else {
                     this.recoilCountdown *= .9;
                     this.rofCountdown *= .9;
-                    this.shotsQueued--
+                    this.shotsQueued--;
                 };
 
                 this.weapon.fire();
@@ -715,6 +716,8 @@ class Player {
                 this.shotSpread += this.weapon.subClass.shotSpreadIncrement;
                 if (this.actor && this.id == meId) {
                     this.shotsQueued++;
+                    this.controlKeys |= CONTROL.fire;
+                    this.stateBuffer[this.stateIdx].controlKeys = this.controlKeys;
                 };
                 if (0 == this.weapon.subClass.automatic) {
                     this.releaseTrigger();
