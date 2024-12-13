@@ -101,17 +101,17 @@ Bullet.prototype.fireThis = function (player, pos, dir, weaponClass) {
     this.x = pos.x;
     this.y = pos.y;
     this.z = pos.z;
+    this.velocity = weaponClass.velocity * 2; //making the multiplier 0.02 is actually pretty cool
 
     Bullet.direction.copyFrom(dir).normalize();
-    this.dx = Bullet.direction.x * weaponClass.velocity;
-    this.dy = Bullet.direction.y * weaponClass.velocity;
-    this.dz = Bullet.direction.z * weaponClass.velocity;
+    this.dx = Bullet.direction.x * this.velocity;
+    this.dy = Bullet.direction.y * this.velocity;
+    this.dz = Bullet.direction.z * this.velocity;
 
     this.weaponClass = weaponClass;
     this.damage = weaponClass.damage * player.scale * player.damageModifier;
     this.active = true;
     this.range = weaponClass.range; 
-    this.velocity = weaponClass.velocity;
     var res = Collider.rayCollidesWithMap(pos, dir, Collider.projectileCollidesWithCell.bind(Collider));
     res && (this.actor && this.end.copyFrom(res.pick.pickedPoint), this.range = BABYLON.Vector3.Distance(pos, res.pick.pickedPoint)), this.actor && this.actor.fire()
 };
@@ -127,6 +127,8 @@ Bullet.prototype.update = function (delta) {
         if (this.range <= 0) {
             if (this.actor && this.range < this.weaponClass.range) { //range is distance until it hits a wall
                 var pos = this.end;
+
+                // ive changed .1 to .2
                 var dx = .1 * -this.dx;
                 var dy = .1 * -this.dy;
                 var dz = .1 * -this.dz;

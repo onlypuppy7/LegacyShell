@@ -29,7 +29,6 @@ Gun.prototype.collectAmmo = function () {
 Gun.prototype.fire = function () {
     if (this.actor) this.actor.fire();
     else { //if server, actually make the bullet and fire that shit
-
         var rotMat = BABYLON.Matrix.RotationYawPitchRoll(this.player.yaw, this.player.pitch, 0);
         var forwardMat = BABYLON.Matrix.Translation(0, 0, this.subClass.range);
         var dirMat = forwardMat.multiply(rotMat, forwardMat);
@@ -43,7 +42,8 @@ Gun.prototype.fire = function () {
         var pos = (posMat = (posMat = posMat.multiply(rotMat)).add(BABYLON.Matrix.Translation(this.player.x, this.player.y - 0.06 + (.4 * this.player.scale), this.player.z))).getTranslation();
 
         Math.seed = Math.randomInt(0, 256);
-        pos.x = Math.floor(300 * pos.x) / 300;
+        
+        pos.x = Math.floor(300 * pos.x) / 300; //does anyone know why its 300 and not 256?
         pos.y = Math.floor(300 * pos.y) / 300;
         pos.z = Math.floor(300 * pos.z) / 300;
         dir.x = Math.floor(300 * dir.x) / 300;
