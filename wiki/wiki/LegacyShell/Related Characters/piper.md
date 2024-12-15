@@ -3,7 +3,7 @@ The Piper is a boss from Scott Cawthon's 2008 game *"Iffermoon"*.
 
 ![Piper](<IffermoonPiperBattle.png>)
 
-In the game, the Piper is hinted at by a message in the Castle Dinost's dungeon. The message reads:
+In the game, the Piper is hinted at by a message in the Castle Dinost dungeon. The message reads:
 > *"Piper's pillar, the hardest for thee, kneel behind his mark til the Piper you see."*
 
 ![HintIngame](<PiperHint.png>)
