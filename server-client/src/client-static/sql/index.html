@@ -120,44 +120,55 @@
     <script>
         // List of SQL templates
         const templates = [
-            { name: "Get All Users", code: "SELECT * FROM users;" },
-            { name: "Get User by Account ID", code: "SELECT * FROM users WHERE account_id = ?;" },
-            { name: "Get User by Username", code: "SELECT * FROM users WHERE username = ?;" },
-            { name: "Insert New User", code: `
+            { name: "[users] Get All Users", code: "SELECT * FROM users;" },
+            { name: "[users] Get User by Account ID", code: "SELECT * FROM users WHERE account_id = ?;" },
+            { name: "[users] Get User by Username", code: "SELECT * FROM users WHERE username = ?;" },
+            { name: "[users] Get Users with Specific Item", code: `
+SELECT * 
+FROM users, json_each(users.ownedItemIds) 
+WHERE json_each.value = ? 
+AND json_each.type = 'integer';
+            `},
+            { name: "[users] Count Users with Specific Item", code: `
+SELECT COUNT(*) AS user_count
+FROM users, json_each(users.ownedItemIds)
+WHERE json_each.value = ?;
+            `},
+            { name: "[users] Insert New User", code: `
 INSERT INTO users (username, password, authToken) 
 VALUES (?, ?, ?) 
 RETURNING *;
             `},
-            { name: "Update User Stats", code: `
+            { name: "[users] Update User Stats", code: `
 UPDATE users 
 SET kills = ?, deaths = ?, streak = ? 
 WHERE account_id = ? 
 RETURNING *;
             `},
-            { name: "Update User Balance", code: `
+            { name: "[users] Update User Balance", code: `
 UPDATE users 
 SET currentBalance = ? 
 WHERE account_id = ? 
 RETURNING *;
             `},
-            { name: "Delete User by Account ID", code: `
+            { name: "[users] Delete User by Account ID", code: `
 DELETE FROM users 
 WHERE account_id = ? 
 RETURNING *;
             `},
-            { name: "Add Item to User Owned Items", code: `
+            { name: "[users] Add Item to User Owned Items", code: `
 UPDATE users 
 SET ownedItemIds = json_set(ownedItemIds, '$[#]', ?) 
 WHERE account_id = ? 
 RETURNING *;
             `},
-            { name: "Set User Upgrade Duration", code: `
+            { name: "[users] Set User Upgrade Duration", code: `
 UPDATE users 
 SET upgradeExpiryDate = strftime('%s', 'now') + ? 
 WHERE account_id = ? 
 RETURNING *;
             `},
-            { name: "Reset User Upgrades", code: `
+            { name: "[users] Reset User Upgrades", code: `
 UPDATE users 
 SET upgradeProductId = 0, 
     upgradeMultiplier = NULL, 
@@ -166,112 +177,157 @@ SET upgradeProductId = 0,
 WHERE account_id = ? 
 RETURNING *;
             `},
-            { name: "Update User Upgrade Multiplier", code: `
+            { name: "[users] Update User Upgrade Multiplier", code: `
     UPDATE users 
     SET upgradeMultiplier = ? 
     WHERE account_id = ? 
     RETURNING *;
             `},
-            { name: "Set User Admin Role", code: `
+            { name: "[users] Set User Admin Role", code: `
 UPDATE users 
 SET adminRoles = ?
-WHERE account_id = ? 
+WHERE account_id = ?
 RETURNING *;
             `},
-            { name: "Get User Admin Role", code: `
+            { name: "[users] Get User Admin Role", code: `
 SELECT adminRoles
 FROM users
 WHERE account_id = ?;
             `},
-            { name: "Update User Username", code: `
+            { name: "[users] Update User Username", code: `
 UPDATE users 
-SET username = ? 
-WHERE account_id = ? 
+SET username = ?
+WHERE account_id = ?
 RETURNING *;
             `},
-            { name: "Update User Password", code: `
-UPDATE users 
-SET password = ? 
-WHERE account_id = ? 
+            { name: "[users] Update User Password", code: `
+UPDATE users
+SET password = ?
+WHERE account_id = ?
 RETURNING *;
             `},
-            { name: "Log User Out", code: `
-DELETE FROM sessions 
-WHERE user_id = ? 
-RETURNING *;
-            `},
-            { name: "Get User Loadout", code: `
+            { name: "[users] Get User Loadout", code: `
 SELECT loadout
-FROM users 
+FROM users
 WHERE account_id = ?;
             `},
-            { name: "Set User Loadout", code: `
-UPDATE users 
-SET loadout = ? 
-WHERE account_id = ? 
+            { name: "[users] Set User Loadout", code: `
+UPDATE users
+SET loadout = ?
+WHERE account_id = ?
 RETURNING *;
             `},
-            { name: "Get All Items", code: "SELECT * FROM items;" },
-            { name: "Get Available Items", code: "SELECT * FROM items WHERE is_available = 1;" },
-            { name: "Insert New Item", code: `
+            { name: "[codes] Get All Codes", code: "SELECT * FROM codes;" },
+            { name: "[codes] Get Code by Key", code: "SELECT * FROM codes WHERE key = ?;" },
+            { name: "[codes] Create New Code with Default Key", code: `
+INSERT INTO codes (item_ids, eggs_given, uses)
+VALUES (?, ?, ?)
+RETURNING *;
+            `},
+            { name: "[codes] Create New Code with Custom Key", code: `
+INSERT INTO codes (key, item_ids, eggs_given, uses)
+VALUES (?, ?, ?, ?)
+RETURNING *;
+            `},
+            { name: "[codes] Update Code Usage", code: `
+UPDATE codes
+SET uses = ?
+WHERE key = ?
+RETURNING *;
+            `},
+            { name: "[codes] Get Codes with Specific Item", code: `
+SELECT * 
+FROM codes, json_each(codes.item_ids)
+WHERE json_each.value = ?
+AND json_each.type = 'integer';
+            `},
+            { name: "[codes] Get Codes with Eggs Given", code: `
+SELECT * 
+FROM codes 
+WHERE eggs_given > 0;
+            `},
+            { name: "[codes] Get Codes with Both Items and Eggs", code: `
+SELECT * 
+FROM codes 
+WHERE json_array_length(item_ids) > 0 
+AND eggs_given > 0;
+            `},
+            { name: "[codes] Delete Code by Key", code: `
+DELETE FROM codes 
+WHERE key = ? 
+RETURNING *;
+            `},
+            { name: "[codes] Count Codes Created After Date", code: `
+SELECT COUNT(*) AS code_count 
+FROM codes 
+WHERE dateCreated > ?;
+            `},
+            { name: "[items] Get All Items", code: "SELECT * FROM items;" },
+            { name: "[items] Get Available Items", code: "SELECT * FROM items WHERE is_available = 1;" },
+            { name: "[items] Insert New Item", code: `
 INSERT INTO items (name, price, item_class, item_type_id, item_data) 
 VALUES (?, ?, ?, ?, ?) 
 RETURNING *;
             `},
-            { name: "Update Item Info", code: `
+            { name: "[items] Update Item Info", code: `
 UPDATE items 
 SET name = ?, price = ?, is_available = ?, item_data = ? 
 WHERE id = ? 
 RETURNING *;
             `},
-            { name: "Delete Item by ID", code: `
+            { name: "[items] Delete Item by ID", code: `
 DELETE FROM items 
 WHERE id = ? 
 RETURNING *;
             `},
-            { name: "Get All Sessions", code: "SELECT * FROM sessions;" },
-            { name: "Create New Session", code: `
+            { name: "[sessions] Get All Sessions", code: "SELECT * FROM sessions;" },
+            { name: "[sessions] Create New Session", code: `
 INSERT INTO sessions (session_id, user_id, ip_address, expires_at) 
 VALUES (?, ?, ?, ?) 
 RETURNING *;
             `},
-            { name: "Delete Session by ID", code: `
+            { name: "[sessions] Delete Session by ID", code: `
 DELETE FROM sessions 
 WHERE session_id = ? 
 RETURNING *;
             `},
-            { name: "Get All Game Servers", code: "SELECT * FROM game_servers;" },
-            { name: "Add New Game Server", code: `
+            { name: "[sessions] Log User Out", code: `
+DELETE FROM sessions 
+WHERE user_id = ? 
+RETURNING *;
+            `},
+            { name: "[game_servers] Get All Game Servers", code: "SELECT * FROM game_servers;" },
+            { name: "[game_servers] Add New Game Server", code: `
 INSERT INTO game_servers (auth_key, name, address) 
 VALUES (?, ?, ?) 
 RETURNING *;
             `},
-            { name: "Update Game Server Info", code: `
+            { name: "[game_servers] Update Game Server Info", code: `
 UPDATE game_servers 
-SET name = ?, address = ? 
-WHERE auth_key = ? 
+SET name = ?, address = ?
+WHERE auth_key = ?
 RETURNING *;
             `},
-            { name: "Get Map by Name", code: "SELECT * FROM maps WHERE name = ?;" },
-            { name: "Insert New Map", code: `
+            { name: "[maps] Get Map by Name", code: "SELECT * FROM maps WHERE name = ?;" },
+            { name: "[maps] Insert New Map", code: `
 INSERT INTO maps (name, sun, fog, data, numPlayers) 
 VALUES (?, ?, ?, ?, ?) 
 RETURNING *;
             `},
-            { name: "Update Map Info", code: `
+            { name: "[maps] Update Map Info", code: `
 UPDATE maps 
 SET sun = ?, fog = ?, data = ?, numPlayers = ? 
 WHERE name = ? 
 RETURNING *;
             `},
-            { name: "Delete Map by Name", code: `
+            { name: "[maps] Delete Map by Name", code: `
 DELETE FROM maps 
 WHERE name = ? 
 RETURNING *;
             `},
-            { name: "Get All Flags", code: "SELECT * FROM flags;" },
-            { name: "Update Flag Value", code: `
-UPDATE flags 
+            { name: "[flags] Get All Flags", code: "SELECT * FROM flags;" },
+            { name: "[flags] Update Flag Value", code: `
+UPDATE flags s
 SET value = ? 
 WHERE name = ? 
 RETURNING *;
