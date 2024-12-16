@@ -134,19 +134,9 @@ This video doesn't have a confirmed version.
 *[3 corners of the map](https://www.youtube.com/watch?v=xgbEjZijSfQ). Don't ask me why his expression doesn't change. I don't know either.*
 </center>
 
-### 0.4.0 - Flat + Crates
+### 0.3.2 - Flat + Crates
 
-<center>
-<img src="./!APARECE WILLIREX EN MI VEDIO¡ WTF _ Shell Shockers 1-56 screenshot.png" alt="!APARECE WILLIREX EN MI VEDIO¡ WTF _ Shell Shockers 1-56 screenshot" width="40%">
-<img src="./!APARECE WILLIREX EN MI VEDIO¡ WTF _ Shell Shockers 3-17 screenshot.png" alt="!APARECE WILLIREX EN MI VEDIO¡ WTF _ Shell Shockers 3-17 screenshot" width="40%">
-
-<img src="./!APARECE WILLIREX EN MI VEDIO¡ WTF _ Shell Shockers 2-55 screenshot.png" alt="!APARECE WILLIREX EN MI VEDIO¡ WTF _ Shell Shockers 2-55 screenshot" width="40%">
-<img src="./!APARECE WILLIREX EN MI VEDIO¡ WTF _ Shell Shockers 2-43 screenshot.png" alt="!APARECE WILLIREX EN MI VEDIO¡ WTF _ Shell Shockers 2-43 screenshot" width="40%">
-
-*[3 corners of the map (2 are of the same)](https://www.youtube.com/watch?v=J6BHzEU7C6s).*
-</center>
-
-### 0.4.? - Flat + Crates
+Version is kinda foggy and unconfirmed.
 
 <center>
 <img src="./SHELLSHOCK.IO _ ROMPIENDO HUEVOS _ Gameplay español 0-37 screenshot.png" alt="SHELLSHOCK.IO _ ROMPIENDO HUEVOS _ Gameplay español 0-37 screenshot" width="40%">
@@ -163,6 +153,18 @@ More screenshots:
 <img src="./SHELLSHOCK.IO _ ROMPIENDO HUEVOS _ Gameplay español 1-28 screenshot.png" alt="SHELLSHOCK.IO _ ROMPIENDO HUEVOS _ Gameplay español 1-28 screenshot" width="40%">
 
 *The identifiable corner structure.*
+</center>
+
+### 0.4.0 - Flat + Crates
+
+<center>
+<img src="./!APARECE WILLIREX EN MI VEDIO¡ WTF _ Shell Shockers 1-56 screenshot.png" alt="!APARECE WILLIREX EN MI VEDIO¡ WTF _ Shell Shockers 1-56 screenshot" width="40%">
+<img src="./!APARECE WILLIREX EN MI VEDIO¡ WTF _ Shell Shockers 3-17 screenshot.png" alt="!APARECE WILLIREX EN MI VEDIO¡ WTF _ Shell Shockers 3-17 screenshot" width="40%">
+
+<img src="./!APARECE WILLIREX EN MI VEDIO¡ WTF _ Shell Shockers 2-55 screenshot.png" alt="!APARECE WILLIREX EN MI VEDIO¡ WTF _ Shell Shockers 2-55 screenshot" width="40%">
+<img src="./!APARECE WILLIREX EN MI VEDIO¡ WTF _ Shell Shockers 2-43 screenshot.png" alt="!APARECE WILLIREX EN MI VEDIO¡ WTF _ Shell Shockers 2-43 screenshot" width="40%">
+
+*[3 corners of the map (2 are of the same)](https://www.youtube.com/watch?v=J6BHzEU7C6s).*
 </center>
 
 ### 0.4.2-0.4.3 - Flat + Crates
@@ -192,11 +194,34 @@ This is one of the rare times that a randomly generated map has appeared across 
 <img src="./SHELL SHOCKERS-A GUERRA DOS OVOS (FIZ 12KILLS SEM MORRE). 1-17 screenshot.png" alt="SHELL SHOCKERS-A GUERRA DOS OVOS (FIZ 12KILLS SEM MORRE). 1-17 screenshot" width="40%">
 </center>
 
+### 0.5.0 - Flat + Crates
+
+<center>
+<img src="./Un poquito de Ramdon_ shell shocker 6-18 screenshot.png" alt="Un poquito de Ramdon_ shell shocker 6-18 screenshot" width="40%">
+<img src="./Un poquito de Ramdon_ shell shocker 2-25 screenshot.png" alt="Un poquito de Ramdon_ shell shocker 2-25 screenshot" width="40%">
+
+<img src="./Un poquito de Ramdon_ shell shocker 1-6 screenshot.png" alt="Un poquito de Ramdon_ shell shocker 1-6 screenshot" width="40%">
+<img src="./Un poquito de Ramdon_ shell shocker 6-2 screenshot.png" alt="Un poquito de Ramdon_ shell shocker 6-2 screenshot" width="40%">
+
+*[3 corners of the map](https://www.youtube.com/watch?v=_lOkrMy5OpY)*
+</center>
+
+More screenshots:
+
+<center>
+<img src="./Un poquito de Ramdon_ shell shocker 0-8 screenshot.png" alt="Un poquito de Ramdon_ shell shocker 0-8 screenshot" width="40%">
+<img src="./Un poquito de Ramdon_ shell shocker 1-1 screenshot.png" alt="Un poquito de Ramdon_ shell shocker 1-1 screenshot" width="40%">
+
+<img src="./Un poquito de Ramdon_ shell shocker 0-44 screenshot.png" alt="Un poquito de Ramdon_ shell shocker 0-44 screenshot" width="40%">
+<img src="./Un poquito de Ramdon_ shell shocker 0-15 screenshot.png" alt="Un poquito de Ramdon_ shell shocker 0-15 screenshot" width="40%">
+</center>
+
 ### 0.6.0 - Flat + Crates
 
 <center>
 <img src="./ShellShockers.io - 57 KillStreak _ New Updates _D 0-12 screenshot.png" alt="ShellShockers.io - 57 KillStreak _ New Updates _D 0-12 screenshot" width="40%">
 <img src="./ShellShockers.io - 57 KillStreak _ New Updates _D 2-51 screenshot.png" alt="ShellShockers.io - 57 KillStreak _ New Updates _D 2-51 screenshot" width="40%">
+
 <img src="./ShellShockers.io - 57 KillStreak _ New Updates _D 1-34 screenshot.png" alt="ShellShockers.io - 57 KillStreak _ New Updates _D 1-34 screenshot" width="40%">
 <img src="./ShellShockers.io - 57 KillStreak _ New Updates _D 0-29 screenshot.png" alt="ShellShockers.io - 57 KillStreak _ New Updates _D 0-29 screenshot" width="40%">
 
@@ -283,7 +308,7 @@ Interestingly in this update cycle we see the reintegration of the visually jarr
 <img src="./_Insane_ Shellshock.io GAMEPLAY! (2018) 0-50 screenshot.png" alt="_Insane_ Shellshock.io GAMEPLAY! (2018) 0-50 screenshot" width="40%">
 
 <img src="./_Insane_ Shellshock.io GAMEPLAY! (2018) 0-31 screenshot.png" alt="_Insane_ Shellshock.io GAMEPLAY! (2018) 0-31 screenshot" width="40%">
-<img src="./_Insane_ Shellshock.io GAMEPLAY! (2018) 0-41 screenshot.png" alt="_Insane_ Shellshock.io GAMEPLAY! (2018) 0-41 screenshot" width="40%">
+<img src="./Shellshock.io- FR MAYBE THE GAYEST GAME EVER__ 1-52 screenshot.png" alt="Shellshock.io- FR MAYBE THE GAYEST GAME EVER__ 1-52 screenshot" width="40%">
 
 *[Some corners, or something, I'm tired of this.](https://www.youtube.com/watch?v=UZSnvnNg8Qk)*
 </center>
@@ -295,6 +320,9 @@ More screenshots:
 <img src="./_Insane_ Shellshock.io GAMEPLAY! (2018) 0-40 screenshot.png" alt="_Insane_ Shellshock.io GAMEPLAY! (2018) 0-40 screenshot" width="40%">
 
 <img src="./_Insane_ Shellshock.io GAMEPLAY! (2018) 0-54 screenshot.png" alt="_Insane_ Shellshock.io GAMEPLAY! (2018) 0-54 screenshot" width="40%">
+<img src="./_Insane_ Shellshock.io GAMEPLAY! (2018) 0-41 screenshot.png" alt="_Insane_ Shellshock.io GAMEPLAY! (2018) 0-41 screenshot" width="40%">
+
+<img src="./Shell Shockers 2-9 screenshot.png" alt="Shell Shockers 2-9 screenshot" width="40%">
 </center>
 
 ### The 0.8.x Maps - #2
@@ -318,6 +346,49 @@ More screenshots:
 <img src="./Shellshock.io Gameplay (100 Kill Streak!!!) Snipers only NOT CLICKBAIT!!!! 0-22 screenshot.png" alt="Shellshock.io Gameplay (100 Kill Streak!!!) Snipers only NOT CLICKBAIT!!!! 0-22 screenshot" width="40%">
 </center>
 
+### The 0.8.x Maps - #3
+
+<center>
+<img src="./shell shockers 0-48 screenshot.png" alt="shell shockers 0-48 screenshot" width="40%">
+<img src="./shell shockers 1-12 screenshot.png" alt="shell shockers 1-12 screenshot" width="40%">
+
+<img src="./shell shockers 3-38 screenshot.png" alt="shell shockers 3-38 screenshot" width="40%">
+<img src="./shell shockers 5-9 screenshot.png" alt="shell shockers 5-9 screenshot" width="40%">
+
+*[3 or 4 corners, probably.](https://www.youtube.com/watch?v=naOw1IUK0HM)*
+</center>
+
+More screenshots:
+
+<center>
+<img src="./shell shockers 2-30 screenshot.png" alt="shell shockers 2-30 screenshot" width="40%">
+<img src="./shell shockers 2-33 screenshot.png" alt="shell shockers 2-33 screenshot" width="40%">
+
+<img src="./shell shockers 5-2 screenshot.png" alt="shell shockers 5-2 screenshot" width="40%">
+</center>
+
+### The 0.8.x Maps - #4
+
+<center>
+<img src="./shell shocker con un par de huevos xD 2-13 screenshot.png" alt="shell shocker con un par de huevos xD 2-13 screenshot" width="40%">
+<img src="./shell shocker con un par de huevos xD 1-36 screenshot.png" alt="shell shocker con un par de huevos xD 1-36 screenshot" width="40%">
+
+<img src="./shell shocker con un par de huevos xD 2-6 screenshot.png" alt="shell shocker con un par de huevos xD 2-6 screenshot" width="40%">
+<img src="./shell shocker con un par de huevos xD 1-44 screenshot.png" alt="shell shocker con un par de huevos xD 1-44 screenshot" width="40%">
+
+*[4 corners for the map.](https://www.youtube.com/watch?v=naOw1IUK0HM)*
+</center>
+
+More screenshots:
+
+<center>
+<img src="./shell shocker con un par de huevos xD 0-20 screenshot.png" alt="shell shocker con un par de huevos xD 0-20 screenshot" width="40%">
+<img src="./shell shocker con un par de huevos xD 1-42 screenshot.png" alt="shell shocker con un par de huevos xD 1-42 screenshot" width="40%">
+
+<img src="./shell shocker con un par de huevos xD 1-8 screenshot.png" alt="shell shocker con un par de huevos xD 1-8 screenshot" width="40%">
+<img src="./shell shocker con un par de huevos xD 0-24 screenshot.png" alt="shell shocker con un par de huevos xD 0-24 screenshot" width="40%">
+</center>
+
 ### The 0.9.x Maps
 
 These are maps that have been found in the files of 0.9.0.
@@ -336,7 +407,7 @@ These maps come without a name, so they have been assigned some.
 |Name|Videos|Image|Description|
 |-|-|-|-|
 |Alpha1|[Video 1](https://youtu.be/AYeGbwtRVqg?t=129)|<img src="./Alpha1.png" alt="Alpha1" width="65%">||
-|Alpha2||<img src="./Alpha2.png" alt="Alpha2" width="65%">|Contains some areas reminiscent of Blue|
+|Alpha2|[Video 1](https://www.youtube.com/watch?v=YVrCQR4BQ80)|<img src="./Alpha2.png" alt="Alpha2" width="65%">|Contains some areas reminiscent of Blue|
 |Alpha3|[Video 1](https://youtu.be/0Gi4NultfvM?t=141)<br>[Video 2](https://youtu.be/v5eV43DHFZY?&t=29)|<img src="./Alpha3.png" alt="Alpha3" width="65%">|The inclusion of the generic slopes is especially interesting considering they don't appear in 0.10.x|
 
 ## Manually Created Era

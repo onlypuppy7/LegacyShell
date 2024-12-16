@@ -1,4 +1,4 @@
-# Shell Update Videos, Dates and Archives
+# Shell Changelog with Videos, Dates and Archives
 ## __Key:__
 - Version:
   - [hyperlink](https://example.com/): archive of the site
@@ -75,6 +75,13 @@
 
 **~~https://www.youtube.com/watch?v=xgbEjZijSfQ~~**
 
+## 0.3.2 | 22 Sept 2017
+
+> **What's New**
+> - Found one more server crash. Fix!
+
+**https://www.youtube.com/watch?v=pTj1OMqTQtI** (this is the only verifiable 0.3.x video)
+
 ## 0.4.0 | 22 Sept 2017
 
 > **What's New**
@@ -89,7 +96,7 @@
 
 ### Classic yolk death posted on [Twitter (23 Sept 2017)](https://x.com/FunFetched/status/911407656614600704)
 
-## 0.4.? | 25 Sept 2017
+## 0.4.? (could be 0.3.x) | 25 Sept 2017
 
 ### First video instance of the classic yolk death
 
@@ -108,7 +115,7 @@
 
 **https://www.youtube.com/watch?v=Sjv6BwxNsOc**
 
-## 0.4.3 | 29 Sept 2017
+## 0.4.3 | 29 Sept - 1 Oct 2017
 
 > **What's New**
 > - Added a FAQ and a feedback form (look down!)
@@ -122,11 +129,37 @@
 
 ***https://www.youtube.com/watch?v=s3-Hmm8hdVc***
 
+**https://www.youtube.com/watch?v=0-G4kUig5aY**
+
+~~https://www.youtube.com/watch?v=O81wgl6OLjA~~ (confirmed same map, uploaded later)
+
+**https://www.youtube.com/watch?v=HYtKEW7NRAs** (super late upload )
+
+## 0.5.0 | 6 Oct 2017
+
+> **What's New**
+> - [obscured] know who killed you
+> - Some shader enhancements
+> - Cracks in shells to indicate damage!
+> - Yolk-curdling death screams!
+> - New X button to close help menu
+>
+> **Fixes**
+> - Another, very rare server crash
+> - Streaking shadows
+> - Attempted fix for weapon reloading issues
+
+Note: part of the What's New was covered up by an overlay in the only existing footage.
+
+**https://www.youtube.com/watch?v=btil2fbZTCg**
+
 ### Prior to this point, all maps were [randomly generated](https://www.facebook.com/ShellShockersGame/posts/pfbid0MveedmUki6MLMo73t6LZ9yxAZiAxRjdky6K2EeymVy8V9KXKH9kEc1qZC9iwjYTPl). Unfortunately as of now these maps are lost (but can be reconstructed).
 
 ## ??? | 17 Oct 2017
 
 ~~https://www.youtube.com/watch?v=_lOkrMy5OpY~~
+
+~~https://www.youtube.com/watch?v=I4aIfRxKtik~~
 
 ## 0.6.0 | [23 Oct 2017](https://www.facebook.com/ShellShockersGame/posts/pfbid0c6M3RQTwvUZsBNbx9fFv7tz2LpJNeQYtfYF2hc2P5kwcZr1MFGnQWucw45m6qPifl)
 
@@ -154,6 +187,10 @@
 
 ~~https://www.youtube.com/watch?v=FnaKFU-yt1c~~
 
+**https://www.youtube.com/watch?v=tnEt22FDbA0**
+
+**https://www.youtube.com/watch?v=AXGrUFlTZD4**
+
 ## [0.8.1](https://web.archive.org/web/20171125081142/http://www.shellshock.io/)  | [15 Nov](https://www.facebook.com/ShellShockersGame/posts/pfbid02XzGTSNF6eSc6nLgSssvsMdEgPuH1muHoCwZbj99hb29U29nmhQsDCs5XrpNqCb2fl) - 1 Dec 2017
 
 > **What's New**
@@ -168,6 +205,14 @@
 ~~https://www.youtube.com/watch?v=YSDzwIz_y2Y~~
 
 ~~https://www.youtube.com/watch?v=UZSnvnNg8Qk~~
+
+***https://www.youtube.com/watch?v=1pGgy7xbaoc***
+
+**https://www.youtube.com/watch?v=52_qlXHv5so**
+
+***https://www.youtube.com/watch?v=naOw1IUK0HM***
+
+*https://www.youtube.com/watch?v=2PhtsbCgFkc*
 
 ## [0.9.0](https://web.archive.org/web/20171202205033/http://shellshock.io:80/) | [1](https://www.facebook.com/ShellShockersGame/posts/pfbid02qyzJLVtJv3guFMRvfhui1cZase3bsCopyqk1DYTPK53BhjJX2va9Y1PCoK7P994Dl) - 4 Dec 2017
 
@@ -214,6 +259,12 @@
 **https://www.youtube.com/watch?v=0Gi4NultfvM**
 
 **https://www.youtube.com/watch?v=AYeGbwtRVqg**
+
+~~https://www.youtube.com/watch?v=ZvIjqIeEp-Q~~
+
+~~https://www.youtube.com/watch?v=YVrCQR4BQ80~~ (very short clip)
+
+**https://www.youtube.com/watch?v=oYtXcMnPkbc**
 
 ### No archives exist for January on the Wayback Machine
 
