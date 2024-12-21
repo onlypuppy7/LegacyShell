@@ -1,5 +1,5 @@
 # Skill issue
-When a person lacks the skills to accomplish a taks, that person has a **skill issue**.
+When a person lacks the skills to accomplish a task, that person has a **skill issue**.
 
 ![Issue](<SkillIssue.jpg>)
 

@@ -8,8 +8,7 @@ Its Headquarters is located in Berlin.
 ![HQ](<BNDHQ.jpg>)
 
 ## The BND and LegacyShell
-It is rumored that the Bundesnachrichtendienst was responsible for the [Virgin Media](virginmedia.html) [December 2024 LegacyShell outage](virginmedia.html#the-outage). According to insider information, there had been multiple anonymous hints sent about *something bad hiding inside the LegacyShell.com links*.
-
+It is rumored that the Bundesnachrichtendienst was responsible for the [Virgin Media](virginmedia.html) [December 2024 LegacyShell outage](virginmedia.html#the-outage). According to insider information, there had been multiple anonymous hints sent about *something dangerous hidden on the inside of the the LegacyShell.com link*.
 
 
 > note that this article is satire. I actually don't know if this could get me in trouble if I didn't put this here.
