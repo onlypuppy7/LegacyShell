@@ -99,29 +99,38 @@ export function loadMeshes(scene, meshNames, onMeshLoaded, onComplete) { //[srvr
 
         console.log("loading mesh zip", zipPath);
     
-        if (isServer && ss) { //note that this isnt really tested, dont rely on this for server stuff, just use array of strings
+        if (isServer && ss) { //note that this isnt really tested, dont rely on this for server stuff, just use array of strings since theres no downloading
             zipPath = path.join(ss.rootDir, 'server-game', 'store', 'models', meshNames);
             var data = fs.readFileSync(zipPath);
             zipPath = "data:application/zip;base64," + data.toString('base64');
             rootUrl = "";
         };
     
+        devlog("fetching:", zipPath);
         fetch(zipPath)
             .then(response => {
                 if (!response.ok) throw new Error("Failed to fetch the zip file");
                 return response.arrayBuffer();
             })
             .then(data => {
+                devlog("fetched", zipPath, "successfully, unzipping...");
                 const zip = new JSZip();
                 return zip.loadAsync(data);
             })
             .then(zip => {
+                devlog("unzipped", zipPath, "successfully, loading all the files...");
                 meshCount = Object.keys(zip.files).length;
                 zip.forEach(function (relativePath, zipEntry) {
                     console.log("loading mesh", relativePath);
+                    devlog("retrieving mesh data for", relativePath, "from zip");
+                    let loaded = 0;
+                    let lastData = "";
                     zipEntry.async("string").then(function (data) {
+                        devlog("got mesh data for", relativePath, "from zip, loading now...");
+                        devlog("number of invocations for", relativePath, "is", loaded, ", data is different?", lastData != data); loaded++; lastData = data;
                         const meshPath = "data:" + data.replace(/\r?\n|\r/g, "");
                         load(rootUrl, meshPath, scene, relativePath);
+                        devlog("finished loading mesh data for", relativePath, "from zip");
                     });
                 });
             })
