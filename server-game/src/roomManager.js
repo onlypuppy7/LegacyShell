@@ -361,20 +361,20 @@ class newRoomManager {
             gameInfo.rooms.push(roomInfo);
 
             if (room.joinType === Comm.Code.joinPublicGame) {
-                gameInfo.playerCountPublic[room.gameType] = (gameInfo.playerCountPublic[room.gameType] || 0) + room.playerCount;
-                gameInfo.playerCountTotal.public += room.playerCount;
+                gameInfo.playerCountPublic[room.gameType] = (gameInfo.playerCountPublic[room.gameType] || 0) + (room.playerCount || 0);
+                gameInfo.playerCountTotal.public += (room.playerCount || 0);
 
                 gameInfo.roomCountTotal.public++;
                 gameInfo.roomCountPublic[room.gameType] = (gameInfo.roomCountPublic[room.gameType] || 0) + 1;
             } else {
-                gameInfo.playerCountPrivate[room.gameType] = (gameInfo.playerCountPrivate[room.gameType] || 0) + room.playerCount;
-                gameInfo.playerCountTotal.private += room.playerCount;
+                gameInfo.playerCountPrivate[room.gameType] = (gameInfo.playerCountPrivate[room.gameType] || 0) + (room.playerCount || 0);
+                gameInfo.playerCountTotal.private += (room.playerCount || 0);
 
                 gameInfo.roomCountTotal.private++;
                 gameInfo.roomCountPrivate[room.gameType] = (gameInfo.roomCountPrivate[room.gameType] || 0) + 1;
             };
-            gameInfo.playerCountBoth[room.gameType] = (gameInfo.playerCountBoth[room.gameType] || 0) + room.playerCount;
-            gameInfo.playerCountTotal.both += room.playerCount
+            gameInfo.playerCountBoth[room.gameType] = (gameInfo.playerCountBoth[room.gameType] || 0) + (room.playerCount || 0);
+            gameInfo.playerCountTotal.both += (room.playerCount || 0)
 
             gameInfo.roomCountTotal.both++;
             gameInfo.roomCountBoth[room.gameType] = (gameInfo.roomCountBoth[room.gameType] || 0) + 1;
