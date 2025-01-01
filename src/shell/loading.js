@@ -46,11 +46,12 @@ export function iterateXYZ(width, height, depth, options, callback) {
             for (var z = opt.z; z < depth; z += opt.step) callback(x, y, z)
 };
 
-var meshesLoaded = [];
-var zipsLoaded = [];
 
 // [LS] Mesh Loading Helpers
 export function loadMeshes(scene, meshNames, onMeshLoaded, onComplete) { //[srvr]
+    scene.meshesLoaded = scene.meshesLoaded || [];
+    scene.zipsLoaded = scene.zipsLoaded || [];
+
     let meshCount = meshNames.length;
     let that = this;
     let mat = scene.getMaterialByName("standard");
@@ -78,7 +79,7 @@ export function loadMeshes(scene, meshNames, onMeshLoaded, onComplete) { //[srvr
                     mesh.isPickable = false;
                     if (onMeshLoaded) onMeshLoaded(mesh);
                 };
-                meshesLoaded.push(meshName);
+                scene.meshesLoaded.push(meshName);
                 decrement();
             } catch (e) {
                 console.log(e)
@@ -89,13 +90,13 @@ export function loadMeshes(scene, meshNames, onMeshLoaded, onComplete) { //[srvr
     if (typeof meshNames === "string" && meshNames.includes(".zip")) {
         var zipPath = rootUrl + meshNames;
 
-        // if (zipsLoaded.includes(zipPath)) {
-        //     devlog("zip already loaded, skipping", zipPath);
-        //     onComplete.call(that);
-        //     return;
-        // };
+        if (scene.zipsLoaded.includes(zipPath)) {
+            devlog("zip already loaded, skipping", zipPath);
+            onComplete && onComplete.call(that);
+            return;
+        };
 
-        zipsLoaded.push(zipPath);
+        scene.zipsLoaded.push(zipPath);
 
         console.log("loading mesh zip", zipPath);
     
@@ -150,13 +151,13 @@ export function loadMeshes(scene, meshNames, onMeshLoaded, onComplete) { //[srvr
                 rootUrl = "";
             };
     
-            if (meshesLoaded.includes(meshName)) {
-                console.warn("Mesh already loaded: " + meshName);
-                // decrement();
+            if (scene.meshesLoaded.includes(meshPath)) {
+                console.warn("Mesh already loaded: " + meshPath);
+                decrement();
                 // continue;
+            } else {
+                load(rootUrl, meshPath, scene, meshPath);
             };
-    
-            load(rootUrl, meshPath, scene, meshPath);
         };
     };
 };
@@ -177,63 +178,68 @@ export function makeBarrier(name, scene, color) {
 };
 
 export function loadMapMeshes(scene, onComplete) { //[8th], loads map meshes, wowie (name from deobf leak)
-    mapMeshes = [null];
-    var mat;
-    
-    //this barrier only shows up in the map editor
-    mapMeshes.push(makeBarrier("SPECIAL.barrier.full.verysoft", scene, BABYLON.Color3.Red()));
-    mapMeshes.push(makeBarrier("SPECIAL.barrier.full", scene, BABYLON.Color3.Green()));
-    mapMeshes.push(makeBarrier("SPECIAL.barrier.none", scene, BABYLON.Color3.White()));
+    if (scene.skipMapLoading) {
+        devlog("skipMapLoading detected, proceeding to onComplete");
+        onComplete && onComplete();
+    } else {
+        if (!scene.preloaded) mapMeshes = [null];
+        var mat;
+        
+        //this barrier only shows up in the map editor
+        mapMeshes.push(makeBarrier("SPECIAL.barrier.full.verysoft", scene, BABYLON.Color3.Red()));
+        mapMeshes.push(makeBarrier("SPECIAL.barrier.full", scene, BABYLON.Color3.Green()));
+        mapMeshes.push(makeBarrier("SPECIAL.barrier.none", scene, BABYLON.Color3.White()));
 
-    //defines a shape for the egg meshes (idk im assuming this is necessary for some reason)
-    for (var shape = [], i = 0; i <= 1; i += .125) {
-        var a = -Math.PI / 2 + Math.PI * i,
-            x = Math.cos(a),
-            y = .5 * Math.sin(a + .05) + .5;
-        x = .25 * Math.pow(x, 1.3), y = .6 * Math.pow(y, 1.3) - .48, shape.push(new BABYLON.Vector3(x, y, 0))
-    };
-
-    //BLUE team spawn zones (only visible in map editor)
-    var egg = BABYLON.MeshBuilder.CreateLathe("SPECIAL.spawn-blue.none", {
-        shape: shape,
-        tessellation: 12
-    }, scene);
-    mat = new BABYLON.StandardMaterial;
-    mat.diffuseColor = new BABYLON.Color3(0, .5, 1);
-    mat.specularColor = new BABYLON.Color3(.1, .2, .4);
-    mat.specularPower = 8;
-    egg.material = mat;
-    egg.setEnabled(false);
-    mapMeshes.push(egg);
-
-    //RED team spawn zones (only visible in map editor)
-    egg = BABYLON.MeshBuilder.CreateLathe("SPECIAL.spawn-red.none", {
-        shape: shape,
-        tessellation: 12
-    }, scene);
-    mat = new BABYLON.StandardMaterial;
-    mat.diffuseColor = new BABYLON.Color3(1, .25, .25);
-    mat.specularColor = new BABYLON.Color3(.4, .3, .3);
-    mat.specularPower = 8;
-    egg.material = mat;
-    egg.setEnabled(false);
-    mapMeshes.push(egg);
-
-    function onLoadMeshComplete () { //in rtw it's left as inline func (or whatever its called)
-        for (var i = 1; i < mapMeshes.length; i++) {
-            var mesh = mapMeshes[i].getChildMeshes()[0];
-            mesh && (mapMeshes[i].colliderMesh = mesh)
+        //defines a shape for the egg meshes (idk im assuming this is necessary for some reason)
+        for (var shape = [], i = 0; i <= 1; i += .125) {
+            var a = -Math.PI / 2 + Math.PI * i,
+                x = Math.cos(a),
+                y = .5 * Math.sin(a + .05) + .5;
+            x = .25 * Math.pow(x, 1.3), y = .6 * Math.pow(y, 1.3) - .48, shape.push(new BABYLON.Vector3(x, y, 0))
         };
-        onComplete();
-    };
 
-    loadMeshes(scene, isClient ? "map.zip?LEGACYSHELLMAPZIPTIMESTAMP" : ["map"], function (mesh) {
-        if (mesh.parent) {
-            mesh.freezeWorldMatrix()
-        } else {
-            mapMeshes.push(mesh);
+        //BLUE team spawn zones (only visible in map editor)
+        var egg = BABYLON.MeshBuilder.CreateLathe("SPECIAL.spawn-blue.none", {
+            shape: shape,
+            tessellation: 12
+        }, scene);
+        mat = new BABYLON.StandardMaterial;
+        mat.diffuseColor = new BABYLON.Color3(0, .5, 1);
+        mat.specularColor = new BABYLON.Color3(.1, .2, .4);
+        mat.specularPower = 8;
+        egg.material = mat;
+        egg.setEnabled(false);
+        mapMeshes.push(egg);
+
+        //RED team spawn zones (only visible in map editor)
+        egg = BABYLON.MeshBuilder.CreateLathe("SPECIAL.spawn-red.none", {
+            shape: shape,
+            tessellation: 12
+        }, scene);
+        mat = new BABYLON.StandardMaterial;
+        mat.diffuseColor = new BABYLON.Color3(1, .25, .25);
+        mat.specularColor = new BABYLON.Color3(.4, .3, .3);
+        mat.specularPower = 8;
+        egg.material = mat;
+        egg.setEnabled(false);
+        mapMeshes.push(egg);
+
+        function onLoadMeshComplete () { //in rtw it's left as inline func (or whatever its called)
+            for (var i = 1; i < mapMeshes.length; i++) {
+                var mesh = mapMeshes[i].getChildMeshes()[0];
+                mesh && (mapMeshes[i].colliderMesh = mesh)
+            };
+            onComplete();
         };
-    }, onLoadMeshComplete);
+
+        loadMeshes(scene, ["map"], function (mesh) { //isClient ? "map.zip?LEGACYSHELLMAPZIPTIMESTAMP" : ["map"]
+            if (mesh.parent) {
+                mesh.freezeWorldMatrix()
+            } else {
+                mapMeshes.push(mesh);
+            };
+        }, onLoadMeshComplete);
+    };
 };
 
 export var illegalMeshes = [

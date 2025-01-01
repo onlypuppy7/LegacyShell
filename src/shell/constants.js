@@ -506,6 +506,10 @@ export class TimeoutManagerConstructor {
     };
 };
 
+export function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+};
+
 //(server-only-start)
 
 // export default { //why is this like this? because we need to define all these as vars in the client. kek. putting it all in one object kinda ugh ngl.
