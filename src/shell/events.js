@@ -103,7 +103,7 @@ export const defaultEvents = [{
 }, {
     name: 'christmas',
     start: "12-10",
-    duration: "4w",
+    duration: "3w",
     data: {
         shop: {
             temp: [ //items that are only in the shop for the duration of the event
