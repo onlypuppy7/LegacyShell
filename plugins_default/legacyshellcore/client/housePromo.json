@@ -1,11 +1,11 @@
 {
 	"small": [
 		{
-			"label": "Christmas",
-			"linksToTaggedItems": "Christmas",
-			"imageExt": ".jpg",
-			"id": "small_jpsrtrnt1",
-			"active": true
+			"active": true,
+			"imageExt": ".png",
+			"link": "https://github.com/onlypuppy7/LegacyShell/",
+			"label": "disable adblocker please!!",
+			"id": "small_adblocker"
 		},
 		{
 			"active": true,
@@ -13,6 +13,13 @@
 			"label": "golden chicken",
 			"linksToNugget": "1",
 			"id": "small_jrcg5kdk2"
+		},
+		{
+			"label": "Christmas",
+			"linksToTaggedItems": "Christmas",
+			"imageExt": ".jpg",
+			"id": "small_jpsrtrnt1",
+			"active": true
 		},
 		{
 			"active": false,
