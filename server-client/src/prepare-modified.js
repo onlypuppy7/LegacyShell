@@ -185,7 +185,8 @@ async function modifyFiles() {
             { pattern: /LEGACYSHELLSTAMPSPNG/g, insertion: misc.getLastSavedTimestamp(path.join(ss.currentDir, 'store', 'client-modified', 'img', 'stamps.png')) },
 
             { pattern: /SERVERJSHASH/g, insertion: hashes.SERVERJSHASH },
-            { pattern: /SHELLSHOCKMINJSHASH/g, insertion: hashes.SHELLSHOCKMINJSHASH },
+            { pattern: /SHELLSHOCKMINJSHASH/g, insertion: Date.now() }, //hashes.SHELLSHOCKMINJSHASH //whatever
+            { pattern: /GAMEPLAYTIPSHASH/g, insertion: Date.now() }, //whatever
             { pattern: /LEGACYSHELLHTMLVERSION/g, insertion: ss.packageJson.version },
             { pattern: /LEGACYSHELLEXTVERSION/g, insertion: `${ss.packageJson.version} (${ss.versionHash}, ${ss.versionEnum})` },
             { pattern: /LEGACYSHELLDISCORDSERVER/g, insertion: ss.config.client.discordServer }, //outdated method
