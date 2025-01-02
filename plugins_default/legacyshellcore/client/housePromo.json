@@ -1,18 +1,11 @@
 {
 	"small": [
 		{
-			"label": "Killstreak",
-			"active": false,
-			"id": "small_jqrb278j0",
-			"link": "https://killstreak.tv",
-			"imageExt": ".jpg"
-		},
-		{
 			"label": "Christmas",
 			"linksToTaggedItems": "Christmas",
 			"imageExt": ".jpg",
 			"id": "small_jpsrtrnt1",
-			"active": false
+			"active": true
 		},
 		{
 			"active": true,
@@ -23,38 +16,10 @@
 		},
 		{
 			"active": false,
-			"label": "new yolker",
-			"imageExt": ".jpg",
-			"link": "http://eepurl.com/dFPPwb",
-			"id": "small_jrpzo6223"
-		},
-		{
-			"active": false,
 			"label": "groundhog",
 			"linksToTaggedItems": "GroundhogDay",
 			"imageExt": ".jpg",
 			"id": "small_jrb9knhi4"
-		},
-		{
-			"active": false,
-			"link": "https://shell-shockers.myshopify.com/collections/all",
-			"imageExt": ".jpg",
-			"label": "Merch",
-			"id": "small_jrejv5px5"
-		},
-		{
-			"active": false,
-			"imageExt": ".jpg",
-			"label": "f13",
-			"link": "https://www.nintendo.com/games/detail/friday-the-13th-killer-puzzle-switch",
-			"id": "small_jrpzagck6"
-		},
-		{
-			"active": false,
-			"imageExt": ".jpg",
-			"link": "https://mysteriouspackage.com/products/post-mortem-los-angeles/?utm_source=ssads",
-			"label": "Postmortem",
-			"id": "small_jrtkgagm7"
 		}
 	],
 	"houseAdPercentChance": 100
