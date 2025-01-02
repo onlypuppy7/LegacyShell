@@ -114,6 +114,7 @@ async function modifyFiles() {
 
         code.sourceJs = fs.readFileSync(sourceShellJsPath, 'utf8');
         code.mapEditorJs = fs.readFileSync(sourceEditorJsPath, 'utf8');
+        code.htmlContent = fs.readFileSync(sourceHtmlPath, 'utf8');
 
         async function doReplacements(replacements) {
             await plugins.emit('doReplacements', { this: this, ss, replacements, code });
@@ -131,6 +132,10 @@ async function modifyFiles() {
                 if (replacement.pattern.test(code.mapEditorJs)) {
                     log.italic(`Inserting ${name} into mapEdit.js...`);
                     code.mapEditorJs = code.mapEditorJs.replace(replacement.pattern, insertion);
+                };
+                if (replacement.pattern.test(code.htmlContent)) {
+                    log.italic(`Inserting ${name} into index.html...`);
+                    code.htmlContent = code.htmlContent.replace(replacement.pattern, insertion);
                 };
             });
         };
@@ -178,6 +183,20 @@ async function modifyFiles() {
             { pattern: /LEGACYSHELLZIPTIMES/g, insertion: (String(misc.getLastSavedTimestamp(path.join(ss.currentDir, 'store', 'client-modified', 'models', 'models.zip')))+String(misc.getLastSavedTimestamp(path.join(ss.currentDir, 'store', 'client-modified', 'models', 'map.zip')))) },
             { pattern: /LEGACYSHELLMAPZIPTIMESTAMP/g, insertion: misc.getLastSavedTimestamp(path.join(ss.currentDir, 'store', 'client-modified', 'models', 'map.zip')) },
             { pattern: /LEGACYSHELLSTAMPSPNG/g, insertion: misc.getLastSavedTimestamp(path.join(ss.currentDir, 'store', 'client-modified', 'img', 'stamps.png')) },
+
+            { pattern: /SERVERJSHASH/g, insertion: hashes.SERVERJSHASH },
+            { pattern: /SHELLSHOCKMINJSHASH/g, insertion: hashes.SHELLSHOCKMINJSHASH },
+            { pattern: /LEGACYSHELLHTMLVERSION/g, insertion: ss.packageJson.version },
+            { pattern: /LEGACYSHELLEXTVERSION/g, insertion: `${ss.packageJson.version} (${ss.versionHash}, ${ss.versionEnum})` },
+            { pattern: /LEGACYSHELLDISCORDSERVER/g, insertion: ss.config.client.discordServer }, //outdated method
+            { pattern: /LEGACYSHELLGITHUB/g, insertion: ss.config.client.githubURL },
+            { pattern: /LEGACYSHELLSYNCURL/g, insertion: ss.config.client.sync_server },
+            { pattern: /LEGACYSHELLCLIENTURL/g, insertion: ss.config.client.this_url },
+            { pattern: /LEGACYSHELLCONFIG/g, insertion: ss.distributed_config.replace(/\n/g, '<br>') },
+            { pattern: /LEGACYSHELLFAQ/g, insertion: fs.readFileSync(path.join(ss.currentDir, 'src', 'client-static', 'faq.html'), 'utf8') },
+
+            { pattern: /LEGACYSHELLTWITCHDISPLAY/g, insertion: false ? "block" : "none" },
+            { pattern: /LEGACYSHELLADVERTDISPLAY/g, insertion: true ? "block" : "none" },
         ];
 
         await plugins.emit('replacementsBefore', { this: this, ss, code, replacementsBefore });
@@ -252,18 +271,6 @@ async function modifyFiles() {
         hashes.SHELLSHOCKMINJSHASH = hashSum.digest('hex');
         log.italic(`SHA-256 hash of the minified SHELLSHOCKMINJS: ${hashes.SHELLSHOCKMINJSHASH}`);
         await plugins.emit('hashes', { ss, hashes });
-
-        code.htmlContent = fs.readFileSync(sourceHtmlPath, 'utf8');
-        code.htmlContent = code.htmlContent.replace(/SERVERJSHASH/g, hashes.SERVERJSHASH);
-        code.htmlContent = code.htmlContent.replace(/SHELLSHOCKMINJSHASH/g, hashes.SHELLSHOCKMINJSHASH);
-        code.htmlContent = code.htmlContent.replace(/LEGACYSHELLVERSION/g, ss.packageJson.version);
-        code.htmlContent = code.htmlContent.replace(/LEGACYSHELLEXTVERSION/g, `${ss.packageJson.version} (${ss.versionHash}, ${ss.versionEnum})`);
-        code.htmlContent = code.htmlContent.replace(/LEGACYSHELLDISCORDSERVER/g, ss.config.client.discordServer); //outdated method
-        code.htmlContent = code.htmlContent.replace(/LEGACYSHELLGITHUB/g, ss.config.client.githubURL);
-        code.htmlContent = code.htmlContent.replace(/LEGACYSHELLSYNCURL/g, ss.config.client.sync_server);
-        code.htmlContent = code.htmlContent.replace(/LEGACYSHELLCLIENTURL/g, ss.config.client.this_url);
-        code.htmlContent = code.htmlContent.replace(/LEGACYSHELLCONFIG/g, ss.distributed_config.replace(/\n/g, '<br>'));
-        code.htmlContent = code.htmlContent.replace(/LEGACYSHELLFAQ/g, fs.readFileSync(path.join(ss.currentDir, 'src', 'client-static', 'faq.html'), 'utf8'));
 
         await plugins.emit('htmlContent', { ss, code });
 

@@ -5,6 +5,8 @@ import path from 'node:path';
 import { LegacyShellCorePlugin } from './shared.js';
 import Comm from '#comm';
 import { devlog } from '#constants';
+//legacyshell: web server
+import express from 'express';
 //
 
 export const PluginMeta = {
@@ -28,6 +30,7 @@ export class Plugin {
 
         LegacyShellCorePlugin.registerListeners(this.plugins);
         this.plugins.on('client:pluginSourceInsertion', this.pluginSourceInsertion.bind(this));
+        this.plugins.on('client:onStartServer', this.onStartServer.bind(this));
         
         this.plugins.on('client:prepareBabylonBefore', this.prepareBabylonBefore.bind(this));
         this.plugins.on('game:prepareBabylonBefore', this.prepareBabylonBefore.bind(this));
@@ -45,6 +48,12 @@ export class Plugin {
         this.plugins.on('game:clientPackSyncLoop', this.clientPackSyncLoopHook.bind(this));
 
         this.plugins.on('services:insertMaps', this.insertMaps.bind(this));
+    };
+
+    async onStartServer(data) {
+        let app = data.app;
+
+        app.use(express.static(path.join(this.thisDir, 'client')));
     };
 
     async eventsInit(data) {

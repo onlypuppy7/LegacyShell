@@ -1,59 +1,8 @@
 {
-	"big": [
-		{
-			"label": "Killstreak",
-			"link": "https://killstreak.tv",
-			"active": false,
-			"id": "big_jqqcpmtv0",
-			"imageExt": ".png"
-		},
-		{
-			"active": false,
-			"label": "Christmas",
-			"linksToTaggedItems": "Christmas",
-			"imageExt": ".jpg",
-			"id": "big_jpsrtrnt1"
-		},
-		{
-			"active": false,
-			"imageExt": ".jpg",
-			"linksToNugget": "1",
-			"label": "golden chicken",
-			"id": "big_jrtkjeer2"
-		},
-		{
-			"active": false,
-			"link": "http://eepurl.com/dFPPwb",
-			"label": "New Yolker",
-			"imageExt": ".jpg",
-			"id": "big_jrb5pyts3"
-		},
-		{
-			"active": false,
-			"label": "Groundhog Day",
-			"linksToTaggedItems": "GroundhogDay",
-			"imageExt": ".jpg",
-			"id": "big_jrb9knhi4"
-		},
-		{
-			"active": false,
-			"imageExt": ".jpg",
-			"label": "F13",
-			"link": "https://www.nintendo.com/games/detail/friday-the-13th-killer-puzzle-switch",
-			"id": "big_jrpz9gpu5"
-		},
-		{
-			"imageExt": ".jpg",
-			"label": "Postmortem",
-			"link": "https://mysteriouspackage.com/products/post-mortem-los-angeles/?utm_source=ssads",
-			"active": true,
-			"id": "big_jrtkgagm6"
-		}
-	],
 	"small": [
 		{
 			"label": "Killstreak",
-			"active": true,
+			"active": false,
 			"id": "small_jqrb278j0",
 			"link": "https://killstreak.tv",
 			"imageExt": ".jpg"
@@ -73,7 +22,7 @@
 			"id": "small_jrcg5kdk2"
 		},
 		{
-			"active": true,
+			"active": false,
 			"label": "new yolker",
 			"imageExt": ".jpg",
 			"link": "http://eepurl.com/dFPPwb",
@@ -87,7 +36,7 @@
 			"id": "small_jrb9knhi4"
 		},
 		{
-			"active": true,
+			"active": false,
 			"link": "https://shell-shockers.myshopify.com/collections/all",
 			"imageExt": ".jpg",
 			"label": "Merch",
@@ -101,7 +50,7 @@
 			"id": "small_jrpzagck6"
 		},
 		{
-			"active": true,
+			"active": false,
 			"imageExt": ".jpg",
 			"link": "https://mysteriouspackage.com/products/post-mortem-los-angeles/?utm_source=ssads",
 			"label": "Postmortem",

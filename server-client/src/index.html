@@ -363,7 +363,7 @@
 	-->
         <!-- End Ironsource -->
 
-        <script>var version = 'LEGACYSHELLVERSION';</script>
+        <script>var version = 'LEGACYSHELLHTMLVERSION';</script>
         <script>var versionExtended = 'LEGACYSHELLEXTVERSION';</script>
         <script src="src/servers.js?SERVERJSHASH"></script>
         <script src="src/gameplayTips.js?GAMEPLAYTIPSHASH"></script>
@@ -466,7 +466,7 @@
                 <!-- Main menu container -->
                 <div class="flexRow" style="text-align: center">
                     <div style="flex: 1; transform: translateY(-3em)">
-                        <div style="display: flex; justify-content: right; gap: 1em;">
+                        <div style="display: flex; justify-content: right; gap: 1em; transform: translateX(-1.25em);">
                             <!-- Editor Icon -->
                             <div id="editorIcon">
                                 <a href="/editor" target="_blank" rel="noopener">
@@ -482,17 +482,18 @@
                         </div>
 
                         <div style="flex: 1"></div>
-                        <div style="float: right; text-align: left">
-                            <div id="twitchContainer">
+                        <div style="float: right; text-align: left;">
+                            <div id="twitchContainer" style="display: LEGACYSHELLTWITCHDISPLAY;">
                                 <img src="img/twitchIcon.png" id="twitchIcon">
                                 <h1 id="twitchHeader">streaming<br>LIVE!</h1>
                                 <div id="twitchStreams"></div>
                             </div>
-                            <!-- <div id="menuAdContainer" class="shadedPane" style="
-                    margin-top: 1em;
-                    pointer-events: all;
-                    padding: 0.2em;
-                "></div> -->
+                            <div id="menuAdContainer" class="shadedPane" style="
+                                margin-top: 1em;
+                                pointer-events: all;
+                                padding: 0.2em;
+                                display: LEGACYSHELLADVERTDISPLAY;
+                            "></div>
                         </div>
                     </div>
 
@@ -1679,7 +1680,7 @@
         <!-- AdinPlay Preroll -->
         <div id="preroll" class="centered"></div>
 
-        <!-- Banner ad container
+        <!-- Banner ad container -->
         <div id="bannerAdContainer" class="topleft">
             <!-- Placeholder -->
             <div id="placeholder_300x250" class="hideme"></div>
@@ -1690,7 +1691,7 @@
             <!-- House -->
             <img id="houseAd_300x250" class="hideme clickable" onclick="extern.clickedHouseAd()" />
         </div>
-        -->
+       
         <!-- Playwire -->
 
         <!-- Consent crap for GDPR -->
