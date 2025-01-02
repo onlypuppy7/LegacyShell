@@ -203,6 +203,7 @@
                 ["ui_settings_musicvol", "Music Volume"],
                 ["ui_settings_mousespeed", "Mouse Speed"],
                 ["ui_settings_invertmouse", "Invert Mouse"],
+                ["ui_settings_fastPollMouse", "Fix Mouse Glitch"],
                 ["ui_settings_autodetail", "Auto Detail"],
                 ["ui_settings_holdtoaim", "Hold To Aim"],
                 ["ui_settings_shadows", "Shadows"],
@@ -1584,6 +1585,11 @@
                     <div><input class="ss_checkbox" id="mouseInvert" type="checkbox"
                             onclick="extern.setCheckOption(this)">
                         <div class="label">Invert Mouse</div>
+                    </div>
+
+                    <div><input class="ss_checkbox" id="fastPollMouse" type="checkbox"
+                            onclick="extern.setCheckOption(this)">
+                        <div class="label">Fix Mouse Glitch</div>
                     </div>
 
                     <div><input class="ss_checkbox" id="holdToAim" type="checkbox"
