@@ -24198,15 +24198,21 @@
                         if (this.db) successCallback && successCallback();
                         else {
                             this.hasReachedQuota = !1, this.isSupported = !0;
-                            var request = this.idbFactory.open(localStorage.getItem("babylonDB"), 1);
+                            var request = this.idbFactory.open("babylonjsLegacy", 2); // "babylonjs" // localStorage.getItem("babylonDB")
                             request.onerror = function (event) {
                                 handleError()
                             }, request.onblocked = function (event) {
-                                BABYLON.Tools.Error("IDB request blocked. Please reload the page."), handleError()
+                                BABYLON.Tools.Error("IDB request blocked. Please reload the page."), handleError();
+                                setTimeout(() => {
+                                    window.IDBrequestblocked = true;
+                                    // window.location.reload(true);
+                                }, 3e3);
                             }, request.onsuccess = function (event) {
                                 _this.db = request.result, successCallback()
                             }, request.onupgradeneeded = function (event) {
-                                if (_this.db = event.target.result, _this.db) try {
+                                _this.db = event.target.result;
+                                devlog("onupgradeneeded", !!_this.db, _this.db);
+                                if (_this.db) try {
                                     _this.db.createObjectStore("scenes", {
                                         keyPath: "sceneUrl"
                                     }), _this.db.createObjectStore("versions", {
@@ -24304,16 +24310,21 @@
                 }, Database.prototype._loadVersionFromDBAsync = function (url, callback, updateInDBCallback) {
                     var version, _this = this;
                     if (this.isSupported && this.db) try {
+                        devlog(1, this.db, this)
                         var transaction = this.db.transaction(["versions"]);
+                        devlog(2)
                         transaction.oncomplete = function (event) {
                             version ? _this.manifestVersionFound !== version.data ? (_this.mustUpdateRessources = !0, updateInDBCallback()) : callback(version.data) : (_this.mustUpdateRessources = !0, updateInDBCallback())
                         }, transaction.onabort = function (event) {
                             callback(-1)
                         };
+                        devlog(3)
                         var getRequest = transaction.objectStore("versions").get(url);
                         getRequest.onsuccess = function (event) {
+                            devlog(4)
                             version = event.target.result
                         }, getRequest.onerror = function (event) {
+                            devlog(5)
                             BABYLON.Tools.Error("Error loading version for scene " + url + " from DB."), callback(-1)
                         }
                     } catch (ex) {
