@@ -24211,7 +24211,7 @@
                                 _this.db = request.result, successCallback()
                             }, request.onupgradeneeded = function (event) {
                                 _this.db = event.target.result;
-                                devlog("onupgradeneeded", !!_this.db, _this.db);
+                                // devlog("onupgradeneeded", !!_this.db, _this.db);
                                 if (_this.db) try {
                                     _this.db.createObjectStore("scenes", {
                                         keyPath: "sceneUrl"
@@ -24310,21 +24310,21 @@
                 }, Database.prototype._loadVersionFromDBAsync = function (url, callback, updateInDBCallback) {
                     var version, _this = this;
                     if (this.isSupported && this.db) try {
-                        devlog(1, this.db, this)
+                        // devlog(1, this.db, this)
                         var transaction = this.db.transaction(["versions"]);
-                        devlog(2)
+                        // devlog(2)
                         transaction.oncomplete = function (event) {
                             version ? _this.manifestVersionFound !== version.data ? (_this.mustUpdateRessources = !0, updateInDBCallback()) : callback(version.data) : (_this.mustUpdateRessources = !0, updateInDBCallback())
                         }, transaction.onabort = function (event) {
                             callback(-1)
                         };
-                        devlog(3)
+                        // devlog(3)
                         var getRequest = transaction.objectStore("versions").get(url);
                         getRequest.onsuccess = function (event) {
-                            devlog(4)
+                            // devlog(4)
                             version = event.target.result
                         }, getRequest.onerror = function (event) {
-                            devlog(5)
+                            // devlog(5)
                             BABYLON.Tools.Error("Error loading version for scene " + url + " from DB."), callback(-1)
                         }
                     } catch (ex) {
