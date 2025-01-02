@@ -221,12 +221,12 @@ RETURNING *;
             { name: "[codes] Get Code by Key", code: "SELECT * FROM codes WHERE key = ?;" },
             { name: "[codes] Create New Code with Default Key", code: `
 INSERT INTO codes (item_ids, eggs_given, uses)
-VALUES (?, ?, 1)
+VALUES ("[]", 0, 1)
 RETURNING *;
             `},
             { name: "[codes] Create New Code with Custom Key", code: `
 INSERT INTO codes (key, item_ids, eggs_given, uses)
-VALUES (?, ?, ?, 1)
+VALUES ("CODEKEY", "[]", 0, 1)
 RETURNING *;
             `},
             { name: "[codes] Create Multiple Codes", code: `
@@ -236,7 +236,7 @@ WITH RECURSIVE count(n) AS (
   SELECT n + 1 FROM count WHERE n < 3
 )
 INSERT INTO codes (item_ids, eggs_given, uses)
-SELECT ?, ?, 1 FROM count
+SELECT "[]", 0, 1 FROM count
 RETURNING key;
             `},
             { name: "[codes] Update Code Usage", code: `

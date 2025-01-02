@@ -2807,6 +2807,7 @@
                                         }
                                     };
                                     request.addEventListener("readystatechange", onReadyStateChange), request.send()
+                                    // if (document.getElementById("spinner").style.display == "") document.getElementById("spinnerFooter").innerText = "We're loading some new assets for you!";
                                 };
                                 retryLoop(0)
                             };
