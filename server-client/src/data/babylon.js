@@ -2807,7 +2807,6 @@
                                         }
                                     };
                                     request.addEventListener("readystatechange", onReadyStateChange), request.send()
-                                    // if (document.getElementById("spinner").style.display == "") document.getElementById("spinnerFooter").innerText = "We're loading some new assets for you!";
                                 };
                                 retryLoop(0)
                             };
@@ -24397,6 +24396,8 @@
                                         } catch (ex) { }
                                         callback(fileData)
                                     }, transaction.oncomplete = function (event) {
+                                        if (document.getElementById("spinner").style.display != "none")
+                                            document.getElementById("spinnerFooter").innerText = `We're loading some new assets for you!\n${url}\n\nFear not!\nYour next reload will be faster!`;
                                         callback(fileData)
                                     }, newFile = "scenes" === targetStore ? {
                                         sceneUrl: url,
@@ -24418,7 +24419,9 @@
                             else 400 <= xhr.status && errorCallback ? errorCallback(xhr) : callback()
                         }, !1), xhr.addEventListener("error", function (event) {
                             BABYLON.Tools.Error("error on XHR request."), callback()
-                        }, !1), xhr.send()
+                        }, !1), xhr.send();
+                        if (document.getElementById("spinner").style.display != "none")
+                            document.getElementById("spinnerFooter").innerText = `We're loading some new assets for you!\n${url}\n\nFear not!\nYour next reload will be faster!`;
                     } else BABYLON.Tools.Error("Error: IndexedDB not supported by your browser or BabylonJS Database is not open."), callback()
                 }, Database.IsUASupportingBlobStorage = !0, Database.IDBStorageEnabled = !0, Database._ParseURL = function (url) {
                     var urlWithoutHash = (document.createElement("a").href = url).substring(0, url.lastIndexOf("#")),
