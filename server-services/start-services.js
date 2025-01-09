@@ -219,7 +219,9 @@ export default async function run (runStart) {
                     };
         
                     // Sync commands
-                    if (msg.cmd == "requestConfig") {
+                    if (msg.cmd == "returnIp") {
+                        ws.send(JSON.stringify({ ip }));
+                    } else if (msg.cmd == "requestConfig") {
                         ss.config.verbose && log.bgCyan("services: Reading from DB: get max modified of items");
                         const items = await ss.getOne('SELECT MAX(dateModified) AS maxDateModified FROM items');
                         ss.config.verbose && log.bgCyan("services: Reading from DB: get max modified of maps");
