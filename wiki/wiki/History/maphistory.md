@@ -239,6 +239,9 @@ More screenshots:
 
 <img src="./ShellShockers.io - 57 KillStreak _ New Updates _D 0-22 screenshot.png" alt="ShellShockers.io - 57 KillStreak _ New Updates _D 0-22 screenshot" width="40%">
 <img src="./ShellShockers.io - 57 KillStreak _ New Updates _D 0-19 screenshot.png" alt="ShellShockers.io - 57 KillStreak _ New Updates _D 0-19 screenshot" width="40%">
+
+<img src="./SHELL SHOKERS.IO Lo petamos en este _shooter_ TOP 1 0-38 screenshot.png" alt="SHELL SHOKERS.IO Lo petamos en este _shooter_ TOP 1 0-38 screenshot" width="40%">
+<img src="./SHELL SHOKERS.IO Lo petamos en este _shooter_ TOP 1 0-42 screenshot.png" alt="SHELL SHOKERS.IO Lo petamos en este _shooter_ TOP 1 0-42 screenshot" width="40%">
 </center>
 
 ## Inter-Editor Era
@@ -261,7 +264,7 @@ Unfortunately the WayBack Machine drought continues until 0.9.0. So that version
 
 ### The 0.7.x Maps - #1
 
-There are two maps I could find for this version.
+There are three maps I could find for this version.
 
 <center>
 <img src="./Shell Shockers  GUERRA DE HUEVOS 1-31 screenshot.png" alt="Shell Shockers  GUERRA DE HUEVOS 1-31 screenshot" width="40%">
@@ -297,6 +300,26 @@ This is the second map. By doing our corner analysis, this is clearly not the sa
 <img src="./Getting a 20 kill streak in Shell Shockers 0-37 screenshot.png" alt="Getting a 20 kill streak in Shell Shockers 0-37 screenshot" width="40%">
 
 *[3 or 4 corners of the map, I couldn't be bothered to verify.](https://www.youtube.com/watch?v=FnaKFU-yt1c)*
+</center>
+
+### The 0.7.x Maps - #3
+
+This is the third map which I believe to be for 0.7.x. While the upload date doesn't align, stylistically it fits only with the other two.
+
+<center>
+<img src="./Flashgames konnen laggen 7-39 screenshot.png" alt="Flashgames können laggen! Shellshock.io 🌎 Browser Games Woche #5 7-39 screenshot" width="40%">
+<img src="./Flashgames können laggen 8-8 screenshot.png" alt="Flashgames können laggen! Shellshock.io 🌎 Browser Games Woche #5 8-8 screenshot" width="40%">
+
+<img src="./Flashgames können laggen 11-13 screenshot.png" alt="Flashgames können laggen! Shellshock.io 🌎 Browser Games Woche #5 11-13 screenshot" width="40%">
+<img src="./Flashgames können laggen 12-41 screenshot.png" alt="Flashgames können laggen! Shellshock.io 🌎 Browser Games Woche #5 12-41 screenshot" width="40%">
+
+*[3 corners of the map (2 are of the same)](https://www.youtube.com/watch?v=ijgDS9Dmi_o)*
+</center>
+
+More screenshots:
+
+<center>
+<img src="./Flashgames können laggen 9-22 screenshot.png" alt="Flashgames können laggen! Shellshock.io 🌎 Browser Games Woche #5 9-22 screenshot" width="40%">
 </center>
 
 ### The 0.8.x Maps - #1
