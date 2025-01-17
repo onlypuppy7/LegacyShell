@@ -89384,9 +89384,10 @@ function doDebugMenu(){
   var pick = scene.pickWithRay(camera.getForwardRay());
   if (pick.hit && pick.pickedMesh.name != "ground") {
     var cel = getPickedCell(pick);
-    rotText.innerText = `rotation: ${formatPrettyRotationText(pick.pickedMesh.rotation)}`;
-    posText.innerText = `position: ${JSON.stringify(pick.pickedMesh.position)}`; //trol
-  } else{
+    let rots = pick?.pickedMesh?.rotationQuaternion?.toEulerAngles ? pick?.pickedMesh?.rotationQuaternion?.toEulerAngles() : pick.pickedMesh.rotation;
+    rotText.innerText = `block rots: rx: ${cel.rx || 0} ry: ${cel.ry || 0} rz: ${cel.rz || 0}\nmesh rots: ${formatPrettyRotationText(rots)}`;
+    posText.innerText = `block pos: x: ${cel.x || 0} y: ${cel.x || 0} z: ${cel.x || 0}\nmesh pos: ${JSON.stringify(pick.pickedMesh.position)}`; //trol
+  } else {
     rotText.innerText = `rotation: N/A`;
     posText.innerText = `position: N/A`;
   }
@@ -89677,6 +89678,7 @@ function keydown(e) {
 }
 function rotateCell(axis) {
   var pick = scene.pickWithRay(camera.getForwardRay());
+  pick.pickedMesh.rotationQuaternion = null;
   if (pick.hit) {
     if (pick.pickedMesh.name != "ground") {
       undoPoint();
@@ -89684,20 +89686,20 @@ function rotateCell(axis) {
       switch (axis) {
         case AXIS_X:
           cel.rx = ++cel.rx % 4;
-          rotation.x = cel.rx;
-          pick.pickedMesh.rotation.x = rotation.x * Math.PI / 2;
           break;
         case AXIS_Y:
           cel.ry = ++cel.ry % 4;
-          rotation.y = cel.ry;
-          pick.pickedMesh.rotation.y = rotation.y * Math.PI / 2;
           break;
         case AXIS_Z:
           cel.rz = ++cel.rz % 4;
-          rotation.z = cel.rz;
-          pick.pickedMesh.rotation.z = rotation.z * Math.PI / 2;
           break;
       }
+      rotation.x = cel.rx;
+      rotation.y = cel.ry;
+      rotation.z = cel.rz;
+      pick.pickedMesh.rotation.x = rotation.x * Math.PI / 2; //
+      pick.pickedMesh.rotation.y = rotation.y * Math.PI / 2; //
+      pick.pickedMesh.rotation.z = rotation.z * Math.PI / 2; //
       console.log(`new rot var: ${JSON.stringify(rotation)}, BUT: pickedMesh rotation: ${pick.pickedMesh.rotation}! (roated on ${axis}). max would be ${Math.PI*2}`);
     }
   }
