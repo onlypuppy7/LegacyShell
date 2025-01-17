@@ -608,8 +608,8 @@ const Comm = {
      * @param {number} code - The code to convert.
      * @returns {string} - The corresponding name, or 'unknownCode' if not found.
      */
-    Convert: function(code) {
-        const commCodeEntries = Object.entries(Comm.Code);
+    Convert: function(code, set = Comm.Code) {
+        const commCodeEntries = Object.entries(set);
         const foundEntry = commCodeEntries.find(([key, value]) => value === code);
         return foundEntry ? foundEntry[0] : 'unknownCode';
     },

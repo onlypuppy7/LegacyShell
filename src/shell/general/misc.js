@@ -95,15 +95,15 @@ export const misc = {
                             //iterate through default and notify user of anything missing in custom config
                             for (const key in yamlDefaultData) { //not the cleanest way to do this
                                 if (yamlData[key] === undefined) {
-                                    log.error(`Missing key ${key} in ${file}, using default value.`);
+                                    log.warning(`Missing key ${key} in ${file}, using default value.`);
                                 } else if (isObject(yamlDefaultData[key])) {
                                     for (const subKey in yamlDefaultData[key]) {
                                         if (yamlData[key] === undefined || yamlData[key][subKey] === undefined) {
-                                            log.error(`Missing key ${key} -> ${subKey} in ${file}, using default value.`);
+                                            log.warning(`Missing key ${key} -> ${subKey} in ${file}, using default value.`);
                                         } else if (isObject(yamlDefaultData[key][subKey])) {
                                             for (const subSubKey in yamlDefaultData[key][subKey]) {
                                                 if (yamlData[key][subKey][subSubKey] === undefined) { //if there are still more levels, get fucked
-                                                    log.error(`Missing key ${key} -> ${subKey} -> ${subSubKey} in ${file}, using default value.`);
+                                                    log.warning(`Missing key ${key} -> ${subKey} -> ${subSubKey} in ${file}, using default value.`);
                                                 };
                                             };
                                         };
