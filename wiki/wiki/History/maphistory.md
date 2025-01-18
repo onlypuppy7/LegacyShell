@@ -445,9 +445,9 @@ Blue is often wrongly cited to be the oldest map, when it's just the oldest to s
 
 |Name|Videos|Image|Description|
 |-|-|-|-|
-|Early Blue|[Video 1](https://youtu.be/cxJESkZzhkk?t=289)|<img src="./0.10.2 Alpha1.png" alt="0.10.2 Alpha1" width="65%">||
+|Blue|[Video 1](https://youtu.be/cxJESkZzhkk?t=289)|<img src="./0.10.2 Alpha1.png" alt="0.10.2 Alpha1" width="65%">||
 |Early Bedrock|[Video 1](https://youtu.be/xyT6_v7H_vs?t=342)<br>[Video 2](https://youtu.be/gemfbFnaGxY)|<img src="./0.10.2 Alpha2.png" alt="0.10.2 Alpha2" width="65%">|Removed but then readded as [Bedrock](https://shellshockers.fandom.com/wiki/Bedrock?file=BedrockMap.png).|
-|Early Two Towers|[Video 1](https://youtu.be/xyT6_v7H_vs?t=656)|<img src="./0.10.2 Alpha3.png" alt="0.10.2 Alpha3" width="65%">||
+|Two Towers|[Video 1](https://youtu.be/xyT6_v7H_vs?t=656)|<img src="./0.10.2 Alpha3.png" alt="0.10.2 Alpha3" width="65%">||
 
 The most significant thing to note here is the presence of an early version of Bedrock. It was later readded on 1st May 2023.
 
@@ -466,11 +466,89 @@ Here are the dimensions of the Two Towers map:
 Inputting these into the Legacy Generator yields results like this:
 
 <center>
-<img src="./LegacyGeneratorOutput2.png" alt="LegacyGeneratorOutput2" width="70%">
+<img src="./LegacyGeneratorOutput2.png" alt="LegacyGeneratorOutput2" width="40%">
 
 *Output from my modified Legacy Generator.*
 </center>
 
 Pretty freaky right? Even I was amazed to get something so close on my first try. If you're interested in the seed it was `2332`.
 
-So to conclude even though these maps have all prevailed, it's hard for me to call them manually created. But I will because I can. 
+So to conclude even though these maps have all prevailed, it's hard for me to call them manually created. But I will because I can.
+
+### The 0.13.0 Maps
+
+The roster of maps actually didn't see any additions for about 5 months - between January and May 2018. Likely this is because during this time features such as teams, chat, spawn protection and other crucial mechanics like ads and skins were being implemented instead.
+
+As two maps were added, Early Bedrock disappeared. Maybe it's because it was too similar to Blue, who knows. It was probably just pretty boring to look at all things considered. Chances are, nobody noticed or cared.
+
+|Name|Videos|Image|Description|
+|-|-|-|-|
+|Feedlot|[Video 1](https://youtu.be/o1yMps90jOE?t=84)|<img src="./0.13.0 Feedlot.png" alt="0.13.0 Feedlot" width="65%">|Looks a little different, right? That's because they updated this map in 2023, for some reason.|
+|Shipyard|[Video 1](https://youtu.be/L5hnpqNL90w?t=44)|<img src="./0.13.0 Shipyard.png" alt="0.13.0 Shipyard" width="65%">||
+
+From here, welcome to the murky zone. Since my own records of Shell's version history isn't complete, it's difficult to piece together a timeline of events. The 0.13.x line of updates are notorious for having the most chaotic versioning by far.
+
+For context, on 11 May 2018, the game was on 0.13.3. Then on 12 May, 0.13.4. Then on the 17th, it was on 0.13.3 again.
+
+Then they reused 0.13.4 again on the 28th of May, going up to 0.13.5 on the 13th June. By the 15th, it was 0.13.4 again. Come the 21st of June, they reinstated 0.13.5.
+
+It didn't stop there, as on the 16th of July, for ONE DAY, 0.14.0 was released, the one that added the infamous timed rounds. Their fate was sealed almost immediately, as the timed rounds mechanic received overwhelming backlash from the community. Players found the strict time limits frustrating, as they completely disrupted the flow of matches. On the 17th of July, 0.13.5 returned.
+
+Matters were then not helped by the fact that during this period the devs refused to budge the version number once they got to 0.13.5 (the third time), perhaps due to them not trusting themselves with numbers until they calmed down a little. You may also notice that this cycle took an extraordinarily long time. From the 8th of May to the 22nd of August, 106 days passed, making it over 3 months.
+
+### The 0.13.5 (2) Maps
+
+Q: Why the 2? A: Were you paying attention?
+
+Sometime between 15-19 June 2018, Ruins was added to the game.
+
+|Name|Videos|Image|Description|
+|-|-|-|-|
+|Ruins|[Video 1](https://youtu.be/kh9pPsXlAo0?t=1121)|<img src="./0.13.5 Ruins.png" alt="0.13.5 Ruins" width="65%">||
+
+Here's something you might not know, in the little hill things on the map there was originally a unique block type there with a diamond pattern. This block has since been removed from the game and in this area it was replaced by blue inset blocks, as featured elsewhere.
+
+<center>
+<img src="./Ruins Removed Block.png" alt="Ruins Removed Block" width="40%">
+
+*Yup. Shocking.*  
+*On an uninteresting note, around this time they seemed to forget to turn the obfuscator on.*
+</center>
+
+### The 0.13.5 (3) Maps
+
+Yes, really, this map is from the period of the THIRD 0.13.5. Well, to be more exact between 28th June - 16th July 2018.
+
+|Name|Videos|Image|Description|
+|-|-|-|-|
+|Moonbase|[Video 1](https://youtu.be/ANGY5yAlJPM?t=277)|<img src="./0.13.5 Moonbase.png" alt="0.13.5 Moonbase" width="65%">|The skybox isn't accurate to it's original look. This is because daytime Moonbase looks stupid.|
+
+At this point in time, skyboxes were still not added to the game.
+
+<center>
+<img src="./shellshock.io_ exploring the new map! 4-37 screenshot.png" alt="shellshock.io_ exploring the new map! 4-37 screenshot" width="40%">
+
+___*Sunbase.*___  
+*Allow the circumstances of it being light to be fuel for many a conspiracy.*  
+</center>
+
+### The 0.14.x Maps
+
+I managed to find these maps starting in versions from August 17th 2018 onwards, however it's uncertain if they released at the same time or separately.
+
+|Name|Videos|Image|Description|
+|-|-|-|-|
+|Castle|[Video 1](https://www.youtube.com/live/Au3UnXUoVhs?t=821)|<img src="./0.14.x Castle.png" alt="0.14.x Castle" width="65%">||
+|Road|[Video 1](https://youtu.be/JW9WUO06uOY?t=69)|<img src="./0.14.x Road.png" alt="0.14.x Road" width="65%">||
+
+### The 0.15.6 Maps
+
+This map appeared between 20-26 Nov 2018, aligning it somewhat with the release of 0.15.6.
+
+Dirt
+
+wabbits
+
+## Credits
+
+Document solely researched and compiled by onlypuppy7 (also known as francio) for the LegacyShell project.

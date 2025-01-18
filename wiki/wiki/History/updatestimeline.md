@@ -699,7 +699,7 @@ Note: part of the What's New was covered up by an overlay in the only existing f
 
 ## 0.14.0 | [16 July](https://discord.com/channels/350339162177798154/350344229005819905/468518456422039589) - [17 July 2018](https://discord.com/channels/350339162177798154/366644989650010113/468881448372273152)
 
-### This update is significant as it's where timed rounds were added, and very quickly removed. No footage exists (but LegacyShell will try and restore this).
+### This update is significant as it's where timed rounds were added, and very quickly removed. No footage exists (the LegacyShell project has successfully restored this feature's lost functionality).
 
 ## [0.13.5 (rollback)](https://web.archive.org/web/20180716191908/https://shellshock.io/) | 17 July - 22 Aug 2018
 
@@ -822,6 +822,10 @@ https://www.youtube.com/watch?v=pATHiYbGYuo (version in title)
 
 ## [0.15.1](https://web.archive.org/web/20181101234641/https://shellshock.io/) | 1 - 6 Nov 2018
 
+> - Brand new EGGSPLODER class, weilding the mighty RPEGG! Yeah, it's a new gun; don't have a heart-attack. Do prepare yourself for the fact that > *everyone* will be using it for a while, though.
+> - Fixed an issue where new games couldn't be created on a server after a while. If you see a message complaining about the match-maker, just give > it a moment and try again.
+> - Fixed an issue where you could only enter 2 lines of smack in chat while dead.
+
 ## [0.15.2](https://web.archive.org/web/20181107222925/https://shellshock.io/) | 7 - 15 Nov 2018
 
 ~~[Shell Shockers playing team mode - savage dudde](https://www.youtube.com/watch?v=CZC9roBhinE)~~
@@ -926,7 +930,7 @@ https://titotu.ru/shell-shockers
 
 # Credits
 
-Document created and researched by francio for the LegacyShell project.
+Document researched and compiled by onlypuppy7 (also known as francio) for the LegacyShell project.
 
 # Granular Data
 

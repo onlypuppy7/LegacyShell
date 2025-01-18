@@ -73,7 +73,7 @@ console.log(navbar);
 
 export default defineUserConfig({
     title: 'LegacyShell Wiki',
-    description: 'A simple wiki powered by VuePress',
+    description: 'A simple, no-nonsense wiki for LegacyShell, it\'s documentation as well as general technical Shell Shockers info.',
     base: '/wiki/',
     theme: defaultTheme({
         logo: '/logo.png',
