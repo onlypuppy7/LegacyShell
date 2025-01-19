@@ -201,6 +201,8 @@ Note: part of the What's New was covered up by an overlay in the only existing f
 
 ~~**[Flashgames können laggen! Shellshock.io 🌎 Browser Games Woche #5 - Anny Aurora](https://www.youtube.com/watch?v=ijgDS9Dmi_o)**~~ (has 0.7.x style map?)
 
+~~[Shell Shockers - io games](https://www.youtube.com/watch?v=PYZ-S2TR75s)~~ (late upload, this is prob 0.7.x, TODO analyse map)
+
 ## [0.8.1](https://web.archive.org/web/20171125081142/http://www.shellshock.io/)  | [15 Nov](https://www.facebook.com/ShellShockersGame/posts/pfbid02XzGTSNF6eSc6nLgSssvsMdEgPuH1muHoCwZbj99hb29U29nmhQsDCs5XrpNqCb2fl) - 1 Dec 2017
 
 > **What's New**
@@ -876,8 +878,6 @@ https://www.youtube.com/watch?v=pATHiYbGYuo (version in title)
 
 ~~[Shell Shockers: *NEW* Game Mode (Captula the Spatula) - Koko Vortex](https://www.youtube.com/watch?v=_jRzeSM3MEU)~~
 
-~~[Shell Shockers - io games](https://www.youtube.com/watch?v=PYZ-S2TR75s)~~
-
 **[Shell Shockers Gameplay - sh1ttygames](https://www.youtube.com/watch?v=TY_UW1ieA5I)**
 
 **[shell shockers - We Are Red Panda](https://www.youtube.com/watch?v=c_RG9rx7vs8)**
@@ -900,7 +900,15 @@ https://www.youtube.com/watch?v=pATHiYbGYuo (version in title)
 
 **[TRASH WHIPPER | Shell Shockers - Dissipate](https://www.youtube.com/watch?v=NUggFFhgHC4)** (has the nugget, even in the video URL?!? very lucky)
 
-### (I stopped searching Wayback Machine at this point)
+### (I stopped actively searching Wayback Machine at this point)
+
+## [0.21.3](https://web.archive.org/web/20190710172331/https://shellshock.io/) | July 10, 2019
+
+## [0.23.2](https://web.archive.org/web/20190815125527/https://shellshock.io/) | August 15, 2019
+
+## [0.23.3a](https://web.archive.org/web/20190821123917/https://shellshock.io/) | August 16, 2019
+
+## [0.24.1](https://discord.com/channels/350339162177798154/350343804336734208/623920079733784577) | September 18, 2019
 
 # Unsorted
 
@@ -930,7 +938,7 @@ https://titotu.ru/shell-shockers
 
 # Credits
 
-Document researched and compiled by onlypuppy7 (also known as francio) for the LegacyShell project.
+Document researched and compiled by onlypuppy7 (also known as francio) for the LegacyShell project's wiki.
 
 # Granular Data
 

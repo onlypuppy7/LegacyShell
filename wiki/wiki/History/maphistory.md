@@ -258,7 +258,7 @@ As stated previously, early versions of Shell contained a map generator built in
 *Output from my modified Legacy Generator.*
 </center>
 
-As you will see, this sort of output is similar in structure to the upcoming maps - ignoring its lack of floor, stairs and ladders. It's actually this lack of decorations that leads me to think that these next maps may actually have been initially created using this generator as a base and then "crafted" to be more playable.
+As you will see, this sort of output is similar in structure to the upcoming maps - ignoring its lack of floor, stairs and ladders. It's this lack of decorations that leads me to think that these next maps may actually have been initially created using this generator as a base and then "crafted" to be more playable.
 
 Unfortunately the WayBack Machine drought continues until 0.9.0. So that version is the earliest we can verifiably analyse and export maps from.
 
@@ -483,8 +483,12 @@ As two maps were added, Early Bedrock disappeared. Maybe it's because it was too
 
 |Name|Videos|Image|Description|
 |-|-|-|-|
-|Feedlot|[Video 1](https://youtu.be/o1yMps90jOE?t=84)|<img src="./0.13.0 Feedlot.png" alt="0.13.0 Feedlot" width="65%">|Looks a little different, right? That's because they updated this map in 2023, for some reason.|
-|Shipyard|[Video 1](https://youtu.be/L5hnpqNL90w?t=44)|<img src="./0.13.0 Shipyard.png" alt="0.13.0 Shipyard" width="65%">||
+|Feedlot|[Video 1](https://youtu.be/o1yMps90jOE?t=84)|<img src="./0.13.0 Feedlot.png" alt="0.13.0 Feedlot" width="65%">|Looks a little different, right? That's because they updated this map in 2023, for some reason. [This is Wabbits' 1st map.](https://shellshockers.fandom.com/wiki/Feedlot?diff=prev&oldid=24054)|
+|Shipyard|[Video 1](https://youtu.be/L5hnpqNL90w?t=44)|<img src="./0.13.0 Shipyard.png" alt="0.13.0 Shipyard" width="65%">|It can be implied this map was made by Slobodan.|
+
+These maps were created by different people, but still shared the same "generic" block set.
+
+---
 
 From here, welcome to the murky zone. Since my own records of Shell's version history isn't complete, it's difficult to piece together a timeline of events. The 0.13.x line of updates are notorious for having the most chaotic versioning by far.
 
@@ -504,7 +508,9 @@ Sometime between 15-19 June 2018, Ruins was added to the game.
 
 |Name|Videos|Image|Description|
 |-|-|-|-|
-|Ruins|[Video 1](https://youtu.be/kh9pPsXlAo0?t=1121)|<img src="./0.13.5 Ruins.png" alt="0.13.5 Ruins" width="65%">||
+|Ruins|[Video 1](https://youtu.be/kh9pPsXlAo0?t=1121)|<img src="./0.13.5 Ruins.png" alt="0.13.5 Ruins" width="65%">|[This is Wabbits' 2nd map.](https://shellshockers.fandom.com/wiki/Ruins?diff=prev&oldid=24057)|
+
+This map also continued to use the "generic" block set.
 
 Here's something you might not know, in the little hill things on the map there was originally a unique block type there with a diamond pattern. This block has since been removed from the game and in this area it was replaced by blue inset blocks, as featured elsewhere.
 
@@ -521,9 +527,11 @@ Yes, really, this map is from the period of the THIRD 0.13.5. Well, to be more e
 
 |Name|Videos|Image|Description|
 |-|-|-|-|
-|Moonbase|[Video 1](https://youtu.be/ANGY5yAlJPM?t=277)|<img src="./0.13.5 Moonbase.png" alt="0.13.5 Moonbase" width="65%">|The skybox isn't accurate to it's original look. This is because daytime Moonbase looks stupid.|
+|Moonbase|[Video 1](https://youtu.be/ANGY5yAlJPM?t=277)|<img src="./0.13.5 Moonbase.png" alt="0.13.5 Moonbase" width="65%">|[This is Wabbits' 3rd map.](https://shellshockers.fandom.com/wiki/Moonbase?diff=prev&oldid=24055) The skybox isn't accurate to it's original look. This is because daytime Moonbase looks stupid.|
 
-At this point in time, skyboxes were still not added to the game.
+Moonbase used a new block set created by Wabbits, named "scifi". Extra significance comes from the fact that this is the first time a map had gotten it's own set.
+
+Also of note: at this point in time, skyboxes were still not added to the game.
 
 <center>
 <img src="./shellshock.io_ exploring the new map! 4-37 screenshot.png" alt="shellshock.io_ exploring the new map! 4-37 screenshot" width="40%">
@@ -532,23 +540,145 @@ ___*Sunbase.*___
 *Allow the circumstances of it being light to be fuel for many a conspiracy.*  
 </center>
 
+Moonbase has received a few updates over time since it's inception. These include lighting changes, block culling and the creation of new routes.
+
+<center>
+<img src="./0.13.5 Moonbase.png" alt="/0.13.5 Moonbase" height="200em">
+<img src="./Modern moonbase.png" alt="Modern moonbase" height="200em">
+
+*Left: Old (2018). Right: New (2025).*  
+*Most of the changes at this angle are visible in the left areas.*
+</center>
+
 ### The 0.14.x Maps
 
 I managed to find these maps starting in versions from August 17th 2018 onwards, however it's uncertain if they released at the same time or separately.
 
 |Name|Videos|Image|Description|
 |-|-|-|-|
-|Castle|[Video 1](https://www.youtube.com/live/Au3UnXUoVhs?t=821)|<img src="./0.14.x Castle.png" alt="0.14.x Castle" width="65%">||
-|Road|[Video 1](https://youtu.be/JW9WUO06uOY?t=69)|<img src="./0.14.x Road.png" alt="0.14.x Road" width="65%">||
+|Castle|[Video 1](https://www.youtube.com/live/Au3UnXUoVhs?t=821)|<img src="./0.14.x Castle.png" alt="0.14.x Castle" width="65%">|[This is Wabbits' 4th map.](https://shellshockers.fandom.com/wiki/Castle?diff=prev&oldid=24050) First mentioned on [15th August 2018](https://discord.com/channels/350339162177798154/366644989650010113/479415533691863051).|
+|Shellville|[Video 1](https://youtu.be/JW9WUO06uOY?t=69)|<img src="./0.14.x Town.png" alt="0.14.x Town.png" width="65%">|[This is Wabbits' 5th map.](https://shellshockers.fandom.com/wiki/Shellville?diff=prev&oldid=24058) It was originally known as "Town", a remnant still present in the block set's name. Even though it's in the files, it sounds like it [wasn't immediately available](https://discord.com/channels/350339162177798154/366644989650010113/486210599525679184).|
+
+Two new block sets were added, "castle" and "town", both made by Wabbits.
+
+Something nice about these maps is the fact that they are the first in this timeline to begin to use the modern map format. They still don't have names though, since you can't select a map yet ingame. But prior to this point I've had to maintain a tool just for the purpose of converting the old map data style to the newer one to even view them. With the addition of the Moonbase (scifi) block set, it likely became clear that just using IDs to refer to tiles wasn't too sustainable long term. They were already using up to the number 20.
 
 ### The 0.15.6 Maps
 
-This map appeared between 20-26 Nov 2018, aligning it somewhat with the release of 0.15.6.
+This map appeared between [21 Nov 2018](https://discord.com/channels/350339162177798154/366644989650010113/514614118930448386), aligning it somewhat with the release of 0.15.6.
 
-Dirt
+|Name|Videos|Image|Description|
+|-|-|-|-|
+|Dirt|[Video 1](https://www.youtube.com/live/b_WR0BORyTQ?t=4957)|<img src="./0.15.x Dirt.png" alt="0.15.x Dirt" width="65%">|[This is Wabbits' 6th map.](https://shellshockers.fandom.com/wiki/Dirt?diff=prev&oldid=24051) It's design is heavily based on [de_dust2](https://sketchfab.com/3d-models/de-dust2-cs-map-056008d59eb849a29c0ab6884c0c3d87) from [Counter Strike](https://liquipedia.net/counterstrike/De_dust2/cs16).|
 
-wabbits
+The "desert" block set was added with the release of Dirt, made by Wabbits - which would turn out to be the last due to his departure from BWD shortly after.
+
+This is also where maps started to have names actually populate the `name` metadata space, which was unused despite being present in the earliest maps.
+
+LegacyShell is based off version 0.17.0, and as of that version, Dirt was the latest map to be added.
+
+### The 0.18.x Maps
+
+First mentioned on the [11th of February 2018](https://discord.com/channels/350339162177798154/509042709126840321/544665357705805835).
+
+|Name|Videos|Image|Description|
+|-|-|-|-|
+|Fort Flip|[Video 1](https://youtu.be/c_RG9rx7vs8?t=50)|<img src="./0.18.x Fort Flip.png" alt="0.18.x Fort Flip" width="65%">|[Slobodan](https://discord.com/channels/350339162177798154/350344229005819905/577385221041684480) probably made this map.|
+
+The departure of Wabbits is felt quite strongly in Fort Flip, due to the comparatively more basic and blocky design. It's the first map Slobodan made since Shipyard. It also suffers from a lack of unique block set.
+
+Fort Flip's creation was likely motivated by the desire for a balanced teams map due to the newly released Spatula gamemode.
+
+These maps are also the first new maps in this timeline to use the extended map format, with extra parameters for skyboxes, sun direction, suited gamemodes and availability.
+
+### The 0.23.0 Maps
+
+Sometime between July 10th and August 19th 2019, six maps were added to the game's files. This date range is so broad because the Wayback Machine - my primary source - has dementia.
+
+This update is of particular interest, since it was aimed at increasing the amount of competitive maps. This was done by creating lots of "Arena" style maps based on existing themes.
+
+On the 10th of August 2019, a [test session on dev was held](https://discord.com/channels/350339162177798154/366644989650010113/609850245874188289) to try out some new arena style maps.
+
+|Name|Videos|Image|Description|
+|-|-|-|-|
+|Castle Arena|[Video 1](https://www.youtube.com/watch?v=pTJgIl2gPoY&t=193s)|<img src="./0.23.3A Castle Arena.png" alt="0.23.3A Castle Arena" width="65%">|A 2P Arena. [Earliest mention on 10th August 2019.](https://discord.com/channels/350339162177798154/366644989650010113/609850245874188289)|
+|Death Pit|[Video 1](https://www.youtube.com/watch?v=pTJgIl2gPoY&t=1827s)|<img src="./0.23.3A Death Pit.png" alt="0.23.3A Death Pit" width="65%">|A 4P Arena. [Earliest mention on 10th August 2019.](https://discord.com/channels/350339162177798154/366644989650010113/609879373239025710)|
+|Dirt Base|[Video 1](https://www.youtube.com/watch?v=pTJgIl2gPoY&t=670s)|<img src="./0.23.3A Dirt Base.png" alt="0.23.3A Dirt Base" width="65%">|A 2P Arena. [Earliest mention on 22nd August 2019](https://discord.com/channels/350339162177798154/603996969433694224/614210997594619904) (less popular?).|
+|Field|[Video 1](https://www.youtube.com/watch?v=pTJgIl2gPoY&t=1068s)|<img src="./0.23.3A Field.png" alt="0.23.3A Field" width="65%">|A 2P Arena. [Earliest mention on 14th August 2019.](https://discord.com/channels/350339162177798154/350344229005819905/611274659723476993)|
+|Space Arena|[Video 1](https://www.youtube.com/watch?v=pTJgIl2gPoY&t=1421s)|<img src="./0.23.3A Space Arena.png" alt="0.23.3A Space Arena" width="65%">|A 4P Arena. [Earliest mention on 10th August 2019.](https://discord.com/channels/350339162177798154/366644989650010113/609878307646734346)|
+|Road|[Video 1](https://www.youtube.com/watch?v=pTJgIl2gPoY&t=2087s)|<img src="./0.23.3A Road.png" alt="0.23.3A Road" width="65%">|A 4P Arena. [Earliest mention on 14th August 2019.](https://discord.com/channels/350339162177798154/350344229005819905/611274746847559740)|
+
+As visible from the map listing shown below, Castle Arena, Dirt Base and Field were all designed to be 2 player maps. Meanwhile Space Arena, Death Pit and Road are all for 4 players.
+
+```js
+maps: [
+    { id: 'arena_2P_castle', locKey: 'map_arena_2P_castle', img: 'Level_ArenaCastle.jpg' },
+    { id: 'arena_2P_dust', locKey: 'map_arena_2P_dust', img: 'Level_Arena2Dust.jpg' },
+    { id: 'arena_2P_field', locKey: 'map_arena_2P_field', img: 'Level_Arena2Field.jpg' },
+    { id: 'arena_2P_moon', locKey: 'map_arena_2P_moon', img: 'Level_Arena2Moon.jpg' },
+    { id: 'arena_4P_dust', locKey: 'map_arena_4P_dust', img: 'Level_Arena4Dust.jpg' },
+    { id: 'arena_4P_town', locKey: 'map_arena_4P_town', img: 'Level_Arena4Town.jpg' },
+    { id: 'blue', locKey: 'map_blue', img: 'Level_Blue.jpg' },
+    { id: 'castle', locKey: 'map_castle', img: 'Level_Castle.jpg' },
+    { id: 'dirt', locKey: 'map_dirt', img: 'Level_Dirt.jpg' },
+    { id: 'feedlot', locKey: 'map_feedlot', img: 'Level_Feedlot.jpg' },
+    { id: 'fortFlip', locKey: 'map_fortflip', img: 'Level_FortFlip.jpg' },
+    { id: 'moonbase', locKey: 'map_moonbase', img: 'Level_Moonbase.jpg' },
+    { id: 'ruins', locKey: 'map_ruins', img: 'Level_Ruins.jpg' },
+    { id: 'shipyard', locKey: 'map_shipyard', img: 'Level_Shipyard.jpg' },
+    { id: 'town', locKey: 'map_town', img: 'Level_Town.jpg' },
+    { id: 'twoTowers', locKey: 'map_twotowers', img: 'Level_TwoTowers.jpg' },
+],
+```
+
+This is all but confirmed by Slobodan:
+
+> [Slobodan — 10/08/2019](https://discord.com/channels/350339162177798154/366644989650010113/609847957788950539)  
+> May need to change them up a bit, but the idea is to get some smaller arenas in there for smaller matches
+
+Most of these maps have received updates over time. For instance, here is Dirt Base. It was given a route underneath the stage and had it's decoration revamped.
+
+<center>
+<img src="./0.23.3A Dirt Base.png" alt="/0.23.3A Dirt Base" height="200em">
+<img src="./Modern Dirt Base.png" alt="Modern Dirt Base" height="200em">
+
+*Left: Old (2019). Right: New (2025).*
+</center>
+
+Here is Road, these days I would doubt that anyone considers this a 4 player arena. Hence it often appears in the public map rotation.
+
+<center>
+<img src="./0.23.3A Road.png" alt="/0.23.3A Road" height="200em">
+<img src="./Modern Road.png" alt="Modern Road" height="200em">
+
+*Left: Old (2019). Right: New (2025).*
+</center>
+
+And this is Space Arena. The changes here should speak for themselves.
+
+<center>
+<img src="./0.23.3A Space Arena.png" alt="/0.23.3A Space Arena" height="200em">
+<img src="./Modern Space Arena.png" alt="Modern Space Arena" height="200em">
+
+*Left: Old (2019). Right: New (2025).*
+</center>
+
+It could be argued that the simplicity of an "Arena" has been lost over time, as more updates add complexity to the maps such as alternate paths that deviate from the initial purpose of just placing people in a square to fight it out.
+
+Although the release notes on the [Shell Wiki](https://shellshockers.fandom.com/wiki/Version_0.23.3A) say they are part of 0.23.3A, they still are in the files for 0.23.2. In fact, the changelogs of the two versions are identical despite the change in version. This is part of a trend of just putting the latest version in the latest changelog entry. Hence it can be assumed that the maps were actually added to coincide with 0.23.0. (Another instance of the wiki missing info is them only listing 3 of the 6 maps in the update page, despite some of the missing maps linking back to that update.)
+
+Strangely, the map data initially didn't contain the names for any of the new maps. This only changed sometime between [Sept 21st](https://web.archive.org/web/20190921084402/https://shellshock.io/src/shellshock.min.js?1568763915) - [Oct 2nd](https://web.archive.org/web/20191002185318/https://shellshock.io/src/shellshock.min.js?1569800904) 2019. This is presumably due to the actual map listing not being derived from the game's source, but from a list in the HTML. There, the maps can have localised names. It had tripped me up in determining if they were even available all at once, but in the end that was the case.
+
+One more piece of interesting trivia is that these maps were in the works for a LONG time. Castle Arena was shown in promotional material on [October 30th 2018](https://www.facebook.com/ShellShockersGame/posts/pfbid02aXytX2tractQkAEp879xUr8E5u8HQk9Yro6uyVu6SrkAF4hcnPfsjhyv63QUrjWRl), and Space Arena is seen on [November 1st 2018](https://x.com/eggcombat/status/1058096452344442880). 
+
+<center>
+<img src="./RPEGG twitter.png" alt="RPEGG twitter" width="40%">
+
+*The contemporary Twitter page. Epstein trending and all.*
+</center>
+
+This puts about 10 months between those two having basic versions and the actual release. Perhaps they were just meant to be for those promos originally and they wanted to go back to them, or they wanted to add arenas long ago but then... forgot.
 
 ## Credits
 
-Document solely researched and compiled by onlypuppy7 (also known as francio) for the LegacyShell project.
+Document researched and compiled by onlypuppy7 (also known as francio) for the LegacyShell project's wiki.
