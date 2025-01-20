@@ -52,7 +52,7 @@ class newClient {
         this.id = info.id; //place in list
         this.classIdx = info.classIdx;
 
-        console.log(this.room.details.usernames, this.username);
+        // console.log(this.room.details.usernames, this.username);
         if (this?.room?.details?.usernames && this.room.details.usernames.includes(this.username)) {
             devlog("reject this silly mf", this.username);
             this.sendCloseToWs(Comm.Close.masterServerBusy);

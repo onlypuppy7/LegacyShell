@@ -7,6 +7,8 @@ import { stateBufferSize, isClient, isServer, Team, devlog } from '#constants';
 import JSZip from 'jszip';
 //legacyshell: ss
 import { ss } from '#misc';
+//legacyshell: plugins
+import { plugins } from '#plugins';
 //
 
 //(server-only-start)
@@ -74,7 +76,8 @@ export function loadMeshes(scene, meshNames, onMeshLoaded, onComplete) { //[srvr
             try {
                 for (var m = 0; m < meshes.length; m++) {
                     var mesh = meshes[m];
-                    if (mesh.setMaterial) mesh.setMaterial(mat);
+                    plugins.emit("loadMeshesBeforeMaterial", {mesh});
+                    if (mesh.setMaterial && !plugins.cancel) mesh.setMaterial(mat);
                     mesh.setEnabled(false);
                     mesh.isPickable = false;
                     if (onMeshLoaded) onMeshLoaded(mesh);

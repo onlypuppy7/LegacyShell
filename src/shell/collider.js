@@ -142,6 +142,7 @@ class ColliderConstructor {
             mesh.rotation.y = -cell.ry;
             mesh.rotation.z = -cell.rz;
             mesh.computeWorldMatrix();
+            if (!cell.colliderMesh) console.log(cell);
             var m = cell.colliderMesh.intersectsMesh(mesh, cell.colliderPrecise, cell.colliderChildren);
             if (m) return {
                 x: cx,

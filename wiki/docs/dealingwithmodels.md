@@ -105,3 +105,13 @@ Here is a small table telling you all you need to know:
 ### Why is my model not in the right size/position/rotation?
 
 Make sure for each object you've applied transformations in Blender. Do this with Ctrl + A (or Command + A) and select `All Transforms`.
+
+### Export error?
+
+If you get something like `WARNING: unsupported node type(ShaderNodeVertexColor) will trigger baking`, ensure that vertex color/color attributes aren't linked up in the Shader tab.
+
+![shadertab](shadertab.png)
+
+Also try turning off PBR materials.
+
+![Scene properties](<Scene properties.png>)

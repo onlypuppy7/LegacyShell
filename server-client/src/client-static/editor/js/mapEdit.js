@@ -88263,7 +88263,8 @@ function loadMeshes(scene2, meshNames, onMeshLoaded, onComplete) {
               duplicateWarningIssued = true;
               alert("Duplicate egg and/or hand models detected in " + path + ".\n\nOpen the weapon models in Blender and make sure egg/hands layers are turned off, then re-export.");
             }
-            if (mesh.setMaterial)
+            plugins.emit("loadMeshesBeforeMaterial", {mesh});
+            if (mesh.setMaterial && !plugins.cancel)
               mesh.setMaterial(mat);
             mesh.setEnabled(false);
             mesh.isPickable = false;
