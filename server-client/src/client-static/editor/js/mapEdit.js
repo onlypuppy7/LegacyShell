@@ -88470,7 +88470,7 @@ var GI = class _GI {
     _GI.mesh.dispose();
     _GI.lightmap = null;
     scene.fogEnabled = false;
-    localStorage.removeItem("lightmap");
+    // localStorage.removeItem("lightmap"); //why do this. just keep it...
     document.getElementById("renderProgress").style.display = "none";
     document.getElementById("renderComplete").style.display = "none";
     document.getElementById("renderComposting").style.display = "none";
@@ -91057,7 +91057,7 @@ function setMapVisible(visible) {
 }
 function renderMap() {
   saveToLocal();
-  openDialog("renderBrokenWarn");
+  // openDialog("renderBrokenWarn");
   var minMap2 = JSON.parse(localStorage.getItem("mapBackup"));
   MapTools.createMapCells(scene, buildMapEditorData(minMap2), minMap2, null, null, (mesh, particles) => {
     mesh = MapTools.stripTris(map.data, mapMeshes, mesh, particles);
