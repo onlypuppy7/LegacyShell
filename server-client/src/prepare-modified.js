@@ -39,6 +39,9 @@ async function modifyFiles() {
     const sourceServersJsPath = path.join(ss.currentDir, 'src', 'client-static', 'src', 'servers.js');
     const destinationServersJsPath = path.join(ss.currentDir, 'store', 'client-modified', 'src', 'servers.js');
 
+    const sourceEditorHtmlPath = path.join(ss.currentDir, 'src', 'client-static', 'editor', 'index.html');
+    const destinationEditorHtmlPath = path.join(ss.currentDir, 'store', 'client-modified', 'editor', 'index.html');
+
     const sourceHtmlPath = path.join(ss.currentDir, 'src', 'index.html');
     const destinationHtmlPath = path.join(ss.currentDir, 'store', 'client-modified', 'index.html');
 
@@ -115,6 +118,7 @@ async function modifyFiles() {
         code.sourceJs = fs.readFileSync(sourceShellJsPath, 'utf8');
         code.mapEditorJs = fs.readFileSync(sourceEditorJsPath, 'utf8');
         code.htmlContent = fs.readFileSync(sourceHtmlPath, 'utf8');
+        code.mapEditorHtmlContent = fs.readFileSync(sourceEditorHtmlPath, 'utf8');
 
         async function doReplacements(replacements) {
             await plugins.emit('doReplacements', { this: this, ss, replacements, code });
@@ -136,6 +140,10 @@ async function modifyFiles() {
                 if (replacement.pattern.test(code.htmlContent)) {
                     log.italic(`Inserting ${name} into index.html...`);
                     code.htmlContent = code.htmlContent.replace(replacement.pattern, insertion);
+                };
+                if (replacement.pattern.test(code.mapEditorHtmlContent)) {
+                    log.italic(`Inserting ${name} into map editor index.html...`);
+                    code.mapEditorHtmlContent = code.mapEditorHtmlContent.replace(replacement.pattern, insertion);
                 };
             });
         };
@@ -265,6 +273,9 @@ async function modifyFiles() {
 
         fs.writeFileSync(destinationEditorJsPath, code.mapEditorJs, 'utf8');
         log.bold(`mapEdit.js copied and modified to ${destinationEditorJsPath}`);
+
+        fs.writeFileSync(destinationEditorHtmlPath, code.mapEditorHtmlContent, 'utf8');
+        log.bold(`map editor html copied and modified to ${destinationEditorHtmlPath}`);
 
         fileBuffer = fs.readFileSync(destinationShellJsPath);
         hashSum = crypto.createHash('sha256');

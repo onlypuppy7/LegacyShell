@@ -89385,9 +89385,12 @@ function doDebugMenu(){
   var pick = scene.pickWithRay(camera.getForwardRay());
   if (pick.hit && pick.pickedMesh.name != "ground") {
     var cel = getPickedCell(pick);
+    var mesh = mapMeshes[cel.idx];
+    var blockName = mesh.name ? `${mesh.name}\n\n` : "";
     let rots = pick?.pickedMesh?.rotationQuaternion?.toEulerAngles ? pick?.pickedMesh?.rotationQuaternion?.toEulerAngles() : pick.pickedMesh.rotation;
-    rotText.innerText = `block rots: rx: ${cel.rx || 0} ry: ${cel.ry || 0} rz: ${cel.rz || 0}\nmesh rots: ${formatPrettyRotationText(rots)}`;
-    posText.innerText = `block pos: x: ${cel.x || 0} y: ${cel.x || 0} z: ${cel.x || 0}\nmesh pos: ${JSON.stringify(pick.pickedMesh.position)}`; //trol
+    rotText.innerText = `${blockName}block rots: rx: ${cel.rx || 0} ry: ${cel.ry || 0} rz: ${cel.rz || 0}\nmesh rots: ${formatPrettyRotationText(rots)}`;
+    generateExtents();
+    posText.innerText = `block pos: x: ${cel.x - extents.x.min} y: ${cel.y - extents.y.min} z: ${cel.z - extents.z.min}\nmesh pos: ${JSON.stringify(pick.pickedMesh.position)}`; //trol
   } else {
     rotText.innerText = `rotation: N/A`;
     posText.innerText = `position: N/A`;
@@ -90055,29 +90058,9 @@ function stringCompare(a, b) {
   }
   return foundIn / (medianLen * 2) + foundAt / medianLen;
 }
-function minimizeMap() {
+function generateExtents() {
   minMap = {};
-  minMap.fileVersion = 1;
-  minMap.sun = {
-    direction: {
-      x: light.direction.x,
-      y: light.direction.y,
-      z: light.direction.z
-    },
-    color: light.diffuse.toHexString()
-  };
-  minMap.ambient = scene.ambientColor.toHexString();
-  minMap.fog = { density: scene.fogDensity, color: scene.fogColor.toHexString() };
   minMap.data = {};
-  minMap.palette = [];
-  for (var i3 = 0; i3 < palette.length; i3++) {
-    if (palette[i3].meshIdx) {
-      minMap.palette.push(mapMeshes[palette[i3].meshIdx].name);
-    } else {
-      minMap.palette.push(null);
-    }
-  }
-  minMap.render = GI.renderSettings;
   extents.x = { max: 0, min: 1e4 };
   extents.y = { max: 0, min: 1e4 };
   extents.z = { max: 0, min: 1e4 };
@@ -90116,6 +90099,29 @@ function minimizeMap() {
   extents.width = extents.x.max - extents.x.min + 1;
   extents.height = extents.y.max - extents.y.min + 1;
   extents.depth = extents.z.max - extents.z.min + 1;
+};
+function minimizeMap() {
+  generateExtents();
+  minMap.fileVersion = 1;
+  minMap.sun = {
+    direction: {
+      x: light.direction.x,
+      y: light.direction.y,
+      z: light.direction.z
+    },
+    color: light.diffuse.toHexString()
+  };
+  minMap.ambient = scene.ambientColor.toHexString();
+  minMap.fog = { density: scene.fogDensity, color: scene.fogColor.toHexString() };
+  minMap.palette = [];
+  for (var i3 = 0; i3 < palette.length; i3++) {
+    if (palette[i3].meshIdx) {
+      minMap.palette.push(mapMeshes[palette[i3].meshIdx].name);
+    } else {
+      minMap.palette.push(null);
+    }
+  }
+  minMap.render = GI.renderSettings;
   minMap.width = extents.width;
   minMap.height = extents.height;
   minMap.depth = extents.depth;
@@ -90838,6 +90844,66 @@ function onLegacyGeneratePressed() {
     openDialog("generateLegacyMap");
   }
 }
+
+function replaceBlocksConfirm() {
+  let meshIdx = palette[paletteIdx].meshIdx;
+  let mesh = mapMeshes[meshIdx];
+  let oldID = mesh?.name;
+  let newID = document.getElementById("replaceBlocksDialogBlock").value;
+  newID = newID == "" ? false : newID;
+  console.log("replacing old with new:", oldID, newID);
+  if (!oldID) {
+      alert("Valid block not selected in hotbar!");
+      // return;
+  };
+  const mapData = minimizeMap();
+  const oldBlocks = mapData.data[oldID]; console.log(oldBlocks);
+  if (newID) mapData.data[newID] = JSON.parse(JSON.stringify(oldBlocks));
+  mapData.data[oldID] = undefined;
+  let mapJSON = JSON.stringify(mapData);
+  initMap();
+  maximizeMap(mapJSON);
+};
+
+function copyMap() {
+  const mapData = JSON.stringify(minimizeMap());
+  navigator.clipboard.writeText(mapData)
+  .then(() => {
+    console.log("Text copied to clipboard!");
+  })
+  .catch(err => {
+    alert("Failed to write to clipboard");
+    console.error("Failed to write to clipboard: ", err);
+  });
+};
+
+function pasteMap() {
+  const mapData = JSON.stringify(minimizeMap());
+
+  function loadMap (text) {
+    try {
+      initMap();
+      maximizeMap(text);
+    } catch (error) {
+      alert("Something went wrong with loading the map. See console.");
+      console.error(error);
+      initMap();
+      maximizeMap(mapData);
+    };
+  };
+
+  navigator.clipboard.readText()
+  .then(text => {
+    console.log("Text read from clipboard: ", text);
+    loadMap(text);
+  })
+  .catch(err => {
+    console.error("Failed to read from clipboard: ", err);
+    let text = prompt("Retrieving clipboard data failed. Paste map below.");
+    if (text && text !== "") loadMap(text);
+  });
+};
+
 var axis, axisMat, xAxis, yAxis, zAxis;
 function createAxisIndicator() {
   function makeAxis(color) {
@@ -91175,6 +91241,9 @@ var extern = {
   onNewPressed,
   openDialog,
   openMap,
+  copyMap,
+  pasteMap,
+  replaceBlocksConfirm,
   paletteClicked,
   paletteDoubleClicked,
   pickCell,

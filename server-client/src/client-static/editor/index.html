@@ -74,13 +74,22 @@
             }
 
             .button {
-                background: black;
+                background-color: #33333347;
                 padding: 0.2em;
-                padding-left: 0.6em;
-                padding-right: 0.6em;
-                border-radius: 0.25em;
+                border-radius: 0.3em;
                 cursor: pointer;
-                color: white;
+                color: #fff;
+                border: none;
+                font-size: 1em;
+                transition: background-color 0.3s;
+            }
+
+            .button:hover {
+                background-color: #232323;
+            }
+
+            .button:active {
+                background-color: #000000;
             }
 
             .toolButton {
@@ -93,7 +102,8 @@
                 margin-bottom: 0.25em;
                 border: solid;
                 border-width: 0.1em;
-                border-color: black;
+                /* border-color: black; */
+                opacity: 0.5;
             }
 
             .toolIcon {
@@ -111,6 +121,7 @@
                 margin: 0;
                 padding-left: 0.25em;
                 padding-right: 0.25em;
+                opacity: 50%;
             }
 
             canvas {
@@ -125,10 +136,11 @@
 
             .box {
                 position: absolute;
-                background: white;
+                background: #ffffffd9;
                 color: black;
                 padding: 1em;
                 border-radius: 0.25em;
+                box-shadow: 0 20px 30px rgba(0, 0, 0, 0.2), 0 1px 3px rgba(0, 0, 0, 0.06);
             }
 
             .dialog {
@@ -391,22 +403,34 @@
                 <span class="button" id="open" onclick="extern.openMap()"
                     title="Open existing map from local file">Open</span>
 
+                <span class="button" id="copyMap" onclick="extern.copyMap()"
+                    title="Copy map data to clipboard">Copy</span>
+
+                <span class="button" id="pasteMap" onclick="extern.pasteMap()"
+                    title="Open from clipboard">Paste</span>
+
                 <span class="button" id="render" onclick="extern.renderMap()"
-                    title="Combine meshes and render lightmaps">Render</span>
+                    title="Combine meshes and render lightmaps (doesn't work for Legacy)">Render</span>
 
                 <input id="openHelper" type="file" style="position: fixed; top: -100em"
                     onchange="extern.mapOpened(event)">
             </div>
 
             <div style="position: absolute; left: 1em; top: 2.5em;">
-                <span class="button" id="generate" onclick="extern.onGeneratePressed()">Generate</span>
-                <span class="button" id="generateLegacy" onclick="extern.onLegacyGeneratePressed()">GenerateLegacy</span>
+                <span class="button" id="generate" onclick="extern.onGeneratePressed()"
+                    title="Generates stuff using the newer version of the generator">Generate</span>
+
+                <span class="button" id="generateLegacy" onclick="extern.onLegacyGeneratePressed()"
+                    title="Uses a partially recovered algorithm from old versions of the game">GenerateLegacy</span>
 
                 <span class="button" id="cleanup" onclick="extern.cleanup()"
-                    title="Eliminates tiles that are not visible">Cleanup</span>
+                    title="Eliminates tiles that are not visible (ancient, doesn't work)">Cleanup</span>
 
                 <span class="button" id="bounds" onclick="extern.createBoundaries()"
-                    title="Create invisible barriers on edges of map">Bounds</span>
+                    title="Create invisible barriers on edges of map (ancient, doesn't work)">Bounds</span>
+
+                <span class="button" id="replaceBlocks" onclick="openDialog('replaceBlocksDialog');"
+                    title="Mass replace blocks in the map">Replace</span>
             </div>
 
             <div style="position: absolute; left: 1em; top: 4.5em;">
@@ -431,7 +455,8 @@
                 <span class="button" onclick="extern.openDialog('edPreferences')" title="Editor Preferences">Preferences</span>
                 <span class="button" onclick="extern.openDialog('help')" title="Help">?</span>
 
-                <div id="surfaceArea" style="margin-top: 0.5em">Surface Area: 0</div>
+                <div id="versionText" style="margin-top: 0.5em; font-size: 0.6em">LegacyShell Editor LEGACYSHELLEXTVERSION</div>
+                <div id="surfaceArea" style="">Surface Area: 0</div>
                 <div id="redSpawns" style="margin-top: 0.5em">Red Spawns: 0</div>
                 <div id="blueSpawns" style="margin-top: 0.5em">Blue Spawns: 0</div>
             </div>
@@ -582,6 +607,30 @@
                 <div style="text-align: center; margin-top: 1em">
                     <span class="button" onclick="extern.closeDialog('generateLegacyMap'); extern.randomLegacyMap()">GenerateLegacy</span>
                     <span class="button" onclick="extern.closeDialog('generateLegacyMap')">Cancel</span>
+                </div>
+            </div>
+
+            <div id="replaceBlocksDialog" class="dialog box">
+                <h1>Replace blocks</h1>
+                <hr>
+                <p>Performs a mass replacement from OLD to NEW:</p>
+                <p>OLD being the current selected block in your hotbar, NEW being specified below.</p>
+                <p>No input will result in the deletion of the block.</p><br>
+                <table>
+                    <tr>
+                        <style>
+                            td {
+                                padding-right: 0.5em;
+                                text-align: center;
+                            }
+                        </style>
+                        <td>New ID<br><input id="replaceBlocksDialogBlock" type="text" placeholder="generic.brown-block.full" size="40"></input></td>
+                    </tr>
+                </table>
+
+                <div style="text-align: center; margin-top: 1em">
+                    <span class="button" onclick="extern.closeDialog('replaceBlocksDialog'); extern.replaceBlocksConfirm()">Replace</span>
+                    <span class="button" onclick="extern.closeDialog('replaceBlocksDialog')">Cancel</span>
                 </div>
             </div>
 
