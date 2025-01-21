@@ -258,7 +258,7 @@ function setupSkybox (name, scene) {
 		skyboxMaterial.backFaceCulling = false;
 		skyboxMaterial.fogEnabled = false;
 
-		var tex = new BABYLON.CubeTexture('../img/skyboxes/' + name + '/skybox', scene,
+		var tex = new BABYLON.CubeTexture(location.origin + '/img/skyboxes/' + name + '/skybox', scene,
 			["_px.jpg", "_py.jpg", "_pz.jpg", "_nx.jpg", "_ny.jpg", "_nz.jpg"], false, null,
 			e => {
 				console.log('TEXTURE LOADED');
