@@ -33,12 +33,12 @@ function createPreferences() { //alr nvm let's make it a func called before load
   //everything is only then called, when it should be.
   //yeah I prefer it like this
   //11pm monologue arc
-  initPref("loremipsim", "loremIpsum", true, "dfgs");
+  initPref("loremipsim", "loremIpsum", true, "dolor sit ames");
   initPref("playtestHotkey", "Playtest Hotkey", true, "enables the \"p\" hotkey for playtesting");
   initPref("pointerLockOnClose", "Pointerlock on close", true, "locks the pointer when the object menu is closed");
   initPref("doubleSlotForOM", "double-select", true, "opens the object menu when pressing the hotkey for the already selected slot again");
   initPref("renderWorkers", "render workes", 2, "how many workers should be used during rendering?");
-  initPref("debugInfo", "show debug info", true, "displays a few dubg informationss");
+  initPref("debugInfo", "show debug info", true, "displays a few debug informations");
   initPref("prettyAngles", "pretty angles", true, "shows angles in factors of pi and degrees instead of raw radians");
   //below are just tests for how the system would behave in extreme situations.
   //there's still stuff to do (mainly with spinners), so it's going to stay commented out, but not deleted
@@ -90332,9 +90332,9 @@ function numNeighbors6(x, y, z, cats) {
             zz < extents.z.min
           ) {
             count++;
-          } else 
+          } else
           */
-          
+
           var block = map.data[xx][yy][zz];
           if (block) {
             var mesh = mapMeshes[block.idx];
