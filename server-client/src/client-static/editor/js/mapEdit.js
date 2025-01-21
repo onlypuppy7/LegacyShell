@@ -88767,7 +88767,7 @@ function setupSkybox(name) {
   skyboxMaterial.backFaceCulling = false;
   skyboxMaterial.fogEnabled = false;
   skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture(
-    "../img/skyboxes/" + name + "/skybox",
+    location.origin + "/img/skyboxes/" + name + "/skybox",
     scene,
     ["_px.jpg", "_py.jpg", "_pz.jpg", "_nx.jpg", "_ny.jpg", "_nz.jpg"]
   );
@@ -90914,7 +90914,10 @@ function replaceBlocksConfirm() {
   };
   const mapData = minimizeMap();
   const oldBlocks = mapData.data[oldID]; console.log(oldBlocks);
-  if (newID) mapData.data[newID] = JSON.parse(JSON.stringify(oldBlocks));
+  if (newID) mapData.data[newID] = [
+    ...(mapData.data[newID] || []),
+    ...JSON.parse(JSON.stringify(oldBlocks))
+  ];
   mapData.data[oldID] = undefined;
   let mapJSON = JSON.stringify(mapData);
   undoPoint();
