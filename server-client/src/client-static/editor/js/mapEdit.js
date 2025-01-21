@@ -90159,13 +90159,48 @@ function saveToLocal() {
 
   localStorage.setItem("mapBackups", JSON.stringify(currentBackups));
 }
+function numNeighbors6new(x, y, z) {
+  var count = 0;
+  for (var xx = Math.max(1, x - 1); xx <= Math.min(map.width - 2, x + 1); xx++) {
+    for (var yy = Math.max(0, y - 1); yy <= Math.min(map.height - 1, y + 1); yy++) {
+      for (var zz = Math.max(1, z - 1); zz <= Math.min(map.depth - 2, z + 1); zz++) {
+        if (Math.abs(xx - x) + Math.abs(yy - y) + Math.abs(zz - z) == 1) {
+          var block = map.data[xx][yy][zz];
+          
+          /*
+          if (
+            xx > extents.x.max ||
+            xx < extents.x.min ||
+            zz > extents.z.max ||
+            zz < extents.z.min
+          ) {
+            count++;
+          } else 
+          */
+          
+          if (block) {
+            var mesh = mapMeshes[block.idx];
+            if (mesh?.name && mesh.name.split(".")[2] == "full") {
+              count++;
+            }
+          }
+        }
+      }
+    }
+  }
+  if (y == 0)
+    count++;
+
+  return count;
+}
 function cleanup() {
   var deleteList = [];
+  generateExtents();
   for (var x = 0; x < map.width; x++) {
     for (var y = 0; y < map.height; y++) {
       for (var z = 0; z < map.depth; z++) {
-        if (map.data[x][y][z].cat) {
-          var n = numNeighbors6(x, y, z, MAP.block | MAP.ground);
+        if (map.data[x][y][z]) {
+          var n = numNeighbors6new(x, y, z);
           if (n == 6) {
             deleteList.push({ x, y, z });
           }
