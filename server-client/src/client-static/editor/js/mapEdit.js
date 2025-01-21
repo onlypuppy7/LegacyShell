@@ -140,6 +140,8 @@ function pref(interNalName){
   return preferences[interNalName].val;
 }
 
+var ignoreMouseInput = false;
+
 //wow, this is NOT the best way to do this. Eh it's 1am ITS FINE //ye keeping this
 document.addEventListener("DOMContentLoaded", ()=>{
   //wowoowow DYNAMIC preference menu!!!111111
@@ -35719,6 +35721,8 @@ var BABYLON;
             return;
           }
           var offsetX = evt.movementX || evt.mozMovementX || evt.webkitMovementX || evt.msMovementX || 0;
+          var offsetY = evt.movementY || evt.mozMovementY || evt.webkitMovementY || evt.msMovementY || 0;
+          if (ignoreMouseInput || Math.abs(offsetX) >= 100 || Math.abs(offsetY) >= 100) ((offsetX = 0), (offsetY = 0));
           if (_this.camera.getScene().useRightHandedSystem) {
             offsetX *= -1;
           }
@@ -35726,7 +35730,6 @@ var BABYLON;
             offsetX *= -1;
           }
           _this.camera.cameraRotation.y += offsetX / _this.angularSensibility;
-          var offsetY = evt.movementY || evt.mozMovementY || evt.webkitMovementY || evt.msMovementY || 0;
           _this.camera.cameraRotation.x += offsetY / _this.angularSensibility;
           _this.previousPosition = null;
           if (!noPreventDefault) {
@@ -36557,6 +36560,7 @@ var BABYLON;
           }
           var offsetX = evt.movementX || evt.mozMovementX || evt.webkitMovementX || evt.msMovementX || 0;
           var offsetY = evt.movementY || evt.mozMovementY || evt.webkitMovementY || evt.msMovementY || 0;
+          if (ignoreMouseInput || Math.abs(offsetX) >= 100 || Math.abs(offsetY) >= 100) ((offsetX = 0), (offsetY = 0));
           _this.camera.inertialAlphaOffset -= offsetX / _this.angularSensibilityX;
           _this.camera.inertialBetaOffset -= offsetY / _this.angularSensibilityY;
           if (!noPreventDefault) {
@@ -88924,7 +88928,18 @@ function createScene() {
       evaluate();
     }
   };
+
+  document.addEventListener('pointerlockchange', () => {
+      if (!document.pointerLockElement) {
+          console.log('Pointer lock released');
+          ignoreMouseInput = true;
+          setTimeout(() => { ignoreMouseInput = false; }, 100);
+      }
+  });
+
   scene.onPointerMove = function(evt, pickResult) {
+    // console.log(evt.movementX + evt.movementY, ignoreMouseInput);
+    if (ignoreMouseInput) ((evt.movementX = 0), (evt.movementY = 0));
     if (evt.constructor.name === "WheelEvent") {
       var idx = (paletteIdx + Math.sign(evt.wheelDeltaY)) % palette.length;
       if (idx < 0)
@@ -89513,7 +89528,7 @@ function toggleObjectMenu() {
     el.style.display = "none";
     tooltipEl.style.display = "none";
     //Seq added
-    if(pref("pointerLockOnClose")) canvas.requestPointerLock();
+    if (pref("pointerLockOnClose")) canvas.requestPointerLock();
   } else {
     el.style.display = "block";
     document.exitPointerLock();
@@ -89677,6 +89692,10 @@ function keydown(e) {
     //Seq added
     case "p":
       if(pref("playtestHotkey")) testMap();
+      break;
+    //op7 added
+    case "`":
+      document.exitPointerLock();
       break;
   }
 }
@@ -90159,40 +90178,6 @@ function saveToLocal() {
 
   localStorage.setItem("mapBackups", JSON.stringify(currentBackups));
 }
-function numNeighbors6new(x, y, z) {
-  var count = 0;
-  for (var xx = Math.max(1, x - 1); xx <= Math.min(map.width - 2, x + 1); xx++) {
-    for (var yy = Math.max(0, y - 1); yy <= Math.min(map.height - 1, y + 1); yy++) {
-      for (var zz = Math.max(1, z - 1); zz <= Math.min(map.depth - 2, z + 1); zz++) {
-        if (Math.abs(xx - x) + Math.abs(yy - y) + Math.abs(zz - z) == 1) {
-          var block = map.data[xx][yy][zz];
-          
-          /*
-          if (
-            xx > extents.x.max ||
-            xx < extents.x.min ||
-            zz > extents.z.max ||
-            zz < extents.z.min
-          ) {
-            count++;
-          } else 
-          */
-          
-          if (block) {
-            var mesh = mapMeshes[block.idx];
-            if (mesh?.name && mesh.name.split(".")[2] == "full") {
-              count++;
-            }
-          }
-        }
-      }
-    }
-  }
-  if (y == 0)
-    count++;
-
-  return count;
-}
 function cleanup() {
   var deleteList = [];
   generateExtents();
@@ -90200,7 +90185,7 @@ function cleanup() {
     for (var y = 0; y < map.height; y++) {
       for (var z = 0; z < map.depth; z++) {
         if (map.data[x][y][z]) {
-          var n = numNeighbors6new(x, y, z);
+          var n = numNeighbors6(x, y, z);
           if (n == 6) {
             deleteList.push({ x, y, z });
           }
@@ -90287,8 +90272,13 @@ function numNeighbors4(x, y, z, cats) {
   for (var xx = Math.max(1, x - 1); xx <= Math.min(map.width - 2, x + 1); xx++) {
     for (var zz = Math.max(1, z - 1); zz <= Math.min(map.depth - 2, z + 1); zz++) {
       if (Math.abs(xx - x) + Math.abs(zz - z) == 1) {
-        if (map.data[xx][y][zz].cat == MAP.block || map.data[xx][y][zz].cat == MAP.ground)
-          count++;
+        var block = map.data[xx][yy][zz];
+        if (block) {
+          var mesh = mapMeshes[block.idx];
+          if (mesh?.name && mesh.name.split(".")[2] == "full") {
+            count++;
+          }
+        }
       }
     }
   }
@@ -90299,8 +90289,13 @@ function numNeighbors8(x, y, z, cats) {
   for (var xx = Math.max(1, x - 1); xx <= Math.min(map.width - 2, x + 1); xx++) {
     for (var zz = Math.max(1, z - 1); zz <= Math.min(map.depth - 2, z + 1); zz++) {
       if (xx != x || zz != z) {
-        if (map.data[xx][y][zz].cat == MAP.block || map.data[xx][y][zz].cat == MAP.ground)
-          count++;
+        var block = map.data[xx][yy][zz];
+        if (block) {
+          var mesh = mapMeshes[block.idx];
+          if (mesh?.name && mesh.name.split(".")[2] == "full") {
+            count++;
+          }
+        }
       }
     }
   }
@@ -90311,8 +90306,13 @@ function numNeighbors24(x, y, z, cats) {
   for (var xx = Math.max(2, x - 2); xx <= Math.min(map.width - 2, x + 2); xx++) {
     for (var zz = Math.max(2, z - 2); zz <= Math.min(map.depth - 2, z + 2); zz++) {
       if (xx != x || zz != z) {
-        if (map.data[xx][y][zz].cat == MAP.block || map.data[xx][y][zz].cat == MAP.ground)
-          count++;
+        var block = map.data[xx][y][zz];
+        if (block) {
+          var mesh = mapMeshes[block.idx];
+          if (mesh?.name && mesh.name.split(".")[2] == "full") {
+            count++;
+          }
+        }
       }
     }
   }
@@ -90324,8 +90324,24 @@ function numNeighbors6(x, y, z, cats) {
     for (var yy = Math.max(0, y - 1); yy <= Math.min(map.height - 1, y + 1); yy++) {
       for (var zz = Math.max(1, z - 1); zz <= Math.min(map.depth - 2, z + 1); zz++) {
         if (Math.abs(xx - x) + Math.abs(yy - y) + Math.abs(zz - z) == 1) {
-          if (map.data[xx][yy][zz].cat == MAP.block || map.data[xx][yy][zz].cat == MAP.ground)
+          /*
+          if (
+            xx > extents.x.max ||
+            xx < extents.x.min ||
+            zz > extents.z.max ||
+            zz < extents.z.min
+          ) {
             count++;
+          } else 
+          */
+          
+          var block = map.data[xx][yy][zz];
+          if (block) {
+            var mesh = mapMeshes[block.idx];
+            if (mesh?.name && mesh.name.split(".")[2] == "full") {
+              count++;
+            }
+          }
         }
       }
     }
@@ -90340,8 +90356,13 @@ function numNeighbors26(x, y, z, cats) {
     for (var yy = Math.max(0, y - 1); yy <= Math.min(map.height - 1, y + 1); yy++) {
       for (var zz = Math.max(1, z - 1); zz <= Math.min(map.depth - 2, z + 1); zz++) {
         if (x != xx || y != yy || z != zz) {
-          if (map.data[xx][yy][zz].cat == MAP.block || map.data[xx][yy][zz].cat == MAP.ground)
-            count++;
+          var block = map.data[xx][yy][zz];
+          if (block) {
+            var mesh = mapMeshes[block.idx];
+            if (mesh?.name && mesh.name.split(".")[2] == "full") {
+              count++;
+            }
+          }
         }
       }
     }
@@ -90356,13 +90377,13 @@ function isBlock(x, y, z) {
 function createBoundaries() {
   for (var x = 0; x < map.width; x++) {
     for (var z = 0; z < map.depth; z++) {
-      if (!map.data[x][0][z].cat) {
+      if (!map.data[x][0][z]) {
         for (var y = 1; y < map.height; y++) {
-          if (!map.data[x][y][z].cat || map.data[x][y][z].cat == MAP.barrier) {
-            var nA = numNeighbors24(x, y, z, MAP.block | MAP.ground);
-            var nB = numNeighbors24(x, y - 1, z, MAP.block | MAP.ground);
+          if (!map.data[x][y][z]) { // || map.data[x][y][z].cat == MAP.barrier
+            var nA = numNeighbors24(x, y, z);
+            var nB = numNeighbors24(x, y - 1, z);
             if (nB > 0) {
-              placeTile(MAP.barrier, { x, y, z }, { x: 0, y: 0, z: 0 });
+              placeTile(1, { x, y, z }, { x: 0, y: 0, z: 0 });
             }
           } else {
             break;
@@ -90896,6 +90917,7 @@ function replaceBlocksConfirm() {
   if (newID) mapData.data[newID] = JSON.parse(JSON.stringify(oldBlocks));
   mapData.data[oldID] = undefined;
   let mapJSON = JSON.stringify(mapData);
+  undoPoint();
   initMap();
   maximizeMap(mapJSON);
 };

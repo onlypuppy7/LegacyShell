@@ -424,10 +424,10 @@
                     title="Uses a partially recovered algorithm from old versions of the game">GenerateLegacy</span>
 
                 <span class="button" id="cleanup" onclick="extern.cleanup()"
-                    title="Eliminates tiles that are not visible (ancient, doesn't work)">Cleanup</span>
+                    title="Eliminates tiles that are not visible (fixed for Legacy)">Cleanup</span>
 
                 <span class="button" id="bounds" onclick="extern.createBoundaries()"
-                    title="Create invisible barriers on edges of map (ancient, doesn't work)">Bounds</span>
+                    title="Create invisible barriers on edges of map (useless)">Bounds</span>
 
                 <span class="button" id="replaceBlocks" onclick="openDialog('replaceBlocksDialog');"
                     title="Mass replace blocks in the map">Replace</span>
@@ -450,7 +450,7 @@
             <div style="margin-top: 0.5em">
                 <span class="button" id="save" onclick="extern.saveMap()" title="Save map to local file(s)">Save</span>
                 <span class="button" id="test" onclick="extern.testMap()"
-                    title="Opens map in offline 'game' [HOTKEY: P]">Test</span>
+                    title="Opens map in offline 'game' [HOTKEY: P] (fixed for Legacy)">Test</span>
                 <span class="button" onclick="extern.openDialog('mapSettings')" title="Map Settings">Settings</span>
                 <span class="button" onclick="extern.openDialog('edPreferences')" title="Editor Preferences">Preferences</span>
                 <span class="button" onclick="extern.openDialog('help')" title="Help">?</span>
