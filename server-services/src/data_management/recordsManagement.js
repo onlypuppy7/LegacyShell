@@ -442,6 +442,7 @@ const exported = {
     
             //alphabetical order (cringe)
             try {
+                await ss.runQuery('DROP TABLE IF EXISTS maps_temp');
                 await ss.runQuery('CREATE TABLE maps_temp AS SELECT * FROM maps ORDER BY name');
                 await ss.runQuery('DROP TABLE maps');
                 await ss.runQuery('ALTER TABLE maps_temp RENAME TO maps');
