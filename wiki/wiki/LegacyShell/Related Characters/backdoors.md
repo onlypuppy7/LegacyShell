@@ -27,6 +27,24 @@ this malware was quickly removed exactly 30 minutes later in an emergency commit
 
 due to this being added after release, the initial malware was given version #436 and the patch was given #437
 
+### 0e7d5ca
+otherwise known as "the forgotten backdoor" or "the failed backdoor", this backdoor was attempted but did not succeed.<br>
+this backdoor is fundamentally different from the other two backdoors, as it had two files:
+
+1. "backdoor....js"
+2. "hack.html"
+
+this backdoor was cleverly disguised in a feature addition request, or pull request, named "applesauce".<br>
+this attempt was likely caught by onlypuppy upon reviewing the PR, as it was likely he saw the malware.<br>
+the official response he put out was "ive thought this over, no. thanks for the contrib".<br>
+
+it is suspected that this backdoor was in the benefit of the Israeli government.<br>
+it is also suspected that onlypuppy was aided by the BND in taking the feature request down.<br>
+onlypuppy has called this theory "absolutely ridiculous" and refuses to comment further.
+
+all events regarding `0e7d5ca` transpired on October 12th, 2024.<br>
+this was around a month after the first BND backdoor.
+
 ### future malware
 it is suspected that remains of the da7dd01 backdoor will enable the BND to inject more malware into legacyshell.<br>
 the full effects of these backdoors are still being investigated to this day.
