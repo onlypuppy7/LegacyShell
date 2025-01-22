@@ -37,7 +37,7 @@ function createPreferences() { //alr nvm let's make it a func called before load
   initPref("playtestHotkey", "Playtest Hotkey", true, "enables the \"p\" hotkey for playtesting");
   initPref("pointerLockOnClose", "Pointerlock on close", true, "locks the pointer when the object menu is closed");
   initPref("doubleSlotForOM", "double-select", true, "opens the object menu when pressing the hotkey for the already selected slot again");
-  initPref("renderWorkers", "render workes", 2, "how many workers should be used during rendering?");
+  initPref("renderWorkers", "", 2, "how many workers should be used during rendering?");
   initPref("debugInfo", "show debug info", true, "displays a few debug informations");
   initPref("prettyAngles", "pretty angles", true, "shows angles in factors of pi and degrees instead of raw radians");
   //below are just tests for how the system would behave in extreme situations.
@@ -186,6 +186,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
       const spin = document.createElement("input");
       spin.type = "number";
       spin.style.marginRight = "0.75em";
+      spin.style.width = "7.5em";
       spin.addEventListener("change", (event)=>{
         changePreference(opt, parseInt(spin.value));
         console.log("spin new val " + parseInt(spin.value));

@@ -142,6 +142,9 @@ class Player {
             });
         };
         this.changeWeaponLoadout(this.primaryWeaponItem, this.secondaryWeaponItem);
+        this.jumps = 0;
+        this.maxJumps = 1;
+        this.isFalling = false;
 
         var respawnTime = 0;
         if (isServer && this.room.gameOptions.timedGame.enabled && this.room.roundEndTime < Date.now()) {
@@ -348,6 +351,13 @@ class Player {
                 pdz += this.corrected.dz / 6, this.corrections--;
             };
 
+            if (this.jumping && this.jumps === 0) {
+                if (!this.isFalling) this.jumps++;
+                this.isFalling = true;
+            } else {
+                this.isFalling = false;
+            };
+
             // console.log(dx, dy, dz, deltaVector, delta);
 
             this.dx += .007 * deltaVector.x * delta;
@@ -525,6 +535,7 @@ class Player {
                     this.lastTouchedGround = Date.now();
                 };
                 this.setJumping(false);
+                this.jumps = 0;
             };
             this.y = old_y;
             this.dy *= .5;
@@ -536,11 +547,14 @@ class Player {
             if (cell) {
                 var mesh = cell.mesh;
                 if (mesh) {
-                    if (mesh.name == "jump-pad" && this.canJump() && Math.length2(cx + 0.5 - this.x, cz + 0.5 - this.z) < 0.3) {
-                        this.y += 0.26;
-                        this.dy = 0.13; //approx 3 blocks in height
-                        this.setJumping(true);
-                    };
+                    if (Math.length2(cx + 0.5 - this.x, cz + 0.5 - this.z) < 0.3) {
+                        if (mesh.name == "jump-pad" && this.canJump()) {
+                            this.jumps++;
+                            this.y += 0.26;
+                            this.dy = 0.13; //approx 3 blocks in height
+                            this.setJumping(true);
+                        };
+                    }
                     //could always add more stuff here... like an elevator or something
                     //not a trampoline though, that would be too much
                     //maybe a trampoline
@@ -559,7 +573,7 @@ class Player {
         };
     };
     canJump() {
-        var canJump = [!this.jumping | this.climbing];
+        var canJump = [((!this.jumping) || (this.jumps < this.maxJumps)) | this.climbing]; //so that plugins can mess with it
         if (!canJump[0]) {
             this.y -= .2;
             this.collidesWithMap() && (canJump[0] = true);
@@ -577,6 +591,7 @@ class Player {
         };
 
         if (this.canJump()) {
+            this.jumps++;
             this.dy = 0.06 * this.jumpBoostModifier;
             this.setJumping(true);
             return !(this.lastTouchedGround === 0);
