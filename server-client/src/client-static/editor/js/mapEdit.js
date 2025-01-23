@@ -89374,6 +89374,7 @@ window.onload = function() {
         else
           dontDebugMenu();
       });
+      document.getElementById("loadScreen").style.display = "none";
     });
   };
   // loadMeshes(scene, ["items"], null, loadStuff);
