@@ -89026,11 +89026,15 @@ function inBounds(x, y, z) {
   return x >= 0 && x < map.width && y >= 0 && y < map.height && z >= 0 && z < map.depth;
 }
 function getPickedCell(pick) {
-  var cell = map.data[pick.pickedMesh.position.x][pick.pickedMesh.position.y][pick.pickedMesh.position.z];
-  cell.x = pick.pickedMesh.position.x;
-  cell.y = pick.pickedMesh.position.y;
-  cell.z = pick.pickedMesh.position.z;
-  return cell;
+  try {
+    var cell = map.data[pick.pickedMesh.position.x][pick.pickedMesh.position.y][pick.pickedMesh.position.z];
+    cell.x = pick.pickedMesh.position.x;
+    cell.y = pick.pickedMesh.position.y;
+    cell.z = pick.pickedMesh.position.z;
+    return cell;
+  } catch (error) {
+    return null;
+  }
 }
 function drawCell(pick, cell) {
   var meshIdx = palette[paletteIdx].meshIdx;
