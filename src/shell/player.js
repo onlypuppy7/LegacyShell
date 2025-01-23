@@ -35,11 +35,13 @@ class Player {
             this.Collider = this.room.Collider;
             this.mapMeshes = this.room.mapMeshes;
             this.map = this.room.map;
+            this.minMap = this.room.minMap;
             this.gameOptions = this.room.gameOptions;
         } else {
             this.Collider = Collider;
             this.mapMeshes = mapMeshes;
             this.map = map;
+            this.minMap = minMap;
             this.gameOptions = gameOptions;
         };
 
@@ -144,12 +146,17 @@ class Player {
         this.changeWeaponLoadout(this.primaryWeaponItem, this.secondaryWeaponItem);
         this.jumps = 0;
         this.maxJumps = 1;
+        console.log(this.minMap);
+        if (this.minMap?.extents && this.minMap.extents.maxJumps !== undefined) {
+            let maxJumps = this.minMap.extents.maxJumps;
+            if (maxJumps !== "") this.maxJumps = Number(maxJumps);
+        };
         this.isFalling = false;
 
         var respawnTime = 0;
         if (isServer && this.room.gameOptions.timedGame.enabled && this.room.roundEndTime < Date.now()) {
             respawnTime = Math.max(0, this.room.roundRestartTime - Date.now());
-            console.log("respawnTime", respawnTime);
+            // console.log("respawnTime", respawnTime);
         };
         this.resetDespawn(respawnTime);
 
@@ -1068,6 +1075,7 @@ class Player {
         if (this.actor) {
             if (this.id == meId) {
                 viewingPlayerId = meId;
+                startBGM();
             };
             this.actor.mesh.position.x = newPos.x;
             this.actor.mesh.position.y = newPos.y;

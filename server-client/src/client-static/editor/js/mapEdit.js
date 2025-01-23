@@ -88734,6 +88734,9 @@ function updateMapSettings(minMap2) {
   document.getElementById("fogDensity").value = scene.fogDensity;
   // document.getElementById("fogDensity").value = 0.09;
   document.getElementById("skyboxes").value = skyboxName;
+  console.log(minMap2);
+  document.getElementById("bgMusic").value = minMap2.extents?.bgm;
+  minMap2.extents?.maxJumps && document.getElementById("maxJumps").value = minMap2.extents?.maxJumps;
 }
 function saveMapSettings(minMap2) {
   minMap2.modes = {};
@@ -90163,6 +90166,13 @@ function minimizeMap() {
       m.z -= extents.z.min;
     }
   });
+
+  //any additional settings go into extents
+  //i know this isnt what extents is for, but it works?
+  //saves me rewriting the map database in services.
+  extents.bgm = document.getElementById("bgMusic").value;
+  extents.maxJumps = document.getElementById("maxJumps").value;
+
   return minMap;
 }
 function saveToLocal() {

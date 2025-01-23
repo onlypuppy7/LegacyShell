@@ -658,23 +658,30 @@
 
                         <label><select id="numPlayers"></select>&nbsp;Players</label>
                         <p></p>
+                        <h3>Misc</h3>
+                        <hr>
+                        <label><input id="bgMusic" type="text" placeholder="grenade.explode" style="width: 7.5em; opacity: 1;"
+                                oninput=""></input>&nbsp;BGM</label> <!-- extern.setBGM(this.value) -->
+                        <p></p>
+                        <label><input id="maxJumps" type="number" value="1" step="1" min="0" max="99" style="width: 4em; opacity: 1;"
+                                oninput=""></input>&nbsp;Max Jumps</label>
                     </div>
                     <div class="dialogPane">
                         <h3>Appearance</h3>
                         <hr>
-                        <label><input id="sunColor" type="color"
+                        <label><input id="sunColor" type="color" style="opacity: 1;"
                                 onchange="extern.setSunColor(this.value)"></input>&nbsp;Sun Color</label>
                         <p></p>
-                        <label><input id="ambientColor" type="color"
+                        <label><input id="ambientColor" type="color" style="opacity: 1;"
                                 onchange="extern.setAmbientColor(this.value)"></input>&nbsp;Ambient Light</label>
                         <p></p>
-                        <label><input id="fogColor" type="color"
+                        <label><input id="fogColor" type="color" style="opacity: 1;"
                                 oninput="extern.setFogColor(this.value)"></input>&nbsp;Fog Color</label>
                         <p></p>
-                        <label><input id="fogDensity" type="number" value="0.01" step="0.001" style="width: 4em"
+                        <label><input id="fogDensity" type="number" value="0.01" step="0.001" style="width: 4em; opacity: 1;"
                                 oninput="extern.setFogDensity(this.value)"></input>&nbsp;Fog Density</label>
                         <p></p>
-                        <label><input id="pointLightIntensity" type="number" value="0.5" style="width: 4em"
+                        <label><input id="pointLightIntensity" type="number" value="0.5" style="width: 4em; opacity: 1;"
                                 oninput="extern.setPointLightIntensity(this.value)"></input>&nbsp;Point Light
                             Intensity</label>
                         <p></p>

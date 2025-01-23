@@ -56,10 +56,10 @@ export class newRoom {
         plugins.emit("roomInitGameOptions", {this: this});
 
         // this.items = info.items;
-        this.mapJson = ss.maps[this.mapId];
-        this.playerLimit = this.mapJson.playerLimit || 18;
-        this.maxAmmo = Math.ceil(this.mapJson.surfaceArea / 25);
-        this.maxGrenades = Math.ceil(this.mapJson.surfaceArea / 65);
+        this.minMap = ss.maps[this.mapId];
+        this.playerLimit = this.minMap.playerLimit || 18;
+        this.maxAmmo = Math.ceil(this.minMap.surfaceArea / 25);
+        this.maxGrenades = Math.ceil(this.minMap.surfaceArea / 65);
         console.log("maxitems:", this.maxAmmo, this.maxGrenades)
 
         this.players = [];
@@ -84,7 +84,7 @@ export class newRoom {
         this.censor = censor;
 
         //map init
-        setParamsforLoader(this.mapJson, this.Collider);
+        setParamsforLoader(this.minMap, this.Collider);
         this.validItemSpawns = [];
 
         //timed rounds
@@ -644,7 +644,7 @@ export class newRoom {
             let maximum = 0;
             this.gameOptions.itemsEnabled.forEach((itemOptions)=>{
                 if (itemOptions[0] === i) {
-                    maximum = Math.ceil(this.mapJson.surfaceArea / itemOptions[1]);
+                    maximum = Math.ceil(this.minMap.surfaceArea / itemOptions[1]);
                     maximum = Math.clamp(maximum, itemOptions[2], pool.originalSize);
                 };
             });
