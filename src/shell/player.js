@@ -104,7 +104,7 @@ class Player {
         this.equipWeaponIdx = this.weaponIdx;
         this.shotSpread = 0;
         this.randomSeed = data.randomSeed;
-        this.grenadeCount = 1;
+        this.grenadeCount = this.gameOptions.startingGrenades;
         this.grenadeCapacity = 3;
         this.grenadeCountdown = 0;
         this.grenadesQueued = 0;
@@ -553,17 +553,13 @@ class Player {
             var cz = Math.floor(this.z);
 
             var cell = this.getOccupiedCell(cx, Math.floor(this.y - 0.5), cz);
+            var cellAbove = this.getOccupiedCell(cx, Math.floor(this.y + 0.5), cz);
             if (cell) {
                 var mesh = cell.mesh;
                 if (mesh) {
                     if (Math.length2(cx + 0.5 - this.x, cz + 0.5 - this.z) < 0.3) {
-                        if (mesh.name == "jump-pad" && this.canJump()) {
-                            this.jumps++;
-                            this.y += 0.26;
-                            this.dy = 0.13; //approx 3 blocks in height
-                            this.setJumping(true);
-                        };
-                    }
+                        this.onStandOnBlock(mesh);
+                    };
                     //could always add more stuff here... like an elevator or something
                     //not a trampoline though, that would be too much
                     //maybe a trampoline
@@ -577,9 +573,29 @@ class Player {
                     //other than a trampoline, it could be a trampoline, but not a trampoline, it could be a trampoline, however it could not be a trampoline
                 };
             };
+            if (cellAbove) {
+                var mesh = cellAbove.mesh;
+                if (mesh) {
+                    if (Math.length2(cx + 0.5 - this.x, cz + 0.5 - this.z) < 0.3) {
+                        this.onStandOnTile(mesh);
+                    };
+                };
+            };
         } else {
             if (0 == this.jumping) this.setJumping(true);
         };
+    };
+    onStandOnBlock(mesh) {
+        if (mesh.name == "jump-pad" && this.canJump()) {
+            this.jumps++;
+            this.y += 0.26;
+            this.dy = 0.13; //approx 3 blocks in height
+            this.setJumping(true);
+        };
+        plugins.emit("onStandOnBlock", {mesh, this: this});
+    };
+    onStandOnTile(mesh) {
+        plugins.emit("onStandOnTile", {mesh, this: this});
     };
     canJump() {
         var canJump = [((!this.jumping) || (this.jumps < this.maxJumps)) | this.climbing]; //so that plugins can mess with it

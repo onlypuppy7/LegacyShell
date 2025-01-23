@@ -68,6 +68,7 @@ export var defaultOptions = {
         0, //team1
         0, //team2
     ],
+    startingGrenades: 1,
     plugins: {}, //arbitrary flags for plugins to use (synced in updateRoomParams)
 };
 

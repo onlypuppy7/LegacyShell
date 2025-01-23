@@ -88736,7 +88736,7 @@ function updateMapSettings(minMap2) {
   document.getElementById("skyboxes").value = skyboxName;
   console.log(minMap2);
   document.getElementById("bgMusic").value = minMap2.extents?.bgm;
-  minMap2.extents?.maxJumps && document.getElementById("maxJumps").value = minMap2.extents?.maxJumps;
+  if (minMap2.extents?.maxJumps) document.getElementById("maxJumps").value = minMap2.extents?.maxJumps;
 }
 function saveMapSettings(minMap2) {
   minMap2.modes = {};
