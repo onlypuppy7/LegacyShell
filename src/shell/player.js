@@ -950,7 +950,7 @@ class Player {
         kb *= 0.01;
         let kbX = dx * kb
         let kbZ = dz * kb
-        let kbY = Math.abs(kbX + kbZ) / 6;
+        let kbY = kb * 10;
 
         this.dx += kbX;
         this.dy += kbY;
