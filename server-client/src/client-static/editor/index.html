@@ -743,7 +743,25 @@
         <div id="loadScreen"style="width: 100%; height: 100%; top: 0; left: 0; position: absolute;   font-size: 80px; background-color: black">
             <h1>LOADING...</h1>
             <p1>if you are stuck here, please contact the Legacyshell team and provide any errors from the console.</p1>
+            <br>
+            <p2 id="loadScreenTimeCounter">working time: 0s</p2>
         </div>
+
+        <script>
+        const load = document.getElementById("loadScreen");
+        const count = document.getElementById("loadScreenTimeCounter");
+        document.addEventListener("DOMContentLoaded", ()=>{
+          let wait = 0;
+          const iid = setInterval(()=>{
+            if(load.style.display == "none"){
+              //real
+              clearInterval(iid);
+              return;
+            }
+            count.innerText = `working time: ${++wait}s`;
+          }, 1000);
+        });
+        </script>
 
     </body>
 
