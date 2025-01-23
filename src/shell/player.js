@@ -160,13 +160,14 @@ class Player {
     };
     setDefaultModifiers(init) {
         this.changeModifiers({
-            gravityModifier: this.gameOptions.gravityModifier[this.team] || 1,
-            speedModifier: this.gameOptions.speedModifier[this.team] || 1,
-            regenModifier: this.gameOptions.regenModifier[this.team] || 1,
-            damageModifier: this.gameOptions.damageModifier[this.team] || 1,
-            resistanceModifier: this.gameOptions.resistanceModifier[this.team] || 1,
-            jumpBoostModifier: this.gameOptions.jumpBoostModifier[this.team] || 1,
-            scale: this.gameOptions.scale[this.team]
+            gravityModifier: this.gameOptions.gravityModifier[this.team],
+            speedModifier: this.gameOptions.speedModifier[this.team],
+            regenModifier: this.gameOptions.regenModifier[this.team],
+            damageModifier: this.gameOptions.damageModifier[this.team],
+            resistanceModifier: this.gameOptions.resistanceModifier[this.team],
+            jumpBoostModifier: this.gameOptions.jumpBoostModifier[this.team],
+            scale: this.gameOptions.scale[this.team],
+            knockbackModifier: this.gameOptions.knockbackModifier[this.team],
         }, init);
     };
     changeScale (newScale, init) {
@@ -189,6 +190,7 @@ class Player {
         if (modifiers.resistanceModifier !== undefined) this.resistanceModifier = modifiers.resistanceModifier;
         if (modifiers.jumpBoostModifier !== undefined) this.jumpBoostModifier = modifiers.jumpBoostModifier;
         if (modifiers.scale !== undefined) this.changeScale(modifiers.scale, init);
+        if (modifiers.knockbackModifier !== undefined) this.knockbackModifier = modifiers.knockbackModifier;
         this.sendModifiers(init);
     };
     sendModifiers(init) {
@@ -921,7 +923,19 @@ class Player {
             })();
         };
     };
-    hit (damage, firedPlayer, dx, dz, noHeal = false) {
+    knockback(kb, dx, dz) {
+        kb *= 0.01;
+        let kbX = dx * kb
+        let kbZ = dz * kb
+        let kbY = Math.abs(kbX + kbZ) / 6;
+
+        this.dx += kbX;
+        this.dy += kbY;
+        this.dz += kbZ;
+
+        devlog("knockback:", kb, dx, dz, kbX, kbZ, kbY);
+    };
+    hit (damage, firedPlayer, dx, dz, noHeal = false, originalDamage) {
         if (this.isDead() || (!this.playing)) return;
         if (this.team === 0 ? false : (this.team === firedPlayer.team && this.id !== firedPlayer.id)) return;
 
@@ -945,18 +959,26 @@ class Player {
             // console.log("who REALLY fired?", firedPlayer.id, firedPlayer.name)
             this.setHp(this.hp - damage, firedPlayerId);
 
+            let kb = Math.min(originalDamage, 50) * this.knockbackModifier;
+
             var output = new Comm.Out();
             output.packInt8U(Comm.Code.hitMe);
             output.packInt8U(this.hp);
             output.packFloat(dx);
             output.packFloat(dz);
+            output.packFloat(kb); //kb
             this.client.sendToMe(output, "hitMe");
 
             var output = new Comm.Out();
             output.packInt8U(Comm.Code.hitThem);
             output.packInt8U(this.id);
             output.packInt8U(this.hp);
+            output.packFloat(dx);
+            output.packFloat(dz);
+            output.packFloat(kb); //kb
             this.client.sendToOthers(output, "hitThem");
+
+            this.knockback(kb, dx, dz);
         };
     };
     heal (health, damagedPlayer = this, dx = 0, dz = 0) {

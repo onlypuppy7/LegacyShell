@@ -49,11 +49,13 @@ function checkExplosionCollisions (explosion) { //stolen from rtw 🥺
 
                 let damage = explosion.damage * modifier * (1 / Math.pow(delta.length() * scalingFactor, exponent));
 
+                if (explosion.player.damageModifier < 1) damage *= explosion.player.damageModifier;
+
                 console.log("explosion hits", damage, "to player", player.id, player.name);
                 // console.log("who was hit?", player.id, player.name);
                 // console.log("who fired it?", explosion.player.id, explosion.player.name);
                 // console.log(scalingFactor, exponent, modifier, damage);
-                player.hit(damage, explosion.player, explosion.x, explosion.y);
+                player.hit(damage, explosion.player, explosion.x, explosion.y, undefined, explosion.damage);
             };
         };
     });
@@ -109,7 +111,8 @@ Bullet.prototype.fireThis = function (player, pos, dir, weaponClass) {
     this.dz = Bullet.direction.z * this.velocity;
 
     this.weaponClass = weaponClass;
-    this.damage = weaponClass.damage * player.scale * player.damageModifier;
+    this.originalDamage = weaponClass.damage;
+    this.damage = this.originalDamage * player.damageModifier * player.scale;
     this.active = true;
     this.range = weaponClass.range; 
     var res = Collider.rayCollidesWithMap(pos, dir, Collider.projectileCollidesWithCell.bind(Collider));
@@ -209,7 +212,7 @@ Bullet.prototype.collidesWithPlayer = function (player, point) {
         // console.log("damage to playerId:", player.id, damage, "other", dot, damageExp, damageMod, this.damage);
         // console.log("tv", tv1, tv2, "point", point, "playerpos", player.x, player.y, player.z, "dist", dist, "other", BABYLON.Vector3.Dot(tv1, tv2));
 
-        player.hit(damage, this.player, this.dx, this.dz);
+        player.hit(damage, this.player, this.dx, this.dz, undefined, this.originalDamage || this.damage);
     };
     //(server-only-end)
 

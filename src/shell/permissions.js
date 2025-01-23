@@ -54,6 +54,26 @@ export class PermissionsConstructor {
             }
         });
         this.newCommand({
+            identifier: "knockback",
+            isCheat: true,
+            name: "knockback",
+            category: "change",
+            description: "Sets knockback for players.",
+            example: "1",
+            autocomplete: "@",
+            usage: "[@mention] number (-12 to 12, step 0.1)",
+            permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
+            inputType: ["number", -12, 12, 0.1],
+            executeClient: ({ player, opts, mentions }) => {
+                forEachMentionInMentions(mentions, (player) => {
+                    player.changeModifiers({knockbackModifier: opts});
+                });
+            },
+            executeServer: ({ player, opts, mentions, mentionsLiteral }) => {
+                setGameOptionInMentions(player, mentions, mentionsLiteral, "knockbackModifier", opts);
+            }
+        });
+        this.newCommand({
             identifier: "speed",
             isCheat: true,
             name: "speed",
@@ -697,7 +717,7 @@ class Command {
 
         var permitted = this.checkPermissions(player);
 
-        var thisCheatsEnabled = isClient ? gameOptions.cheatsEnabled : this.ctx.room.gameOptions.cheatsEnabled;
+        var thisCheatsEnabled = isClient ? (playOffline || gameOptions.cheatsEnabled) : this.ctx.room.gameOptions.cheatsEnabled;
 
         if (this.isCheat && !thisCheatsEnabled) {
             permitted = false;
