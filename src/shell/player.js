@@ -206,7 +206,7 @@ class Player {
             this.client.packModifiers(output);
             this.client.sendToAll(output, "setModifiers");
         };
-    }
+    };
     changeWeaponLoadout(primaryWeaponItem, secondaryWeaponItem) {
         if (this.actor && this.weapons) {
             this.weapons[0].actor.dispose();
@@ -628,7 +628,16 @@ class Player {
         this.jumping = jumping;
         this.stateBuffer[this.stateIdx].jumping = jumping;
     };
+    snapshotAmmo() {
+        this.ammoSnapshots = this.ammoSnapshots || {};
+        this.ammoSnapshots[this.classIdx] = JSON.parse(JSON.stringify(this.weapon.ammo));
+    };
+    restoreAmmoSnapshot() {
+        let snapshot = this.ammoSnapshots[this.classIdx];
+        if (snapshot) this.weapon.ammo = snapshot;
+    };
     changeCharacter(newClassIdx, primaryWeaponItem, secondaryWeaponItem, shellColor, hatItem, stampItem) {
+        this.snapshotAmmo();
         var itemChanged = function (oldItem, newItem) {
             return oldItem && !newItem || !oldItem && newItem || null !== oldItem && null !== newItem && oldItem.id !== newItem.id
         };
@@ -672,6 +681,7 @@ class Player {
 
             this.changeWeaponLoadout(primaryWeaponItem, secondaryWeaponItem)
         };
+        if (!this.gameOptions.rearmOnRespawn) this.restoreAmmoSnapshot();
     };
     swapWeapon(idx) {
         var output;
@@ -919,7 +929,7 @@ class Player {
             };
         };
     };
-    scoreKill(killedPlayer) {
+    scoreKill(killedPlayer, noEggs) {
         this.kills++;
         this.totalKills++;
         this.streak++;
@@ -927,7 +937,7 @@ class Player {
         this.bestOverallStreak = Math.max(this.bestOverallStreak, this.streak);
         this.score = this.streak;
 
-        if (isServer) { //do request to add eggs here
+        if (isServer && !noEggs) { //do request to add eggs here
             (async () => {
                 if (killedPlayer && this.id !== killedPlayer.id) {
                     if (this.client.session && this.client.session.length > 0) {
