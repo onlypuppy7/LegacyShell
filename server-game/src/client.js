@@ -270,6 +270,8 @@ class newClient {
                           //ergo random float between 0 and 4π minus 2π (due to how Math.random works.)
                           //and NO using randomInt is NOT an option.
 
+                          await plugins.emit("requestRespawn", {this: this, player: this.player, spawnPoint});
+
                           this.player.respawn(spawnPoint);
 
                           var output = new Comm.Out(12);

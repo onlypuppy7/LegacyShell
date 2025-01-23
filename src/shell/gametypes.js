@@ -69,6 +69,7 @@ export var defaultOptions = {
         0, //team2
     ],
     startingGrenades: 1,
+    rearmOnRespawn: true,
     plugins: {}, //arbitrary flags for plugins to use (synced in updateRoomParams)
 };
 

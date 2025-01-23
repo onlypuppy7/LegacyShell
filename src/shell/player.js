@@ -1124,14 +1124,14 @@ class Player {
             this.weapons[0].actor.gunMesh.setEnabled(false);
             this.weapons[1].actor.gunMesh.setEnabled(false);
         };
-        if (!dontReload) {
+        if (this.gameOptions.rearmOnRespawn && !dontReload) {
             for (var i = 0; i < this.weapons.length; i++) {
                 if (this.weapons[i]) {
                     this.weapons[i].ammo.rounds = this.weapons[i].ammo.capacity;
                     this.weapons[i].ammo.store = this.weapons[i].ammo.storeMax;
                 };
             };
-            this.grenadeCount = Math.max(this.grenadeCount, 1)
+            this.grenadeCount = Math.max(this.grenadeCount, this.gameOptions.startingGrenades);
         };
     };
     isDead() {
