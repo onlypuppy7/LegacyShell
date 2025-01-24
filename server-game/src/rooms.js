@@ -174,7 +174,7 @@ export class newRoom {
         this.packRoundEnd(output);
         this.sendToAll(output, null, "roundEnd");
 
-        setTimeout(() => {
+        if (!this.gameOptions.timedGame.spawnDuringInterval) setTimeout(() => {
             this.pauseAllClients(this.timeoutForNextRound - 3e3);
         }, 3e3);
 
@@ -198,6 +198,10 @@ export class newRoom {
         output.packInt32U(Math.max(0, this.roundEndTime - Date.now())); //time to end the round (in ms)
         output.packInt32U(Math.max(0, this.roundRestartTime - Date.now())); //time to wait before next round starts (in ms)
         plugins.emit('packRoundUpdateEnd', {this: this, output});
+    };
+
+    betweenRounds() {
+        return this.gameOptions.timedGame.enabled && this.roundEndTime < Date.now();
     };
 
     resetGame(defRemove) {

@@ -737,16 +737,16 @@ class Player {
         return AllItems[kind].collect(this, applyToWeaponIdx);
     };
     isSteady() {
-      const readySSelected = isServer ? this.weapon.subClass.readySpread * 1.3 : this.weapon.subClass.readySpread;
+      const readySSelected = isServer ? this.weapon.subClass.readySpread * 1.5 : this.weapon.subClass.readySpread;
       //idk if 1.3 is too much or not enough; Should do the job though.
       return !this.weapon.subClass.readySpread ||
         5 * readySSelected >= this.shotSpread + this.weapon.subClass.accuracy;
     };
     isAtReady(scoped) {
-        return !(!(this.playing && this.weapon && this.reloadCountdown <= 0 && this.swapWeaponCountdown <= 0 && this.grenadeCountdown <= 0) || this.actor && 0 != grenadePowerUp);
+        return (!this.betweenRounds()) && !(!(this.playing && this.weapon && this.reloadCountdown <= 0 && this.swapWeaponCountdown <= 0 && this.grenadeCountdown <= 0) || this.actor && 0 != grenadePowerUp);
     };
     canSwapOrReload() {
-        return !(!(this.playing && this.weapon && this.recoilCountdown <= 0 && this.reloadCountdown <= 0 && this.swapWeaponCountdown <= 0 && this.grenadeCountdown <= 0 && this.shotsQueued <= 0) || this.actor && 0 != grenadePowerUp)
+        return (!this.betweenRounds()) && !(!(this.playing && this.weapon && this.recoilCountdown <= 0 && this.reloadCountdown <= 0 && this.swapWeaponCountdown <= 0 && this.grenadeCountdown <= 0 && this.shotsQueued <= 0) || this.actor && 0 != grenadePowerUp)
     };
     fire() {
         if (0 < this.shield) {
@@ -909,7 +909,7 @@ class Player {
         };
     };
     betweenRounds() {
-        return this.gameOptions.timedGame.enabled && (isClient ? betweenRounds : this.room.roundEndTime < Date.now());
+        return isClient ? betweenRounds : this.room.betweenRounds();
     };
     resetDespawn(respawnTime = 5000, offset = 0) {
         if (this.betweenRounds() && this.gameOptions.timedGame.spawnDuringInterval) respawnTime = 4e3;
