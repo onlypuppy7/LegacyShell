@@ -46,6 +46,7 @@ export class newRoom {
 
         this.joinType = info.joinType; console.log(this.joinType)
         this.gameType = info.gameType;
+        this.gameOptionsOriginal = JSON.parse(JSON.stringify(GameTypes[this.gameType].options)); //create copy of object
         this.gameOptions = JSON.parse(JSON.stringify(GameTypes[this.gameType].options)); //create copy of object
         console.log("gameOptions", this.gameOptions);
         this.mapId = info.mapId;
@@ -132,14 +133,14 @@ export class newRoom {
     setRoundTimeout() {
         if (this.gameOptions.timedGame.enabled) {
             this.roundLength = this.gameOptions.timedGame.roundLength;
-            this.roundEndTime = Date.now() + (this.roundLength * 1e3);
-            this.nextRoundTime = this.roundLength * 1e3;
+            this.roundLengthInMs = this.roundLength * 1e3;
+            this.roundEndTime = Date.now() + this.roundLengthInMs;
             this.timeoutForNextRound = NextRoundTimeout * 1e3;
             this.roundRestartTime = this.roundEndTime + this.timeoutForNextRound;
     
             console.log("roundLength", this.roundLength);
             console.log("roundEndTime", this.roundEndTime);
-            console.log("nextRoundTime", this.nextRoundTime);
+            console.log("roundLengthInMs", this.roundLengthInMs);
             console.log("timeoutForNextRound", this.timeoutForNextRound);
             console.log("roundRestartTime", this.roundRestartTime);
     
@@ -151,17 +152,19 @@ export class newRoom {
             
             this.roundTimeout = setTimeout(() => {
                 this.endRound();
-            }, this.nextRoundTime);
+            }, this.roundLengthInMs);
         } else {
             this.roundEndTime = 0;
             this.roundLength = 0;
-            this.nextRoundTime = 0;
+            this.roundLengthInMs = 0;
         };
     };
 
     endRound() {
         clearTimeout(this.roundTimeout);
+
         this.roundEndTime = Date.now();
+        this.roundRestartTime = this.roundEndTime + this.timeoutForNextRound;
 
         console.log(`Round ended. Starting new round in ${NextRoundTimeout} seconds.`);
     
@@ -255,6 +258,7 @@ export class newRoom {
         output.packInt8U(Comm.Code.updateRoomParams);
         var gameOptions = {
             cheatsEnabled: this.gameOptions.cheatsEnabled,
+            timedGame: this.gameOptions.timedGame,
             weather: this.gameOptions.weather,
             time: this.gameOptions.time,
             plugins: this.gameOptions.plugins,

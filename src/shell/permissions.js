@@ -427,7 +427,10 @@ export class PermissionsConstructor {
             example: "true",
             permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
             inputType: ["bool"],
-            executeClient: ({ player, opts, mentions }) => {},
+            executeClient: ({ player, opts, mentions }) => {
+                var changed = gameOptions.timedGame.enabled != opts;
+                gameOptions.timedGame.enabled = opts;
+            },
             executeServer: ({ player, opts, mentions }) => {
                 this.room.notify(`Rounds have been ${opts ? "enabled" : "disabled"}.`, 5);
 
