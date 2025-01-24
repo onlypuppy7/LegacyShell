@@ -974,17 +974,19 @@ class Player {
             })();
         };
     };
-    knockback(kb, dx, dz) {
-        kb *= 0.01;
+    knockback(originalDamage, dx, dz) {
+        let kb = originalDamage * 0.01 * this.knockbackModifier;
+        let explosion = originalDamage > 100;
+        
         let kbX = dx * kb
         let kbZ = dz * kb
-        let kbY = kb * 10;
+        let kbY = kb * (explosion ? 10 : 0.2);
 
         this.dx += kbX;
         this.dy += kbY;
         this.dz += kbZ;
 
-        devlog("knockback:", kb, dx, dz, kbX, kbZ, kbY);
+        devlog("knockback:", originalDamage, kb, dx, dz, kbX, kbZ, kbY, explosion);
     };
     hit (damage, firedPlayer, dx, dz, noHeal = false, originalDamage) {
         if (this.isDead() || (!this.playing)) return;
@@ -1010,14 +1012,12 @@ class Player {
             // console.log("who REALLY fired?", firedPlayer.id, firedPlayer.name)
             this.setHp(this.hp - damage, firedPlayerId);
 
-            let kb = Math.min(originalDamage, 50) * this.knockbackModifier;
-
             var output = new Comm.Out();
             output.packInt8U(Comm.Code.hitMe);
             output.packInt8U(this.hp);
             output.packFloat(dx);
             output.packFloat(dz);
-            output.packFloat(kb); //kb
+            output.packInt16U(Math.floor(originalDamage / 10)); //kb
             this.client.sendToMe(output, "hitMe");
 
             var output = new Comm.Out();
@@ -1026,10 +1026,10 @@ class Player {
             output.packInt8U(this.hp);
             output.packFloat(dx);
             output.packFloat(dz);
-            output.packFloat(kb); //kb
+            output.packInt16U(Math.floor(originalDamage / 10)); //kb
             this.client.sendToOthers(output, "hitThem");
 
-            this.knockback(kb, dx, dz);
+            this.knockback(originalDamage, dx, dz);
         };
     };
     heal (health, damagedPlayer = this, dx = 0, dz = 0) {
