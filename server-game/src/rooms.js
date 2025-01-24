@@ -161,8 +161,11 @@ export class newRoom {
 
     endRound() {
         clearTimeout(this.roundTimeout);
+        this.roundEndTime = Date.now();
 
         console.log(`Round ended. Starting new round in ${NextRoundTimeout} seconds.`);
+    
+        this.resetGame(true);
 
         var output = new Comm.Out();
         this.packRoundEnd(output);
@@ -194,16 +197,19 @@ export class newRoom {
         plugins.emit('packRoundUpdateEnd', {this: this, output});
     };
 
-    resetGame() {
+    resetGame(defRemove) {
         for (var i = 0; i < this.playerLimit; i++) {
             var player = this.players[i];
             if (player) {
-                player.removeFromPlay();
+                if ((!this.gameOptions.timedGame.spawnDuringInterval) || defRemove) player.removeFromPlay();
                 player.score = 0;
                 player.kills = 0;
                 player.deaths = 0;
                 player.streak = 0;
                 player.bestGameStreak = 0;
+                player.ammoSnapshots = null;
+                player.resetWeaponState();
+                plugins.emit('resetGamePlayer', {this: this, player});
             };
         };
     };

@@ -146,7 +146,7 @@ class Player {
         this.changeWeaponLoadout(this.primaryWeaponItem, this.secondaryWeaponItem);
         this.jumps = 0;
         this.maxJumps = 1;
-        console.log(this.minMap);
+        // console.log(this.minMap);
         if (this.minMap?.extents && this.minMap.extents.maxJumps !== undefined) {
             let maxJumps = this.minMap.extents.maxJumps;
             if (maxJumps !== "") this.maxJumps = Number(maxJumps);
@@ -154,9 +154,10 @@ class Player {
         this.isFalling = false;
 
         var respawnTime = 0;
-        if (isServer && this.room.gameOptions.timedGame.enabled && this.room.roundEndTime < Date.now()) {
-            respawnTime = Math.max(0, this.room.roundRestartTime - Date.now());
-            // console.log("respawnTime", respawnTime);
+        if (isServer && this.gameOptions.timedGame.enabled && this.room.roundEndTime < Date.now()) {
+            let maxTime = this.gameOptions.timedGame.spawnDuringInterval ? this.room.roundEndTime + 5e3 : this.room.roundRestartTime;
+            respawnTime = Math.max(0, maxTime - Date.now());
+            // console.log("respawnTime", respawnTime, this.gameOptions.timedGame.spawnDuringInterval);
         };
         this.resetDespawn(respawnTime);
 
@@ -245,7 +246,14 @@ class Player {
             this.pitch = this.stateBuffer[idx].pitch;
         };
 
-        if (isServer && !this.canRespawn()) this.controlKeys = 0;
+        if (isServer && (
+            (!this.canRespawn()) 
+            || (this.gameOptions.timedGame.enabled && this.room.roundEndTime < Date.now())
+        )) this.controlKeys = 0;
+
+        if (isClient && (
+            (this.gameOptions.timedGame.enabled && roundEndTime < Date.now())
+        )) this.controlKeys = 0;
 
         // devlog(this.name, this.stateIdx, this.controlKeys, this.x.toFixed(2), this.y.toFixed(2), this.z.toFixed(2), this.dx.toFixed(2), this.dy.toFixed(2), this.dz.toFixed(2), this.yaw.toFixed(2), this.pitch.toFixed(2));
 
@@ -906,11 +914,21 @@ class Player {
         };
     };
     resetDespawn(respawnTime = 5000, offset = 0) {
+        let roundEndTime_ = isClient ? roundEndTime : this.room.roundEndTime;
+        if ( //this is disgusting.
+            this.gameOptions.timedGame.enabled && roundEndTime_ < Date.now() &&
+            this.gameOptions.timedGame.spawnDuringInterval
+        ) respawnTime = 4e3;
+
+        devlog("set respawn to", respawnTime, "from now, offset:", offset, this.gameOptions.timedGame.enabled && roundEndTime_ < Date.now());
+        devlog(this.gameOptions.timedGame.enabled, roundEndTime_ < Date.now(), this.gameOptions.timedGame.spawnDuringInterval);
+
         this.lastDespawn = Date.now() + offset;
         this.nextRespawn = this.lastDespawn + respawnTime;
     };
     canRespawn() {
-        return Date.now() >= this.nextRespawn;
+        let can = Date.now() >= this.nextRespawn;
+        return can;
     };
     removeFromPlay() {
         this.playing = false;
@@ -1093,9 +1111,11 @@ class Player {
         this.playing = true;
         if (this.hp <= 0) {
             this.hp = 100;
-            this.resetWeaponState();
+            this.resetWeaponState(!this.gameOptions.rearmOnRespawn);
         } else {
-            this.resetWeaponState(); //FYI: this is not original behaviour! originally ammo does not come back (so is true)...
+            //FYI: this is not original behaviour! originally ammo does not come back (so was true)...
+            //switching weapons to another then back would give inifinite ammo, so thats pointless, kek...
+            this.resetWeaponState(!this.gameOptions.rearmOnRespawn); //true
         };
         this.resetStateBuffer();
         if (this.actor) {
@@ -1134,7 +1154,7 @@ class Player {
             this.weapons[0].actor.gunMesh.setEnabled(false);
             this.weapons[1].actor.gunMesh.setEnabled(false);
         };
-        if (this.gameOptions.rearmOnRespawn && !dontReload) {
+        if (!dontReload) {
             for (var i = 0; i < this.weapons.length; i++) {
                 if (this.weapons[i]) {
                     this.weapons[i].ammo.rounds = this.weapons[i].ammo.capacity;

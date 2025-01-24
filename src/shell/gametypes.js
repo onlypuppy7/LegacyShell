@@ -55,6 +55,7 @@ export var defaultOptions = {
     timedGame: {
         enabled: false,
         roundLength: 150, //2.5 mins in seconds
+        spawnDuringInterval: false, //allows people to sit and wait
     },
     cheatsEnabled: false,
     weather: {
