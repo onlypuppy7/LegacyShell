@@ -112,10 +112,10 @@ export default async function run () {
                 try {
                     let promiseStart = Date.now();
 
+                    buildWiki(); //not essential, can just be left here to do its thing
                     await Promise.all([
                         prepareStamps(),
                         prepareModified(),
-                        buildWiki()
                     ]);
                     log.success('All start-client promises resolved in ' + (Date.now() - promiseStart) + 'ms');
 

@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 //legacyshell: preparing stamps
 import sharp from 'sharp';
+import crypto from 'crypto';
 //legacyshell: logging
 import log from '#coloured-logging';
 //legacyshell: ss
@@ -20,6 +21,17 @@ export function filterName(name) {
 export var widthheight = 32; //fyi 127 is max (assuming 128x128 stamps)
 export var widthheightDetermined = false;
 export var cacheModified = false;
+
+async function generateFileHash(filePath) {
+    return new Promise((resolve, reject) => {
+        const hash = crypto.createHash('sha256');
+        const stream = fs.createReadStream(filePath);
+
+        stream.on('data', (data) => hash.update(data));
+        stream.on('end', () => resolve(hash.digest('hex')));
+        stream.on('error', (err) => reject(err));
+    });
+};
 
 export async function prepareStamps() {
     let startTime = Date.now();
@@ -97,6 +109,7 @@ export async function prepareStamps() {
     // console.log(stampImages);
 
     var filesForImage = [];
+    let combinedHash = "";
 
     filesForImage.push(''); //blank for no stamp
 
@@ -110,6 +123,7 @@ export async function prepareStamps() {
                 id: stamp.id,
                 file: stampImages[name],
             });
+            combinedHash += await generateFileHash(stampImages[name]);
         } else {
             log.warning(`Stamp not found: "${name}"`);
         };
@@ -120,7 +134,31 @@ export async function prepareStamps() {
 
     log.info(filesForImage.length, "Stamp images prepared. Will use a", widthheight, "x", widthheight, "grid - hence total:", widthheight * widthheight);
 
-    var image = sharp({
+    // devlog(combinedHash);
+
+    let imageHashesPath = path.join(ss.currentDir, 'store', 'stamps_image_hashes.json');
+    let imageHashes = {};
+
+    if (fs.existsSync(imageHashesPath)) {
+        imageHashes = JSON.parse(fs.readFileSync(imageHashesPath, 'utf8'));
+    };
+
+    var outputImagePath = path.join(ss.currentDir, 'store', 'client-modified', 'img', 'stamps.png');
+
+    let outputImageHash = "undefined";
+
+    if (fs.existsSync(outputImagePath)) {
+        outputImageHash = await generateFileHash(outputImagePath);
+    };
+
+    let skipGeneration;
+
+    if (imageHashes[combinedHash] === outputImageHash) {
+        devlog("no need to redo image!");
+        skipGeneration = true;
+    };
+
+    var image = skipGeneration || sharp({
         create: {
             width: stampSize * widthheight,
             height: stampSize * widthheight,
@@ -141,30 +179,32 @@ export async function prepareStamps() {
         };
     
         if (file && file !== "") {
-            var input = sharp(file.file);
+            var input = skipGeneration || sharp(file.file);
 
-            var needsBorder = (await needsBorderCheck(input)) ? 2 : 0;
-
-            if (needsBorder) {
-                log.beige('Adding border to', file.file);
-                input = input.clone();
-                input = input.extend({
-                    top: 1,
-                    bottom: 1,
-                    left: 1,
-                    right: 1,
+            if (!skipGeneration) {
+                var needsBorder = (await needsBorderCheck(input)) ? 2 : 0;
+    
+                if (needsBorder) {
+                    log.beige('Adding border to', file.file);
+                    input = input.clone();
+                    input = input.extend({
+                        top: 1,
+                        bottom: 1,
+                        left: 1,
+                        right: 1,
+                        background: { r: 255, g: 255, b: 255, alpha: 0 }
+                    });
+                };
+    
+                input = input.resize({
+                    width: stampSize - needsBorder,
+                    height: stampSize - needsBorder,
+                    fit: 'contain',
                     background: { r: 255, g: 255, b: 255, alpha: 0 }
                 });
+    
+                input = await input.toBuffer();
             };
-
-            input = input.resize({
-                width: stampSize - needsBorder,
-                height: stampSize - needsBorder,
-                fit: 'contain',
-                background: { r: 255, g: 255, b: 255, alpha: 0 }
-            });
-
-            input = await input.toBuffer();
 
             composites.push({
                 id: file.id,
@@ -196,23 +236,29 @@ export async function prepareStamps() {
     ss.cache.items = JSON.stringify(items);
 
     cacheModified = true;
+
+    if (skipGeneration) return;
     
     log.italic('[Stamps] Compositing images...');
     image.composite(composites);
 
-    var output = path.join(ss.currentDir, 'store', 'client-modified', 'img', 'stamps.png');
-
-    if (!fs.existsSync(path.dirname(output))) {
-        fs.mkdirSync(path.dirname(output), {recursive: true});
+    if (!fs.existsSync(path.dirname(outputImagePath))) {
+        fs.mkdirSync(path.dirname(outputImagePath), {recursive: true});
     };
 
-    log.info('[Stamps] Saving stamps to', output);
+    log.info('[Stamps] Saving stamps to', outputImagePath);
 
-    await image.toFile(output);
+    await image.toFile(outputImagePath);
 
     log.success('Stamps prepared in', Date.now() - startTime, 'ms');
+    
+    outputImageHash = await generateFileHash(outputImagePath);
 
-    await plugins.emit('stampsPrepared', {this: this, items, composites, image, output});
+    imageHashes[combinedHash] = outputImageHash;
+
+    fs.writeFileSync(imageHashesPath, JSON.stringify(imageHashes, null, 4));
+
+    await plugins.emit('stampsPrepared', {this: this, items, composites, image, output: outputImagePath});
 };
 
 export const needsBorderCheck = async (sharpInstance) => {
