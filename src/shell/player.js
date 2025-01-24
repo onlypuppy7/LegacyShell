@@ -738,7 +738,7 @@ class Player {
     };
     isSteady() {
       const readySSelected = isServer ? this.weapon.subClass.readySpread * 1.5 : this.weapon.subClass.readySpread;
-      //idk if 1.3 is too much or not enough; Should do the job though.
+      //idk if 1.3 is too much or not enough; Should do the job though. - op7: make that 1.5.
       return !this.weapon.subClass.readySpread ||
         5 * readySSelected >= this.shotSpread + this.weapon.subClass.accuracy;
     };
@@ -746,7 +746,15 @@ class Player {
         return (!this.betweenRounds()) && !(!(this.playing && this.weapon && this.reloadCountdown <= 0 && this.swapWeaponCountdown <= 0 && this.grenadeCountdown <= 0) || this.actor && 0 != grenadePowerUp);
     };
     canSwapOrReload() {
-        return (!this.betweenRounds()) && !(!(this.playing && this.weapon && this.recoilCountdown <= 0 && this.reloadCountdown <= 0 && this.swapWeaponCountdown <= 0 && this.grenadeCountdown <= 0 && this.shotsQueued <= 0) || this.actor && 0 != grenadePowerUp)
+        let recoilLeniency = isServer ? 6 : 0; //bigger value means more leniency to people fast reloading.
+
+        let value = (!this.betweenRounds()) && !(!(this.playing && this.weapon && this.recoilCountdown <= recoilLeniency && this.reloadCountdown <= 0 && this.swapWeaponCountdown <= 0 && this.grenadeCountdown <= 0 && this.shotsQueued <= 0) || this.actor && 0 != grenadePowerUp)
+        console.log(value);
+        console.log(!this.betweenRounds());
+        console.log(this.playing, !!this.weapon, this.recoilCountdown, this.recoilCountdown <= 0);
+        console.log(this.reloadCountdown, this.reloadCountdown <= 0, this.swapWeaponCountdown, this.swapWeaponCountdown <= 0);
+        console.log(this.grenadeCountdown, this.grenadeCountdown <= 0, this.shotsQueued,  this.shotsQueued <= 0);
+        return value;
     };
     fire() {
         if (0 < this.shield) {
