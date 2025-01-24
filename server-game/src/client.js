@@ -218,8 +218,8 @@ class newClient {
                             this.sendToAll(output, "packThisPlayer (ready/joined)");
 
                             var output = new Comm.Out();
-                            this.room.packRoundUpdate(output);
                             this.room.packUpdateRoomParams(output);
+                            this.room.packRoundUpdate(output);
                             output.packInt8U(Comm.Code.clientReady);
                             this.sendToMe(output, "clientReady");
 
