@@ -737,10 +737,10 @@ class Player {
         return AllItems[kind].collect(this, applyToWeaponIdx);
     };
     isSteady() {
-      const readySSelected = isServer ? this.weapon.subClass.readySpread * 1.5 : this.weapon.subClass.readySpread;
-      //idk if 1.3 is too much or not enough; Should do the job though. - op7: make that 1.5.
-      return !this.weapon.subClass.readySpread ||
-        5 * readySSelected >= this.shotSpread + this.weapon.subClass.accuracy;
+        const readySSelected = isServer ? this.weapon.subClass.readySpread * 1.5 : this.weapon.subClass.readySpread;
+        //idk if 1.3 is too much or not enough; Should do the job though. - op7: make that 1.5.
+        return !this.weapon.subClass.readySpread ||
+            5 * readySSelected >= this.shotSpread + this.weapon.subClass.accuracy;
     };
     isAtReady(scoped) {
         return (!this.betweenRounds()) && !(!(this.playing && this.weapon && this.reloadCountdown <= 0 && this.swapWeaponCountdown <= 0 && this.grenadeCountdown <= 0) || this.actor && 0 != grenadePowerUp);
@@ -958,22 +958,22 @@ class Player {
         this.score = this.streak;
 
         if (isServer && !noEggs) { //do request to add eggs here
-            (async () => {
-                if (killedPlayer && this.id !== killedPlayer.id) {
+            if (killedPlayer && this.id !== killedPlayer.id) {
+                (async () => {
                     if (this.client.session && this.client.session.length > 0) {
                         var response = await wsrequest({
                             cmd: "addKill",
                             session: this.client.session,
                             currentKills: this.kills,
                         }, ss.config.game.services_server, ss.config.game.auth_key);
-
+    
                         var output = new Comm.Out();
                         output.packInt8U(Comm.Code.updateBalance);
                         output.packInt32U(response.currentBalance);
                         this.client.sendToMe(output, "updateBalance");
                     };
-                };
-            })();
+                })();
+            };
         };
     };
     knockback(originalDamage, dx, dz) {
