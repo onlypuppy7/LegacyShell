@@ -613,33 +613,35 @@ const Comm = {
         const foundEntry = commCodeEntries.find(([key, value]) => value === code);
         return foundEntry ? foundEntry[0] : 'unknownCode';
     },
-};
 
-function addCommCode(name) {
-    let code = 0;
+    Add: function(name) {
+        let code = 0;
 
-    //get list of all codes
-    let codes = [];
-    Object.values(Comm.Code).forEach((val) => {
-        codes.push(val);
-    });
-
-    //find next available code
-    codes.sort((a, b) => a - b);
-    for (let i = 0; i < codes.length; i++) {
-        if (codes[i] !== i) {
-            code = i;
-            break;
+        if (Comm.Code[name]) {
+            return devlog("Custom commcode already exists?", name, Comm.Code[name]);
         };
-    };
     
-    Comm.Code[name] = code;
-
-    return code;
+        //get list of all codes
+        let codes = [];
+        Object.values(Comm.Code).forEach((val) => {
+            codes.push(val);
+        });
+    
+        //find next available code
+        codes.sort((a, b) => a - b);
+        for (let i = 0; i < codes.length; i++) {
+            if (codes[i] !== i) {
+                code = i;
+                break;
+            };
+        };
+        
+        Comm.Code[name] = code;
+    
+        devlog("Added custom commcode:", name, code);
+    
+        return code;
+    },
 };
-
-(async () => {
-    await plugins.emit('addCommCode', {Comm, addCommCode});
-})();
 
 export default Comm;
