@@ -153,11 +153,11 @@ export default async function run () {
                 var msg = JSON.parse(response);
                 ws = wsP;
 
-                ss.config.verbose && (log.dim("Received cmd: "+msg.cmd), msg.cmd !== "requestConfig" && console.log(msg));
+                ss.config.verbose && (!msg.cmd == "servicesInfo") && (log.dim("Received cmd: "+msg.cmd), msg.cmd !== "requestConfig" && console.log(msg));
 
-                await plugins.emit('onMsg', { this: this, ss, msg });
+                await plugins.emit('connectWebSocketMessage', { this: this, ss, msg });
 
-                switch (msg.cmd) {
+                if (!plugins.cancel) switch (msg.cmd) {
                     case "requestConfig":
                         if (!retrieved) {
                             log.green('Received config information from sync server.');
