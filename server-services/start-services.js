@@ -72,9 +72,23 @@ export default async function run (runStart) {
     setInterval(backups.createBackup, 1e3 * 60 * 60 * (ss.config.services.backups.interval || 1));
     backups.createBackup();
 
+    var announcement = "";
+    
+    try {
+        announcement = (await ss.getOne(`SELECT * FROM flags WHERE name = 'game_announcement'`)).value;
+    } catch (error) {
+        try {
+            log.info("No game announcement set yet. Inserting empty now.");
+            ss.runQuery("INSERT INTO flags (name, value) VALUES ('game_announcement', ?)", announcement);
+        } catch (error) {
+            log.error("bruh, cant make announcement", error);
+        };
+    };
+
     var servicesInfo = {
         client: {
             gameInfo: {},
+            announcement,
         },
         gameInfo: {},
     };
@@ -268,6 +282,8 @@ export default async function run (runStart) {
                             events: await events.initEvents(),
     
                             nugget_interval: ss.config.services.nugget_interval,
+                            session_expiry_time: ss.config.services.session_expiry_time,
+                            
                             servicesMeta: {
                                 versionEnum: ss.versionEnum,
                                 versionHash: ss.versionHash,
@@ -407,6 +423,20 @@ export default async function run (runStart) {
                                 }));
                                 break;
                             // Client/game server commands
+                            case 'setAnnouncement':
+                                if (msg.auth_key) {
+                                    announcement = msg.announcement || "";
+                                    servicesInfo.client.announcement = announcement;
+
+                                    log.info("Setting new announcement to:", announcement);
+
+                                    ss.runQuery("INSERT OR REPLACE INTO flags (name, value) VALUES ('game_announcement', ?)", announcement);
+
+                                    await plugins.emit('setAnnouncement', { msg });
+                                };
+
+                                // console.log(servicesInfo);
+                                break;
                             case 'servicesInfo':
                                 if (msg.gameInfo && msg.auth_key && typeof(msg.thisServer) == 'number') {
                                     var gameInfo = msg.gameInfo;

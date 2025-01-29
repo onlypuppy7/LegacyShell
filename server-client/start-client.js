@@ -278,6 +278,8 @@ export default async function run () {
                     
                             // console.log(ss.items);
                     
+                            ss.distributed_data = JSON.parse(JSON.stringify(msg));
+
                             delete msg.distributed_game;
                 
                             msg = { ...msg, ...msg.distributed_client };

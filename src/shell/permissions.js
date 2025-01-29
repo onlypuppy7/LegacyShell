@@ -1,6 +1,7 @@
 // legacyshell: permissions
 import { isClient, maxServerSlots, Team } from "#constants";
 import Comm from '#comm';
+import wsrequest from '#wsrequest';
 //legacyshell: ss
 import { ss } from '#misc';
 //legacyshell: plugins
@@ -218,15 +219,18 @@ export class PermissionsConstructor {
             identifier: "announce",
             name: "announce",
             category: "admin",
-            description: "Announces a message to all players across all games.",
+            description: "Sets the homescreen text.",
             example: "WASSUP",
-            permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Moderator, false],
+            permissionLevel: [this.ranksEnum.Admin, this.ranksEnum.Admin, false],
             inputType: ["string"],
             executeClient: ({ player, opts, mentions }) => {
                 console.log(`Announcement: ${opts}`);
             },
             executeServer: ({ player, opts, mentions }) => {
-                // this.room(`Announcement: ${opts}`);
+                wsrequest({
+                    cmd: "setAnnouncement",
+                    announcement: opts,
+                }, ss.config.game.services_server, ss.config.game.auth_key);
             }
         });
 
