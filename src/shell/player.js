@@ -959,20 +959,7 @@ class Player {
 
         if (isServer && !noEggs) { //do request to add eggs here
             if (killedPlayer && this.id !== killedPlayer.id) {
-                (async () => {
-                    if (this.client.session && this.client.session.length > 0) {
-                        var response = await wsrequest({
-                            cmd: "addKill",
-                            session: this.client.session,
-                            currentKills: this.kills,
-                        }, ss.config.game.services_server, ss.config.game.auth_key);
-    
-                        var output = new Comm.Out();
-                        output.packInt8U(Comm.Code.updateBalance);
-                        output.packInt32U(response.currentBalance);
-                        this.client.sendToMe(output, "updateBalance");
-                    };
-                })();
+                this.client.addKillViaServices();
             };
         };
     };

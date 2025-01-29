@@ -611,6 +611,37 @@ class newClient {
         this.room.spawnItems();
     };
 
+    sendUpdateBalance(currentBalance) {
+        var output = new Comm.Out();
+        output.packInt8U(Comm.Code.updateBalance);
+        output.packInt32U(currentBalance);
+        this.sendToMe(output, "updateBalance");
+    };
+
+    async addKillViaServices() {
+        if (this.session && this.session.length > 0) {
+            var response = await wsrequest({
+                cmd: "addKill",
+                session: this.session,
+                currentKills: this.kills,
+            }, ss.config.game.services_server, ss.config.game.auth_key);
+
+            this.sendUpdateBalance(response.currentBalance);
+        };
+    };
+
+    async addEggsViaServices(eggAmount) {
+        if (this.session && this.session.length > 0) {
+            var response = await wsrequest({
+                cmd: "addEggs",
+                session: this.session,
+                eggAmount,
+            }, ss.config.game.services_server, ss.config.game.auth_key);
+
+            this.sendUpdateBalance(response.currentBalance);
+        };
+    };
+
     sendBuffer(output, debug) { // more direct operation, preferred to use this.room.sendToOne
         if (!(debug.includes("sync") || debug.includes("ping") || debug.includes("dataSync"))) console.log(this.id, debug, output.idx);
         this.sendMsgToWs(output.buffer);

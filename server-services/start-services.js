@@ -174,6 +174,7 @@ export default async function run (runStart) {
                     ss.config.services.ratelimit.sensitive.cmds.includes(msg.cmd) && (cmdType = 'sensitive');
                     const auth_commands = [
                         "getUser", //modify this i guess
+                        "addEggs",
                         "addKill",
                         "addDeath",
                         "sqlRequest",
@@ -203,6 +204,8 @@ export default async function run (runStart) {
                     };
         
                     let sessionData, userData;
+                    
+                    var eggMultiplier = 1;
     
                     if (msg.session) {
                         sessionData = await sess.retrieveSession(msg.session, ip, msg.auth_key);
@@ -211,6 +214,7 @@ export default async function run (runStart) {
                             // console.log(sessionData.expires_at, (Math.floor(Date.now() / 1000)));
                             if (sessionData && sessionData?.expires_at && (sessionData.expires_at > (Math.floor(Date.now() / 1000)))) {
                                 userData = await accs.getUserData(sessionData.user_id, true);
+                                if (userData.upgradeExpiryDate * 1000 > Date.now()) eggMultiplier = userData.upgradeMultiplier;
                             };
                         } catch (error) {
                             log.red("WHY IS THERE AN ERROR?? error with session -> userData");
@@ -348,12 +352,28 @@ export default async function run (runStart) {
                                     userData
                                 }));
                                 break;
-                            case 'addKill':
-                                var multiplier = 1;
-                                if (userData.upgradeExpiryDate * 1000 > Date.now()) multiplier = userData.upgradeMultiplier;
-                                console.log("egg multiplier", multiplier);
+                            case 'addEggs':
+                                console.log("egg multiplier", eggMultiplier);
     
-                                userData.currentBalance += (10 * multiplier);
+                                userData.currentBalance += (msg.eggAmount * eggMultiplier);
+    
+                                ss.config.verbose && log.bgBlue("services: Writing to DB: set new balance "+userData.username);
+                                await ss.runQuery(`
+                                    UPDATE users 
+                                    SET currentBalance = ?
+                                    WHERE account_id = ?
+                                `, [userData.currentBalance, userData.account_id]);
+    
+                                await plugins.emit('addEggs', { userData });
+
+                                if (!plugins.cancel) ws.send(JSON.stringify({
+                                    currentBalance: userData.currentBalance
+                                }));
+                                break;
+                            case 'addKill':
+                                console.log("egg multiplier", eggMultiplier);
+    
+                                userData.currentBalance += (10 * eggMultiplier);
                                 userData.kills += 1;
                                 userData.streak = Math.max(msg.currentKills, userData.streak || 0);
     
