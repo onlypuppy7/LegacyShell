@@ -237,7 +237,10 @@ export async function prepareStamps() {
 
     cacheModified = true;
 
-    if (skipGeneration) return;
+    if (skipGeneration) {
+        await plugins.emit('stampsPreparedSkip', {this: this, items, composites, image, output: outputImagePath});
+        return;
+    };
     
     log.italic('[Stamps] Compositing images...');
     image.composite(composites);
