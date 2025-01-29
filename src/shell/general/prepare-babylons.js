@@ -5,6 +5,7 @@ import path from 'node:path';
 import misc from '#misc';
 import jszip from 'jszip';
 import { createStampsUV } from '#stampsGenerator';
+import crypto from 'crypto';
 //legacyshell: logging
 import log from '#coloured-logging';
 //legacyshell: ss
@@ -160,9 +161,20 @@ export async function prepareBabylons(endBabylonsDir = path.join(ss.rootDir, 'st
                 if (oldBabylon !== endBabylon) fileChanged = true;
             } catch (error) { fileChanged = true };
 
+            let versionNumber = timestamp;
+
+            //use this instead its better
+            try {
+                var hashSum = crypto.createHash('sha256');
+                hashSum.update(endBabylon);
+                versionNumber = BigInt('0x' + hashSum.digest('hex')).toString(10);
+            } catch (error) {
+                log.error("error in hashing babylon? hmm.", error);
+            };
+
             fs.writeFileSync(path.join(endBabylonsDir, `${filename}.babylon`), endBabylon);
             fs.writeFileSync(path.join(endBabylonsDir, `${filename}.babylon.manifest`), `{
-	"version" : ${Math.ceil(timestamp)},
+	"version" : ${Math.ceil(versionNumber)},
 	"enableSceneOffline" : true,
 	"enableTextureOffline" : true
 }`);
