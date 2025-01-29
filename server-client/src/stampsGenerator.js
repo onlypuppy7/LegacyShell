@@ -295,14 +295,16 @@ export const needsBorderCheck = async (sharpInstance) => {
 };
 
 export async function createStampsUV(wh = widthheight, skipWait) {
-    log.info('Creating stamps UV...', wh);
+    log.info('Planning to create stamps UV', wh);
 
-    if (plugins.type === "client") {
+    if (plugins.type === "client" && !skipWait) { //game server really doesnt need to care
         await new Promise(resolve => {
-            const check = () => widthheightDetermined ? resolve() : setTimeout(check, 100);
-            check(); devlog("widthheightDetermined", widthheightDetermined);
+            const check = () => widthheightDetermined ? (wh = widthheight, resolve()) : setTimeout(check, 100);
+            check(); console.log("widthheightDetermined", widthheightDetermined);
         });
     };
+
+    log.info('Creating stamps UV...', wh);
 
     var uv = [
         0,
