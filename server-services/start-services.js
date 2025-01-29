@@ -228,7 +228,7 @@ export default async function run (runStart) {
                             // console.log(sessionData.expires_at, (Math.floor(Date.now() / 1000)));
                             if (sessionData && sessionData?.expires_at && (sessionData.expires_at > (Math.floor(Date.now() / 1000)))) {
                                 userData = await accs.getUserData(sessionData.user_id, true);
-                                if (userData.upgradeExpiryDate * 1000 > Date.now()) eggMultiplier = userData.upgradeMultiplier;
+                                if (userData.upgradeMultiplier && (userData.upgradeExpiryDate * 1000 > Date.now())) eggMultiplier *= userData.upgradeMultiplier;
                             };
                         } catch (error) {
                             log.red("WHY IS THERE AN ERROR?? error with session -> userData");
@@ -393,7 +393,7 @@ export default async function run (runStart) {
                                 userData.kills += 1;
                                 userData.streak = Math.max(msg.currentKills, userData.streak || 0);
     
-                                ss.config.verbose && log.bgBlue("services: Writing to DB: set new balance + kills + streak "+userData.username);
+                                ss.config.verbose && log.bgBlue("services: Writing to DB: set new balance + kills + streak "+userData.username, userData.currentBalance, userData.kills, userData.streak, userData.account_id);
                                 await ss.runQuery(`
                                     UPDATE users 
                                     SET currentBalance = ?, kills = ?, streak = ?
