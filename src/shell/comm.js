@@ -1,5 +1,5 @@
 //legacyshell: basic
-import { isClient } from '#constants';
+import { isClient, devlog } from '#constants';
 import { plugins } from '#plugins';
 //
 
