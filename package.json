@@ -37,6 +37,9 @@
         "ws": "^8.18.0"
     },
     "imports": {
+        "#start-client": "./server-game/start-client.js",
+        "#start-game": "./server-game/start-game.js",
+        "#start-services": "./server-game/start-services.js",
         "#coloured-logging": "./src/shell/general/coloured-logging.js",
         "#looper": "./src/shell/general/looper.js",
         "#misc": "./src/shell/general/misc.js",
