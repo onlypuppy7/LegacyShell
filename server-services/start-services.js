@@ -310,8 +310,9 @@ export default async function run (runStart) {
                             };
                         };
 
-                        function sendServicesInfo() {
-                            if (msg.auth_key) {
+                        async function sendServicesInfo() {
+                            await plugins.emit("sendServicesInfo", {servicesInfo});
+                            if (!plugins.cancel) if (msg.auth_key) {
                                 ws.send(JSON.stringify( {cmd: "servicesInfo", ...servicesInfo} ));
                             } else {
                                 ws.send(JSON.stringify( {cmd: "servicesInfo", client: servicesInfo.client} ));
