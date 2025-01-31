@@ -20,7 +20,7 @@ Copy it and save it to some var in the console.
 var maps = [{filename:"aqueduct",hash:"11dp765kifr",name:"Aqueduct", ... (etc) ... ,name:"Wreckage",modes:{FFA:!0,Teams:!0,Spatula:!0,King:!0},availability:"private",numPlayers:"18"}];
 ```
 
-Some maps aren't 
+Some maps aren't included in this list. For instance, easyparkour is one that exists on Shell's servers but doesn't get listed in the game.
 
 Paste this function:
 
