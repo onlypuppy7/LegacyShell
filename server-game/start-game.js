@@ -133,9 +133,9 @@ export default async function run () {
     let retrieved = false;
     let offline = false;
 
-    let mapsFilePath =      path.join(ss.currentDir, 'store', 'maps.json');
-    let serversFilePath =   path.join(ss.currentDir, 'store', 'servers.json');
-    let itemsFilePath =     path.join(ss.currentDir, 'store', 'items.json');
+    let mapsFilePath      = path.join(ss.currentDir, 'store', 'maps.json');
+    let serversFilePath   = path.join(ss.currentDir, 'store', 'servers.json');
+    let itemsFilePath     = path.join(ss.currentDir, 'store', 'items.json');
 
     async function connectWebSocket(retryCount = 0) {
         nextTimeout = Math.min(nextTimeout + 3e3, 30e3);
@@ -162,6 +162,8 @@ export default async function run () {
                         if (!retrieved) {
                             log.green('Received config information from sync server.');
                             offline = false;
+
+                            await plugins.emit("requestConfigReceived", {msg});
                 
                             const load = function(thing, filePath) {
                                 if (msg[thing]) {

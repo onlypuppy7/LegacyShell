@@ -148,7 +148,7 @@ export class PluginManager {
         log.info(`Finished loading plugins in ${Date.now() - pluginLoadStart}ms.\n####################`);
     };
 
-    on(event, listener) { //when a plugin registers a listener
+    on (event, listener) { //when a plugin registers a listener
         if (isServer) log.purple("registering emitter", event);
         else console.log("registering emitter", event);
 

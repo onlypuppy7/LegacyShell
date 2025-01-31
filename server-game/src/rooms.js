@@ -231,6 +231,9 @@ export class newRoom {
 
         // devlog(details);
 
+        var playerNames = [];
+        this.players.forEach((player)=>playerNames.push(player?.name));
+
         parentPort.postMessage([Comm.Worker.updateRoom, {
             ready: true,
             playerLimit: this.playerLimit,
@@ -238,6 +241,8 @@ export class newRoom {
             usernames: this.details.usernames,
             uuids: this.details.uuids,
             sessions: this.details.sessions,
+
+            playerNames,
 
             joinType: this.joinType,
             gameType: this.gameType,

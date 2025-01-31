@@ -304,7 +304,9 @@ export default async function run (runStart) {
                             for (var i = 0; i < servers.length; i++) {
                                 if (servers[i].auth_key === msg.auth_key) {
                                     response.yourServer = i;
-                                    // devlog("your server", i);
+                                    response.yourServerName = servers[i].name;
+                                    response.yourServerAddress = servers[i].address;
+                                    // devlog("your server", servers[i]);
                                     break;
                                 };
                             };

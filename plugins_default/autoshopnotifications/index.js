@@ -167,7 +167,7 @@ export class Plugin {
             }, null, 4));
             log.beige('[autoshopnotifications] Config file created at', configPath);
         };
-        return JSON.parse(fs.readFileSync(configPath));
+        return JSON.parse(fs.readFileSync(configPath, 'utf8'));
     };
 
     saveConfig(config) {

@@ -346,6 +346,10 @@ class newRoomManager {
         });
         for (const room of this.rooms.values()) {
             var roomInfo = {
+                gameCode: (`${ss.thisServer}${(room.gameId).toString(36)}${(room.gameKey).toString(36)}`).toUpperCase(),
+                privPublic: room.joinType === Comm.Code.joinPublicGame ? "public" : "private",
+                mapName: ss.maps[room.mapId].name,
+                playerNames: room.playerNames,
                 gameId: room.gameId,
                 gameKey: room.gameKey,
                 gameType: room.gameType,
@@ -379,7 +383,8 @@ class newRoomManager {
             gameInfo.roomCountTotal.both++;
             gameInfo.roomCountBoth[room.gameType] = (gameInfo.roomCountBoth[room.gameType] || 0) + 1;
         };
-        servicesWs.send(JSON.stringify({
+        await plugins.emit("sendGameInfo", {gameInfo});
+        if (!plugins.cancel) servicesWs.send(JSON.stringify({
             cmd: 'servicesInfo',
             thisServer: ss.thisServer,
             gameInfo,
