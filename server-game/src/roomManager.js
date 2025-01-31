@@ -349,6 +349,8 @@ class newRoomManager {
                 gameCode: (`${ss.thisServer}${(room.gameId).toString(36)}${(room.gameKey).toString(36)}`).toUpperCase(),
                 privPublic: room.joinType === Comm.Code.joinPublicGame ? "public" : "private",
                 mapName: ss.maps[room.mapId].name,
+                gameMode: GameTypes[room.gameType].longName,
+                
                 playerNames: room.playerNames,
                 gameId: room.gameId,
                 gameKey: room.gameKey,

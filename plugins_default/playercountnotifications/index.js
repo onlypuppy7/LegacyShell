@@ -54,7 +54,9 @@ export class Plugin {
             };
 
             this.config = this.getConfig();
-            console.log(this.config)
+            // console.log(this.config)
+
+            this.giveup = {};
 
             this.plugins.on('game:sendGameInfo', this.sendGameInfo.bind(this));
             this.plugins.on('game:requestConfigReceived', this.requestConfigReceived.bind(this));
@@ -65,7 +67,7 @@ export class Plugin {
                 highestPub = 0;
                 highestPriv = 0;
                 highestBoth = 0;
-            }, 24 * 60 * 60e3);
+            }, 24 * 60 * 60e3); //in public instance is restarts anyway but why not.
         } else {
             log.orange(`${PluginMeta.identifier} won't run on this server type (game only).`);
         };
@@ -92,6 +94,7 @@ export class Plugin {
                 if (room?.playerCount) rooms.push({
                     gameCode: room.gameCode,
                     privPublic: room.privPublic,
+                    gameMode: room.gameMode,
                     playerCount: room.playerCount,
                     playerLimit: room.playerLimit,
                     mapName: room.mapName,
@@ -137,8 +140,11 @@ export class Plugin {
         msgs = this.splitBy2kChars(msgs);
 
         for (const webhook of webhooks) {
+            if (this.giveup[webhook]) return true;
+
             if (webhook == '' || !webhook) {
                 log.warning('[playercountnotifications] No webhook set. Please set a webhook in the config file.');
+                this.giveup[webhook] = true;
                 return false;
             };
     
