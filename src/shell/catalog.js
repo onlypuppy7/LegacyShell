@@ -125,27 +125,38 @@ export class CatalogConstructor {
                 this.secondaryWeapons.push(this.Items[i]), this.addWeaponFunctions(this.Items[i])
         }
         for (var cIdx = 0; cIdx < CharClass.length; cIdx++) {
-            var isFreeSharedFunc = function (item) {
-                return 0 === item.price && null === item.exclusive_for_class
-            },
-                isFreeClassExclusiveFunc = function (item) {
-                    return 0 === item.price && item.exclusive_for_class === cIdx
-                },
-                isPaidSharedFunc = function (item) {
-                    return 0 < item.price && null === item.exclusive_for_class
-                },
-                isPaidClassExclusiveFunc = function (item) {
-                    return 0 < item.price && item.exclusive_for_class === cIdx
-                },
-                outer = this,
-                createClassWeaponListFunc = function (itemList) {
-                    return itemList = outer.filterItems(itemList, isFreeSharedFunc).concat(outer.filterItems(itemList, isFreeClassExclusiveFunc)).concat(outer.filterItems(itemList, isPaidSharedFunc)).concat(outer.filterItems(itemList, isPaidClassExclusiveFunc))
-                },
-                classItems = {
-                    primaryWeapons: createClassWeaponListFunc(this.primaryWeapons),
-                    secondaryWeapons: createClassWeaponListFunc(this.secondaryWeapons)
-                };
-            classItems.forWeaponSlot = [classItems.primaryWeapons, classItems.secondaryWeapons], this.forClass.push(classItems)
+            var isFreeSharedFunc = function(item) {
+                return (item.price === 0 && item.exclusive_for_class === null);
+            };
+
+            var isFreeClassExclusiveFunc = function(item) {
+                return (item.price === 0 && item.exclusive_for_class === cIdx);
+            };
+
+            var isPaidSharedFunc = function(item) {
+                return (item.price > 0 && item.exclusive_for_class === null);
+            };
+
+            var isPaidClassExclusiveFunc = function(item) {
+                return (item.price > 0 && item.exclusive_for_class === cIdx);
+            };
+
+            var outer = this;
+            var createClassWeaponListFunc = function(itemList) {
+                var itemList = outer.filterItems(itemList, isFreeSharedFunc)
+                                .concat(outer.filterItems(itemList, isFreeClassExclusiveFunc))
+                                .concat(outer.filterItems(itemList, isPaidSharedFunc))
+                                .concat(outer.filterItems(itemList, isPaidClassExclusiveFunc));
+                return itemList;
+            };
+
+            var classItems = {
+                primaryWeapons: createClassWeaponListFunc(this.primaryWeapons),
+                secondaryWeapons: createClassWeaponListFunc(this.secondaryWeapons),
+            };
+
+            classItems.forWeaponSlot = [classItems.primaryWeapons, classItems.secondaryWeapons];
+            this.forClass.push(classItems);
         }
         this.isSetup = true
     };

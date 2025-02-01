@@ -5,10 +5,13 @@ import path from 'node:path';
 //legacyshell: database
 import bcrypt from 'bcrypt';
 import crypto from 'node:crypto'; //passwds
+//legacyshell: management
+import recs from '#recordsManagement';
 //legacyshell: logging
 import log from '#coloured-logging';
 //legacyshell: ss
 import { ss } from '#misc';
+import { CharClass, itemIdOffsets, ItemType } from '#constants';
 //
 
 const exported = {
@@ -84,7 +87,36 @@ const exported = {
             if (user) {
                 if (convertJson) {
                     user.ownedItemIds = JSON.parse(user.ownedItemIds);
+                    
+                    for (var i = 0; i < CharClass.length; i++) {
+                        let defaultItem = itemIdOffsets[ItemType.Primary][i];
+
+                        if (!user.ownedItemIds.includes(defaultItem)) user.ownedItemIds.push(defaultItem);
+                    };
+
                     user.loadout = JSON.parse(user.loadout);
+                    
+                    for (var i = 0; i < user.loadout.primaryId.length; i++) {
+                        let itemId = user.loadout.primaryId[i];
+                        if (!await recs.getItemData(itemId)) {
+                            user.loadout.primaryId[i] = itemIdOffsets[ItemType.Primary][i];
+                        };
+                    };
+                    
+                    for (var i = 0; i < user.loadout.secondaryId.length; i++) {
+                        let itemId = user.loadout.secondaryId[i];
+                        if (!await recs.getItemData(itemId)) {
+                            user.loadout.secondaryId[i] = itemIdOffsets[ItemType.Secondary];
+                        };
+                    };
+                    
+                    if (!await recs.getItemData(user.loadout.stampId)) {
+                        user.loadout.stampId = itemIdOffsets[ItemType.Stamp];
+                    };
+                    
+                    if (!await recs.getItemData(user.loadout.hatId)) {
+                        user.loadout.hatId = itemIdOffsets[ItemType.Hat];
+                    };
                 };
                 if (!retainSensitive) {
                     delete user.password;
@@ -111,7 +143,7 @@ const exported = {
         try {
             if (userData.ownedItemIds.includes(item_id)) return "ALREADY_OWNED";
     
-            const item = await ss.recs.getItemData(item_id);
+            const item = await recs.getItemData(item_id);
     
             if ((!item) || (!(force || item.is_available))) return "ITEM_NOT_FOUND";
             if (isBuying) {
@@ -139,7 +171,7 @@ const exported = {
     doesPlayerOwnItem: async (userData, item_id, item_class) => {
         try {
             if (["Hats", "Stamps"].includes(item_class) && item_id === null) return true;
-            const item = await ss.recs.getItemData(item_id, true);
+            const item = await recs.getItemData(item_id, true);
             // console.log(userData.ownedItemIds, item_id, item_class, userData.ownedItemIds.includes(item_id), item.item_class == item_class, userData.ownedItemIds.includes(item_id) && item.item_class == item_class);
             if (userData.ownedItemIds.includes(item_id) && item.item_class == item_class) return true;
             return false;
@@ -150,7 +182,7 @@ const exported = {
     },
     addCodeToPlayer: async (code_key, userData) => {
         try {
-            const code = (await ss.recs.getCodeData(code_key, true)) || [];
+            const code = (await recs.getCodeData(code_key, true)) || [];
             code.result = "ERROR"; //default if it fails, i guess
     
             if (code.used_by) { //exists

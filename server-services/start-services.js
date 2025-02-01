@@ -18,6 +18,7 @@ import backups from '#backups';
 import { devlog } from '#isClientServer';
 import { events } from '#events';
 import { setUpShopAvailable } from '#catalog';
+import { CharClass } from '#constants';
 //legacyshell: logging
 import log from '#coloured-logging';
 //legacyshell: ss
@@ -591,7 +592,7 @@ export default async function run (runStart) {
                                 try {
                                     if (userData) {
                                         // class_idx: this.classIdx
-                                        userData.loadout.classIdx = Math.clamp(Math.floor(msg.class_idx), 0, 3);
+                                        userData.loadout.classIdx = Math.clamp(Math.floor(msg.class_idx), 0, CharClass.length - 1);
                                         // soldier_primary_item_id:
                                         if (accs.doesPlayerOwnItem(userData, msg.soldier_primary_item_id, "Eggk47")) 
                                             userData.loadout.primaryId[0] = msg.soldier_primary_item_id;
@@ -625,6 +626,8 @@ export default async function run (runStart) {
                                         // color: this.colorIdx,
                                         userData.loadout.colorIdx = Math.clamp(Math.floor(msg.color), 0, userData.upgradeIsExpired ? 6 : 13); //if vip, then eep
         
+                                        await plugins.emit("saveEquipBeforeWrite", {msg, userData, accs});
+
                                         ss.config.verbose && log.bgBlue("services: Writing to DB: set new loadout "+userData.username) //, console.log(userData.loadout);
                                         await ss.runQuery(`
                                             UPDATE users 

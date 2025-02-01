@@ -1,7 +1,7 @@
 //legacyshell: client
 import misc from '#misc';
 import Comm from '#comm';
-import { ItemType, itemIdOffsets, FramesBetweenSyncs, stateBufferSize, TimeoutManagerConstructor, maxChatWidth, IntervalManagerConstructor, classes, devlog } from '#constants';
+import { ItemType, itemIdOffsets, FramesBetweenSyncs, stateBufferSize, TimeoutManagerConstructor, maxChatWidth, IntervalManagerConstructor, classes, devlog, CharClass } from '#constants';
 import { fixStringWidth } from '#stringWidth';
 import { parseMentions } from '#permissions';
 import Player from '#player';
@@ -443,7 +443,7 @@ class newClient {
     };
 
     setClassIdx(classIdx) {
-        let range = 3;
+        let range = CharClass.length - 1;
         classIdx = Math.clamp(Math.floor(classIdx), 0, range);
         if (classes[this.classIdx]) this.classIdx = classIdx;
     };

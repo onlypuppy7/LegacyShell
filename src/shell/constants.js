@@ -5,6 +5,8 @@ import { Eggk47, DozenGauge, CSG1, RPEGG, Cluck9mm } from "#guns";
 import { isClient, isServer, devlog, clientlog, serverlog, getTimestamp, isObject } from "#isClientServer";
 //legacyshell: ss
 import { ss } from '#misc';
+//legacyshell: plugins
+import { plugins } from "#plugins";
 //
 
 export { isClient, isServer, devlog, clientlog, serverlog, getTimestamp, isObject };
@@ -510,29 +512,4 @@ export function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 };
 
-//(server-only-start)
-
-// export default { //why is this like this? because we need to define all these as vars in the client. kek. putting it all in one object kinda ugh ngl.
-//     item_classes,
-//     Slot,
-//     ItemType,
-//     CharClass,
-//     Team,
-//     teamColors,
-//     GameType,
-//     GameTypes,
-//     CONTROL,
-//     classes,
-//     FramesBetweenSyncs,
-//     stateBufferSize,
-//     weaponStats,
-//     shellColors,
-//     flashColors,
-//     fireColors,
-//     smokeColors,
-//     bulletHitColors,
-//     color4White,
-//     Ease
-// };
-
-//(server-only-end)
+plugins.emit("constantsFinished", {});

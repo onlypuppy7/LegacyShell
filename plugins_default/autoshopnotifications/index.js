@@ -110,7 +110,7 @@ export class Plugin {
                 var msgsPub = await this.shop2info(shop, mondayStart, eventsMonday);
                 var msgsDev = await this.shop2info(shop, mondayStart, eventsMonday, true);
     
-                console.log(msgsDev);
+                // console.log(msgsDev);
     
                 if (
                     await this.sendWebhook(msgsPub, this.config.webhook) &&
