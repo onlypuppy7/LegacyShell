@@ -398,10 +398,12 @@ class Player {
             if (this.climbing || this.jumping) {
                 speed *= 2;
             };
+            var stillSettleFactor = 1 + ((this.weapon.subClass.stillSettleSpeed - 1) / (1 + (speed * 100)));
+
             this.bobble = (this.bobble + 7 * speed) % Math.PI2;
             this.shotSpread += Math.floor(150 * speed * delta);
             var settleFactor = Math.pow(this.weapon.subClass.accuracySettleFactor, delta);
-            this.shotSpread = Math.max(this.shotSpread * settleFactor - 4 * (1 - settleFactor), 0);
+            this.shotSpread = Math.max(this.shotSpread * settleFactor - 4 * stillSettleFactor * (1 - settleFactor), 0);
             if (this.weapon) {
                 this.weapon.update(delta)
             };

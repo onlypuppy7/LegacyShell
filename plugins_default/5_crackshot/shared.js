@@ -163,7 +163,8 @@ M24.automatic = false;
 M24.accuracy = 0; // Base inaccuracy of weapon (0-1)
 // M24.stability = 0.1; // Controls accuracy loss per shot and rate of recovery (0-1)
 M24.shotSpreadIncrement = 250;
-M24.accuracySettleFactor = 0.955; // Controls accuracy loss per shot and rate of recovery (0-1) (previously stability: 0.1)
+M24.accuracySettleFactor = 0.98; // Controls accuracy loss per shot and rate of recovery (0-1) (previously stability: 0.1)
+M24.stillSettleSpeed = 40;
 M24.damage = 200;
 M24.totalDamage = 15; // For main menu stats (because shotgun)
 M24.range = 60;
@@ -174,7 +175,7 @@ M24.tracer = 0;
 
 M24.accuracy = 1;
 // M24.stability = 0.15;
-M24.damage = 200;
+M24.damage = 250;
 M24.totalDamage = M24.damage;
 
 M24.prototype.fireMunitions = function (pos, dir) {

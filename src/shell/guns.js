@@ -21,7 +21,7 @@ export function Gun(player, subClass) {
     this.stowWeaponTime = 25;
 
     //LS added (cs)
-    this.stillSettleSpeed = 1;
+    this.subClass.stillSettleSpeed = subClass.stillSettleSpeed || 1;
 };
 Gun.prototype.update = function (delta) {
     this.actor && this.actor.update(delta);
@@ -32,7 +32,7 @@ Gun.prototype.collectAmmo = function () {
 Gun.prototype.fire = function () {
     let magicConstant = 1.5; //yh im afraid this has to be done. they dont sync otherwise.
 
-    // devlog("FIRING", (.004 * (this.player.shotSpread + this.subClass.accuracy)) / (isClient ? 1 : magicConstant));
+    devlog("FIRING", (.004 * (this.player.shotSpread + this.subClass.accuracy)) / (isClient ? 1 : magicConstant));
 
     if (this.actor) this.actor.fire();
     else { //if server, actually make the bullet and fire that shit
