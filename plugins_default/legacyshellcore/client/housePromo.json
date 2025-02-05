@@ -22,7 +22,7 @@
 			"active": false
 		},
 		{
-			"active": false,
+			"active": true,
 			"label": "groundhog",
 			"linksToTaggedItems": "GroundhogDay",
 			"imageExt": ".jpg",
