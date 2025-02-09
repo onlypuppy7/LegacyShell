@@ -398,12 +398,9 @@ class Player {
             if (this.climbing || this.jumping) {
                 speed *= 2;
             };
-            var stillSettleFactor = 1 + ((this.weapon.subClass.stillSettleSpeed - 1) / (1 + (speed * 100)));
 
             this.bobble = (this.bobble + 7 * speed) % Math.PI2;
-            this.shotSpread += Math.floor(150 * speed * delta);
-            var settleFactor = Math.pow(this.weapon.subClass.accuracySettleFactor, delta);
-            this.shotSpread = Math.max(this.shotSpread * settleFactor - 4 * stillSettleFactor * (1 - settleFactor), 0);
+            this.settleWeapon(speed, delta);
             if (this.weapon) {
                 this.weapon.update(delta)
             };
@@ -746,6 +743,14 @@ class Player {
     };
     isAtReady(scoped) {
         return (!this.betweenRounds()) && !(!(this.playing && this.weapon && this.reloadCountdown <= 0 && this.swapWeaponCountdown <= 0 && this.grenadeCountdown <= 0) || this.actor && 0 != grenadePowerUp);
+    };
+    settleWeapon(speed = 0, delta = 1) {
+        var stillSettleFactor = 1 + ((this.weapon.subClass.stillSettleSpeed - 1) / (1 + (speed * 100)));
+        this.shotSpread += Math.floor(150 * speed * delta);
+        var settleFactor = Math.pow(this.weapon.subClass.accuracySettleFactor, delta);
+        this.shotSpread = Math.max(this.shotSpread * settleFactor - 4 * stillSettleFactor * (1 - settleFactor), 0);
+
+        // console.log(this.shotSpread, speed, delta);
     };
     canSwapOrReload() {
         let recoilLeniency = isServer ? 6 : 0; //bigger value means more leniency to people fast reloading.

@@ -354,7 +354,7 @@ export default async function run () {
                 console.log("damn, it closed. that sucks.");
 
                 if (!offline) {
-                    nextTimeout = 1e3;
+                    nextTimeout = 2e3;
                     offline = true;
                 };
 

@@ -1,6 +1,6 @@
 //legacyshell: guns
 import BABYLON from "babylonjs";
-import { devlog, isClient } from '#constants';
+import { devlog, clientlog, serverlog, isClient, FramesBetweenSyncs } from '#constants';
 import { Bullet, Rocket } from '#bullets';
 import Comm from '#comm';
 //legacyshell: plugins
@@ -30,17 +30,23 @@ Gun.prototype.collectAmmo = function () {
     return this.actor ? (this.ammo.store = Math.min(this.ammo.storeMax, this.ammo.store + this.ammo.pickup), true) : this.ammo.store < this.ammo.storeMax && (this.ammo.store = Math.min(this.ammo.storeMax, this.ammo.store + this.ammo.pickup), true)
 };
 Gun.prototype.fire = function () {
-    let magicConstant = 1.5; //yh im afraid this has to be done. they dont sync otherwise.
+    let magicConstant = FramesBetweenSyncs * 1.5; //yh im afraid this has to be done. they dont sync otherwise.
 
-    devlog("FIRING", (.004 * (this.player.shotSpread + this.subClass.accuracy)) / (isClient ? 1 : magicConstant));
+    clientlog("FIRING", (.004 * (this.player.shotSpread + this.subClass.accuracy))); // / (isClient ? 1 : magicConstant)
 
     if (this.actor) this.actor.fire();
     else { //if server, actually make the bullet and fire that shit
+        for (let i = 0; i < magicConstant; i++) {
+            this.player.settleWeapon();
+        };
+
+        serverlog("FIRING", (.004 * (this.player.shotSpread + this.subClass.accuracy))); // / (isClient ? 1 : magicConstant)
+
         var rotMat = BABYLON.Matrix.RotationYawPitchRoll(this.player.yaw, this.player.pitch, 0);
         var forwardMat = BABYLON.Matrix.Translation(0, 0, this.subClass.range);
         var dirMat = forwardMat.multiply(rotMat, forwardMat);
         var dir = dirMat.getTranslation();
-        var spread = (.004 * (this.player.shotSpread + this.subClass.accuracy)) / magicConstant;
+        var spread = (.004 * (this.player.shotSpread + this.subClass.accuracy)); // / magicConstant
 
         isNaN(spread) && (spread = this.player.shotSpread = 0);
 

@@ -176,7 +176,7 @@ if (typeof Gun !== "undefined" && Gun) {
     
     M24.accuracy = 1;
     // M24.stability = 0.15;
-    M24.damage = 350;
+    M24.damage = 400;
     M24.totalDamage = M24.damage;
     
     M24.prototype.fireMunitions = function (pos, dir) {
