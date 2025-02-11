@@ -35,7 +35,7 @@ const Comm = {
             };
         };
 
-        /** 
+        /**
          * Ensure buffer has enough space for additional bytes.
          * @param {number} neededBytes - Number of additional bytes needed.
          * @throws {Error} - Throws an error if attempting to exceed fixed buffer size.
@@ -49,7 +49,7 @@ const Comm = {
             }
         }
 
-        /** 
+        /**
          * Pack an 8-bit integer (1 byte).
          * @param {number} val - The integer to pack. Range: -128 to 127.
          */
@@ -59,7 +59,7 @@ const Comm = {
             this.idx++;
         }
 
-        /** 
+        /**
          * Pack an unsigned 8-bit integer (1 byte).
          * @param {number} val - The unsigned integer to pack. Range: 0 to 255.
          */
@@ -67,7 +67,7 @@ const Comm = {
             this.packInt8(val);
         }
 
-        /** 
+        /**
          * Pack a 16-bit integer (2 bytes).
          * @param {number} val - The integer to pack. Range: -32768 to 32767.
          */
@@ -78,7 +78,7 @@ const Comm = {
             this.idx += 2;
         }
 
-        /** 
+        /**
          * Pack an unsigned 16-bit integer (2 bytes).
          * @param {number} val - The unsigned integer to pack. Range: 0 to 65535.
          */
@@ -86,7 +86,7 @@ const Comm = {
             this.packInt16(val);
         }
 
-        /** 
+        /**
          * Pack a 32-bit integer (4 bytes).
          * @param {number} val - The integer to pack. Range: -2147483648 to 2147483647.
          */
@@ -99,7 +99,7 @@ const Comm = {
             this.idx += 4;
         };
 
-        /** 
+        /**
          * Pack an unsigned 32-bit integer (4 bytes).
          * @param {number} val - The unsigned integer to pack. Range: 0 to 4294967295.
          */
@@ -107,7 +107,7 @@ const Comm = {
             this.packInt32(val);
         };
 
-        /** 
+        /**
          * Pack a radian (as unsigned, 2 bytes).
          * @param {number} val - The radian to pack. Range: 0 to 6.28319 (0 to 2π).
          */
@@ -115,7 +115,7 @@ const Comm = {
             this.packInt16U(1e4 * val);
         }
 
-        /** 
+        /**
          * Pack a radian (as signed, 2 bytes).
          * @param {number} val - The radian to pack. Range: -3.14159 to 3.14159 (-π to π).
          */
@@ -123,7 +123,7 @@ const Comm = {
             this.packInt16(1e4 * (val + Math.PI));
         }
 
-        /** 
+        /**
          * Pack a float (2 bytes).
          * @param {number} val - The float to pack. Range: -Infinity to Infinity.
          */
@@ -131,7 +131,7 @@ const Comm = {
             this.packInt16(300 * val);
         }
 
-        /** 
+        /**
          * Pack a double (4 bytes).
          * @param {number} val - The double to pack. Range: -Infinity to Infinity.
          */
@@ -139,7 +139,7 @@ const Comm = {
             this.packInt32(1e6 * val);
         }
 
-        /** 
+        /**
          * Pack a string (variable length).
          * @param {string} str - The string to pack. Length: up to 255 characters.
          */
@@ -166,6 +166,20 @@ const Comm = {
                 this.packInt16(str.charCodeAt(i));
             }
         }
+
+        /**
+         * Pack a VERY long string (variable length).
+         * @param {string} str - The string to pack. Length: up to 4,294,967,295 characters.
+         */
+        packVeryLongString(str) {
+            if (str.length > 4294967295) {
+                throw new Error('String length exceeds 4294967295 characters. ...How??');
+            }
+            this.packInt32U(str.length); //maximum length of 4294967295 characters
+            for (let i = 0; i < str.length; i++) {
+                this.packInt16(str.charCodeAt(i));
+            }
+        }
     },
 
     /**
@@ -177,7 +191,7 @@ const Comm = {
             this.idx = 0;
         }
 
-        /** 
+        /**
          * Check if more data is available.
          * @returns {boolean} - True if more data is available.
          */
@@ -185,7 +199,7 @@ const Comm = {
             return this.idx < this.buffer.length;
         }
 
-        /** 
+        /**
          * Unpack an unsigned 8-bit integer (1 byte).
          * @returns {number} - The unpacked value. Range: 0 to 255.
          */
@@ -193,7 +207,7 @@ const Comm = {
             return this.buffer[this.idx++];
         }
 
-        /** 
+        /**
          * Unpack a signed 8-bit integer (1 byte).
          * @returns {number} - The unpacked value. Range: -128 to 127.
          */
@@ -201,7 +215,7 @@ const Comm = {
             return (this.unPackInt8U() + 128) % 256 - 128;
         }
 
-        /** 
+        /**
          * Unpack an unsigned 16-bit integer (2 bytes).
          * @returns {number} - The unpacked value. Range: 0 to 65535.
          */
@@ -211,7 +225,7 @@ const Comm = {
             return this.buffer[i] + (this.buffer[i + 1] << 8);
         }
 
-        /** 
+        /**
          * Unpack a signed 16-bit integer (2 bytes).
          * @returns {number} - The unpacked value. Range: -32768 to 32767.
          */
@@ -219,7 +233,7 @@ const Comm = {
             return (this.unPackInt16U() + 32768) % 65536 - 32768;
         }
 
-        /** 
+        /**
          * Unpack an unsigned 32-bit integer (4 bytes).
          * @returns {number} - The unpacked value. Range: 0 to 4294967295.
          */
@@ -230,7 +244,7 @@ const Comm = {
             return (this.buffer[i] | (this.buffer[i + 1] << 8) | (this.buffer[i + 2] << 16) | (this.buffer[i + 3] << 24)) >>> 0;
         }
 
-        /** 
+        /**
          * Unpack a signed 32-bit integer (4 bytes).
          * @returns {number} - The unpacked value. Range: -2147483648 to 2147483647.
          */
@@ -238,7 +252,7 @@ const Comm = {
             return this.unPackInt32U() | 0; // Convert to signed integer
         }
 
-        /** 
+        /**
          * Unpack a radian (unsigned, 2 bytes).
          * @returns {number} - The unpacked value in radians. Range: 0 to 6.28319 (0 to 2π).
          */
@@ -246,7 +260,7 @@ const Comm = {
             return this.unPackInt16U() / 1e4;
         }
 
-        /** 
+        /**
          * Unpack a radian (signed, 2 bytes).
          * @returns {number} - The unpacked value in radians. Range: -3.14159 to 3.14159 (-π to π).
          */
@@ -254,7 +268,7 @@ const Comm = {
             return this.unPackRadU() - Math.PI;
         }
 
-        /** 
+        /**
          * Unpack a float (2 bytes).
          * @returns {number} - The unpacked float. Range: -Infinity to Infinity.
          */
@@ -262,7 +276,7 @@ const Comm = {
             return this.unPackInt16() / 300;
         }
 
-        /** 
+        /**
          * Unpack a double (4 bytes).
          * @returns {number} - The unpacked double. Range: -Infinity to Infinity.
          */
@@ -270,7 +284,7 @@ const Comm = {
             return this.unPackInt32() / 1e6;
         }
 
-        /** 
+        /**
          * Unpack a string (variable length).
          * @param {number} [maxLen=1000] - The maximum length of the string.
          * @returns {string} - The unpacked string.
@@ -287,7 +301,6 @@ const Comm = {
 
         /**
          * Unpack a long string (variable length).
-         * @param {number} [maxLen=1000] - The maximum length of the string.
          * @returns {string} - The unpacked string.
          */
         unPackLongString() {
@@ -299,12 +312,26 @@ const Comm = {
             }
             return str;
         }
+
+        /**
+         * Unpack a VERY long string (variable length).
+         * @returns {string} - The unpacked string.
+         */
+        unPackVeryLongString() {
+            let str = '';
+            const len = this.unPackInt32U();
+            for (let i = 0; i < len; i++) {
+                const c = this.unPackInt16U();
+                if (c > 0) str += String.fromCharCode(c);
+            }
+            return str;
+        }
     },
 
     /**
      * Close codes for communication errors or states.
      * @enum {number}
-     */ 
+     */
     Close: {
         gameNotFound: 4000,
         gameFull: 4001,
@@ -353,33 +380,33 @@ const Comm = {
         removePlayer: 2,
 
         /** #CLIENT: sends the player's chat
-        * 
+        *
         * #SERVER: distributes the chat, assuming it completed all checks
         * @constant {number}
         */
         chat: 3,
 
-        /** -???: no known functionality 
+        /** -???: no known functionality
         * @constant {number}
         */
         controlKeys: 4,
 
-        /** -???: no known functionality 
+        /** -???: no known functionality
         * @constant {number}
         */
         keyUp: 5,
 
         /** #CLIENT: sends stateIdx, shotsQueued, FramesBetweenSyncs lots of statebuffer (yaw, pitch, controlKeys)
-        * 
+        *
         * #SERVER: directly sets stateIdx, xyz, climbing, and other stuff i dont understand yet
         * @constant {number}
         */
         sync: 6,
 
         /** NOTE: this is depracated in LegacyShell, this information is instead sent in controlKeys in sync
-        * 
+        *
         * -CLIENT: attempt to make me player jump
-        * 
+        *
         * -SERVER: attempt to make another player jump
         * @constant {number}
         */
@@ -416,7 +443,7 @@ const Comm = {
         respawn: 13,
 
         /** #CLIENT: attempt to swap weapons
-        * 
+        *
         * #SERVER: informs that someone's weapon has changed
         * @constant {number}
         */
@@ -427,10 +454,10 @@ const Comm = {
         */
         joinGame: 15,
 
-        /** #CLIENT: used for both getting ping on home screen and also ensuring connection to the server during a game. 
-        * 
+        /** #CLIENT: used for both getting ping on home screen and also ensuring connection to the server during a game.
+        *
         * #SERVER: returned message to calc client ping
-        * 
+        *
         * @constant {number}
         */
         ping: 16,
@@ -441,8 +468,8 @@ const Comm = {
         pong: 17,
 
         /** #SERVER: sent after all players have been initially added.
-        * 
-        * if wanted, it also can send the time and stuff for the unused rounds feature. 
+        *
+        * if wanted, it also can send the time and stuff for the unused rounds feature.
         * @constant {number}
         */
         clientReady: 18,
@@ -453,7 +480,7 @@ const Comm = {
         requestRespawn: 19,
 
         /** #CLIENT: sends a signal that a grenade was thrown, and its power
-        * 
+        *
         * #SERVER: reports that a player threw a grenade and its power, dir, etc
         * @constant {number}
         */
@@ -461,30 +488,30 @@ const Comm = {
 
         joinPublicGame: 21,
 
-        /** #CLIENT: identify specific room and join it 
+        /** #CLIENT: identify specific room and join it
         * @constant {number}
         */
         joinPrivateGame: 22,
 
-        /** #CLIENT: create a room 
+        /** #CLIENT: create a room
         * @constant {number}
         */
         createPrivateGame: 23,
 
-        /** SERVER: for the unused rounds feature. 
+        /** SERVER: for the unused rounds feature.
         * @constant {number}
         */
         roundStart: 24,
 
         switchTeam: 25,
 
-        /** SERVER: display a notification on the person's game for any reason. 
+        /** SERVER: display a notification on the person's game for any reason.
         * @constant {number}
         */
         notification: 26,
 
         /** CLIENT: attempt to change skins and stuff
-        * 
+        *
         * SERVER: informs that someone's skins and stuff has changed
         * @constant {number}
         */
@@ -495,14 +522,14 @@ const Comm = {
         */
         playerCount: 28,
 
-        /** SERVER: for the unused rounds feature. 
+        /** SERVER: for the unused rounds feature.
         * @constant {number}
         */
         roundEnd: 29,
 
         pause: 30,
-        
-        /** SERVER: no logic associated with this. 
+
+        /** SERVER: no logic associated with this.
         * @constant {number}
         */
         announcement: 31,
@@ -517,7 +544,7 @@ const Comm = {
 
         expireUpgrade: 36,
 
-        /** CLIENT: send a req to boot someone (requires gameOwner) 
+        /** CLIENT: send a req to boot someone (requires gameOwner)
         * @constant {number}
         */
         bootPlayer: 37,
@@ -527,12 +554,12 @@ const Comm = {
         */
         loginRequired: 38,
 
-        /** SERVER: have been booted from a game. 
+        /** SERVER: have been booted from a game.
         * @constant {number}
         */
         banned: 39,
 
-        /** SERVER: room has been locked from the public. doesnt seem to have kicked them. 
+        /** SERVER: room has been locked from the public. doesnt seem to have kicked them.
         * @constant {number}
         */
         gameLocked: 40,
@@ -542,68 +569,68 @@ const Comm = {
         fire: 49,
 
         /** LEGACYSHELL ADDED
-        * 
+        *
         * SERVER: room has a new owner set
         * @constant {number}
         */
         setGameOwner: 50,
 
         /** LEGACYSHELL ADDED
-        * 
+        *
         * SERVER: transfer player to another room
         * @constant {number}
         */
         warp: 51,
 
         /** LEGACYSHELL ADDED
-        * 
+        *
         * SERVER: set scale of a player
         * @constant {number}
         */
         setModifiers: 52,
 
         /** LEGACYSHELL ADDED
-         * 
+         *
          * SERVER: update the round stuff
          * @constant {number}
          */
         roundUpdate: 53,
 
         /** LEGACYSHELL ADDED
-         * 
+         *
          * SERVER: update the room's params such as cheats, etc
          * @constant {number}
          */
         updateRoomParams: 54,
 
         /** LEGACYSHELL ADDED
-         * 
+         *
          * SERVER: inits a thunderstrike
          * @constant {number}
          */
         doThunderStrike: 55,
 
         /** LEGACYSHELL ADDED
-         * 
+         *
          * SERVER: heals a player
          * @constant {number}
          */
         heal: 56,
 
         /** LEGACYSHELL ADDED
-         * 
+         *
          * SERVER: syncs the data of the player, with less pertinent data
          * @constant {number}
          */
         syncData: 57,
 
-        /** CLIENT: used by bwd admins to look at ips and stuff (scary). 
+        /** CLIENT: used by bwd admins to look at ips and stuff (scary).
         * @constant {number}
         */
         info: 255
     },
 
-    /** 
+    /**
      * Convert a code to its corresponding name.
      * @param {number} code - The code to convert.
      * @returns {string} - The corresponding name, or 'unknownCode' if not found.
@@ -620,13 +647,13 @@ const Comm = {
         if (Comm.Code[name]) {
             return devlog("Custom commcode already exists?", name, Comm.Code[name]);
         };
-    
+
         //get list of all codes
         let codes = [];
         Object.values(Comm.Code).forEach((val) => {
             codes.push(val);
         });
-    
+
         //find next available code
         codes.sort((a, b) => a - b);
         for (let i = 0; i < codes.length; i++) {
@@ -635,11 +662,11 @@ const Comm = {
                 break;
             };
         };
-        
+
         Comm.Code[name] = code;
-    
+
         devlog("Added custom commcode:", name, code);
-    
+
         return code;
     },
 };
