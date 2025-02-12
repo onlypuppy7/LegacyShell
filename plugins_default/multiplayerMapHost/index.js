@@ -53,10 +53,10 @@ export class Plugin {
     beforeMapBuildSub(event) {
         console.log("beforeMapBuild");
         console.log(event);
-        const i = event.info.extraParams;
-        if (i.useCustomMap) {
+        const extraParams = event.info.extraParams;
+        if (extraParams.customMinMap) {
             try {
-                const customMapP = i.customMap;
+                const customMapP = extraParams.customMinMap;
                 event.this.minMap = customMapP;
                 event.this.useCustomMap = true;
                 console.log("told room to use custom map. ye. ")
