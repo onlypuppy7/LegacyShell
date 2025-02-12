@@ -85,12 +85,17 @@ export class newRoom {
         this.censor = censor;
 
         //map init
-        setParamsforLoader(this.minMap, this.Collider);
+        //plugins.emit('roomBeforeMapInit', {this: this});
+        //setParamsforLoader(this.minMap, this.Collider); - moved into buildMap
         this.validItemSpawns = [];
 
         //timed rounds
         this.setRoundTimeout();
 
+        plugins.emit('roomBeforeMapBuild', {this: this, info: info}); //modify this.minMap.
+        this.buildMap(this.minMap, ss)
+
+      if (true) return; //moved to buildMap
         loadMapMeshes(this.scene, async () => {
             ss.config.verbose && console.log("done loadMapMeshes");
             const { map, spawnPoints, mapMeshes } = buildMapData(function (str) { log.error("The following map meshes were not found:\n\n" + str + "\nTry clearing your cache and reload the page!") });
@@ -112,6 +117,31 @@ export class newRoom {
             await plugins.emit('roomInitEnd', {this: this});
         });
     };
+
+    buildMap(minMap, ss){
+      setParamsforLoader(minMap, this.Collider);
+      loadMapMeshes(this.scene, async () => {
+          ss.config.verbose && console.log("done loadMapMeshes");
+          const { map, spawnPoints, mapMeshes } = buildMapData(function (str) { log.error("The following map meshes were not found:\n\n" + str + "\nTry clearing your cache and reload the page!") });
+
+          this.map = map;
+          this.spawnPoints = spawnPoints; //this is a [] from 0-2; conveniently lining up with ffa, team1, team2 (i think)
+          this.mapMeshes = mapMeshes;
+
+          this.Collider.setParams(this.map, this.mapMeshes, this.playerLimit, this.players);
+
+          this.updateLoopObject = createLoop(this.updateLoop.bind(this), TickStep);
+          this.dataSyncLoopObject = createLoop(this.dataSyncLoop.bind(this), 1e3);
+          this.metaLoopObject = createLoop(this.metaLoop.bind(this), 2e3);
+          this.updateRoomDetailsLoopObject = createLoop(this.updateRoomDetails.bind(this), 30e3);
+
+          this.getValidItemSpawns();
+          this.spawnItemsLoopObject = createLoop(this.spawnItems.bind(this), 30e3); //just in case, i guess?
+
+          await plugins.emit('roomInitEnd', {this: this});
+      });
+    }
+
 
     sendWsToClient(type, content, wsId) {
         const client = this.wsToClient[wsId];
@@ -137,19 +167,19 @@ export class newRoom {
             this.roundEndTime = Date.now() + this.roundLengthInMs;
             this.timeoutForNextRound = NextRoundTimeout * 1e3;
             this.roundRestartTime = this.roundEndTime + this.timeoutForNextRound;
-    
+
             console.log("roundLength", this.roundLength);
             console.log("roundEndTime", this.roundEndTime);
             console.log("roundLengthInMs", this.roundLengthInMs);
             console.log("timeoutForNextRound", this.timeoutForNextRound);
             console.log("roundRestartTime", this.roundRestartTime);
-    
+
             var output = new Comm.Out(1);
             output.packInt8U(Comm.Code.roundStart);
             this.sendToAll(output, null, "roundStart");
-    
+
             this.resetGame();
-            
+
             this.roundTimeout = setTimeout(() => {
                 this.endRound();
             }, this.roundLengthInMs);
@@ -167,7 +197,7 @@ export class newRoom {
         this.roundRestartTime = this.roundEndTime + this.timeoutForNextRound;
 
         console.log(`Round ended. Starting new round in ${NextRoundTimeout} seconds.`);
-    
+
         this.resetGame(true);
 
         var output = new Comm.Out();
@@ -461,7 +491,7 @@ export class newRoom {
         };
 
         plugins.emit('getPlayerCount', {this: this, count, uuids, usernames, sessions, extraDetails});
-        
+
         return extraDetails ? {count, uuids, usernames} : count;
     };
 
@@ -574,7 +604,7 @@ export class newRoom {
         };
     };
 
-    getValidItemSpawns = function () { 
+    getValidItemSpawns = function () {
         let data = this.map.data;
         plugins.emit('getValidItemSpawns', {this: this, data});
         for (var x = 0; x < data.length; x++) {
@@ -697,9 +727,9 @@ export class newRoom {
 
     getItemSpawnFromQueue() { //this is a queue, so it will rotate the positions
         var pos = this.validItemSpawns[0];
-        
+
         plugins.emit('getItemSpawnFromQueue', {this: this, pos});
-        
+
         this.validItemSpawns.push(this.validItemSpawns.shift());
 
         plugins.emit('getItemSpawnFromQueueEnd', {this: this, pos});
@@ -709,7 +739,7 @@ export class newRoom {
 
     getUnusedPlayerId() {
         plugins.emit('getUnusedPlayerId', {this: this});
-        
+
         for (let i = 0; i < this.playerLimit; i++) {
             var client = this.clients[i];
             var player = this.players[i];
@@ -724,7 +754,7 @@ export class newRoom {
 
     getPreferredTeam() {
         plugins.emit('getPreferredTeam', {this: this});
-        
+
         if (!this.gameOptions.teamsEnabled) {
             return 0;
         } else {
