@@ -30,7 +30,11 @@ export class newRoom {
     constructor(info, ss) {
         plugins.emit('roomInit', {this: this});
 
+        console.log("new room");
         extendMath(Math);
+
+        console.log("new room 2");
+
 
         plugins.emit('roomSetSS', {ss});
 
