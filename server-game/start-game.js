@@ -78,12 +78,13 @@ export default async function run () {
                                     //additional stuff provided they are signed in
                                     //msg.session = input.unPackString(); //technically this is all thats rlly needed tbh
                                     msg.extraParamsRaw = input.unPackVeryLongString();
-                                    try{
-                                      msg.extraParams = JSON.parse(msg.extraParamsRaw);
-                                      if (msg.extraParams.session) msg.session = msg.extraParams.session;
-                                    }catch(e){
-                                      msg.extraParams = {};
-                                    }
+                                    try {
+                                        msg.extraParams = JSON.parse(msg.extraParamsRaw);
+                                        if (msg.extraParams.session) msg.session = msg.extraParams.session; //compat reasons
+                                        delete msg.extraParamsRaw; //memory leak pwned 💯💯💯💯
+                                    } catch (e) {
+                                        msg.extraParams = {};
+                                    };
 
                                     // msg.gameType = GameTypes[msg.gameType] ? msg.gameType : 0;
 
