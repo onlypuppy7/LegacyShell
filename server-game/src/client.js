@@ -79,8 +79,12 @@ class newClient {
 
         this.room.registerPlayerClient(this);
 
-        var output = new Comm.Out(11); //if fixed for gameJoined, use 11
+        var output = new Comm.Out(/*11*/); //if fixed for gameJoined, use 11
         this.packGameJoined(output);
+        //extra info; here bc room ref
+        const extraInfo = {};
+        await plugins.emit("clientGameJoinedExtraInfos", {this:this, room: room, extraInfo: extraInfo});
+        output.packVeryLongString(JSON.stringify(extraInfo));
         this.sendBuffer(output, "packGameJoined"); //buffer cause not clientReady
 
         this.room.updateRoomDetails();
@@ -298,7 +302,7 @@ class newClient {
                             if (text.startsWith("/")) {
                                 this.room.perm.inputCmd(this.player, text);
                             } else if (!this.room.censor.detect(text, true)) {
-                                text = fixStringWidth(text, maxChatWidth * 1.25); // giving slight leeway to prevent cutoffs 
+                                text = fixStringWidth(text, maxChatWidth * 1.25); // giving slight leeway to prevent cutoffs
                                 var output = new Comm.Out();
                                 if (text.startsWith("@")) {
                                     var {mentions} = parseMentions(text, this);
