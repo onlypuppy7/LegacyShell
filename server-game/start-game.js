@@ -82,6 +82,7 @@ export default async function run () {
                                     try {
                                         msg.extraParams = JSON.parse(msg.extraParamsRaw);
                                         if (msg.extraParams.session) msg.session = msg.extraParams.session; //compat reasons
+                                        if (msg.extraParams.customMinMap) msg.joinType = Comm.Code.createPrivateGame;
                                         delete msg.extraParamsRaw; //memory leak pwned 💯💯💯💯
                                     } catch (e) {
                                         msg.extraParams = {};

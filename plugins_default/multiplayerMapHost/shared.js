@@ -1,6 +1,7 @@
 //legacyshell: basic
 import { devlog, isClient, isServer, isEditor } from "#constants";
 import { iterateXYZ } from "#loading";
+import Comm from '#comm';
 //legacyshell: plugins
 import { plugins } from '#plugins';
 //
@@ -31,6 +32,7 @@ export const MultiplayerMapHost = {
         if (this.yepDoACustomMap) {
             this.yepDoACustomMap = false;
             autoInvite = true;
+            joinType = Comm.Code.createPrivateGame;
 
             try {
                 notify("Sending custom map...");
@@ -95,6 +97,7 @@ export const MultiplayerMapHost = {
 
             this.yepDoACustomMap = true; //basically, yep do a custom map
 
+            joinType = Comm.Code.createPrivateGame;
             play();
         };
     },
