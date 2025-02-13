@@ -11,9 +11,10 @@ export const MultiplayerMapHost = {
 
         this.plugins = pluginManager;
 
-        this.plugins.on('game:clientOnExtraGameInfo', this.onExtraGameInfoSub.bind(this));
-        this.plugins.on('game:modifyMinMap', this.modifyMinMapSub.bind(this));
         this.plugins.on("game:onExtraParams", this.onExtraParamsSub.bind(this));
+
+        // this.plugins.on('game:clientOnExtraGameInfo', this.onExtraGameInfoSub.bind(this));
+        // this.plugins.on('game:modifyMinMap', this.modifyMinMapSub.bind(this));
     },
 
     onExtraParamsSub(event){
@@ -24,9 +25,11 @@ export const MultiplayerMapHost = {
     },
 
     onExtraGameInfoSub(event) {
+        //former logic: set this.useCustomMinMap
     },
 
     modifyMinMapSub(event) {
+        //former logic: setting minMap on the client
     },
 };
 

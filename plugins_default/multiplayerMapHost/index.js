@@ -43,11 +43,10 @@ export class Plugin {
     };
 
     clientGameJoinedExtraInfosSub(event) {
-        console.log("received extra info " + event.extraInfo);
+        //former logic: send custom map in msg to client
     };
 
     beforeMapBuildSub(event) {
-        // console.log("beforeMapBuild");
-        // console.log(event);
+        //former logic: tell the game server to use custom minMap as map, overriding old
     };
 };
