@@ -7,7 +7,7 @@ import { plugins } from '#plugins';
 
 export const MultiplayerMapHost = {
     registerListeners: function (pluginManager) {
-        console.log("registering listeners... (ChristmasEvent)");
+        console.log("registering listeners... (MultiplayerMapHost)");
 
         this.plugins = pluginManager;
 
