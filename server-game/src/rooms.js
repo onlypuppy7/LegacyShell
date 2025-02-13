@@ -14,6 +14,8 @@ import { PermissionsConstructor } from '#permissions';
 import BABYLON from "babylonjs";
 import { censor } from "#censor";
 import { removeCanvasResources } from '#stringWidth';
+//legacyshell: basic
+import { ss, misc } from '#misc';
 //legacyshell: logging
 import log from '#coloured-logging';
 //legacyshell: plugins
@@ -27,14 +29,10 @@ plugins.emit('roomLoading', {});
 // let ss; //sorry.
 
 export class newRoom {
-    constructor(info, ss) {
+    constructor(info) {
         plugins.emit('roomInit', {this: this});
 
-        console.log("new room");
         extendMath(Math);
-
-        console.log("new room 2");
-
 
         plugins.emit('roomSetSS', {ss});
 
@@ -97,12 +95,34 @@ export class newRoom {
         this.setRoundTimeout();
 
         plugins.emit('roomBeforeMapBuild', {this: this, info: info}); //modify this.minMap.
-        this.buildMap(this.minMap, ss)
 
-      if (true) return; //moved to buildMap
+        const extraParams = info.extraParams;
+        if (extraParams.customMinMap) {
+            try {
+                const customMapP = extraParams.customMinMap;
+                this.minMap = customMapP;
+                this.useCustomMap = true;
+                console.log("told room to use custom map. ye. ");
+            } catch (e) {
+                console.log(e);
+                console.log("err in custom map parsing, looks like we don't go custom.");
+            };
+        };
+
+        this.buildMap(this.minMap);
+    };
+
+    buildMap(minMap) {
+        setParamsforLoader(minMap, this.Collider);
         loadMapMeshes(this.scene, async () => {
             ss.config.verbose && console.log("done loadMapMeshes");
-            const { map, spawnPoints, mapMeshes } = buildMapData(function (str) { log.error("The following map meshes were not found:\n\n" + str + "\nTry clearing your cache and reload the page!") });
+            const {
+                map,
+                spawnPoints,
+                mapMeshes
+            } = buildMapData(function (str) {
+                log.error("The following map meshes were not found:\n\n" + str + "\nTry clearing your cache and reload the page!")
+            });
 
             this.map = map;
             this.spawnPoints = spawnPoints; //this is a [] from 0-2; conveniently lining up with ffa, team1, team2 (i think)
@@ -118,33 +138,11 @@ export class newRoom {
             this.getValidItemSpawns();
             this.spawnItemsLoopObject = createLoop(this.spawnItems.bind(this), 30e3); //just in case, i guess?
 
-            await plugins.emit('roomInitEnd', {this: this});
+            await plugins.emit('roomInitEnd', {
+                this: this
+            });
         });
     };
-
-    buildMap(minMap, ss){
-      setParamsforLoader(minMap, this.Collider);
-      loadMapMeshes(this.scene, async () => {
-          ss.config.verbose && console.log("done loadMapMeshes");
-          const { map, spawnPoints, mapMeshes } = buildMapData(function (str) { log.error("The following map meshes were not found:\n\n" + str + "\nTry clearing your cache and reload the page!") });
-
-          this.map = map;
-          this.spawnPoints = spawnPoints; //this is a [] from 0-2; conveniently lining up with ffa, team1, team2 (i think)
-          this.mapMeshes = mapMeshes;
-
-          this.Collider.setParams(this.map, this.mapMeshes, this.playerLimit, this.players);
-
-          this.updateLoopObject = createLoop(this.updateLoop.bind(this), TickStep);
-          this.dataSyncLoopObject = createLoop(this.dataSyncLoop.bind(this), 1e3);
-          this.metaLoopObject = createLoop(this.metaLoop.bind(this), 2e3);
-          this.updateRoomDetailsLoopObject = createLoop(this.updateRoomDetails.bind(this), 30e3);
-
-          this.getValidItemSpawns();
-          this.spawnItemsLoopObject = createLoop(this.spawnItems.bind(this), 30e3); //just in case, i guess?
-
-          await plugins.emit('roomInitEnd', {this: this});
-      });
-    }
 
 
     sendWsToClient(type, content, wsId) {

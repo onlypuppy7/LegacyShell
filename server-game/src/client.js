@@ -83,7 +83,13 @@ class newClient {
         this.packGameJoined(output);
         //extra info; here bc room ref
         const extraInfo = {};
+        
         await plugins.emit("clientGameJoinedExtraInfos", {this:this, room: room, extraInfo: extraInfo});
+
+        if (this.room.useCustomMap) {
+            extraInfo.customMinMap = this.room.minMap;
+        };
+
         output.packVeryLongString(JSON.stringify(extraInfo));
         this.sendBuffer(output, "packGameJoined"); //buffer cause not clientReady
 

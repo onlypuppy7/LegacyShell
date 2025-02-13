@@ -44,26 +44,10 @@ export class Plugin {
 
     clientGameJoinedExtraInfosSub(event) {
         console.log("received extra info " + event.extraInfo);
-        if (event.this.room.useCustomMap) {
-            event.extraInfo.useCustomMap = true;
-            event.extraInfo.minMap = event.this.room.minMap;
-        };
     };
 
     beforeMapBuildSub(event) {
-        console.log("beforeMapBuild");
-        console.log(event);
-        const extraParams = event.info.extraParams;
-        if (extraParams.customMinMap) {
-            try {
-                const customMapP = extraParams.customMinMap;
-                event.this.minMap = customMapP;
-                event.this.useCustomMap = true;
-                console.log("told room to use custom map. ye. ")
-            } catch (e) {
-                console.log(e);
-                console.log("err in custom map parsing, looks like we don't go custom.");
-            };
-        };
+        // console.log("beforeMapBuild");
+        // console.log(event);
     };
 };
