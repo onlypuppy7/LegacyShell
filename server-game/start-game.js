@@ -77,6 +77,7 @@ export default async function run () {
                                     msg.uuid = input.unPackInt32U();
                                     //additional stuff provided they are signed in
                                     //msg.session = input.unPackString(); //technically this is all thats rlly needed tbh
+                                    
                                     msg.extraParamsRaw = input.unPackVeryLongString();
                                     try {
                                         msg.extraParams = JSON.parse(msg.extraParamsRaw);

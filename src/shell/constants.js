@@ -2,14 +2,14 @@
 import BABYLON from "babylonjs";
 import { Eggk47, DozenGauge, CSG1, RPEGG, Cluck9mm } from "#guns";
 //cba to change the imports for everything that uses constants
-import { isClient, isServer, devlog, clientlog, serverlog, getTimestamp, isObject } from "#isClientServer";
+import { isClient, isServer, isEditor, devlog, clientlog, serverlog, getTimestamp, isObject } from "#isClientServer";
 //legacyshell: ss
 import { ss } from '#misc';
 //legacyshell: plugins
 import { plugins } from "#plugins";
 //
 
-export { isClient, isServer, devlog, clientlog, serverlog, getTimestamp, isObject };
+export { isClient, isServer, isEditor, devlog, clientlog, serverlog, getTimestamp, isObject };
 
 //(server-only-start)
 //(server-only-end)

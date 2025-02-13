@@ -251,128 +251,132 @@ export var illegalMeshes = [
 ];
 
 export function buildMapData (errorFunc) { //[12th], (name from deobf leak)
-    map = {
-        width: minMap.width,
-        height: minMap.height + 1,
-        depth: minMap.depth,
-        surfaceArea: minMap.surfaceArea
-    };
-    
-    map.data = make3DArray(map.width, map.height, map.depth);
-
-    for (var meshIndex = {}, i = 1; i < mapMeshes.length; i++) {
-        var mesh = mapMeshes[i];
-        meshIndex[mesh.name] = i
-    };
-
-    var meshesNotFound = {};
-    var spawnPoints;
-
-    if (isServer) {
-        spawnPoints = [
-            [],
-            [],
-            []
-        ];
-    };
-
-    Object.keys(minMap.data).forEach(function (meshName) {
-        if (illegalMeshes.includes(meshName)) {
-            devlog("buildMapData skipping illegal:", meshName);
-            return;
+    try {
+        map = {
+            width: minMap.width,
+            height: minMap.height + 1,
+            depth: minMap.depth,
+            surfaceArea: minMap.surfaceArea
         };
-
-        var meshData = minMap.data[meshName];
-        var meshIdx = meshIndex[meshName];
-        var mesh = mapMeshes[meshIdx];
-
-        console.log(meshName)
-
-        if (meshIdx) {
-            var colliderMesh;
-            var colliderPrecise;
-            var colliderChildren;
-            var fields = meshName.split(".");
-
-            // devlog("mesh, theme", mesh, fields);
-
-            mesh.theme = fields[0];
-            mesh.name = fields[1];
-            mesh.colliderType = fields[2];
-            mesh.softness = fields[3];
-            
-            //le server code
-            if (isServer && "SPECIAL" == mesh.theme && mesh.name.startsWith("spawn")) return void Object.values(meshData).forEach(function (cell) {
-                spawnPoints[0].push({
-                    x: cell.x,
-                    y: cell.y,
-                    z: cell.z
-                }), "spawn-blue" == mesh.name ? spawnPoints[Team.blue].push({
-                    x: cell.x,
-                    y: cell.y,
-                    z: cell.z
-                }) : spawnPoints[Team.red].push({
-                    x: cell.x,
-                    y: cell.y,
-                    z: cell.z
-                })
-            });
-
-            switch (mesh.colliderType) {
-                case "full":
-                    colliderMesh = Collider.fullCollisionMesh;
-                    colliderChildren = colliderPrecise = false;
-                    break;
-                case "wedge":
-                    colliderMesh = Collider.wedgeCollisionMesh;
-                    colliderChildren = !(colliderPrecise = true);
-                    break;
-                case "iwedge":
-                    colliderMesh = Collider.iwedgeCollisionMesh;
-                    colliderChildren = !(colliderPrecise = true);
-                    break;
-                case "ladder":
-                    colliderMesh = mesh.colliderMesh;
-                    colliderChildren = colliderPrecise = false;
-                    break;
-                case "aabb":
-                    colliderMesh = mesh.colliderMesh;
-                    colliderChildren = !(colliderPrecise = false);
-                    break;
-                case "obb":
-                    colliderMesh = mesh.colliderMesh;
-                    colliderChildren = colliderPrecise = true
-            }
-            Object.values(meshData).forEach(function (cell) {
-                var rx = cell.rx * Math.PI90 || 0;
-                var ry = cell.ry * Math.PI90 || 0;
-                var rz = cell.rz * Math.PI90 || 0;
-
-                map.data[cell.x][cell.y][cell.z] = {
-                    item: void 0,
-                    mesh: mesh,
-                    idx: meshIdx,
-                    colliderMesh: colliderMesh,
-                    colliderPrecise: colliderPrecise,
-                    colliderChildren: colliderChildren,
-                    colliderMatrix: BABYLON.Matrix.RotationYawPitchRoll(-ry, -rx, -rz),
-                    rx: rx,
-                    ry: ry,
-                    rz: rz
-                };
-            });
-        } else meshesNotFound[meshName] = true
-    });
-
-    var str = "";
-    Object.keys(meshesNotFound).forEach(function (name) {
-        str += name + "\n"
-    });
-    "" != str && errorFunc(str);
+        
+        map.data = make3DArray(map.width, map.height, map.depth);
     
-    if (isClient) {
-        return meshIndex;
-    } else {
-        return { map, spawnPoints, mapMeshes }; //rtw
+        for (var meshIndex = {}, i = 1; i < mapMeshes.length; i++) {
+            var mesh = mapMeshes[i];
+            meshIndex[mesh.name] = i
+        };
+    
+        var meshesNotFound = {};
+        var spawnPoints;
+    
+        if (isServer) {
+            spawnPoints = [
+                [],
+                [],
+                []
+            ];
+        };
+    
+        Object.keys(minMap.data).forEach(function (meshName) {
+            if (illegalMeshes.includes(meshName)) {
+                devlog("buildMapData skipping illegal:", meshName);
+                return;
+            };
+    
+            var meshData = minMap.data[meshName];
+            var meshIdx = meshIndex[meshName];
+            var mesh = mapMeshes[meshIdx];
+    
+            console.log(meshName);
+    
+            if (meshIdx) {
+                var colliderMesh;
+                var colliderPrecise;
+                var colliderChildren;
+                var fields = meshName.split(".");
+    
+                // devlog("mesh, theme", mesh, fields);
+    
+                mesh.theme = fields[0];
+                mesh.name = fields[1];
+                mesh.colliderType = fields[2];
+                mesh.softness = fields[3];
+                
+                //le server code
+                if (isServer && "SPECIAL" == mesh.theme && mesh.name.startsWith("spawn")) return void Object.values(meshData).forEach(function (cell) {
+                    spawnPoints[0].push({
+                        x: cell.x,
+                        y: cell.y,
+                        z: cell.z
+                    }), "spawn-blue" == mesh.name ? spawnPoints[Team.blue].push({
+                        x: cell.x,
+                        y: cell.y,
+                        z: cell.z
+                    }) : spawnPoints[Team.red].push({
+                        x: cell.x,
+                        y: cell.y,
+                        z: cell.z
+                    })
+                });
+    
+                switch (mesh.colliderType) {
+                    case "full":
+                        colliderMesh = Collider.fullCollisionMesh;
+                        colliderChildren = colliderPrecise = false;
+                        break;
+                    case "wedge":
+                        colliderMesh = Collider.wedgeCollisionMesh;
+                        colliderChildren = !(colliderPrecise = true);
+                        break;
+                    case "iwedge":
+                        colliderMesh = Collider.iwedgeCollisionMesh;
+                        colliderChildren = !(colliderPrecise = true);
+                        break;
+                    case "ladder":
+                        colliderMesh = mesh.colliderMesh;
+                        colliderChildren = colliderPrecise = false;
+                        break;
+                    case "aabb":
+                        colliderMesh = mesh.colliderMesh;
+                        colliderChildren = !(colliderPrecise = false);
+                        break;
+                    case "obb":
+                        colliderMesh = mesh.colliderMesh;
+                        colliderChildren = colliderPrecise = true
+                };
+                Object.values(meshData).forEach(function (cell) {
+                    var rx = cell.rx * Math.PI90 || 0;
+                    var ry = cell.ry * Math.PI90 || 0;
+                    var rz = cell.rz * Math.PI90 || 0;
+    
+                    map.data[cell.x][cell.y][cell.z] = {
+                        item: void 0,
+                        mesh: mesh,
+                        idx: meshIdx,
+                        colliderMesh: colliderMesh,
+                        colliderPrecise: colliderPrecise,
+                        colliderChildren: colliderChildren,
+                        colliderMatrix: BABYLON.Matrix.RotationYawPitchRoll(-ry, -rx, -rz),
+                        rx: rx,
+                        ry: ry,
+                        rz: rz
+                    };
+                });
+            } else meshesNotFound[meshName] = true
+        });
+    
+        var str = "";
+        Object.keys(meshesNotFound).forEach(function (name) {
+            str += name + "\n"
+        });
+        "" != str && errorFunc(str);
+        
+        if (isClient) {
+            return meshIndex;
+        } else {
+            return { map, spawnPoints, mapMeshes }; //rtw
+        };
+    } catch (error) {
+        throw error;
     };
 };

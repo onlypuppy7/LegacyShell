@@ -30,11 +30,15 @@ plugins.emit('roomLoading', {});
 
 export class newRoom {
     constructor(info) {
-        plugins.emit('roomInit', {this: this});
+        this.initRoom(info);
+    };
+
+    async initRoom(info) {
+        await plugins.emit('roomInit', {this: this});
 
         extendMath(Math);
 
-        plugins.emit('roomSetSS', {ss});
+        await plugins.emit('roomSetSS', {ss});
 
         this.lastTimeStamp = Date.now();
         console.log("creating room", info.gameId);
@@ -56,14 +60,7 @@ export class newRoom {
         this.gameKey = info.gameKey;
         this.locked = info.locked;
         console.log("locked", this.locked, GameTypes[this.gameType]);
-        plugins.emit("roomInitGameOptions", {this: this});
-
-        // this.items = info.items;
-        this.minMap = ss.maps[this.mapId];
-        this.playerLimit = this.minMap.playerLimit || 18;
-        this.maxAmmo = Math.ceil(this.minMap.surfaceArea / 25);
-        this.maxGrenades = Math.ceil(this.minMap.surfaceArea / 65);
-        console.log("maxitems:", this.maxAmmo, this.maxGrenades)
+        await plugins.emit("roomInitGameOptions", {this: this});
 
         this.players = [];
         this.clients = [];
@@ -87,63 +84,101 @@ export class newRoom {
         this.censor = censor;
 
         //map init
-        //plugins.emit('roomBeforeMapInit', {this: this});
+        //await plugins.emit('roomBeforeMapInit', {this: this});
         //setParamsforLoader(this.minMap, this.Collider); - moved into buildMap
         this.validItemSpawns = [];
 
         //timed rounds
         this.setRoundTimeout();
 
-        plugins.emit('roomBeforeMapBuild', {this: this, info: info}); //modify this.minMap.
+        this.acceptCustomMaps = false; 
+
+        await plugins.emit('roomBeforeMapBuild', {this: this, info: info}); //modify this.minMap.
 
         const extraParams = info.extraParams;
-        if (extraParams.customMinMap) {
+        if (this.acceptCustomMaps && extraParams.customMinMap) {
             try {
-                const customMapP = extraParams.customMinMap;
-                this.minMap = customMapP;
-                this.useCustomMap = true;
-                console.log("told room to use custom map. ye. ");
-            } catch (e) {
-                console.log(e);
-                console.log("err in custom map parsing, looks like we don't go custom.");
-            };
-        };
+                if (!extraParams.customMinMap.surfaceArea) throw new Error("invalid map");
 
-        this.buildMap(this.minMap);
+                console.log("told room to use custom map. ye.");
+                const customMapP = extraParams.customMinMap;
+                this.setMinMap(customMapP);
+
+                console.log("custom minMap passed initial stage.");
+
+                await this.buildMap(this.minMap);
+                this.useCustomMap = true;
+                console.log("custom minMap passed map building.");
+            } catch (e) {
+                console.error("err in custom map parsing, looks like we don't go custom", e);
+
+                this.customMapFailed = true;
+                await this.useDefaultMap();
+            };
+        } else {
+            console.log("no custom map jajaja", this.mapId);
+            await this.useDefaultMap();
+        };
     };
 
-    buildMap(minMap) {
-        setParamsforLoader(minMap, this.Collider);
-        loadMapMeshes(this.scene, async () => {
-            ss.config.verbose && console.log("done loadMapMeshes");
-            const {
-                map,
-                spawnPoints,
-                mapMeshes
-            } = buildMapData(function (str) {
-                log.error("The following map meshes were not found:\n\n" + str + "\nTry clearing your cache and reload the page!")
-            });
+    async useDefaultMap() {
+        console.log("just use default map lol......");
+        this.useCustomMap = false;
+        this.setMinMap(ss.maps[this.mapId]);
+        await this.buildMap(ss.maps[this.mapId]);
+    };
 
-            this.map = map;
-            this.spawnPoints = spawnPoints; //this is a [] from 0-2; conveniently lining up with ffa, team1, team2 (i think)
-            this.mapMeshes = mapMeshes;
+    setMinMap(minMap) {
+        console.log("set minMap:", minMap?.name);
+        this.minMap = minMap;
+        this.playerLimit = minMap.playerLimit || 18;
+        this.maxAmmo = Math.ceil(minMap.surfaceArea / 25);
+        this.maxGrenades = Math.ceil(minMap.surfaceArea / 65);
+        console.log("maxitems:", this.maxAmmo, this.maxGrenades)
+    };
 
-            this.Collider.setParams(this.map, this.mapMeshes, this.playerLimit, this.players);
+    async buildMap(minMap = this.minMap) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                setParamsforLoader(minMap, this.Collider);
+                loadMapMeshes(this.scene, async () => {
+                    try {
+                        ss.config.verbose && console.log("done loadMapMeshes");
 
-            this.updateLoopObject = createLoop(this.updateLoop.bind(this), TickStep);
-            this.dataSyncLoopObject = createLoop(this.dataSyncLoop.bind(this), 1e3);
-            this.metaLoopObject = createLoop(this.metaLoop.bind(this), 2e3);
-            this.updateRoomDetailsLoopObject = createLoop(this.updateRoomDetails.bind(this), 30e3);
+                        const mapData = buildMapData(function (str) {
+                            log.error("The following map meshes were not found:\n\n" + str + "\nTry clearing your cache and reload the page!")
+                        });
 
-            this.getValidItemSpawns();
-            this.spawnItemsLoopObject = createLoop(this.spawnItems.bind(this), 30e3); //just in case, i guess?
-
-            await plugins.emit('roomInitEnd', {
-                this: this
-            });
+                        const { map, spawnPoints, mapMeshes } = mapData;
+            
+                        this.map = map;
+                        this.spawnPoints = spawnPoints; //this is a [] from 0-2; conveniently lining up with ffa, team1, team2 (i think)
+                        this.mapMeshes = mapMeshes;
+            
+                        this.Collider.setParams(this.map, this.mapMeshes, this.playerLimit, this.players);
+            
+                        this.updateLoopObject = createLoop(this.updateLoop.bind(this), TickStep);
+                        this.dataSyncLoopObject = createLoop(this.dataSyncLoop.bind(this), 1e3);
+                        this.metaLoopObject = createLoop(this.metaLoop.bind(this), 2e3);
+                        this.updateRoomDetailsLoopObject = createLoop(this.updateRoomDetails.bind(this), 30e3);
+            
+                        this.getValidItemSpawns();
+                        this.spawnItemsLoopObject = createLoop(this.spawnItems.bind(this), 30e3); //just in case, i guess?
+            
+                        await plugins.emit('roomInitEnd', {
+                            this: this
+                        });
+        
+                        return resolve();
+                    } catch (error) {
+                        return reject(error);
+                    };
+                });
+            } catch (error) {
+                return reject(error);
+            };
         });
     };
-
 
     sendWsToClient(type, content, wsId) {
         const client = this.wsToClient[wsId];
@@ -606,7 +641,7 @@ export class newRoom {
         };
     };
 
-    getValidItemSpawns = function () {
+    getValidItemSpawns () {
         let data = this.map.data;
         plugins.emit('getValidItemSpawns', {this: this, data});
         for (var x = 0; x < data.length; x++) {

@@ -1,7 +1,7 @@
 //basic
 import fs from 'node:fs';
 import path from 'node:path';
-import { MultiplayerMapHost } from './client.js';
+import { MultiplayerMapHost } from './shared.js';
 //plugin: samplecommand
 //
 
@@ -24,29 +24,32 @@ export class Plugin {
 
         pluginInstance = this;
 
-        this.plugins.on('client:pluginSourceInsertion', this.onFuckYouInsertion.bind(this));
+        this.plugins.on('client:pluginSourceInsertion', this.pluginSourceInsertion.bind(this));
 
         //MultiplayerMapHost.registerListeners(this.plugins);
-        this.plugins.on("game:roomBeforeMapBuild", this.beforeMapBuildSub);
-        this.plugins.on("game:clientGameJoinedExtraInfos", this.clientGameJoinedExtraInfosSub);
+        this.plugins.on("game:roomBeforeMapBuild", this.roomBeforeMapBuild);
+        // this.plugins.on("game:clientGameJoinedExtraInfos", this.clientGameJoinedExtraInfosSub);
         //this.plugins.on('services:initTablesMaps', this.initTablesMaps.bind(this));
-
     };
 
-    onFuckYouInsertion(data) { //minor spelling mistake jajaja
+    pluginSourceInsertion(data) { //minor spelling mistake jajaja
         data.pluginInsertion.files.push({
-            insertBefore: '\nconsole.log("inserting before... (fuck you)");',
-            filepath: path.join(this.thisDir, 'client.js'),
-            insertAfter: '\nconsole.log("inserting after... (fuck you)!");',
+            insertBefore: '\nconsole.log("inserting before... (MultiplayerMapHost)");',
+            filepath: path.join(this.thisDir, 'shared.js'),
+            insertAfter: '\nconsole.log("inserting after... (MultiplayerMapHost)!");',
             position: 'before'
         });
     };
 
-    clientGameJoinedExtraInfosSub(event) {
+    clientGameJoinedExtraInfosSub(data) {
         //former logic: send custom map in msg to client
     };
 
-    beforeMapBuildSub(event) {
+    roomBeforeMapBuild(data) {
         //former logic: tell the game server to use custom minMap as map, overriding old
+
+        const ctx = data.this;
+
+        ctx.acceptCustomMaps = true;
     };
 };

@@ -3,6 +3,7 @@ import {ss} from "#misc";
 //
 
 export const isClient = typeof (window) !== 'undefined'; //best to define once, or something
+export const isEditor = typeof (window) !== 'undefined' && location.pathname.includes("editor"); //this is the way
 export const isServer = typeof (window) === 'undefined'; //clearer in code
 
 export const devlog = function (...args) {

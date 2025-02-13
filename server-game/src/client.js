@@ -83,11 +83,13 @@ class newClient {
         this.packGameJoined(output);
         //extra info; here bc room ref
         const extraInfo = {};
-        
+
         await plugins.emit("clientGameJoinedExtraInfos", {this:this, room: room, extraInfo: extraInfo});
 
         if (this.room.useCustomMap) {
-            extraInfo.customMinMap = this.room.minMap;
+            Object.assign(extraInfo, {
+                customMinMap: this.room.minMap,
+            });
         };
 
         output.packVeryLongString(JSON.stringify(extraInfo));
@@ -239,6 +241,10 @@ class newClient {
                             this.room.packAllItems(output);
                             this.room.packSetGameOwner(output);
                             this.sendToMe(output, "packAllItems");
+
+                            if (this.room.customMapFailed) {
+                                this.notify("NOTICE: Loading your custom map failed, please identify the issues, somehow.", 15);
+                            };
                         };
                         break;
                     case Comm.Code.sync:
