@@ -8,8 +8,8 @@ import { MultiplayerMapHost } from './shared.js';
 export const PluginMeta = {
     identifier: "multiplayermaphost",
     name: 'Minerva',
-    author: 'Seqsy',
-    version: '0.9.1',
+    author: 'Seqsy & onlypuppy7',
+    version: '1.0.0',
     descriptionShort: 'Allows for playtesting of custom maps in multiplayer', //displayed when loading
     descriptionLong: 'Allows for playtesting of custom maps in multiplayer!',
     legacyShellVersion: 335, //legacy shell version, can be found in /versionEnum.txt, or just on the homescreen
