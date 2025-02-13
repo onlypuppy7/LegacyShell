@@ -16,6 +16,13 @@
 		},
 		{
 			"active": true,
+			"imageExt": ".png",
+			"link": "https://store.steampowered.com/app/298180/The_Desolate_Hope/",
+			"label": "The Desolate Hope",
+			"id": "VirenAd"
+		},
+		{
+			"active": true,
 			"imageExt": ".jpg",
 			"label": "golden chicken",
 			"linksToNugget": "1",
