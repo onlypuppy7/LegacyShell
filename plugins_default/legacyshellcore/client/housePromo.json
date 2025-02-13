@@ -9,6 +9,13 @@
 		},
 		{
 			"active": true,
+			"imageExt": ".png",
+			"link": "https://archive.org/details/Iffermoon",
+			"label": "Iffermoon",
+			"id": "PiperAd"
+		},
+		{
+			"active": true,
 			"imageExt": ".jpg",
 			"label": "golden chicken",
 			"linksToNugget": "1",
