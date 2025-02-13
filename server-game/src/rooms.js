@@ -107,8 +107,10 @@ export class newRoom {
                 console.log("custom minMap passed initial stage.");
 
                 await this.buildMap(this.minMap);
+
                 this.useCustomMap = true;
                 console.log("custom minMap passed map building.");
+                this.joinType = Comm.Code.createPrivateGame;
             } catch (e) {
                 console.error("err in custom map parsing, looks like we don't go custom", e);
 

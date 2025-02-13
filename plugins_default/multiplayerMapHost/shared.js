@@ -12,14 +12,15 @@ export const MultiplayerMapHost = {
         this.plugins = pluginManager;
 
         this.plugins.on("game:onExtraParams", this.onExtraParams.bind(this));
+        this.plugins.on("game:onResourcesLoadedEnd", this.onResourcesLoadedEnd.bind(this));
 
         // this.plugins.on('game:clientOnExtraGameInfo', this.onExtraGameInfoSub.bind(this));
         // this.plugins.on('game:modifyMinMap', this.modifyMinMapSub.bind(this));
 
         if (isEditor) {
-            document.addEventListener("DOMContentLoaded", function () {
-                extern.testMapOnline = MultiplayerMapHost.testMapOnline;
-                MultiplayerMapHost.addTestButton();
+            document.addEventListener("DOMContentLoaded", () => { //arrow functions my beloved
+                extern.testMapOnline = this.testMapOnline;
+                this.addTestButton();
             });
         };
     },
@@ -27,12 +28,17 @@ export const MultiplayerMapHost = {
     onExtraParams(data){
         //test for map
 
-        //TODO: make this load into custom map if condition
-        try {
-            data.extraParams.customMinMap = JSON.parse(localStorage.getItem("mapBackup"));
-            console.log("derived custom minMap from localStorage, lets hope the best for the server!!");;
-        } catch (error) {
-            console.error("unrecognised map:", localStorage.getItem("mapBackup"));
+        if (this.yepDoACustomMap) {
+            this.yepDoACustomMap = false;
+            autoInvite = true;
+
+            try {
+                notify("Sending custom map...");
+                data.extraParams.customMinMap = JSON.parse(localStorage.getItem("mapBackup"));
+                console.log("derived custom minMap from localStorage, lets hope the best for the server!!");
+            } catch (error) {
+                console.error("unrecognised map:", localStorage.getItem("mapBackup"));
+            };
         };
     },
 
@@ -51,6 +57,11 @@ export const MultiplayerMapHost = {
         };
 
         testButton.insertAdjacentElement("afterend", testOnlineButton);
+
+        //yoohoo! look at me! look!
+        testOnlineButton.style.border = "dashed";
+        testOnlineButton.style.borderWidth = "1.5px";
+        testOnlineButton.style.borderColor = "darkgray";
     },
 
     testMapOnline() {
@@ -74,6 +85,18 @@ export const MultiplayerMapHost = {
 
         saveToLocal();
         window.open(location.origin+"/?testMapOnline="+selected, "_blank");
+    },
+
+    onResourcesLoadedEnd() {
+        const selectedGameType = parsedUrl?.query?.testMapOnline;
+
+        if (selectedGameType) {
+            gameType = GameType[selectedGameType];
+
+            this.yepDoACustomMap = true; //basically, yep do a custom map
+
+            play();
+        };
     },
 
     /*
