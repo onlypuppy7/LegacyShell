@@ -23,6 +23,13 @@
 		},
 		{
 			"active": true,
+			"imageExt": ".png",
+			"link": "https://legacyshell.com/wiki/wiki/LegacyShell/Related%20Characters/bundesnachrichtendienst.html",
+			"label": "O B E Y",
+			"id": "BigBrother"
+		},
+		{
+			"active": true,
 			"imageExt": ".jpg",
 			"label": "golden chicken",
 			"linksToNugget": "1",
