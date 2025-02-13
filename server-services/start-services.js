@@ -298,7 +298,7 @@ export default async function run (runStart) {
     
                         if (msg.lastItems !== undefined)    response.items  = items.maxDateModified         > msg.lastItems     ? await recs.getAllItemData()            : false;
                         if (msg.lastMaps !== undefined)     response.maps   = maps.maxDateModified          > msg.lastMaps      ? await recs.getAllMapData()             : false;
-                        if (msg.lastServers !== undefined)  response.servers= game_servers.maxDateModified  > msg.lastServers   ? await recs.getAllGameServerData()      : false;
+                        response.servers = await recs.getAllGameServerData(); //really no need to avoid wasting power here.
     
                         if (msg.auth_key) {
                             var servers = await recs.getAllGameServerData(true);

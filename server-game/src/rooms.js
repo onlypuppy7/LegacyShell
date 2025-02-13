@@ -14,6 +14,8 @@ import { PermissionsConstructor } from '#permissions';
 import BABYLON from "babylonjs";
 import { censor } from "#censor";
 import { removeCanvasResources } from '#stringWidth';
+//legacyshell: basic
+import { ss, misc } from '#misc';
 //legacyshell: logging
 import log from '#coloured-logging';
 //legacyshell: plugins
@@ -27,12 +29,16 @@ plugins.emit('roomLoading', {});
 // let ss; //sorry.
 
 export class newRoom {
-    constructor(info, ss) {
-        plugins.emit('roomInit', {this: this});
+    constructor(info) {
+        this.initRoom(info);
+    };
+
+    async initRoom(info) {
+        await plugins.emit('roomInit', {this: this});
 
         extendMath(Math);
 
-        plugins.emit('roomSetSS', {ss});
+        await plugins.emit('roomSetSS', {ss});
 
         this.lastTimeStamp = Date.now();
         console.log("creating room", info.gameId);
@@ -54,14 +60,7 @@ export class newRoom {
         this.gameKey = info.gameKey;
         this.locked = info.locked;
         console.log("locked", this.locked, GameTypes[this.gameType]);
-        plugins.emit("roomInitGameOptions", {this: this});
-
-        // this.items = info.items;
-        this.minMap = ss.maps[this.mapId];
-        this.playerLimit = this.minMap.playerLimit || 18;
-        this.maxAmmo = Math.ceil(this.minMap.surfaceArea / 25);
-        this.maxGrenades = Math.ceil(this.minMap.surfaceArea / 65);
-        console.log("maxitems:", this.maxAmmo, this.maxGrenades)
+        await plugins.emit("roomInitGameOptions", {this: this});
 
         this.players = [];
         this.clients = [];
@@ -85,31 +84,101 @@ export class newRoom {
         this.censor = censor;
 
         //map init
-        setParamsforLoader(this.minMap, this.Collider);
+        //await plugins.emit('roomBeforeMapInit', {this: this});
+        //setParamsforLoader(this.minMap, this.Collider); - moved into buildMap
         this.validItemSpawns = [];
 
         //timed rounds
         this.setRoundTimeout();
 
-        loadMapMeshes(this.scene, async () => {
-            ss.config.verbose && console.log("done loadMapMeshes");
-            const { map, spawnPoints, mapMeshes } = buildMapData(function (str) { log.error("The following map meshes were not found:\n\n" + str + "\nTry clearing your cache and reload the page!") });
+        this.acceptCustomMaps = false; 
 
-            this.map = map;
-            this.spawnPoints = spawnPoints; //this is a [] from 0-2; conveniently lining up with ffa, team1, team2 (i think)
-            this.mapMeshes = mapMeshes;
+        await plugins.emit('roomBeforeMapBuild', {this: this, info: info}); //modify this.minMap.
 
-            this.Collider.setParams(this.map, this.mapMeshes, this.playerLimit, this.players);
+        const extraParams = info.extraParams;
+        if (this.acceptCustomMaps && extraParams.customMinMap) {
+            try {
+                if (!extraParams.customMinMap.surfaceArea) throw new Error("invalid map");
 
-            this.updateLoopObject = createLoop(this.updateLoop.bind(this), TickStep);
-            this.dataSyncLoopObject = createLoop(this.dataSyncLoop.bind(this), 1e3);
-            this.metaLoopObject = createLoop(this.metaLoop.bind(this), 2e3);
-            this.updateRoomDetailsLoopObject = createLoop(this.updateRoomDetails.bind(this), 30e3);
+                console.log("told room to use custom map. ye.");
+                const customMapP = extraParams.customMinMap;
+                this.setMinMap(customMapP);
 
-            this.getValidItemSpawns();
-            this.spawnItemsLoopObject = createLoop(this.spawnItems.bind(this), 30e3); //just in case, i guess?
+                console.log("custom minMap passed initial stage.");
 
-            await plugins.emit('roomInitEnd', {this: this});
+                await this.buildMap(this.minMap);
+
+                this.useCustomMap = true;
+                console.log("custom minMap passed map building.");
+                this.joinType = Comm.Code.createPrivateGame;
+            } catch (e) {
+                console.error("err in custom map parsing, looks like we don't go custom", e);
+
+                this.customMapFailed = true;
+                await this.useDefaultMap();
+            };
+        } else {
+            console.log("no custom map jajaja", this.mapId);
+            await this.useDefaultMap();
+        };
+    };
+
+    async useDefaultMap() {
+        console.log("just use default map lol......");
+        this.useCustomMap = false;
+        this.setMinMap(ss.maps[this.mapId]);
+        await this.buildMap(ss.maps[this.mapId]);
+    };
+
+    setMinMap(minMap) {
+        console.log("set minMap:", minMap?.name);
+        this.minMap = minMap;
+        this.playerLimit = minMap.playerLimit || 18;
+        this.maxAmmo = Math.ceil(minMap.surfaceArea / 25);
+        this.maxGrenades = Math.ceil(minMap.surfaceArea / 65);
+        console.log("maxitems:", this.maxAmmo, this.maxGrenades)
+    };
+
+    async buildMap(minMap = this.minMap) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                setParamsforLoader(minMap, this.Collider);
+                loadMapMeshes(this.scene, async () => {
+                    try {
+                        ss.config.verbose && console.log("done loadMapMeshes");
+
+                        const mapData = buildMapData(function (str) {
+                            log.error("The following map meshes were not found:\n\n" + str + "\nTry clearing your cache and reload the page!")
+                        });
+
+                        const { map, spawnPoints, mapMeshes } = mapData;
+            
+                        this.map = map;
+                        this.spawnPoints = spawnPoints; //this is a [] from 0-2; conveniently lining up with ffa, team1, team2 (i think)
+                        this.mapMeshes = mapMeshes;
+            
+                        this.Collider.setParams(this.map, this.mapMeshes, this.playerLimit, this.players);
+            
+                        this.updateLoopObject = createLoop(this.updateLoop.bind(this), TickStep);
+                        this.dataSyncLoopObject = createLoop(this.dataSyncLoop.bind(this), 1e3);
+                        this.metaLoopObject = createLoop(this.metaLoop.bind(this), 2e3);
+                        this.updateRoomDetailsLoopObject = createLoop(this.updateRoomDetails.bind(this), 30e3);
+            
+                        this.getValidItemSpawns();
+                        this.spawnItemsLoopObject = createLoop(this.spawnItems.bind(this), 30e3); //just in case, i guess?
+            
+                        await plugins.emit('roomInitEnd', {
+                            this: this
+                        });
+        
+                        return resolve();
+                    } catch (error) {
+                        return reject(error);
+                    };
+                });
+            } catch (error) {
+                return reject(error);
+            };
         });
     };
 
@@ -137,19 +206,19 @@ export class newRoom {
             this.roundEndTime = Date.now() + this.roundLengthInMs;
             this.timeoutForNextRound = NextRoundTimeout * 1e3;
             this.roundRestartTime = this.roundEndTime + this.timeoutForNextRound;
-    
+
             console.log("roundLength", this.roundLength);
             console.log("roundEndTime", this.roundEndTime);
             console.log("roundLengthInMs", this.roundLengthInMs);
             console.log("timeoutForNextRound", this.timeoutForNextRound);
             console.log("roundRestartTime", this.roundRestartTime);
-    
+
             var output = new Comm.Out(1);
             output.packInt8U(Comm.Code.roundStart);
             this.sendToAll(output, null, "roundStart");
-    
+
             this.resetGame();
-            
+
             this.roundTimeout = setTimeout(() => {
                 this.endRound();
             }, this.roundLengthInMs);
@@ -167,7 +236,7 @@ export class newRoom {
         this.roundRestartTime = this.roundEndTime + this.timeoutForNextRound;
 
         console.log(`Round ended. Starting new round in ${NextRoundTimeout} seconds.`);
-    
+
         this.resetGame(true);
 
         var output = new Comm.Out();
@@ -461,7 +530,7 @@ export class newRoom {
         };
 
         plugins.emit('getPlayerCount', {this: this, count, uuids, usernames, sessions, extraDetails});
-        
+
         return extraDetails ? {count, uuids, usernames} : count;
     };
 
@@ -574,7 +643,7 @@ export class newRoom {
         };
     };
 
-    getValidItemSpawns = function () { 
+    getValidItemSpawns () {
         let data = this.map.data;
         plugins.emit('getValidItemSpawns', {this: this, data});
         for (var x = 0; x < data.length; x++) {
@@ -697,9 +766,9 @@ export class newRoom {
 
     getItemSpawnFromQueue() { //this is a queue, so it will rotate the positions
         var pos = this.validItemSpawns[0];
-        
+
         plugins.emit('getItemSpawnFromQueue', {this: this, pos});
-        
+
         this.validItemSpawns.push(this.validItemSpawns.shift());
 
         plugins.emit('getItemSpawnFromQueueEnd', {this: this, pos});
@@ -709,7 +778,7 @@ export class newRoom {
 
     getUnusedPlayerId() {
         plugins.emit('getUnusedPlayerId', {this: this});
-        
+
         for (let i = 0; i < this.playerLimit; i++) {
             var client = this.clients[i];
             var player = this.players[i];
@@ -724,7 +793,7 @@ export class newRoom {
 
     getPreferredTeam() {
         plugins.emit('getPreferredTeam', {this: this});
-        
+
         if (!this.gameOptions.teamsEnabled) {
             return 0;
         } else {

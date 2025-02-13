@@ -54,12 +54,12 @@ export default async function run () {
                 ws.on('message', async (message) => {
                     try {
                         var input = new Comm.In(message);
-        
+
                         while (input.isMoreDataAvailable()) {
                             let msg = {};
                             msg.cmd = input.unPackInt8U();
                             console.log(Comm.Convert(msg.cmd));
-        
+
                             switch (msg.cmd) {
                                 case Comm.Code.joinGame:
                                     msg.joinType = input.unPackInt8U(); //this is private/public //Comm.Convert(input.unPackInt8())
@@ -76,15 +76,24 @@ export default async function run () {
                                     msg.nickname = input.unPackString(); //NOT the username!
                                     msg.uuid = input.unPackInt32U();
                                     //additional stuff provided they are signed in
-                                    msg.session = input.unPackString(); //technically this is all thats rlly needed tbh
+                                    //msg.session = input.unPackString(); //technically this is all thats rlly needed tbh
+                                    
+                                    msg.extraParamsRaw = input.unPackVeryLongString();
+                                    try {
+                                        msg.extraParams = JSON.parse(msg.extraParamsRaw);
+                                        if (msg.extraParams.session) msg.session = msg.extraParams.session; //compat reasons
+                                        delete msg.extraParamsRaw; //memory leak pwned 💯💯💯💯
+                                    } catch (e) {
+                                        msg.extraParams = {};
+                                    };
 
                                     // msg.gameType = GameTypes[msg.gameType] ? msg.gameType : 0;
 
                                     ss.config.verbose && console.log(msg, Comm.Convert(msg.joinType), Comm.Convert(msg.gameType));
-            
+
                                     let roomFound = RoomManager.searchRooms(msg);
                                     console.log("roomFound", !!roomFound);
-        
+
                                     if (roomFound) {
                                         // console.log(roomFound.ready, roomFound.playerCount, roomFound.playerLimit);
                                         if ((roomFound.ready) && roomFound.playerCount >= roomFound.playerLimit) {
@@ -105,7 +114,7 @@ export default async function run () {
                                     break;
                             };
                         };
-        
+
                     } catch (error) {
                         try {
                             console.error('Error processing message:', error);
@@ -115,7 +124,7 @@ export default async function run () {
                         };
                     }
                 });
-        
+
                 ws.on('close', () => console.log('Client disconnected (not in a game)'));
                 ws.on('error', (e) => console.error(`WebSocket error:`, e));
             } catch (error) {
@@ -164,7 +173,7 @@ export default async function run () {
                             offline = false;
 
                             await plugins.emit("requestConfigReceived", {msg});
-                
+
                             const load = function(thing, filePath) {
                                 if (msg[thing]) {
                                     log.blue(`[${thing}] loaded from newly retrieved json.`);
@@ -181,38 +190,38 @@ export default async function run () {
                                     };
                                 };
                             };
-                
+
                             load("maps", mapsFilePath);
                             load("servers", serversFilePath);
                             load("items", itemsFilePath);
-                    
+
                             delete msg.distributed_client;
-                
+
                             msg = { ...msg, ...msg.distributed_game };
                             delete msg.distributed_game;
-                    
+
                             msg = { ...msg, ...msg.distributed_all };
                             delete msg.distributed_all;
-                    
+
                             ss.config.servicesMeta = msg.servicesMeta;
                             delete msg.servicesMeta;
 
                             ss.config.restartTime = msg.restartTime;
                             delete msg.restartTime;
-                    
+
                             Object.assign(ss, {
                                 permissions: msg.permissions,
                                 events: msg.events,
                             });
                             delete msg.permissions;
                             delete msg.events;
-                
+
                             ss.config.game = { ...ss.config.game, ...msg };
 
                             ss.mapAvailability = getMapsByAvailabilityAsInts(ss.maps);
 
                             ss.thisServer = msg.yourServer;
-                
+
                             retrieved = true;
                             // console.log(ss.permissions);
                             startServer();
@@ -225,14 +234,14 @@ export default async function run () {
                         };
                         break;
                     case "servicesInfo":
-                        
+
                         break;
                     default:
                         log.error(`Unknown command received: ${msg.cmd}`);
                         break;
                 };
-                
-                
+
+
                 // } else {
                 //     if (!retrieved) {
                 //         log.yellow(`Config retrieval failed. Retrying in ${nextTimeout / 1e3} seconds...`);

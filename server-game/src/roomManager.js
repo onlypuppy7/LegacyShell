@@ -238,7 +238,8 @@ class newRoomManager {
         worker.on('error', (error) => {
             try {
                 createdRoom.terminate();
-                log.error('The game thread for', info.gameId, "errored out, now look at this:", error);
+                log.error('The game thread for', info.gameId, "errored out, now look at this, and see below:", error);
+                console.error(error);
             } catch (error) {
                 log.error("Wtf? Error in worker error", error);  
             };

@@ -26,7 +26,7 @@ import log from '#coloured-logging';
                     Object.assign(ss, message);
                     break;
                 case "createRoom":
-                    room = new RoomConstructor.newRoom(message, ss);
+                    room = new RoomConstructor.newRoom(message);
                     break;
                 case "joinPlayer":
                     room.joinPlayer(message);
