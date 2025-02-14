@@ -89527,9 +89527,10 @@ function createMapMeshIcons() {
 function filterObjects() {
   var theme = document.getElementById("themeFilter").value;
   var collider = document.getElementById("colliderFilter").value;
+  const nameF = document.getElementById("nameFilter").value;
   for (var i3 = 1; i3 < mapMeshes.length; i3++) {
     var fields = mapMeshes[i3].name.split(".");
-    if ((theme == "All themes" || fields[0] == theme) && (collider == "All colliders" || fields[2] == collider)) {
+    if ((theme == "All themes" || fields[0] == theme) && (collider == "All colliders" || fields[2] == collider) && (nameF =="" || mapMeshes[i3].name.includes(nameF))) {
       mapMeshes[i3].canvas.style.display = "inline-block";
     } else {
       mapMeshes[i3].canvas.style.display = "none";
