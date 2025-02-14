@@ -392,7 +392,7 @@ const exported = {
     insertMaps: async (jsonDir = path.join(ss.currentDir, 'src', 'maps')) => {
         return new Promise(async (resolve, reject) => {
             const files = fs.readdirSync(jsonDir);
-            const maps = [];
+            let maps = [];
             for (const file of files) {
                 if (path.extname(file) === '.json') {
                     log.beige(`[Maps] Reading: ${file}`);
@@ -401,6 +401,9 @@ const exported = {
                     maps.push(JSON.parse(fileContent));
                 };
             };
+
+            //organise maps alphabetically based on map.name
+            maps = maps.sort((a, b) => (a.name > b.name ? 1 : -1));
 
             for (const map of maps) {
                 log.beige(`[Maps] Inserting: ${map.name}`);
@@ -432,12 +435,14 @@ const exported = {
                     ],
                 );
             };
+
+            /* this idea was very stupid.
             
             try {
                 await ss.runQuery('COMMIT');
                 await ss.runQuery('BEGIN TRANSACTION');
             } catch (error) { };
-
+             
             log.beige(`[Maps] Reordering maps table`);
     
             //alphabetical order (cringe)
@@ -454,6 +459,7 @@ const exported = {
                 log.error('Error reordering maps table:', error);
                 reject(error);
             };
+            */
     
             log.beige(`[Maps] Inserted ${maps.length} maps`);
             resolve();
