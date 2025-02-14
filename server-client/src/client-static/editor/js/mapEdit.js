@@ -40,6 +40,7 @@ function createPreferences() { //alr nvm let's make it a func called before load
   initPref("renderWorkers", "", 2, "how many workers should be used during rendering?");
   initPref("debugInfo", "show debug info", true, "displays a few debug informations");
   initPref("prettyAngles", "pretty angles", true, "shows angles in factors of pi and degrees instead of raw radians");
+  initPref("sortCombos", "sort filter menus", true, "sorts the filter menus in the palette (theme and collider combobox) alphabetically [REQUIRES RELOAD]");
   //below are just tests for how the system would behave in extreme situations.
   //there's still stuff to do (mainly with spinners), so it's going to stay commented out, but not deleted
   /*
@@ -89512,13 +89513,17 @@ function createMapMeshIcons() {
     colliders[fields[2]] = true;
   }
   var el = document.getElementById("themeFilter");
-  Object.keys(themes).forEach(function(k) {
+  const themesKEYS = Object.keys(themes);
+  if(pref("sortCombos")) themesKEYS.sort();
+  themesKEYS.forEach(function(k) {
     var option = document.createElement("option");
     option.text = k;
     el.add(option);
   });
   var el = document.getElementById("colliderFilter");
-  Object.keys(colliders).forEach(function(k) {
+  const collidersKEYS = Object.keys(colliders);
+  if(pref("sortCombos")) collidersKEYS.sort();
+  collidersKEYS.forEach(function(k) {
     var option = document.createElement("option");
     option.text = k;
     el.add(option);
