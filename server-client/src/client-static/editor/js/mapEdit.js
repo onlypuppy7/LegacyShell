@@ -89409,6 +89409,11 @@ function doDebugMenu(){
   var pick = scene.pickWithRay(camera.getForwardRay());
   if (pick.hit && pick.pickedMesh.name != "ground") {
     var cel = getPickedCell(pick);
+    if(!cel){
+      rotText.innerText = `rotation: UNKNOWN PICK!`;
+      posText.innerText = `position: UNKNOWN PICK!`;
+      return;
+    }
     var mesh = mapMeshes[cel.idx];
     var blockName = mesh.name ? `${mesh.name}\n\n` : "";
     let rots = pick?.pickedMesh?.rotationQuaternion?.toEulerAngles ? pick?.pickedMesh?.rotationQuaternion?.toEulerAngles() : pick.pickedMesh.rotation;
