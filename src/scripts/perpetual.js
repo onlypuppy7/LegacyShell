@@ -310,7 +310,7 @@ function getVersionHash() {
 let versionHash = getVersionHash();
 
 (setInterval(() => {
-    let newVersionHash = getVersionHash()
+    let newVersionHash = getVersionHash();
     if (versionHash !== newVersionHash) {
         log.bgGreen(versionHash, newVersionHash, "Version hash has changed, update! Restarting...");
         versionHash = newVersionHash; //why didnt i include this before? i thought that this perpetual wrapper restarted too. am stupid

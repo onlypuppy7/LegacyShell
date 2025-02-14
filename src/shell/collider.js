@@ -138,8 +138,9 @@ class ColliderConstructor {
             mesh.position.y = pos.y - cy - 0.5;
             mesh.position.z = pos.z - cz - 0.5;
             mesh.setPivotPoint(new BABYLON.Vector3(-mesh.position.x, -mesh.position.y, -mesh.position.z));
+            mesh.rotationQuaternion = null;
             mesh.rotation.x = -cell.rx;
-            mesh.rotation.y = -cell.ry;
+            mesh.rotation.y = -cell.ry; //why was this an issue?
             mesh.rotation.z = -cell.rz;
             mesh.computeWorldMatrix();
             if (!cell.colliderMesh) console.log(cell);
