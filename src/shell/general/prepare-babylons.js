@@ -89,14 +89,14 @@ export async function prepareBabylons(endBabylonsDir = path.join(ss.rootDir, 'st
                             ...baseBabylon.meshes,
                             ...extraBabylonData.meshes,
                         ];
-                        baseBabylon.materials = [
+                        extraBabylonData.materials && (baseBabylon.materials = [
                             ...baseBabylon.materials,
                             ...extraBabylonData.materials,
-                        ];
-                        baseBabylon.multiMaterials = [
+                        ]);
+                        extraBabylonData.multiMaterials && (baseBabylon.multiMaterials = [
                             ...baseBabylon.multiMaterials,
                             ...extraBabylonData.multiMaterials,
-                        ];
+                        ]);
                     } else {
                         extraBabylonData.materials && (baseBabylon.materials = [
                             ...extraBabylonData.materials,
