@@ -71,6 +71,7 @@ Things such as extra skins, stamps or other cosmetic stuff will never be accepte
     - v18.19.0 on Raspberry PI Debian
     - v20.11.1 on Windows 11
     - v20.18.1 on M4 MacOS
+    - v20.19.2 on M2 pro MacOS
   - LegacyShell should run on any system where modern versions of nodejs are supported, and no testing has been done on dev versions or deprecated ones.
 - (Optional but highly recommended) Git
 - Some kind of terminal
