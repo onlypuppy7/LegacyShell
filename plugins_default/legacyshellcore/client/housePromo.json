@@ -37,6 +37,13 @@
 		},
 		{
 			"active": true,
+			"imageExt": ".png",
+			"link": "https://discord.gg/Tc6x3MTEwz",
+			"label": "Mapping Server",
+			"id": "Mapping"
+		},
+		{
+			"active": true,
 			"imageExt": ".jpg",
 			"label": "golden chicken",
 			"linksToNugget": "1",
