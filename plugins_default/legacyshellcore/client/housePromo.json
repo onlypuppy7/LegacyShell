@@ -30,6 +30,13 @@
 		},
 		{
 			"active": true,
+			"imageExt": ".png",
+			"link": "https://www.gesetze-im-internet.de/gg/art_5.html",
+			"label": "Sparkasse",
+			"id": "Sparkasse"
+		},
+		{
+			"active": true,
 			"imageExt": ".jpg",
 			"label": "golden chicken",
 			"linksToNugget": "1",
