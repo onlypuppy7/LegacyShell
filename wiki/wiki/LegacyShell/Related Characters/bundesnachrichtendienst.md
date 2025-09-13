@@ -1,5 +1,5 @@
 # Bundesnachrichtendienst
-The *Bundesnachrichtendienst* ("*BND*") is the German foreign intelligence agency, founded in 1956, currently lead by *Martin Jäger* as of September 2025, with the following president, *Bruno Kahl*, now being the German ambassador in the Vatican. 
+The *Bundesnachrichtendienst* ("*BND*") is the German foreign intelligence agency, founded in 1956, currently lead by *Martin Jäger* as of September 2025, with the former president, *Bruno Kahl*, now being the German ambassador in the Vatican. 
 
 ![Logo](<BNDLogo.png>)
 
