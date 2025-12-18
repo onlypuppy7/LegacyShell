@@ -29,7 +29,7 @@ export class Plugin {
         this.plugins.on('client:prepareBabylon', this.prepareBabylon.bind(this));
         this.plugins.on('game:prepareBabylon', this.prepareBabylon.bind(this));
         
-        this.plugins.on('game:roomInitGameOptions', this.roomInitGameOptions.bind(this));
+        this.plugins.on('game:roomInitEnd', this.roomInitEnd.bind(this));
     };
 
     pluginSourceInsertion(data) {
@@ -59,9 +59,14 @@ export class Plugin {
         };
     };
 
-    async roomInitGameOptions(data) {
+    async roomInitEnd(data) {
+        const ctx = data.this;
+
         if ((await events.getEventsAtTime()).currentArray.includes("christmas")) {
-            var ctx = data.this;
+            if (ctx.minMap?.extents?.seasonalEffectsDisabled) {
+                console.log("Skipping Xmas effects");
+                return;
+            };
     
             ctx.gameOptions.weather.snowStormEnabled = true;
         };

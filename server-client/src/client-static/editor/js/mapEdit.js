@@ -88737,6 +88737,7 @@ function updateMapSettings(minMap2) {
   document.getElementById("skyboxes").value = skyboxName;
   console.log(minMap2);
   document.getElementById("bgMusic").value = minMap2.extents?.bgm;
+  if (minMap2.extents?.seasonalEffectsDisabled) document.getElementById("seasonalEffectsDisabled").checked = minMap2.extents?.seasonalEffectsDisabled;
   if (minMap2.extents?.maxJumps) document.getElementById("maxJumps").value = minMap2.extents?.maxJumps;
 }
 function saveMapSettings(minMap2) {
@@ -90182,6 +90183,7 @@ function minimizeMap() {
   //i know this isnt what extents is for, but it works?
   //saves me rewriting the map database in services.
   extents.bgm = document.getElementById("bgMusic").value;
+  extents.seasonalEffectsDisabled = document.getElementById("seasonalEffectsDisabled").checked;
   extents.maxJumps = document.getElementById("maxJumps").value;
 
   return minMap;

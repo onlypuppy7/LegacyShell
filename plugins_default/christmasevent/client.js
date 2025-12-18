@@ -44,8 +44,10 @@ export const ChristmasEvent = {
         minMap.data = updatedMinMapData;
     },
 
-    async createMapCellsMapLoaded(data) {
-        devlog("ChristmasEvent: Adding snow to map");
+    async createMapCellsMapLoaded({minMap}) {
+        devlog("ChristmasEvent: Adding snow to map", map, minMap);
+
+        if (minMap?.extents?.seasonalEffectsDisabled) return;
 
         var meshArr = [];
         var meshArrRound = [];
