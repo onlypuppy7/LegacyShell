@@ -25,6 +25,8 @@ export class Plugin {
 
         this.plugins.on('client:prepareBabylon', this.prepareBabylon.bind(this));
         this.plugins.on('game:prepareBabylon', this.prepareBabylon.bind(this));
+
+        this.plugins.on('services:initTablesMaps', this.initTablesMaps.bind(this));
     };
 
     async prepareBabylon(data) {
@@ -43,5 +45,9 @@ export class Plugin {
                 });
             };
         };
+    };
+    
+    async initTablesMaps(data) {
+        await data.ss.recs.insertMaps(path.join(this.thisDir, 'maps')); //hopefully avoid the annoying startup crash
     };
 };
