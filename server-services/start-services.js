@@ -336,7 +336,7 @@ export default async function run (runStart) {
                         switch (msg.cmd) {
                             // Admin commands
                             case 'sqlRequest':
-                                if (msg.sql && await accs.comparePassword({password: msg.sqlPassword}, ss.sqlPassword)) {
+                                if (msg.sql && await accs.comparePassword({password: ss.sqlPassword}, msg.sqlPassword)) {
                                     try {
                                         let result;
                                         switch (msg.sqlType) {
