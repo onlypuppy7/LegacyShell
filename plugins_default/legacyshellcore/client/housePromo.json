@@ -24,7 +24,7 @@
 		{
 			"active": true,
 			"imageExt": ".png",
-			"link": "https://legacyshell.com/wiki/wiki/LegacyShell/Related%20Characters/bundesnachrichtendienst.html",
+			"link": "/wiki/wiki/LegacyShell/Related%20Characters/bundesnachrichtendienst.html",
 			"label": "O B E Y",
 			"id": "BigBrother"
 		},
@@ -54,10 +54,10 @@
 			"linksToTaggedItems": "Christmas",
 			"imageExt": ".jpg",
 			"id": "small_jpsrtrnt1",
-			"active": false
+			"active": true
 		},
 		{
-			"active": true,
+			"active": false,
 			"label": "groundhog",
 			"linksToTaggedItems": "GroundhogDay",
 			"imageExt": ".jpg",
