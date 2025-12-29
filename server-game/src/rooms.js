@@ -5,7 +5,7 @@ import ColliderConstructor from '#collider';
 import createLoop from '#looper';
 import extendMath from '#math';
 import { setParamsforLoader, loadMapMeshes, buildMapData } from '#loading';
-import { TickStep, stateBufferSize, FramesBetweenSyncs, MAP, devlog, chatCooldown, NextRoundTimeout } from '#constants';
+import { TickStep, stateBufferSize, FramesBetweenSyncs, MAP, devlog, chatCooldown, NextRoundTimeout, iteratePlayers } from '#constants';
 import { GameTypes } from '#gametypes';
 import { ItemTypes } from '#items';
 import { MunitionsManagerConstructor } from '#munitionsManager';
@@ -25,8 +25,6 @@ import { parentPort } from 'worker_threads';
 //
 
 plugins.emit('roomLoading', {});
-
-// let ss; //sorry.
 
 export class newRoom {
     constructor(info) {
@@ -274,20 +272,17 @@ export class newRoom {
     };
 
     resetGame(defRemove) {
-        for (var i = 0; i < this.playerLimit; i++) {
-            var player = this.players[i];
-            if (player) {
-                if ((!this.gameOptions.timedGame.spawnDuringInterval) || defRemove) player.removeFromPlay();
-                player.score = 0;
-                player.kills = 0;
-                player.deaths = 0;
-                player.streak = 0;
-                player.bestGameStreak = 0;
-                player.ammoSnapshots = null;
-                player.resetWeaponState();
-                plugins.emit('resetGamePlayer', {this: this, player});
-            };
-        };
+        iteratePlayers(player => {
+            if ((!this.gameOptions.timedGame.spawnDuringInterval) || defRemove) player.removeFromPlay();
+            player.score = 0;
+            player.kills = 0;
+            player.deaths = 0;
+            player.streak = 0;
+            player.bestGameStreak = 0;
+            player.ammoSnapshots = null;
+            player.resetWeaponState();
+            plugins.emit('resetGamePlayer', {this: this, player});
+        });
     };
 
     pauseAllClients(time = 5e3) {
@@ -516,18 +511,15 @@ export class newRoom {
         let usernames = [];
         let sessions = [];
 
-        for (let i = 0; i < this.players.length; i++) {
-            var player = this.players[i];
-            if (player) {
-                if (!(typeof(team) == "number" && team !== player.team)) {
-                    count++;
-                    uuids.push(player.client.uuid);
-                    sessions.push(player.client.session);
-                    usernames.push(player.client.username);
-                    plugins.emit('getPlayerCountLoop', {this: this, count, uuids, usernames, sessions, player, extraDetails});
-                };
+        iteratePlayers(player => {
+            if (!(typeof(team) == "number" && team !== player.team)) {
+                count++;
+                uuids.push(player.client.uuid);
+                sessions.push(player.client.session);
+                usernames.push(player.client.username);
+                plugins.emit('getPlayerCountLoop', {this: this, count, uuids, usernames, sessions, player, extraDetails});
             };
-        };
+        });
 
         plugins.emit('getPlayerCount', {this: this, count, uuids, usernames, sessions, extraDetails});
 
@@ -779,16 +771,19 @@ export class newRoom {
     getUnusedPlayerId() {
         plugins.emit('getUnusedPlayerId', {this: this});
 
-        for (let i = 0; i < this.playerLimit; i++) {
-            var client = this.clients[i];
-            var player = this.players[i];
-            // console.log(i, !!client, !!player);
+        let unusedId = null;
 
+        iteratePlayers((player, i) => {
+            const client = this.clients[i];
             plugins.emit('getUnusedPlayerIdLoop', {this: this, i, client, player});
 
-            if (!(client || player)) return i;
-        };
-        return null;
+            if (!(client || player)) {
+                unusedId = i;
+                return false; // stops iteration
+            }
+        }, true);
+
+        return unusedId;
     };
 
     getPreferredTeam() {

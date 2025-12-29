@@ -7,6 +7,8 @@ import { plugins } from '#plugins';
 import log from '#coloured-logging';
 //
 
+export var room;
+
 (async () => {
     try {
         misc.instantiateSS(import.meta, process.argv);
@@ -14,8 +16,6 @@ import log from '#coloured-logging';
     
         //importing, important to do after plugins are loaded so that they can inject their own methods
         const RoomConstructor = (await import('#rooms')).default;
-    
-        var room;
         
         parentPort.on('message', (msg) => {
             const [ cmd, message, wsId ] = msg;

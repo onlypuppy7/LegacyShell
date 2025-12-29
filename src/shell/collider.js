@@ -1,6 +1,6 @@
 //legacyshell: collider
 import BABYLON from "babylonjs";
-import { isClient } from '#constants';
+import { isClient, iteratePlayers } from '#constants';
 //legacyshell: ss
 import { ss } from '#misc';
 //
@@ -324,16 +324,15 @@ class ColliderConstructor {
         var fromTeam = proj ? proj.player.team : null;
         var fromId = proj ? proj.player.id : null;
         
-        for (var i = 0; i < playerLimit; i++) {
-            var player = players[i];
-            if (player && player.playing && player.id != fromId && (0 == player.team || player.team != fromTeam)) {
+        iteratePlayers(player => {
+            if (player.playing && player.id != fromId && (0 == player.team || player.team != fromTeam)) {
                 this.ray.origin.copyFrom(origin);
                 this.ray.direction.copyFrom(direction);
                 this.ray.length = 1;
                 var point = this.rayCollidesWithPlayerHelper(this.ray, player);
                 if (point) return proj && proj.collidesWithPlayer(player, point), point;
             };
-        };
+        });
         return false;
     };
 

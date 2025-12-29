@@ -7,6 +7,7 @@ import { isClient, isServer, isEditor, devlog, clientlog, serverlog, getTimestam
 import { ss } from '#misc';
 //legacyshell: plugins
 import { plugins } from "#plugins";
+import { room } from "#worker";
 //
 
 export { isClient, isServer, isEditor, devlog, clientlog, serverlog, getTimestamp, isObject };
@@ -510,6 +511,17 @@ export class TimeoutManagerConstructor {
 
 export function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
+};
+
+export function iteratePlayers(func = () => {}, keepEmpty = false) {
+    const playerArray = isClient ? players : room.players;
+    const length = isClient ? playerLimit : room.playerLimit; //playerArray.length;
+
+    for (let i = 0; i < length; i++) {
+        const player = playerArray[i];
+        if (!player && !keepEmpty) continue;
+        if (func(player, i) === false) break;
+    };
 };
 
 plugins.emit("constantsFinished", {});

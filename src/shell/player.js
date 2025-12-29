@@ -1,6 +1,6 @@
 //legacyshell: player
 import BABYLON from "babylonjs";
-import { stateBufferSize, isClient, isServer, CONTROL, devlog, serverlog } from '#constants';
+import { stateBufferSize, isClient, isServer, CONTROL, devlog, serverlog, iteratePlayers } from '#constants';
 import { ItemTypes, AllItems } from '#items';
 import { getMunitionsManager } from '#bullets';
 import Comm from '#comm';
@@ -719,10 +719,9 @@ class Player {
         this.setDefaultModifiers();
 
         if (isClient) {
-            for (var i = 0; i < playerLimit; i++){
-                var player = players[i];
-                if (player && player.actor) player.actor.updateTeam();
-            };
+            iteratePlayers(player => {
+                player.actor?.updateTeam();
+            });
             rebuildPlayerList();
         } else {
             var output = new Comm.Out(3);
