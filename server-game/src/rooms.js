@@ -60,8 +60,8 @@ export class newRoom {
         console.log("locked", this.locked, GameTypes[this.gameType]);
         await plugins.emit("roomInitGameOptions", {this: this});
 
-        this.players = [];
-        this.clients = [];
+        this.players_by_id = [];
+        this.clients_by_id = [];
         this.items = {};
 
         //scene init
@@ -155,7 +155,7 @@ export class newRoom {
                         this.spawnPoints = spawnPoints; //this is a [] from 0-2; conveniently lining up with ffa, team1, team2 (i think)
                         this.mapMeshes = mapMeshes;
             
-                        this.Collider.setParams(this.map, this.mapMeshes, this.playerLimit, this.players);
+                        this.Collider.setParams(this.map, this.mapMeshes, this.playerLimit, this.players_by_id);
             
                         this.updateLoopObject = createLoop(this.updateLoop.bind(this), TickStep);
                         this.dataSyncLoopObject = createLoop(this.dataSyncLoop.bind(this), 1e3);
@@ -286,7 +286,7 @@ export class newRoom {
     };
 
     pauseAllClients(time = 5e3) {
-        this.clients.forEach(client => { client.pause(time); });
+        this.clients_by_id.forEach(client => { client.pause(time); });
     };
 
     updateRoomDetails() {
@@ -296,7 +296,7 @@ export class newRoom {
         // devlog(details);
 
         var playerNames = [];
-        this.players.forEach((player)=>playerNames.push(player?.name));
+        iteratePlayers((player)=>playerNames.push(player?.name));
 
         parentPort.postMessage([Comm.Worker.updateRoom, {
             ready: true,
@@ -356,7 +356,7 @@ export class newRoom {
             this.munitionsManager.update(1);
 
             //i dont understand their netcode wtf
-            this.players.forEach(player => {
+            iteratePlayers(player => {
                 plugins.emit('playerUpdate', {this: this, player, delta, currentTimeStamp});
                 // console.log("lóóp", delta, this.lastTimeStamp, currentTimeStamp, player.stateIdx, player.syncStateIdx);
                 while (player.stateIdx !== player.syncStateIdx) {
@@ -385,7 +385,7 @@ export class newRoom {
         var output = new Comm.Out();
         plugins.emit('dataSyncLoop', {this: this, delta, output});
 
-        this.clients.forEach(client => {
+        this.clients_by_id.forEach(client => {
             plugins.emit('clientDataSync', {this: this, client, delta, output});
             client.packDataSync(output);
         });
@@ -401,7 +401,7 @@ export class newRoom {
             this.destroy();
             return;
         };
-        this.clients.forEach(client => {
+        this.clients_by_id.forEach(client => {
             plugins.emit('metaLoopClients', {this: this, client, fromDisconnect});
 
             client.lastSeenDelta = Date.now() - client.player.lastActivity;
@@ -432,8 +432,8 @@ export class newRoom {
 
         //most of this is redundant now, but eh.
         try {
-            this.players = null;
-            this.clients = null;
+            this.players_by_id = null;
+            this.clients_by_id = null;
             this.map = null;
             this.Collider = null;
             this.engine = null;
@@ -454,7 +454,7 @@ export class newRoom {
     async sync() {
         var output = new Comm.Out();
         await plugins.emit('clientSync', {this: this, output});
-        for (const client of this.clients) {
+        for (const client of this.clients_by_id) {
             if (client) {
                 await plugins.emit('clientSyncLoop', { this: this, client, output });
                 if (!plugins.cancel) {
@@ -480,8 +480,8 @@ export class newRoom {
 
     registerPlayerClient(client) {
         plugins.emit('registerPlayerClient', {this: this, client});
-        this.clients[client.id] = client;
-        this.players[client.id] = client.player;
+        this.clients_by_id[client.id] = client;
+        this.players_by_id[client.id] = client.player;
     };
 
     disconnectClient(client) {
@@ -489,8 +489,8 @@ export class newRoom {
         client.timeout.clearAll();
         client.interval.clearAll();
 
-        delete this.clients[client.id];
-        delete this.players[client.id];
+        delete this.clients_by_id[client.id];
+        delete this.players_by_id[client.id];
 
         var output = new Comm.Out(2);
         output.packInt8U(Comm.Code.removePlayer);
@@ -529,8 +529,8 @@ export class newRoom {
     getOldestClient() {
         let oldestClient = null;
         let oldestTime = 9e99;
-        for (let i = 0; i < this.clients.length; i++) {
-            var client = this.clients[i];
+        for (let i = 0; i < this.clients_by_id.length; i++) {
+            var client = this.clients_by_id[i];
             if (client) {
                 plugins.emit('getOldestClientLoop', {this: this, client, oldestClient, oldestTime});
                 if (client.joinedTime < oldestTime) {
@@ -568,7 +568,7 @@ export class newRoom {
                     this.packSetGameOwner(output);
                     this.sendToAll(output, null, "setGameOwner");
                 };
-                this.players.forEach((player)=>{
+                iteratePlayers((player)=>{
                     player.isGameOwner = player.id === this.gameOwner.player.id;
                 });
             } else {
@@ -605,7 +605,7 @@ export class newRoom {
 
             plugins.emit('getBestSpawnLoop', {this: this, player, spwn, spawnPos, smallestDistance});
 
-            this.players.forEach((play) => {
+            iteratePlayers((play) => {
                 if (
                     (player.team !== 0 && play.team === player.team) || //team check
                     !play.playing || //playing check
@@ -662,7 +662,7 @@ export class newRoom {
     };
 
     notify(text, timeoutTime = 5) {
-        this.clients.forEach(client => {
+        this.clients_by_id.forEach(client => {
             if (client.clientReady) {
                 plugins.emit('notify', {this: this, client, text, timeoutTime});
                 client.notify(text, timeoutTime);
@@ -774,7 +774,7 @@ export class newRoom {
         let unusedId = null;
 
         iteratePlayers((player, i) => {
-            const client = this.clients[i];
+            const client = this.clients_by_id[i];
             plugins.emit('getUnusedPlayerIdLoop', {this: this, i, client, player});
 
             if (!(client || player)) {
@@ -802,8 +802,8 @@ export class newRoom {
     };
 
     getPlayerClient(id) {
-        const client = this.clients[id];
-        const player = this.players[id];
+        const client = this.clients_by_id[id];
+        const player = this.players_by_id[id];
         plugins.emit('getPlayerClient', {this: this, client, player});
         if (client && player) return [client, player];
         else return [null, null];
@@ -811,7 +811,7 @@ export class newRoom {
 
     packAllPlayers(output) {
         plugins.emit('packAllPlayers', {this: this, output});
-        this.clients.forEach(client => {
+        this.clients_by_id.forEach(client => {
             if (client && client.clientReady) {
                 console.log("packing", client.id, client.player.name) // ayo
                 plugins.emit('packAllPlayersLoop', {this: this, output, client});
@@ -822,7 +822,7 @@ export class newRoom {
 
     //semi stolen from rtw (is good code)
     sendToOne(output, fromId, toId, debug) {
-        const client = this.clients[toId];
+        const client = this.clients_by_id[toId];
         plugins.emit('sendToOne', {this: this, output, fromId, toId, debug});
         if (client && client.clientReady) {
             plugins.emit('sendToOneFound', {this: this, output, fromId, toId, debug});
@@ -830,14 +830,14 @@ export class newRoom {
         };
 
         // //idk why it was done like this? there shouldnt be multiple clients with same id :<
-        // this.clients.forEach(client => {
+        // this.clients_by_id.forEach(client => {
         //     if (client.clientReady && client.id === fromId) client.sendBuffer(output, "sendToOne: " + debug + " | from " + fromId);
         // });
     };
 
     sendToOthers(output, fromId, debug) {
         plugins.emit('sendToOthers', {this: this, output, fromId, debug});
-        this.clients.forEach(client => {
+        this.clients_by_id.forEach(client => {
             plugins.emit('sendToOthersLoop', {this: this, client, output, fromId, debug});
             if (client.clientReady && client.id !== fromId) {
                 plugins.emit('sendToOthersLoopFound', {this: this, client, output, fromId, debug});
@@ -848,7 +848,7 @@ export class newRoom {
 
     sendToAll(output, fromId, debug) {
         plugins.emit('sendToAll', {this: this, output, fromId, debug});
-        this.clients.forEach(client => {
+        this.clients_by_id.forEach(client => {
             plugins.emit('sendToAllLoop', {this: this, client, output, fromId, debug});
             if (client.clientReady) {
                 plugins.emit('sendToAllLoopFound', {this: this, client, output, fromId, debug});

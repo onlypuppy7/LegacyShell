@@ -8,8 +8,6 @@ import { ss } from '#misc';
 //(server-only-start)
 var map;
 var mapMeshes;
-var playerLimit;
-var players;
 //(server-only-end)
 
 class ColliderConstructor {
@@ -61,11 +59,9 @@ class ColliderConstructor {
         this.setUp = 1;
     };
 
-    setParams(mapP, mapMeshesP, playerLimitP, playersP) {
+    setParams(mapP, mapMeshesP) {
         map = mapP;
         mapMeshes = mapMeshesP;
-        playerLimit = playerLimitP;
-        players = playersP;
 
         this.setUp = 2;
     };

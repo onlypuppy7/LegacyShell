@@ -1,6 +1,6 @@
 //legacyshell: bullets
 import BABYLON from "babylonjs";
-import { isClient, isServer } from '#constants';
+import { isClient, isServer, iteratePlayers } from '#constants';
 import Comm from "#comm";
 //
 
@@ -10,10 +10,9 @@ var tv1 = new BABYLON.Vector3;
 var tv2 = new BABYLON.Vector3;
 
 function checkExplosionCollisions (explosion) { //stolen from rtw 🥺
-    let players = room.players;
     console.log(explosion.player.name);
-    players.forEach(player => {
 
+    iteratePlayers(player => {
         let origin = new BABYLON.Vector3(explosion.x, explosion.y, explosion.z);
         let dest = new BABYLON.Vector3(player.x, player.y + 0.5, player.z);
 

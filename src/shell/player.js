@@ -192,16 +192,10 @@ class Player {
         this.sendModifiers(init);
     };
     changeModifiers(modifiers, init) { //a little disorganized but it works for this purpose
-        // if (modifiers.gravityModifier !== undefined) this.gravityModifier = modifiers.gravityModifier;
-        // if (modifiers.speedModifier !== undefined) this.speedModifier = modifiers.speedModifier;
-        // if (modifiers.regenModifier !== undefined) this.regenModifier = modifiers.regenModifier;
-        // if (modifiers.damageModifier !== undefined) this.damageModifier = modifiers.damageModifier;
-        // if (modifiers.resistanceModifier !== undefined) this.resistanceModifier = modifiers.resistanceModifier;
-        // if (modifiers.jumpBoostModifier !== undefined) this.jumpBoostModifier = modifiers.jumpBoostModifier;
-        // if (modifiers.knockbackModifier !== undefined) this.knockbackModifier = modifiers.knockbackModifier;
         Object.assign(this.modifiers, modifiers);
 
         if (modifiers.scale !== undefined) this.changeScale(modifiers.scale, init);
+        
         this.sendModifiers(init);
     };
     sendModifiers(init) {

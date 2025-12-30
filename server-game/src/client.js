@@ -385,7 +385,7 @@ class newClient {
                         break;
                     case Comm.Code.bootPlayer:
                         let id = input.unPackInt8U();
-                        let client = this.room.clients[id];
+                        let client = this.room.clients_by_id[id];
 
                         if (this.room.perm.searchPermission("boot", this.player) && client && id !== this.player.id) {
                             client.sendBootToWs();
@@ -536,6 +536,8 @@ class newClient {
         output.packInt8(this.player.modifiers.damageModifier * 10); //range: -12.8 to 12.7
         output.packInt8(this.player.modifiers.resistanceModifier * 10); //range: -12.8 to 12.7
         output.packInt8(this.player.modifiers.jumpBoostModifier * 10); //range: -12.8 to 12.7
+
+        output.packLongString("{}"); //this is for in the future when i cant be fucked with this stupid packet shit any more
     };
 
     async packSync(output) {

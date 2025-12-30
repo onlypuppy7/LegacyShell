@@ -858,7 +858,7 @@ export function parseMentions (parts, context, player) {
     var mentions = [];
     var mentionsLiteral = [];
 
-    var playersList = isClient ? players : context.room.players;
+    var playersList = isClient ? players_by_id : context.room.players_by_id;
     var mePlayer = isClient ? me : context.player || player;
 
     if (typeof parts == "string") parts = parts.split(" ");

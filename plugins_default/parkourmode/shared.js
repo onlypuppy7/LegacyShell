@@ -38,7 +38,7 @@ export const ParkourModePlugin = {
 
                 devlog("parkourScore,,,", playerId, number);
 
-                var player = players[playerId]
+                var player = players_by_id[playerId]
 
                 if (player) {
                     if (number === 255) {
