@@ -35,19 +35,47 @@ export class Plugin {
 
         const babylonPath = path.join(this.thisDir, 'models');
         const babylonFiles = fs.readdirSync(babylonPath);
-
-        console.log({
-            dataFilename: data.filename,
-            babylonFiles: babylonFiles
-        })
         
         for (const file of babylonFiles) {
             if (file.endsWith(".babylon")) {
                 console.log('found', file, 'from', PluginMeta.identifier);
+
+                //the below is actually fucking useless but i spent like 10 minutes on it so its staying
+                /*
+                let babylonData = JSON.parse(fs.readFileSync(path.join(this.thisDir, 'models', file), 'utf8'));
+
+                const fileBaseName = file.replace('.babylon', '').replaceAll(' ', '_').toLowerCase();
+
+                const updatedMaterials = {};
+
+                //iterate over all materials and append a tag to differentiate the materials from other plugins
+                if (babylonData.materials) {
+                    for (const material of babylonData.materials) {
+                        const newMaterialName = `${material.name}__${PluginMeta.identifier}__${fileBaseName}`;
+
+                        updatedMaterials[material.name] = newMaterialName;
+
+                        material.name = newMaterialName;
+                        material.id = newMaterialName;
+                    }
+                }
+
+                //iterate over all meshes and update the material names to differentiate them from other plugins
+                if (babylonData.meshes) {
+                    for (const mesh of babylonData.meshes) {
+                        if (mesh.materialId && updatedMaterials[mesh.materialId]) {
+                            mesh.materialId = updatedMaterials[mesh.materialId];
+                        }
+                    }
+                }
+
+                */
+
                 extraBabylons.push({
                     filepath: path.join(this.thisDir, 'models', file),
                     overwrite: true,
                     location: PluginMeta.identifier,
+                    // babylonData: babylonData,
                 });
             };
         };
