@@ -29,8 +29,8 @@ function checkExplosionCollisions (explosion) { //stolen from rtw 🥺
             //if()
         });
 
-        let scale = player.id === explosion.player.id ? 1 : player.scale;
-        // console.log("scale???", scale, player.id, explosion.player.id, player.scale);
+        let scale = player.id === explosion.player.id ? 1 : player.modifiers.scale;
+        // console.log("scale???", scale, player.id, explosion.player.id, player.modifiers.scale);
 
         let maxRange = 2 + Math.max(1, scale);
         // console.log("explosion0", nearestWall, delta.length(), maxRange);
@@ -45,11 +45,11 @@ function checkExplosionCollisions (explosion) { //stolen from rtw 🥺
                 const scalingFactor = 0.7; //linear
                 const exponent = 2 / Math.max(scale / 10, 1); //exponential
 
-                const modifier = explosion.player.scale * (0.5 / Math.min(scale, 5));
+                const modifier = explosion.player.modifiers.scale * (0.5 / Math.min(scale, 5));
 
                 let damage = explosion.damage * modifier * (1 / Math.pow(delta.length() * scalingFactor, exponent));
 
-                if (explosion.player.damageModifier < 1) damage *= explosion.player.damageModifier;
+                if (explosion.player.modifiers.damageModifier < 1) damage *= explosion.player.modifiers.damageModifier;
 
                 console.log("explosion hits", damage, "to player", player.id, player.name);
                 // console.log("who was hit?", player.id, player.name);
@@ -112,7 +112,7 @@ Bullet.prototype.fireThis = function (player, pos, dir, weaponClass) {
 
     this.weaponClass = weaponClass;
     this.originalDamage = weaponClass.damage;
-    this.damage = this.originalDamage * player.damageModifier * player.scale;
+    this.damage = this.originalDamage * player.modifiers.damageModifier * player.modifiers.scale;
     this.active = true;
     this.range = weaponClass.range; 
     var res = Collider.rayCollidesWithMap(pos, dir, Collider.projectileCollidesWithCell.bind(Collider));
@@ -198,7 +198,7 @@ Bullet.prototype.collidesWithPlayer = function (player, point) {
         tv1.normalize();
 
         tv2.x = player.x - point.x; //point is the position on the egg that the bullet lands
-        tv2.y = player.y + (0.32 * player.scale) - point.y; // +0.32, the supposed center
+        tv2.y = player.y + (0.32 * player.modifiers.scale) - point.y; // +0.32, the supposed center
         tv2.z = player.z - point.z;
         tv2.normalize();
 

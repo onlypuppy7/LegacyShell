@@ -68,7 +68,6 @@ export class Plugin {
                         }
                     }
                 }
-
                 */
 
                 extraBabylons.push({

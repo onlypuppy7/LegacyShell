@@ -528,14 +528,14 @@ class newClient {
         output.packInt8U(Comm.Code.setModifiers);
         output.packInt8U(this.id);
         //unsigned
-        output.packInt8U(this.player.scale * 10); //range: 0 to 25.5
+        output.packInt8U(this.player.modifiers.scale * 10); //range: 0 to 25.5
         //signed
-        output.packInt8(this.player.regenModifier * 10); //range: -12.8 to 12.7
-        output.packInt8(this.player.speedModifier * 10); //range: -12.8 to 12.7
-        output.packInt8(this.player.gravityModifier * 10); //range: -12.8 to 12.7
-        output.packInt8(this.player.damageModifier * 10); //range: -12.8 to 12.7
-        output.packInt8(this.player.resistanceModifier * 10); //range: -12.8 to 12.7
-        output.packInt8(this.player.jumpBoostModifier * 10); //range: -12.8 to 12.7
+        output.packInt8(this.player.modifiers.regenModifier * 10); //range: -12.8 to 12.7
+        output.packInt8(this.player.modifiers.speedModifier * 10); //range: -12.8 to 12.7
+        output.packInt8(this.player.modifiers.gravityModifier * 10); //range: -12.8 to 12.7
+        output.packInt8(this.player.modifiers.damageModifier * 10); //range: -12.8 to 12.7
+        output.packInt8(this.player.modifiers.resistanceModifier * 10); //range: -12.8 to 12.7
+        output.packInt8(this.player.modifiers.jumpBoostModifier * 10); //range: -12.8 to 12.7
     };
 
     async packSync(output) {

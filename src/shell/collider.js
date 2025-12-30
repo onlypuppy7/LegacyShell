@@ -79,8 +79,8 @@ class ColliderConstructor {
     }
 
     playerCollidesWithMap(player) {
-        var scale = player.scale || 1;
-        // devlog("SCALE", player.id, player.scale, scale);
+        var scale = player.modifiers.scale || 1;
+        // devlog("SCALE", player.id, player.modifiers.scale, scale);
         // this.playerCollisionMesh.scaling.set(scale, scale, scale);
 
         if ((!player.playerCollisionMesh) || (scale !== player.playerCollisionMesh.lastScale)) {
@@ -343,10 +343,10 @@ class ColliderConstructor {
             m = this.v1;
         p.copyFrom(ray.origin);
         d.copyFrom(ray.direction);
-        c.set(player.x, player.y + (0.32 * player.scale), player.z);
+        c.set(player.x, player.y + (0.32 * player.modifiers.scale), player.z);
         p.subtractToRef(c, m);
         var b = BABYLON.Vector3.Dot(m, d);
-        if (0 < (c = BABYLON.Vector3.Dot(m, m) - (0.140625 * player.scale)) && 0 < b) return false;
+        if (0 < (c = BABYLON.Vector3.Dot(m, m) - (0.140625 * player.modifiers.scale)) && 0 < b) return false;
         var discr = b * b - c;
         if (discr < 0) return false;
         var t = -b - Math.sqrt(discr);

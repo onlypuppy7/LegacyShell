@@ -186,7 +186,7 @@ export const ParkourModePlugin = {
 
             if (player.actor) {
                 let soundName = "parkour.checkpoint"+number;
-                var pos = new BABYLON.Vector3(player.x, player.y + (0.32 * player.scale), player.z); //repeated code. bad. bad!
+                var pos = new BABYLON.Vector3(player.x, player.y + (0.32 * player.modifiers.scale), player.z); //repeated code. bad. bad!
 
                 if (player.id == meId) {
                     playSoundIndependent2D(soundName);
