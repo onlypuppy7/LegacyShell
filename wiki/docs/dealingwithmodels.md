@@ -48,9 +48,21 @@ You need Blender and the corresponding Blender2Babylon plugin.
 
 You need a specific combination of these, as you can't just mix and match.
 
-In my own testing, the best combination balancing new versions and compatability has been **Blender 3.6.5 and Blender2Babylon 2.93x**.
+The best combination to use is **Blender 2.93.0 with Blender2Babylon 2.93x**. This is the Blender version the plugin was designed for, and will give you the least incompatability-adjacent errors.
 
-### Downloading Blender 3.6.5
+If you really need a newer version of Blender, you can try **Blender 3.6.5 with Blender2Babylon 2.93x**. But this is likely to introduce some more errors.
+
+Both of these versions of Blender are quite old by now, and are unlikely to open your modern .blend files without complaining. Mitigate this by exporting as .glb and reimporting into the old version.
+
+### Downloading Blender
+
+(RECOMMENDED) **Version 2.93.0:**
+
+[From the official Blender binary archives](https://download.blender.org/release/Blender2.93/)
+
+[From archive.org](https://web.archive.org/web/20241119191629/https://download.blender.org/release/Blender2.93/)
+
+**Version 3.6.5:**
 
 [From the official Blender binary archives](https://download.blender.org/release/Blender3.6/)
 
@@ -58,7 +70,7 @@ In my own testing, the best combination balancing new versions and compatability
 
 ### Downloading Blender2Babylon-2.93x.zip
 
-Since this is a little more volatile, these next few links all go to the same file but are from different sources for redundancy's sake.
+Since this plugin's specific version is quite obscure (and long deprecated), these next few links all go to the same file but are from different sources for redundancy's sake.
 
 The plugin should work regardless of OS.
 
@@ -106,12 +118,36 @@ Here is a small table telling you all you need to know:
 
 Make sure for each object you've applied transformations in Blender. Do this with Ctrl + A (or Command + A) and select `All Transforms`.
 
+### Errors in the game server?
+
+If you receive errors like this when loading up a game:
+
+<img src="./errorsonstart.png" alt="errorsonstart.png" width="40%">
+
+Ensure you've turned off PBR materials (if your Blender version has this option).
+
+<img src="./Scene properties.png" alt="Scene properties.png" width="20%">
+
+And also for **every material** enable this option:
+
+<img src="./babylonstdmaterial.png" alt="babylonstdmaterial" width="20%">
+
 ### Export error?
 
-If you get something like `WARNING: unsupported node type(ShaderNodeVertexColor) will trigger baking`, ensure that vertex color/color attributes aren't linked up in the Shader tab.
+If you get something like `WARNING: unsupported node type(ShaderNodeVertexColor) will trigger baking`, ensure that vertex color/color attributes aren't linked up in the Shader tab. If they're linked up, they will trigger baking, causing a whole load of issues.
 
-![shadertab](shadertab.png)
+<img src="./shadertab.png" alt="shadertab.png" width="40%">
 
-Also try turning off PBR materials.
+Baking is completely USELESS and causes HUGE ISSUES.
 
-![Scene properties](<Scene properties.png>)
+### Baking still being triggered?
+
+If you are still baking things when exporting, ensure all your materials are as *barebones* as they can be. Do not do **anything** with them after creating them. You can rename them to anything, just do **not** touch any other settings. The game wouldn't understand your settings anyway. All it pretty much cares about is your vertices, faces and vertex colours.
+
+<img src="./basecolorvertex.png" alt="basecolorvertex.png" width="40%">
+
+For example, the above is **WRONG**. Disconnect the base color thing.
+
+<img src="./basecolorcorrect.png" alt="basecolorcorrect.png" width="20%">
+
+This is how it should look. (Note, above two screenshots are from Blender 2.93.0, and Blender loves renaming things every update.)
