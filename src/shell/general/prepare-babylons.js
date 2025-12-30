@@ -69,7 +69,7 @@ export async function prepareBabylons(endBabylonsDir = path.join(ss.rootDir, 'st
                     var extraBabylon = item.filepath;
                     debuggingLogs && console.log("Adding extra babylon", extraBabylon, "for", babylon, !!baseBabylon);
 
-                    const extraBabylonData = JSON.parse(fs.readFileSync(extraBabylon, 'utf8'));
+                    const extraBabylonData = item.babylonData || JSON.parse(fs.readFileSync(extraBabylon, 'utf8'));
 
                     if (!baseBabylon) {
                         log.pink("Using extraBabylon as fallback base", extraBabylon);
@@ -126,6 +126,12 @@ export async function prepareBabylons(endBabylonsDir = path.join(ss.rootDir, 'st
                     debuggingLogs && console.log("Deleting this material", newMaterial.name);
                     //delete this specific material, not by name cause that would delete all instances
                     baseBabylon.materials = baseBabylon.materials.filter(mat => mat !== newMaterial);
+                } else {
+                    //check if the material customType is "BABYLON.PBRMaterial" or some other stupid shit
+                    if (typeof newMaterial.customType === 'string' && newMaterial.customType !== "BABYLON.StandardMaterial") {
+                        log.warning(`IMPORTANT! Material ${newMaterial.name} with customType ${newMaterial.customType} was detected and automatically fixed to StandardMaterial. Please make sure you don't export PBR shit to LegacyShell!`);
+                        newMaterial.customType = "BABYLON.StandardMaterial";
+                    };
                 };
             });
             baseBabylon.multiMaterials.forEach((newMultiMaterial) => {
