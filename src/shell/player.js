@@ -45,6 +45,9 @@ class Player {
             this.gameOptions = gameOptions;
         };
 
+        //actually i hate the below. this is total shit.
+        //listen, im only mirroring what shell actually does.
+
         this.isGameOwner = false;
         this.id = data.id;
         this.uniqueId = data.uniqueId;
@@ -58,12 +61,12 @@ class Player {
         this.shellColor = data.shellColor;
         this.hatItem = data.hatItem;
         this.stampItem = data.stampItem;
-        this.x = data.x;
-        this.y = data.y;
-        this.z = data.z;
-        this.dx = data.dx;
-        this.dy = data.dy;
-        this.dz = data.dz;
+        this.x = data.x || 0;
+        this.y = data.y || 0;
+        this.z = data.z || 0;
+        this.dx = data.dx || 0;
+        this.dy = data.dy || 0;
+        this.dz = data.dz || 0;
         this.controlKeys = data.controlKeys;
         this.yaw = data.yaw;
         this.pitch = data.pitch;
@@ -206,17 +209,22 @@ class Player {
         };
     };
     changeWeaponLoadout(primaryWeaponItem, secondaryWeaponItem) {
-        if (this.actor && this.weapons) {
-            this.weapons[0].actor.dispose();
-            this.weapons[1].actor.dispose();
-        };
-        this.primaryWeaponItem = primaryWeaponItem;
-        this.secondaryWeaponItem = secondaryWeaponItem;
-        this.weapons = [primaryWeaponItem.instantiateNew(this), secondaryWeaponItem.instantiateNew(this)];
-        this.weapon = this.weapons[this.weaponIdx];
-        if (this.actor) {
-            this.weapon.actor.equip();
-        };
+        try {
+            if (this.actor && this.weapons) {
+                this.weapons[0].actor.dispose();
+                this.weapons[1].actor.dispose();
+            };
+            devlog("changing weapon loadout:", primaryWeaponItem, secondaryWeaponItem);
+            this.primaryWeaponItem = primaryWeaponItem;
+            this.secondaryWeaponItem = secondaryWeaponItem;
+            this.weapons = [primaryWeaponItem.instantiateNew(this), secondaryWeaponItem.instantiateNew(this)];
+            this.weapon = this.weapons[this.weaponIdx];
+            if (this.actor) {
+                this.weapon.actor.equip();
+            };
+        } catch (error) {
+            console.error("error changing weapon loadout:", error);
+        }
     };
     update(delta, resim) {
         var dx = 0;

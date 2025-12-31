@@ -5,7 +5,7 @@ import ColliderConstructor from '#collider';
 import createLoop from '#looper';
 import extendMath from '#math';
 import { setParamsforLoader, loadMapMeshes, buildMapData } from '#loading';
-import { TickStep, stateBufferSize, FramesBetweenSyncs, MAP, devlog, chatCooldown, NextRoundTimeout, iteratePlayers } from '#constants';
+import { TickStep, stateBufferSize, FramesBetweenSyncs, MAP, devlog, chatCooldown, NextRoundTimeout, iteratePlayers, maxServerSlots } from '#constants';
 import { GameTypes } from '#gametypes';
 import { ItemTypes } from '#items';
 import { MunitionsManagerConstructor } from '#munitionsManager';
@@ -467,10 +467,10 @@ export class RoomConstructor {
     };
 
     async joinPlayer(info) {
-        info.id = this.getUnusedPlayerId();
+        info.id = this.getUnusedPlayerId(info.wsId !== null);
         plugins.emit('joinPlayer', {this: this, info});
 
-        console.log(info.wsId, "joining new player with assigned id:", info.id, info.nickname, this.getPlayerCount());
+        console.log(info.wsId, `joining new player (human? ${!info.isBot}) with assigned id:`, info.id, info.nickname, this.getPlayerCount());
 
         const client = await new ClientConstructor(this, info);
 
@@ -772,20 +772,24 @@ export class RoomConstructor {
         return pos;
     };
 
-    getUnusedPlayerId() {
+    getUnusedPlayerId(isHuman = true) {
         plugins.emit('getUnusedPlayerId', {this: this});
 
         let unusedId = null;
 
-        iteratePlayers((player, i) => {
+        let i = isHuman ? 0 : maxServerSlots;
+        let limit = i + (isHuman ? this.playerLimit : 100);
+
+        for (; i < limit; i++) {
+            const player = this.players_by_id[i]; //this is the one case where we can do this instead of the iteratePlayers function
             const client = this.clients_by_id[i];
             plugins.emit('getUnusedPlayerIdLoop', {this: this, i, client, player});
 
-            if (!(client || player)) {
+            if (!client && !player) {
                 unusedId = i;
-                return false; // stops iteration
+                break;
             }
-        }, true);
+        };
 
         return unusedId;
     };

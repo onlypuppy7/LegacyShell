@@ -30,6 +30,10 @@ class ClientConstructor {
         catalog = new CatalogConstructor(ss.items);
     };
 
+    get isHuman() {
+        return this.wsId !== null;
+    };
+
     async initClient(room, info) {
         await plugins.emit('clientInit', { this: this, room, info });
 
@@ -50,7 +54,7 @@ class ClientConstructor {
         this.nickname = info.nickname; //todo check this is legal length and stuff
         this.username = this.loggedIn ? this.userData.username : "Guest_"+Math.seededRandomAlphaNumeric(5, this.uuid);
         this.id = info.id; //place in list
-        this.classIdx = info.classIdx;
+        this.classIdx = info.classIdx || 0;
 
         // console.log(this.room.details.usernames, this.username);
         if (this?.room?.details?.usernames && this.room.details.usernames.includes(this.username)) {
@@ -682,14 +686,20 @@ class ClientConstructor {
     };
 
     sendMsgToWs(msg) {
+        if (!this.isHuman) return;
         parentPort.postMessage([Comm.Worker.send, msg, this.wsId]);
     };
 
     sendCloseToWs(msg) {
+        if (!this.isHuman) {
+            this.onclose();
+            return;
+        };
         parentPort.postMessage([Comm.Worker.close, msg, this.wsId]);
     };
 
     sendBootToWs(msg) {
+        if (!this.isHuman) return;
         parentPort.postMessage([Comm.Worker.boot, msg, this.wsId]);
     };
 };
