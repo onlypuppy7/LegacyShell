@@ -44,7 +44,7 @@ class ClientConstructor {
         //
         this.timeout = new TimeoutManagerConstructor();
         this.interval = new IntervalManagerConstructor();
-        this.clientReady = false;
+        this.clientIsReady = false;
         this.room = room;
         this.wsId = info.wsId;
         this.joinedTime = Date.now();
@@ -220,8 +220,8 @@ class ClientConstructor {
 
                 switch (msg.cmd) {
                     case Comm.Code.clientReady:
-                        if (!this.clientReady) {
-                            this.clientReady = true;
+                        if (!this.clientIsReady) {
+                            this.clientIsReady = true;
 
                             // console.log()
 
@@ -459,6 +459,7 @@ class ClientConstructor {
                     break;
             };
         };
+        console.log(`equipping itemType ${itemType} for classIdx ${classIdx}:`, itemId, catalog.findItemById(itemId));
         this.loadout[itemType] = catalog.findItemById(itemId);
     };
 

@@ -407,7 +407,7 @@ export class RoomConstructor {
             client.lastSeenDelta = Date.now() - client.player.lastActivity;
             client.lastPingDelta = Date.now() - client.lastPingTime;
 
-            // console.log(client.id, client.clientReady);
+            // console.log(client.id, client.clientIsReady);
             // console.log("lastSeenDelta", client.lastSeenDelta, "lastPingDelta", client.lastPingDelta);
 
             if (client.lastPingDelta > 15e3) { // kick if over 15 secs since last connection
@@ -667,7 +667,7 @@ export class RoomConstructor {
 
     notify(text, timeoutTime = 5) {
         this.clients_by_id.forEach(client => {
-            if (client.clientReady) {
+            if (client.clientIsReady) {
                 plugins.emit('notify', {this: this, client, text, timeoutTime});
                 client.notify(text, timeoutTime);
             };
@@ -820,7 +820,7 @@ export class RoomConstructor {
     packAllPlayers(output) {
         plugins.emit('packAllPlayers', {this: this, output});
         this.clients_by_id.forEach(client => {
-            if (client && client.clientReady) {
+            if (client?.clientIsReady) {
                 console.log("packing", client.id, client.player.name) // ayo
                 plugins.emit('packAllPlayersLoop', {this: this, output, client});
                 client.packPlayer(output);
@@ -832,14 +832,14 @@ export class RoomConstructor {
     sendToOne(output, fromId, toId, debug) {
         const client = this.clients_by_id[toId];
         plugins.emit('sendToOne', {this: this, output, fromId, toId, debug});
-        if (client && client.clientReady) {
+        if (client?.clientIsReady) {
             plugins.emit('sendToOneFound', {this: this, output, fromId, toId, debug});
             client.sendBuffer(output, "sendToOne: " + debug + " | from " + fromId);
         };
 
         // //idk why it was done like this? there shouldnt be multiple clients with same id :<
         // this.clients_by_id.forEach(client => {
-        //     if (client.clientReady && client.id === fromId) client.sendBuffer(output, "sendToOne: " + debug + " | from " + fromId);
+        //     if (client.clientIsReady && client.id === fromId) client.sendBuffer(output, "sendToOne: " + debug + " | from " + fromId);
         // });
     };
 
@@ -847,7 +847,7 @@ export class RoomConstructor {
         plugins.emit('sendToOthers', {this: this, output, fromId, debug});
         this.clients_by_id.forEach(client => {
             plugins.emit('sendToOthersLoop', {this: this, client, output, fromId, debug});
-            if (client.clientReady && client.id !== fromId) {
+            if (client.clientIsReady && client.id !== fromId) {
                 plugins.emit('sendToOthersLoopFound', {this: this, client, output, fromId, debug});
                 client.sendBuffer(output, "sendToOthers: " + debug + " | from " + fromId);
             };
@@ -858,7 +858,7 @@ export class RoomConstructor {
         plugins.emit('sendToAll', {this: this, output, fromId, debug});
         this.clients_by_id.forEach(client => {
             plugins.emit('sendToAllLoop', {this: this, client, output, fromId, debug});
-            if (client.clientReady) {
+            if (client.clientIsReady) {
                 plugins.emit('sendToAllLoopFound', {this: this, client, output, fromId, debug});
                 client.sendBuffer(output, "sendToAll: " + debug + " | from " + fromId);
             };
