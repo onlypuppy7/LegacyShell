@@ -26,7 +26,7 @@ import { parentPort } from 'worker_threads';
 
 plugins.emit('roomLoading', {});
 
-export class newRoom {
+export class RoomConstructor {
     constructor(info) {
         this.initRoom(info);
     };
@@ -472,10 +472,12 @@ export class newRoom {
 
         console.log(info.wsId, "joining new player with assigned id:", info.id, info.nickname, this.getPlayerCount());
 
-        this.wsToClient[info.wsId] = new ClientConstructor(this, info);
+        const client = await new ClientConstructor(this, info);
 
         // const client = new ClientConstructor(this, info, ws);
         // const player = client.player;
+
+        return client;
     };
 
     registerPlayerClient(client) {
@@ -858,8 +860,6 @@ export class newRoom {
     };
 };
 
-plugins.emit('roomLoaded', {newRoom});
+plugins.emit('roomLoaded', {RoomConstructor});
 
-export default {
-    newRoom,
-};
+export default RoomConstructor;

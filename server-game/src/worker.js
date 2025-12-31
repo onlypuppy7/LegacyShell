@@ -26,7 +26,7 @@ export var room;
                     Object.assign(ss, message);
                     break;
                 case "createRoom":
-                    room = new RoomConstructor.newRoom(message);
+                    room = new RoomConstructor(message);
                     break;
                 case "joinPlayer":
                     room.joinPlayer(message);
