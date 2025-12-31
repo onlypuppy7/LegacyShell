@@ -89695,7 +89695,11 @@ function keydown(e) {
   switch (e.keyCode) {
     case 38: //arrowup
       if(isDragging){
-        drag(0, 0, 1);
+        if (e.shiftKey) {
+          drag(0, 1, 0);
+        } else {
+          drag(0, 0, 1);
+        }
         break;
       }
       if (e.shiftKey) {
@@ -89706,7 +89710,11 @@ function keydown(e) {
       break;
     case 40: //arrowdown
       if(isDragging){
-        drag(0, 0, -1);
+        if (e.shiftKey) {
+          drag(0, -1, 0);
+        } else {
+          drag(0, 0, -1);
+        }
         break;
       }
       if (e.shiftKey) {
