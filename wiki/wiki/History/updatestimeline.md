@@ -814,9 +814,24 @@ https://www.youtube.com/watch?v=pATHiYbGYuo (version in title)
 
 ## [0.14.6](https://web.archive.org/web/20181016210713/https://shellshock.io/) | 16 - 18 Oct 2018
 
+> ### What's New
+> - New scare-your-pants-off Halloween items!
+> ### Bug Fixes
+> - Some server stability issues
+
 ~~[Shell Shockers - Halloween - Pigwich](https://www.youtube.com/watch?v=SeGee7jHKIM)~~
 
 ## [0.14.7](https://web.archive.org/web/20181019183046/https://shellshock.io/) | 19 Oct - 1 Nov 2018
+
+> ### Fixes for all of the following annoying stuff:
+> - Invincibile players
+> - Indivisible players
+> - Inadmissible players
+> - Inadvisable players
+> - Inconceivable players
+> - Incomprehensible players
+> - Just kidding about all but the first one; especially the last one.
+> - Probably fixed some other things in the process. It was that bad.
 
 ~~*[Some Shell Shockers.io Link to game:https://shellshock.io/#01tus2 - Daniel](https://www.youtube.com/watch?v=dqaNPqbhD7U)*~~
 
@@ -830,9 +845,17 @@ https://www.youtube.com/watch?v=pATHiYbGYuo (version in title)
 
 ## [0.15.2](https://web.archive.org/web/20181107222925/https://shellshock.io/) | 7 - 15 Nov 2018
 
+> - GOBBLE, GOBBLE, TURKEY... something. Turkey Day skins are here!
+> - Worked on some server stability nonsense... BOOOORING.
+> - Before you ask, yes, the RPEGG will be getting some tweaks. Next time!
+
 ~~[Shell Shockers playing team mode - savage dudde](https://www.youtube.com/watch?v=CZC9roBhinE)~~
 
 ## [0.15.3](https://web.archive.org/web/20181120040746/https://shellshock.io/) | 20 Nov 2018
+
+> - RPEGG now requires players to stop and get settled before firing. No more rushing people and blowing yourselves up, losers!
+> - Very slight tweaks to other weapons that I'm not going to tell you about. I'm already regretting just typing this.
+> - Live Twitch streamer list. WE WILL BE WATCHING.
 
 ~~[Shell Shockers Pistol Only Challenge Funny/Rage Moments - Darned Fox](https://www.youtube.com/watch?v=ha_EW-Fi2Eo)~~
 
@@ -840,11 +863,22 @@ https://www.youtube.com/watch?v=pATHiYbGYuo (version in title)
 
 ## [0.15.4d](https://web.archive.org/web/20181206030710/https://shellshock.io/) | 6 - 14 Dec 2018
 
+> - Golden Chicken Pass! More shell colors! No ads! Buy now!
+> - New, improved egg death animation. GADZOOKS; THERE'S YOLK EVERYWHERE!
+
 **[Playing Shell Shockers with Wubster | #1 - Blue Dragon](https://www.youtube.com/watch?v=3cVYEGFMrao)**
 
 ## [0.15.5](https://web.archive.org/web/20181218215828/http://shellshock.io/) | 18 Dec 2018
 
+> - Golden Nugget! It's like a Golden Chicken, but kinda not!
+> - Better, more diverse spawn points
+> - Improved inter-server communication
+
 ## [0.15.6](https://web.archive.org/web/20181228172825/https://shellshock.io/) | 28 Dec 2018 - 10 Jan 2019
+
+> - Christmas is so yesterday; Happy New Yolk! New skins are available.
+> - I know we're a friendly bunch, but nobody likes spawning on top of their teammates, so that shouldn't happen now.
+> - Servers were having a hard time keeping up with new game requests, leaving a lot of people with 'Matchmaker Offline' messages. I thought that was dumb, so server-side game creation speed has been improved DRAMATICALLY.
 
 ***[THE GRAST GAME -  Shell Shockers | Live - PolarizedMoon](https://www.youtube.com/watch?v=b_WR0BORyTQ)***
 
@@ -854,7 +888,27 @@ https://www.youtube.com/watch?v=pATHiYbGYuo (version in title)
 
 ## [0.15.7](https://web.archive.org/web/20190115215434/https://shellshock.io/) | 15 - 17 Jan 2019
 
+> - New settings menu that won't show up blank, offers an option to reset to defaults, and allows you to assign mouse wheel up/down actions.
+> - New health bar. Much compact and fancy!
+
+## 0.15.8
+
+> - Old, cruddy, stale public games are now locked after 2 hours to keep map rotation fresh.
+> - Team player count balance now enforced once again in public games only.
+> - Fixes to the Auto Detail option in the Settings menu.
+> - Did a bunch of boring server stuff to help mitigate lag spikes... at least, the ones that *aren't* caused by your lousy WiFi.
+> - Fixed some weapon-switching problems for you people who can't be bothered to wait 2 measly seconds before jumping into the Equipment screen and changing everything.
+
+## 0.15.9
+
+> - Grenade physics got a major, much-needed overhaul.
+
 ## [0.16.0](https://web.archive.org/web/20190128221540/http://shellshock.io/) | 25 Jan - 5 Feb 2019
+
+> - Groundhog Day items! Get them before they see their shadows!
+> - Private game creators can now boot naughty players.
+> - You can now mute other players. Their chat will no longer show, and their name will be changed to a random one.
+> - Black egg shell color had to go. It is now bright green, so you can see those cracks!
 
 ***[GROUNDHOG'S DAY SPECIAL - Shell Shockers | Live - PolarizedMoon](https://www.youtube.com/watch?v=QW7Vu7wjaJM)***
 
@@ -862,13 +916,32 @@ https://www.youtube.com/watch?v=pATHiYbGYuo (version in title)
 
 ## [0.17.0](https://web.archive.org/web/20190206144455/https://shellshock.io/) | 6 - 9 Feb 2019
 
+> - Massive ordinance collision detection overhaul
+> - A lot more work on grenade dynamics
+> - Changes to grenade and rocket blast radius and damage
+> - Updates to some particle effects
+
 **[GRENADE GUN - Shell Shockers - PolarizedMoon](https://www.youtube.com/watch?v=i-kGZ3eEzdg)**
 
 ## 0.17.1 | 14 Feb 2019
 
+> - Valentine's Day items are now available! Love, Shell Shockers.
+> - RPEGG firing delay removed. Rockets now have a minimum arming range, indicated by the red/green brackets.
+> - Icons added to leaderboard to indicate golden eggs/nuggets and mute status.
+> - Oh, and a cool new map. Whatever.
+
 **[NEW MAP, NEW ITEMS!! - Shell Shockers With Fans - PolarizedMoon](https://www.youtube.com/watch?v=yVKpQ2TGUqk)**
 
+## 0.18.1
+
+> - New CAPTULA THE SPATULA game mode is now available! GET SOME.
+> - Boot player function wasn't working quite right. Now it is.
+> - Multi-domain support, in case you get blocked.
+
 ## [0.18.2](https://web.archive.org/web/20190219223618/http://shellshock.io/) | 19 Feb - 8 May 2019
+
+> - The spatula can no longer boldy go where no egg has gone before (or will)
+> - Major improvements in sound reliability for all you poor souls with Chromebooks and other puny laptops that get sad when asked to do stuff like... I dunno... PLAY SOUNDS?
 
 ### This version number refused to die for some reason.
 
@@ -888,11 +961,47 @@ https://www.youtube.com/watch?v=pATHiYbGYuo (version in title)
 
 ~~[Shell shockers new guns - Headgang](https://www.youtube.com/watch?v=b08K4MCZ9c8)~~
 
+## 0.20.0
+
+> ### NEW WEAPONS:
+> - M2DZ bolt-action rifle.
+> - SMEGG submachine gun.
+> ### CHANGES TO OLD WEAPONS
+> - EggK-47: 600RPM[+] / 30DMG[-] / Bloom decreased
+> - Dozen Gauge: 170DMG[-] / Stability, accuracy, and range increased
+> - RPEGG: 140DMG[-] / Blast radius 2.75[-]
+> - CSG1: 120RPM[+] / 102DMG[-] / Accuracy *very slightly* decreased
+> - Cluck 9mm: 450RPM[-] / 26DMG[+] / Bloom decreased
+> - Bullet velocity increased a bit across the board
+
+## 0.20.1
+
+> ### NEW WEAPONS:
+> - M2DZ bolt-action rifle.
+> - SMEGG submachine gun.
+> ### CHANGES TO OLD WEAPONS
+> - EggK-47: 600RPM[+] / 30DMG[-] / Bloom decreased
+> - Dozen Gauge: 170DMG[-] / Stability, accuracy, and range increased
+> - RPEGG: 140DMG[-] / Blast radius 2.75[-]
+> - CSG1: 120RPM[+] / 102DMG[-] / Accuracy *very slightly* decreased
+> - Cluck 9mm: 450RPM[-] / 26DMG[+] / Bloom decreased
+> - Bullet velocity increased a bit across the board
+> ### ALSO
+> - Fix for Castle jump exploit
+> - Hitting very edge of shell now does at least 10% weapon damage instead of zero
+
 ## [0.20.2](https://web.archive.org/web/20190519200726/https://shellshock.io/) | 19 - 27 May 2019
+
+> - CSG1 clip and ammo storage capacity increased. Bloom decreased just a smidge
+> - Fixed a clipping issue with gold SMEGG skin
 
 ***[Blasting Eggs in Shell Shockers - The Gamer Show](https://www.youtube.com/watch?v=BUH97mOeRjQ)***
 
 ## [0.20.2a](https://web.archive.org/web/20190528232516/https://shellshock.io/) | 28 - 30 May 2019
+
+> - AVEGGERS, ASSEMBLE
+
+(cba with the changelogs any more)
 
 ~~[BEST (FREE RANGER) SHOTS IN SHELL SHOCKER.IO | Free Ranger | The JB💎 - The JB](https://www.youtube.com/watch?v=xapzhnOOgAs)~~
 
