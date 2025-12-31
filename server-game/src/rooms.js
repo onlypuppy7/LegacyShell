@@ -472,9 +472,9 @@ export class newRoom {
 
         console.log(info.wsId, "joining new player with assigned id:", info.id, info.nickname, this.getPlayerCount());
 
-        this.wsToClient[info.wsId] = new ClientConstructor.newClient(this, info);
+        this.wsToClient[info.wsId] = new ClientConstructor(this, info);
 
-        // const client = new ClientConstructor.newClient(this, info, ws);
+        // const client = new ClientConstructor(this, info, ws);
         // const player = client.player;
     };
 

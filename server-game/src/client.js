@@ -24,7 +24,7 @@ plugins.emit('clientStartUp', {  });
 let catalog;
 extendMath(Math);
 
-class newClient {
+class ClientConstructor {
     constructor(room, info) {
         this.initClient(room, info);
         catalog = new CatalogConstructor(ss.items);
@@ -67,10 +67,10 @@ class newClient {
         //
 
         this.updateLoadout(
-            info.classIdx,
-            info.primary_item_id,
-            info.secondary_item_id,
-            info.colorIdx,
+            info.classIdx || 0,
+            info.primary_item_id || 0,
+            info.secondary_item_id || 0,
+            info.colorIdx || 0,
             info.hatId,
             info.stampId
         );
@@ -458,7 +458,7 @@ class newClient {
         this.loadout[itemType] = catalog.findItemById(itemId);
     };
 
-    setClassIdx(classIdx) {
+    setClassIdx(classIdx = 0) {
         let range = CharClass.length - 1;
         classIdx = Math.clamp(Math.floor(classIdx), 0, range);
         if (classes[this.classIdx]) this.classIdx = classIdx;
@@ -694,6 +694,4 @@ class newClient {
     };
 };
 
-export default {
-    newClient,
-};
+export default ClientConstructor;

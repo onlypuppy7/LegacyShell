@@ -191,11 +191,11 @@ class Player {
         };
         this.sendModifiers(init);
     };
-    changeModifiers(modifiers, init) { //a little disorganized but it works for this purpose
+    changeModifiers(modifiers, init) { //a little less disorganized but it works for this purpose
         Object.assign(this.modifiers, modifiers);
 
         if (modifiers.scale !== undefined) this.changeScale(modifiers.scale, init);
-        
+
         this.sendModifiers(init);
     };
     sendModifiers(init) {
