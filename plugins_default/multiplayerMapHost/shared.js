@@ -22,6 +22,7 @@ export const MultiplayerMapHost = {
             document.addEventListener("DOMContentLoaded", () => { //arrow functions my beloved
                 extern.testMapOnline = this.testMapOnline;
                 this.addTestButton();
+                this.addSelectionDialog();
             });
         };
     },
@@ -42,6 +43,41 @@ export const MultiplayerMapHost = {
                 console.error("unrecognised map:", localStorage.getItem("mapBackup"));
             };
         };
+    },
+
+    addSelectionDialog(){
+      const dialog = document.createElement("div");
+      dialog.id = "multiTestGMSelect";
+      dialog.className = "dialog box";
+      //heading
+      const title = document.createElement("h1");
+      title.textContent = "Select gamemode for multiplayer testing";
+      dialog.appendChild(title);
+      //buttons
+      const buttonDiv = document.createElement("div");
+      dialog.appendChild(buttonDiv);
+
+      const types = Object.keys(GameType);
+      for(let type of types){
+        const button = document.createElement("button");
+        button.textContent = type;
+        button.onclick = function(){
+          saveToLocal();
+          window.open(location.origin+"/?testMapOnline="+type, "_blank");
+        };
+        buttonDiv.appendChild(button);
+      }
+
+      dialog.appendChild(document.createElement("hr"));
+      //close button
+      const closeButton = document.createElement("button");
+      closeButton.textContent = "cancel";
+      closeButton.onclick = function(){
+        extern.closeDialog("multiTestGMSelect");
+      };
+      dialog.appendChild(closeButton);
+
+      document.body.appendChild(dialog);
     },
 
     addTestButton() {
@@ -67,7 +103,9 @@ export const MultiplayerMapHost = {
     },
 
     testMapOnline() {
-        console.log("woah, online testing, woaahhhh");
+        console.log("woah, online testing, woaahhhh, but now fancy!");
+        extern.openDialog("multiTestGMSelect");
+        return;
 
         const types = Object.keys(GameType);
 
