@@ -44,7 +44,7 @@ export class RoomConstructor {
         this.existedFor = 0;
         this.gameOwner = null;
 
-        this.wsToClient = {};
+        this.wsId_to_client = {};
 
         this.serverStateIdx = 0;
 
@@ -181,7 +181,7 @@ export class RoomConstructor {
     };
 
     sendWsToClient(type, content, wsId) {
-        const client = this.wsToClient[wsId];
+        const client = this.wsId_to_client[wsId];
         plugins.emit('roomWsMessage', {this: this, client, type, content});
         if (client) {
             switch (type) {
@@ -473,6 +473,8 @@ export class RoomConstructor {
         console.log(info.wsId, "joining new player with assigned id:", info.id, info.nickname, this.getPlayerCount());
 
         const client = await new ClientConstructor(this, info);
+
+        if (!info.isBot) this.wsId_to_client[info.wsId] = client;
 
         // const client = new ClientConstructor(this, info, ws);
         // const player = client.player;
