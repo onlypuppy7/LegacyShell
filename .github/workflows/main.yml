@@ -15,8 +15,6 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
 
     - name: Setup Git
       run: |
@@ -37,8 +35,14 @@ jobs:
         commit_hash=$(git rev-parse HEAD)
         echo $commit_hash > $hash_file
 
-    - name: Merge new stuff
+    - name: Commit changes
       run: |
         git add versionEnum.txt versionHash.txt
-        git commit --amend --no-edit
-        git push --force-with-lease origin main
+        git commit -m "Increment version to $new_version and update commit hash"
+        git push
+
+    - name: Push changes
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        git push origin main
