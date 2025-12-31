@@ -19,6 +19,9 @@ LEGACYSHELLPLUGINMANAGER
 
 LEGACYSHELLPLUGINSBEFORE
 
+//this is at the top, because I (seq) am ON TOP!!!
+let isDragging = false;
+
 //yes, this has to be here. Yes. yes.
 const preferences = {
   //loremIpsum: true,
@@ -89273,6 +89276,8 @@ function reconfigCameraControls(camera2) {
           if (!noPreventDefault) {
             evt.preventDefault();
           }
+        } else {
+          keyup(evt);
         }
       };
       element.addEventListener("keydown", this._onKeyDown, false);
@@ -89639,6 +89644,41 @@ function selectPaletteSlot(idx) {
     }
   }
 }
+
+function drag(dx, dy, dz){
+  var pick = scene.pickWithRay(camera.getForwardRay());
+  if (pick.hit && pick.pickedMesh.name != "ground") {
+    var cel = getPickedCell(pick);
+    if(!cel) return;
+    let newX = cel.x + dx;
+    let newY = cel.y+dy;
+    let newZ = cel.z+dz;
+    while(cel.idx == map.data[newX][newY][newZ].idx){
+      newX += dx;
+      newY += dy;
+      newZ += dz;
+    }
+    /*
+    if(cel.idx == map.data[newX][newY][newZ].idx){
+      console.log("already.");
+      drag(newX+dx, newY+dy, newZ+dz);
+      return;
+    }*/
+    deleteTile(newX, newY, newZ);
+    placeTile(cel.idx, {x: newX, y: newY, z: newZ}, {x: cel.rx , y: cel.ry, z: cel.rz});
+    undoPoint();
+    //map.data[pos.x][pos.y][pos.z];
+
+  }
+}
+function keyup(e){
+    switch (e.key) {
+      case  "f": {
+        isDragging = false;
+        break;
+      }
+    }
+}
 function keydown(e) {
   if (e.code.startsWith("Digit")) {
     var idx = Number(e.code.substr(5)) - 1;
@@ -89653,24 +89693,40 @@ function keydown(e) {
     return;
   }
   switch (e.keyCode) {
-    case 38:
+    case 38: //arrowup
+      if(isDragging){
+        drag(0, 0, 1);
+        break;
+      }
       if (e.shiftKey) {
         moveMap(0, 1, 0);
       } else {
         moveMap(0, 0, 1);
       }
       break;
-    case 40:
+    case 40: //arrowdown
+      if(isDragging){
+        drag(0, 0, -1);
+        break;
+      }
       if (e.shiftKey) {
         moveMap(0, -1, 0);
       } else {
         moveMap(0, 0, -1);
       }
       break;
-    case 39:
+    case 39://arrowright
+      if(isDragging){
+        drag(1, 0, 0);
+        break;
+      }
       moveMap(1, 0, 0);
       break;
-    case 37:
+    case 37://arrowleft
+      if(isDragging){
+        drag(-1, 0, 0);
+        break;
+      }
       moveMap(-1, 0, 0);
       break;
   }
@@ -89717,6 +89773,10 @@ function keydown(e) {
     //op7 added
     case "`":
       document.exitPointerLock();
+      break;
+      //Seq added ON THE LAST DAY OF 2025°!°°°
+    case "f":
+      isDragging = true;
       break;
   }
 }
