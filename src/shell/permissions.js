@@ -186,11 +186,13 @@ export class PermissionsConstructor {
             permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
             inputType: ["number", 0.1, 25, 0.1],
             executeClient: ({ player, opts, mentions }) => {
+                console.log("client")
                 forEachMentionInMentions(mentions, (player) => {
                     player.changeScale(opts);
                 });
             },
             executeServer: ({ player, opts, mentions, mentionsLiteral }) => {
+                console.log("server")
                 setGameOptionInMentions(player, mentions, mentionsLiteral, "scale", opts);
             }
         });
@@ -844,7 +846,7 @@ export function setGameOptionInMentions(player, mentions, mentionsLiteral, key, 
     
     if (mentions) {
         forEachMentionInMentions(mentions, (player) => {
-            if (player[key] !== undefined) player.changeModifiers({[key]: value});
+            if (player.modifiers[key] !== undefined) player.changeModifiers({[key]: value});
             player.client.commandFeedback(`Your ${key.replace("Modifier"," modifier")} has been set to: ${value}`);
         });
     };
@@ -856,7 +858,7 @@ export function parseMentions (parts, context, player) {
     var mentions = [];
     var mentionsLiteral = [];
 
-    var playersList = isClient ? players : context.room.players;
+    var playersList = isClient ? players_by_id : context.room.players_by_id;
     var mePlayer = isClient ? me : context.player || player;
 
     if (typeof parts == "string") parts = parts.split(" ");

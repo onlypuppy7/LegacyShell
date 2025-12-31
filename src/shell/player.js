@@ -164,6 +164,7 @@ class Player {
         this.jumpHeld = false;
         this.lastActivity = Date.now();
 
+        this.modifiers = {};
         this.setDefaultModifiers(true);
     };
     setDefaultModifiers(init) {
@@ -179,8 +180,8 @@ class Player {
         }, init);
     };
     changeScale (newScale, init) {
-        // devlog("setting scale:", newScale);
-        this.scale = newScale;
+        devlog("setting scale:", newScale);
+        this.modifiers.scale = newScale;
         if (this.actor) {
             this.actor.mesh.scaling.set(newScale, newScale, newScale);
 
@@ -190,15 +191,11 @@ class Player {
         };
         this.sendModifiers(init);
     };
-    changeModifiers(modifiers, init) { //a little disorganized but it works for this purpose
-        if (modifiers.gravityModifier !== undefined) this.gravityModifier = modifiers.gravityModifier;
-        if (modifiers.speedModifier !== undefined) this.speedModifier = modifiers.speedModifier;
-        if (modifiers.regenModifier !== undefined) this.regenModifier = modifiers.regenModifier;
-        if (modifiers.damageModifier !== undefined) this.damageModifier = modifiers.damageModifier;
-        if (modifiers.resistanceModifier !== undefined) this.resistanceModifier = modifiers.resistanceModifier;
-        if (modifiers.jumpBoostModifier !== undefined) this.jumpBoostModifier = modifiers.jumpBoostModifier;
+    changeModifiers(modifiers, init) { //a little less disorganized but it works for this purpose
+        Object.assign(this.modifiers, modifiers);
+
         if (modifiers.scale !== undefined) this.changeScale(modifiers.scale, init);
-        if (modifiers.knockbackModifier !== undefined) this.knockbackModifier = modifiers.knockbackModifier;
+
         this.sendModifiers(init);
     };
     sendModifiers(init) {
@@ -374,14 +371,14 @@ class Player {
 
             this.dx += .007 * deltaVector.x * delta;
             this.dz += .007 * deltaVector.z * delta;
-            this.dy -= .003 * delta * (this.gravityModifier || 1);
+            this.dy -= .003 * delta * (this.modifiers.gravityModifier || 1);
             this.dy = Math.clamp(this.dy, -.2, .2);
 
             var ndx = .5 * (this.dx + pdx) * delta;
             var ndz = (ndy = .5 * (this.dy + pdy) * delta, .5 * (this.dz + pdz) * delta);
 
-            this.moveX(ndx * this.speedModifier, delta);
-            this.moveZ(ndz * this.speedModifier, delta);
+            this.moveX(ndx * this.modifiers.speedModifier, delta);
+            this.moveZ(ndz * this.modifiers.speedModifier, delta);
             this.moveY(ndy, delta)
         };
         if (!resim) {
@@ -406,7 +403,7 @@ class Player {
             };
             // console.log("patrascru", this.playing, this.isDead(), this.canRespawn(), this.hp);
             if (0 < this.hp && this.playing) {
-                this.setHp(Math.min(100, this.hp + .05 * delta * this.regenModifier)); //regenning, you can put `* -2` or something here to simulate hunger, or something
+                this.setHp(Math.min(100, this.hp + .05 * delta * this.modifiers.regenModifier)); //regenning, you can put `* -2` or something here to simulate hunger, or something
             };
             if (0 < this.swapWeaponCountdown) {
                 this.shotSpread = this.weapon.subClass.shotSpreadIncrement;
@@ -619,7 +616,7 @@ class Player {
 
         if (this.canJump()) {
             this.jumps++;
-            this.dy = 0.06 * this.jumpBoostModifier;
+            this.dy = 0.06 * this.modifiers.jumpBoostModifier;
             this.setJumping(true);
             return !(this.lastTouchedGround === 0);
         };
@@ -895,7 +892,7 @@ class Player {
             var rotMat = BABYLON.Matrix.RotationYawPitchRoll(this.yaw, this.pitch, 0);
             var vec = BABYLON.Matrix.Translation(0, .1, 1).multiply(rotMat).getTranslation();
             var posMat = BABYLON.Matrix.Translation(0, -.05, .2);
-            var pos = (posMat = (posMat = posMat.multiply(rotMat)).add(BABYLON.Matrix.Translation(this.x, this.y + Math.max(0.25, 0.3 * this.scale), this.z))).getTranslation();
+            var pos = (posMat = (posMat = posMat.multiply(rotMat)).add(BABYLON.Matrix.Translation(this.x, this.y + Math.max(0.25, 0.3 * this.modifiers.scale), this.z))).getTranslation();
             var speed = .13 * this.grenadeThrowPower + .08;
 
             vec.x *= speed;
@@ -970,7 +967,7 @@ class Player {
         };
     };
     knockback(originalDamage, dx, dz) {
-        let kb = originalDamage * 0.01 * this.knockbackModifier;
+        let kb = originalDamage * 0.01 * this.modifiers.knockbackModifier;
         let explosion = originalDamage > 100;
         
         let kbX = dx * kb
@@ -987,7 +984,7 @@ class Player {
         if (this.isDead() || (!this.playing)) return;
         if (this.team === 0 ? false : (this.team === firedPlayer.team && this.id !== firedPlayer.id)) return;
 
-        damage = Math.ceil((damage / this.resistanceModifier) / this.scale);
+        damage = Math.ceil((damage / this.modifiers.resistanceModifier) / this.modifiers.scale);
 
         damage = Math.min(damage, this.hp + 1); //no overkill, also no ridiculous healing from nades
 

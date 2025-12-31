@@ -24,7 +24,7 @@ plugins.emit('clientStartUp', {  });
 let catalog;
 extendMath(Math);
 
-class newClient {
+class ClientConstructor {
     constructor(room, info) {
         this.initClient(room, info);
         catalog = new CatalogConstructor(ss.items);
@@ -67,10 +67,10 @@ class newClient {
         //
 
         this.updateLoadout(
-            info.classIdx,
-            info.primary_item_id,
-            info.secondary_item_id,
-            info.colorIdx,
+            info.classIdx || 0,
+            info.primary_item_id || 0,
+            info.secondary_item_id || 0,
+            info.colorIdx || 0,
             info.hatId,
             info.stampId
         );
@@ -385,7 +385,7 @@ class newClient {
                         break;
                     case Comm.Code.bootPlayer:
                         let id = input.unPackInt8U();
-                        let client = this.room.clients[id];
+                        let client = this.room.clients_by_id[id];
 
                         if (this.room.perm.searchPermission("boot", this.player) && client && id !== this.player.id) {
                             client.sendBootToWs();
@@ -458,7 +458,7 @@ class newClient {
         this.loadout[itemType] = catalog.findItemById(itemId);
     };
 
-    setClassIdx(classIdx) {
+    setClassIdx(classIdx = 0) {
         let range = CharClass.length - 1;
         classIdx = Math.clamp(Math.floor(classIdx), 0, range);
         if (classes[this.classIdx]) this.classIdx = classIdx;
@@ -528,14 +528,16 @@ class newClient {
         output.packInt8U(Comm.Code.setModifiers);
         output.packInt8U(this.id);
         //unsigned
-        output.packInt8U(this.player.scale * 10); //range: 0 to 25.5
+        output.packInt8U(this.player.modifiers.scale * 10); //range: 0 to 25.5
         //signed
-        output.packInt8(this.player.regenModifier * 10); //range: -12.8 to 12.7
-        output.packInt8(this.player.speedModifier * 10); //range: -12.8 to 12.7
-        output.packInt8(this.player.gravityModifier * 10); //range: -12.8 to 12.7
-        output.packInt8(this.player.damageModifier * 10); //range: -12.8 to 12.7
-        output.packInt8(this.player.resistanceModifier * 10); //range: -12.8 to 12.7
-        output.packInt8(this.player.jumpBoostModifier * 10); //range: -12.8 to 12.7
+        output.packInt8(this.player.modifiers.regenModifier * 10); //range: -12.8 to 12.7
+        output.packInt8(this.player.modifiers.speedModifier * 10); //range: -12.8 to 12.7
+        output.packInt8(this.player.modifiers.gravityModifier * 10); //range: -12.8 to 12.7
+        output.packInt8(this.player.modifiers.damageModifier * 10); //range: -12.8 to 12.7
+        output.packInt8(this.player.modifiers.resistanceModifier * 10); //range: -12.8 to 12.7
+        output.packInt8(this.player.modifiers.jumpBoostModifier * 10); //range: -12.8 to 12.7
+
+        output.packLongString("{}"); //this is for in the future when i cant be fucked with this stupid packet shit any more
     };
 
     async packSync(output) {
@@ -692,6 +694,4 @@ class newClient {
     };
 };
 
-export default {
-    newClient,
-};
+export default ClientConstructor;
