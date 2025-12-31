@@ -1,4 +1,4 @@
-# LegacyShell
+# LegacyShell 
 > No clucks given.
 
 Fully functional reverse engineering of the Shell Shockers backend and client servers, with further extensions.
