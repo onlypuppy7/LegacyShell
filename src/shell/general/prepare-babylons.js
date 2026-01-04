@@ -84,6 +84,76 @@ export async function prepareBabylons(endBabylonsDir = path.join(ss.rootDir, 'st
 
                     await plugins.emit('prepareBabylonExtra', { filename, baseBabylon, extraBabylonData, item });
 
+                    if (item.attemptFixSkeleton && extraBabylonData.skeletons) {
+                        // 1. reorder skeleton array to match base
+                        const baseSkeletonNames = baseBabylon.skeletons.map(s => s.name);
+
+                        extraBabylonData.skeletons = extraBabylonData.skeletons
+                            .filter(s => baseSkeletonNames.includes(s.name))
+                            .sort((a, b) =>
+                                baseSkeletonNames.indexOf(a.name) - baseSkeletonNames.indexOf(b.name)
+                            );
+
+                        // 2. rebind mesh.skeletonId using array index
+                        extraBabylonData.meshes.forEach(mesh => {
+                            const idx = extraBabylonData.skeletons.findIndex(s => s.name === mesh.skeletonName);
+                            if (idx !== -1) mesh.skeletonId = idx;
+                        });
+
+                        // 3. process each skeleton
+                        extraBabylonData.skeletons.forEach((extraSkeleton, extraSkeletonIndex) => {
+                            const baseSkeleton = baseBabylon.skeletons.find(s => s.name === extraSkeleton.name);
+                            if (!baseSkeleton) return;
+
+                            // build bone index map, extra index -> base index
+                            const boneIndexMap = new Map();
+                            extraSkeleton.bones.forEach((extraBone, i) => {
+                                const baseIndex = baseSkeleton.bones.findIndex(b => b.name === extraBone.name);
+                                if (baseIndex !== -1) boneIndexMap.set(i, baseIndex);
+                            });
+
+                            // 4. reorder bones to match base skeleton
+                            const newBones = [];
+                            baseSkeleton.bones.forEach(baseBone => {
+                                const idx = extraSkeleton.bones.findIndex(b => b.name === baseBone.name);
+                                if (idx !== -1) newBones.push(extraSkeleton.bones[idx]);
+                            });
+                            extraSkeleton.bones = newBones;
+
+                            // 5. reorder inverseBindMatrices and bindPose if present
+                            const reorderMatrices = (arr) => {
+                                if (!Array.isArray(arr)) return arr;
+                                const reordered = new Array(newBones.length);
+                                newBones.forEach((bone, newIndex) => {
+                                    const oldIndex = boneIndexMap.has
+                                        ? [...boneIndexMap.entries()].find(([, v]) => v === newIndex)?.[0]
+                                        : -1;
+                                    if (oldIndex !== -1) reordered[newIndex] = arr[oldIndex];
+                                });
+                                return reordered;
+                            };
+
+                            if (extraSkeleton.inverseBindMatrices) {
+                                extraSkeleton.inverseBindMatrices = reorderMatrices(extraSkeleton.inverseBindMatrices);
+                            }
+                            if (extraSkeleton.bindPose) {
+                                extraSkeleton.bindPose = reorderMatrices(extraSkeleton.bindPose);
+                            }
+
+                            // 6. remap matricesIndices for meshes using this skeleton
+                            extraBabylonData.meshes.forEach(mesh => {
+                                if (mesh.skeletonId !== extraSkeletonIndex) return;
+                                if (!mesh.matricesIndices) return;
+
+                                const indices = mesh.matricesIndices;
+                                for (let i = 0; i < indices.length; i++) {
+                                    const mapped = boneIndexMap.get(indices[i]);
+                                    indices[i] = mapped !== undefined ? mapped : 0;
+                                }
+                            });
+                        });
+                    };
+
                     if (item.overwrite) {
                         baseBabylon.meshes = [
                             ...baseBabylon.meshes,
