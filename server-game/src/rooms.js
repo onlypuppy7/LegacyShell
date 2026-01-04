@@ -410,7 +410,7 @@ export class RoomConstructor {
             // console.log(client.id, client.clientIsReady);
             // console.log("lastSeenDelta", client.lastSeenDelta, "lastPingDelta", client.lastPingDelta);
 
-            if (client.lastPingDelta > 15e3) { // kick if over 15 secs since last connection
+            if ((client.lastPingDelta > 15e3) && !client.noConnectionTimeout) { // kick if over 15 secs since last connection
                 log.orange("closing ws with id", client.id, "due to 15s connection timeout");
                 client.sendCloseToWs();
             };
@@ -467,12 +467,12 @@ export class RoomConstructor {
     };
 
     async joinPlayer(info) {
-        info.id = this.getUnusedPlayerId(info.wsId !== null);
+        info.id = this.getUnusedPlayerId(info.useOOBid); //info.wsId !== null
         plugins.emit('joinPlayer', {this: this, info});
 
         console.log(info.wsId, `joining new player (human? ${!info.isBot}) with assigned id:`, info.id, info.nickname, this.getPlayerCount());
 
-        const client = await new ClientConstructor(this, info);
+        const client = new ClientConstructor(this, info);
 
         if (!info.isBot) this.wsId_to_client[info.wsId] = client;
 
@@ -772,13 +772,13 @@ export class RoomConstructor {
         return pos;
     };
 
-    getUnusedPlayerId(isHuman = true) {
+    getUnusedPlayerId(useOOBid = false) {
         plugins.emit('getUnusedPlayerId', {this: this});
 
         let unusedId = null;
 
-        let i = isHuman ? 0 : maxServerSlots;
-        let limit = i + (isHuman ? this.playerLimit : 100);
+        let i = useOOBid ? maxServerSlots : 0;
+        let limit = i + (useOOBid ? 100 : this.playerLimit);
 
         for (; i < limit; i++) {
             const player = this.players_by_id[i]; //this is the one case where we can do this instead of the iteratePlayers function

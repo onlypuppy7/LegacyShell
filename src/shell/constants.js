@@ -515,7 +515,8 @@ export function sleep(ms) {
 
 export function iteratePlayers(func = () => {}, keepEmpty = false) {
     const playerArray = isClient ? players_by_id : room.players_by_id;
-    const length = isClient ? playerLimit : room.playerLimit; //playerArray.length;
+    // const length = isClient ? playerLimit : room.playerLimit; //playerArray.length;
+    const length = playerArray.length; //playerArray.length;
 
     for (let i = 0; i < length; i++) {
         const player = playerArray[i];

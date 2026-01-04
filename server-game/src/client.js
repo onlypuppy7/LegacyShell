@@ -26,6 +26,9 @@ extendMath(Math);
 
 class ClientConstructor {
     constructor(room, info) {
+        this.initPromise = new Promise(resolve => {
+            this._resolveInit = resolve;
+        });
         this.initClient(room, info);
         catalog = new CatalogConstructor(ss.items);
     };
@@ -101,8 +104,16 @@ class ClientConstructor {
 
         this.room.updateRoomDetails();
 
+        this.initiated = true;
+        this._resolveInit(this);
+
         await plugins.emit('clientInitEnd', { this: this, room, info });
     };
+
+    async waitUntilReady() {
+        if (this.initiated) return this;
+        return this.initPromise;
+    }
 
     async updateLoadout (classIdx, primary_item_id, secondary_item_id, colorIdx, hatId, stampId) {
         await plugins.emit('clientUpdateLoadout', { this: this, classIdx, primary_item_id, secondary_item_id, colorIdx, hatId, stampId });
@@ -205,6 +216,67 @@ class ClientConstructor {
         this.loggedIn = this.userData && this.sessionData;
     };
 
+    async clientReady() {
+        if (!this.clientIsReady) {
+            this.clientIsReady = true;
+
+            // console.log()
+
+            var output = new Comm.Out();
+            this.room.packAllPlayers(output);
+            this.sendToMe(output, "packAllPlayers");
+
+            var output = new Comm.Out();
+            this.packPlayer(output);
+            this.sendToAll(output, "packThisPlayer (ready/joined)");
+
+            var output = new Comm.Out();
+            this.room.packUpdateRoomParams(output);
+            this.room.packRoundUpdate(output);
+            output.packInt8U(Comm.Code.clientReady);
+            this.sendToMe(output, "clientReady");
+
+            this.room.setGameOwner();
+
+            var output = new Comm.Out();
+            this.room.packAllItems(output);
+            this.room.packSetGameOwner(output);
+            this.sendToMe(output, "packAllItems");
+
+            if (this.room.customMapFailed) {
+                this.notify("NOTICE: Loading your custom map failed, please identify the issues, somehow.", 15);
+            };
+        };
+    };
+
+    async requestRespawn() {
+        if (this.player.canRespawn() && !this.player.playing) {
+            const spawnPoint = this.room.getBestSpawn(this.player);
+
+            this.player.pitch = 0; //directly forward
+            this.player.yaw = (Math.random() * Math.PI * 4) - Math.PI*2;
+            //random radiant angle ^^^ (rad -> min:-2π, max: 2π;)
+            //ergo random float between 0 and 4π minus 2π (due to how Math.random works.)
+            //and NO using randomInt is NOT an option.
+
+            await plugins.emit("requestRespawn", {this: this, player: this.player, spawnPoint});
+
+            this.player.respawn(spawnPoint);
+
+            var output = new Comm.Out(12);
+            output.packInt8U(Comm.Code.respawn);
+            output.packInt8U(this.id);
+            output.packFloat(this.player.x);
+            output.packFloat(this.player.y);
+            output.packFloat(this.player.z);
+            output.packRadU(this.player.yaw);
+            output.packRad(this.player.pitch);
+            this.sendToAll(output, "respawn");
+        } else {
+            devlog("rejected respawn lmao.", this.player.canRespawn(), !this.player.playing);
+        };
+    };
+
     async onmessage(message) {
         try {
             var input = new Comm.In(message);
@@ -220,36 +292,7 @@ class ClientConstructor {
 
                 switch (msg.cmd) {
                     case Comm.Code.clientReady:
-                        if (!this.clientIsReady) {
-                            this.clientIsReady = true;
-
-                            // console.log()
-
-                            var output = new Comm.Out();
-                            this.room.packAllPlayers(output);
-                            this.sendToMe(output, "packAllPlayers");
-
-                            var output = new Comm.Out();
-                            this.packPlayer(output);
-                            this.sendToAll(output, "packThisPlayer (ready/joined)");
-
-                            var output = new Comm.Out();
-                            this.room.packUpdateRoomParams(output);
-                            this.room.packRoundUpdate(output);
-                            output.packInt8U(Comm.Code.clientReady);
-                            this.sendToMe(output, "clientReady");
-
-                            this.room.setGameOwner();
-
-                            var output = new Comm.Out();
-                            this.room.packAllItems(output);
-                            this.room.packSetGameOwner(output);
-                            this.sendToMe(output, "packAllItems");
-
-                            if (this.room.customMapFailed) {
-                                this.notify("NOTICE: Loading your custom map failed, please identify the issues, somehow.", 15);
-                            };
-                        };
+                        await this.clientReady();
                         break;
                     case Comm.Code.sync:
                         //reported by client
@@ -281,31 +324,7 @@ class ClientConstructor {
                         this.pause();
                         break;
                     case Comm.Code.requestRespawn:
-                        if (this.player.canRespawn() && !this.player.playing) {
-                            const spawnPoint = this.room.getBestSpawn(this.player);
-
-                            this.player.pitch = 0; //directly forward
-                            this.player.yaw = (Math.random() * Math.PI * 4) - Math.PI*2;
-                            //random radiant angle ^^^ (rad -> min:-2π, max: 2π;)
-                            //ergo random float between 0 and 4π minus 2π (due to how Math.random works.)
-                            //and NO using randomInt is NOT an option.
-
-                            await plugins.emit("requestRespawn", {this: this, player: this.player, spawnPoint});
-
-                            this.player.respawn(spawnPoint);
-
-                            var output = new Comm.Out(12);
-                            output.packInt8U(Comm.Code.respawn);
-                            output.packInt8U(this.id);
-                            output.packFloat(this.player.x);
-                            output.packFloat(this.player.y);
-                            output.packFloat(this.player.z);
-                            output.packRadU(this.player.yaw);
-                            output.packRad(this.player.pitch);
-                            this.sendToAll(output, "respawn");
-                        } else {
-                            devlog("rejected respawn lmao.", this.player.canRespawn(), !this.player.playing);
-                        };
+                        await this.requestRespawn();
                         break;
                     case Comm.Code.chat:
                         var text = input.unPackLongString();
