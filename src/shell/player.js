@@ -227,6 +227,8 @@ class Player {
         }
     };
     update(delta, resim) {
+        plugins.emit('updateBefore', { player: this, delta: delta, resim: resim });
+
         var dx = 0;
         var dy = 0;
         var dz = 0;
@@ -236,12 +238,12 @@ class Player {
             this.hit(10000, this, 0, 0);
         };
 
-        if (!resim && this.actor && this.id == meId) {
+        if ((!resim && this.actor && this.id == meId) || (isServer && !this?.client?.isHuman)) {
             this.stateBuffer[this.stateIdx].controlKeys = this.controlKeys;
             this.stateBuffer[this.stateIdx].yaw = this.yaw;
             this.stateBuffer[this.stateIdx].pitch = this.pitch;
         };
-        if (!this.actor || this.id != meId) {
+        if ((!this.actor && this?.client?.isHuman) || (isClient && (this.id != meId))) {
             var idx = this.stateIdx;
             if (this.actor && this.id != meId) {
                 idx = Math.min(idx, FramesBetweenSyncs - 1);
@@ -249,7 +251,9 @@ class Player {
             this.controlKeys = this.stateBuffer[idx].controlKeys;
             this.yaw = this.stateBuffer[idx].yaw;
             this.pitch = this.stateBuffer[idx].pitch;
+            // devlog(this.name, "set from buffer:", idx, this.controlKeys, this.yaw, this.pitch);
         };
+        // devlog(this.name, "yawpitch:", this.yaw, this.pitch);
 
         if (isServer && ((!this.canRespawn()) || this.betweenRounds())) this.controlKeys = 0;
 
@@ -1056,6 +1060,8 @@ class Player {
         this.hp = 0;
         this.playing = false;
         this.removeFromPlay()
+
+        plugins.emit("onPlayerDeath", {player: this, firedId});
 
         if (isServer) {
             var output = new Comm.Out();

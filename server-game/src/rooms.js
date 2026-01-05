@@ -359,7 +359,9 @@ export class RoomConstructor {
             iteratePlayers(player => {
                 plugins.emit('playerUpdate', {this: this, player, delta, currentTimeStamp});
                 // console.log("lóóp", delta, this.lastTimeStamp, currentTimeStamp, player.stateIdx, player.syncStateIdx);
-                while (player.stateIdx !== player.syncStateIdx) {
+                if (!player.client.isHuman) {
+                    player.update(1);
+                } else while (player.stateIdx !== player.syncStateIdx) {
                     player.chatLineCap = Math.min(player.chatLineCap + 1 / (chatCooldown * 4), 3); //3 lines per second (idk why 4 works)
                     plugins.emit('playerStateUpdate', {this: this, player, delta, currentTimeStamp});
                     player.update(1);
