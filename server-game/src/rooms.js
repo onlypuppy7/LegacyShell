@@ -367,6 +367,7 @@ export class RoomConstructor {
                     player.update(1);
                     // console.log(player.x, player.y, player.z, player.controlKeys, player.stateIdx, this.serverStateIdx);
                 };
+                player.incrementStatesUsed();
             });
 
             plugins.emit('roomStateUpdate', {this: this, delta, currentTimeStamp});

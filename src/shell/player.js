@@ -1,6 +1,6 @@
 //legacyshell: player
 import BABYLON from "babylonjs";
-import { stateBufferSize, isClient, isServer, CONTROL, devlog, serverlog, iteratePlayers } from '#constants';
+import { stateBufferSize, isClient, isServer, CONTROL, devlog, serverlog, iteratePlayers, FramesBetweenSyncs } from '#constants';
 import { ItemTypes, AllItems } from '#items';
 import { getMunitionsManager } from '#bullets';
 import Comm from '#comm';
@@ -122,6 +122,7 @@ class Player {
         this.bobble = 0;
         this.stateIdx = 0;
         this.syncStateIdx = 0;
+        this.resetStatesUsed();
         this.respawnTargetTime = 0;
         this.pauseTargetTime = 0;
         this.ready = false;
@@ -227,7 +228,7 @@ class Player {
         }
     };
     update(delta, resim) {
-        plugins.emit('updateBefore', { player: this, delta: delta, resim: resim });
+        plugins.emit('updateBefore', { player: this, delta, resim });
 
         var dx = 0;
         var dy = 0;
@@ -1100,6 +1101,16 @@ class Player {
             this.firedPlayer = null;
         };
     };
+    resetStatesUsed() {
+        this.statesUsed = FramesBetweenSyncs * 2;
+        this.statesTillReset = 0;
+        devlog("reset statesUsed");
+    }
+    incrementStatesUsed(count = 1) {
+        this.statesUsed += count;
+        this.statesTillReset++;
+        if (this.statesTillReset > FramesBetweenSyncs * 50) this.resetStatesUsed();
+    }
     respawn(newPos) {
         this.x = newPos.x;
         this.y = newPos.y;
@@ -1107,6 +1118,7 @@ class Player {
         this.yaw = newPos.yaw || this.yaw;
         this.pitch = newPos.pitch || this.pitch;
         this.firedPlayer = null;
+        this.resetStatesUsed();
 
         //grrrr alr I'll do 4 indent instead of 2. GRRRRRRRRR
         this.weaponIdx = 0; //switch to primary weapon.

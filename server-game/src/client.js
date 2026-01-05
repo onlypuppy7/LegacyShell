@@ -300,7 +300,13 @@ class ClientConstructor {
 
                         this.adjustment = Math.diff(this.player.stateIdx, stateIdx, stateBufferSize);
 
-                        // console.log(`rec: ${stateIdx}, cli: ${this.player.stateIdx}, dif: ${this.adjustment}`);
+                        console.log(this.player.statesUsed, `rec: ${stateIdx}, cli: ${this.player.stateIdx}, dif: ${this.adjustment}`);
+
+                        //reject if theyre prob manipulating packets
+                        if (this.player.statesUsed < (FramesBetweenSyncs * -1.5)) {
+                            // this.player.statesUsed -= FramesBetweenSyncs;
+                            return;
+                        };
 
                         this.player.shotsQueued = input.unPackInt8();
 
@@ -316,6 +322,7 @@ class ClientConstructor {
                         };
 
                         this.player.syncStateIdx = Math.mod(this.player.stateIdx + FramesBetweenSyncs, stateBufferSize);
+                        this.player.statesUsed -= FramesBetweenSyncs;
 
                         plugins.emit("CommCodeSyncEnd", {this: this, player: this.player, adjustment: this.adjustment, stateIdx, startIdx, i});
 
