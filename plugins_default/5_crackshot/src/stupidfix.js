@@ -1,7 +1,11 @@
 /*
 for some reason the gripHand's rotation is screwed. i can manually fix this by updating the babylon json with the below code slopped by gemini
 
+this runs in your console on the legacyshell page (when vars arent iif'ed)
+
 dont even suggest converting to glb, fixing and re-exporting. i DONT want to try that again
+
+by the way i had to do this to all the guns.
 
 i hate this. i hate this. i hate this. i hate this.
 
