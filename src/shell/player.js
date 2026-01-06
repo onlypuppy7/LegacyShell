@@ -227,8 +227,8 @@ class Player {
             console.error("error changing weapon loadout:", error);
         }
     };
-    update(delta, resim) {
-        plugins.emit('updateBefore', { player: this, delta, resim });
+    async update(delta, resim) {
+        await plugins.emit('updateBefore', { player: this, delta, resim });
 
         var dx = 0;
         var dy = 0;

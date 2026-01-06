@@ -525,4 +525,15 @@ export function iteratePlayers(func = () => {}, keepEmpty = false) {
     };
 };
 
+export async function iteratePlayersAsync(func = async () => {}, keepEmpty = false) {
+    const playerArray = isClient ? players_by_id : room.players_by_id;
+    const length = playerArray.length;
+
+    for (let i = 0; i < length; i++) {
+        const player = playerArray[i];
+        if (!player && !keepEmpty) continue;
+        if (await func(player, i) === false) break;
+    };
+};
+
 plugins.emit("constantsFinished", {});
