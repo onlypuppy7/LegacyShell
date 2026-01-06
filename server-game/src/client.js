@@ -300,7 +300,7 @@ class ClientConstructor {
 
                         this.adjustment = Math.diff(this.player.stateIdx, stateIdx, stateBufferSize);
 
-                        console.log(this.player.statesUsed, `rec: ${stateIdx}, cli: ${this.player.stateIdx}, dif: ${this.adjustment}`);
+                        // console.log(this.player.statesUsed, `rec: ${stateIdx}, cli: ${this.player.stateIdx}, dif: ${this.adjustment}`);
 
                         //reject if theyre prob manipulating packets
                         if (this.player.statesUsed < (FramesBetweenSyncs * -1.5)) {

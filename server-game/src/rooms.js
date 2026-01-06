@@ -400,7 +400,7 @@ export class RoomConstructor {
     metaLoop(fromDisconnect) {
         // console.log("metaLoop", this.getPlayerCount(), this.existedFor, fromDisconnect);
         plugins.emit('metaLoop', {this: this, fromDisconnect});
-        if (this.getPlayerCount() === 0 && (fromDisconnect === true || this.existedFor > 5e3)) {
+        if (this.getPlayerCount(undefined, undefined, true) === 0 && (fromDisconnect === true || this.existedFor > 5e3)) {
             this.destroy();
             return;
         };
@@ -512,7 +512,7 @@ export class RoomConstructor {
         this.metaLoop(true);
     };
 
-    getPlayerCount(team, extraDetails) {
+    getPlayerCount(team, extraDetails, humansOnly) {
         let count = 0;
         let uuids = [];
         let usernames = [];
@@ -520,6 +520,7 @@ export class RoomConstructor {
 
         iteratePlayers(player => {
             if (!(typeof(team) == "number" && team !== player.team)) {
+                if (humansOnly && !player.client.isHuman) return;
                 count++;
                 uuids.push(player.client.uuid);
                 sessions.push(player.client.session);

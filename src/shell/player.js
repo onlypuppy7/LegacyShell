@@ -1104,7 +1104,7 @@ class Player {
     resetStatesUsed() {
         this.statesUsed = FramesBetweenSyncs * 2;
         this.statesTillReset = 0;
-        devlog("reset statesUsed");
+        // devlog("reset statesUsed");
     }
     incrementStatesUsed(count = 1) {
         this.statesUsed += count;
