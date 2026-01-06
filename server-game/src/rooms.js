@@ -290,7 +290,7 @@ export class RoomConstructor {
     };
 
     updateRoomDetails() {
-        this.details = this.getPlayerCount(undefined, true);
+        this.details = this.getPlayerCount(undefined, true, true);
         plugins.emit('roomDetailsUpdated', {this: this, details: this.details});
 
         // devlog(details);
