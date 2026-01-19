@@ -1,7 +1,6 @@
 # node internals
 /node_modules
 bun.lockb
-package-lock.json
 
 # cached stores
 **/store/

@@ -29,6 +29,7 @@
         "jszip": "^3.10.1",
         "legacyshell": "file:",
         "markdown-it": "^14.1.0",
+        "puppyperpetual": "^1.1.5",
         "sharp": "^0.33.5",
         "sqlite3": "^5.1.7",
         "uglify-js": "^3.19.2",
