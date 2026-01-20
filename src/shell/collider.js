@@ -74,7 +74,7 @@ class ColliderConstructor {
         return !(cx < 0 || cx >= map.width || cz < 0 || cz >= map.depth || cy < 0 || cy >= map.height) && this.meshCollidesWithCell(this.pointCollisionMesh, point, cx, cy, cz, ignoreSoft);
     }
 
-    playerCollidesWithMap(player) {
+    playerCollidesWithMap(player, pos) {
         var scale = player.modifiers.scale || 1;
         // devlog("SCALE", player.id, player.modifiers.scale, scale);
         // this.playerCollisionMesh.scaling.set(scale, scale, scale);
@@ -92,7 +92,7 @@ class ColliderConstructor {
             player.playerCollisionMesh.lastScale = scale;
         };
 
-        return this.meshCollidesWithMap(player.playerCollisionMesh, player);
+        return this.meshCollidesWithMap(player.playerCollisionMesh, pos || player);
     };
 
     meshCollidesWithMap(mesh, pos) {

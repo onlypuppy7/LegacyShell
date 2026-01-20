@@ -230,9 +230,9 @@ class Player {
     async update(delta, resim) {
         await plugins.emit('updateBefore', { player: this, delta, resim });
 
-        var dx = 0;
-        var dy = 0;
-        var dz = 0;
+        var ddx = 0;
+        var ddy = 0;
+        var ddz = 0;
 
         if (this.y < -3 && isServer && this.hp > 0) {
             devlog("[player fell out of the world]");
@@ -266,56 +266,33 @@ class Player {
 
         if (this.controlKeys & CONTROL.left) {
             this.lastActivity = Date.now();
-            dx -= Math.cos(this.yaw);
-            dz += Math.sin(this.yaw);
+            ddx -= Math.cos(this.yaw);
+            ddz += Math.sin(this.yaw);
         };
 
         if (this.controlKeys & CONTROL.right) {
             this.lastActivity = Date.now();
-            dx += Math.cos(this.yaw);
-            dz -= Math.sin(this.yaw);
+            ddx += Math.cos(this.yaw);
+            ddz -= Math.sin(this.yaw);
         };
 
         if (this.controlKeys & CONTROL.up) {
             this.lastActivity = Date.now();
             if (this.climbing) {
-                dy += 1;
+                ddy += 1;
             } else {
-                dx += Math.sin(this.yaw);
-                dz += Math.cos(this.yaw);
+                ddx += Math.sin(this.yaw);
+                ddz += Math.cos(this.yaw);
             };
         };
 
         if (this.controlKeys & CONTROL.down) {
             this.lastActivity = Date.now();
             if (this.climbing) {
-                dy -= 1;
+                ddy -= 1;
             } else {
-                dx -= Math.sin(this.yaw);
-                dz -= Math.cos(this.yaw);
-            };
-        };
-
-        if (isServer) {
-            let itemManager = this.room.itemManager;
-            let pools = itemManager.pools;
-
-            for (let i = 0; i < pools.length; i++) {
-                let pool = pools[i];
-
-                pool.forEachActive((item) => {
-                    if ( //collision
-                        (Math.round(this.x * 2) / 2) == (item.x) &&
-                        Math.round(this.y) == Math.round(item.y) &&
-                        (Math.round(this.z * 2) / 2) == (item.z)
-                    ) {
-                        var itemCollected = this.collectItem(i, this.weaponIdx);
-                        // console.log("could collect?", itemCollected, i, this.weaponIdx);
-                        if (itemCollected) {
-                            this.client.pickupItem(i, this.weaponIdx, item.id);
-                        };
-                    };
-                })
+                ddx -= Math.sin(this.yaw);
+                ddz -= Math.cos(this.yaw);
             };
         };
 
@@ -329,80 +306,41 @@ class Player {
 
         // serverlog({x: this.x, y: this.y, z: this.z}, {dx: this.dx, dy: this.dy, dz: this.dz}, {yaw: this.yaw, pitch: this.pitch});
 
-        if (this.climbing) {
-            this.setJumping(false);
-            var pdy = this.dy;
-            if (this.corrections) {
-                pdy += this.corrected.dy / 6;
-                this.corrections--
-            };
-            this.dy += .014 * dy * delta;
-            var ndy = .5 * (this.dy + pdy) * delta;
-            this.y += ndy;
-            this.dy *= Math.pow(.5, delta);
-            var cx = Math.floor(this.climbingCell.x);
-            var cy = Math.floor(this.y + 1e-4);
-            var cz = Math.floor(this.climbingCell.z);
+        // console.log({ddx, ddy, ddz, delta, resim});
+        this.simulateMovement({ ddx, ddy, ddz, delta });
 
-            if (0 == this.climbingCell.ry || this.climbingCell.ry, cy >= this.map.height) {
-                this.climbing = false;
-            } else {
-                var cell = this.getOccupiedCell(cx, cy, cz);
-                if (!(cell.idx && this.mapMeshes[cell.idx].colliderType === "ladder" && cell.ry === this.climbingCell.ry)) {
-                    this.y = Math.round(this.y);
-                    this.climbing = false;
-                };
-            };
-
-            if (this.collidesWithMap()) {
-                if (0 < ndy && .3 < this.y % 1) {
-                    this.y -= ndy;
-                    this.dy *= .5;
-                } else {
-                    ndy < 0 && (this.y -= ndy, this.dy *= .5, this.climbing = false)
-                };
-            };
-        } else {
-            var deltaVector = new BABYLON.Vector3(dx, dy, dz).normalize();
-            var pdx = this.dx;
-            var pdz = (pdy = this.dy, this.dz);
-
-            if (this.corrections) {
-                pdx += this.corrected.dx / 6;
-                this.jumping || (pdy += this.corrected.dy / 6);
-                pdz += this.corrected.dz / 6, this.corrections--;
-            };
-
-            if (this.jumping && this.jumps === 0) {
-                if (!this.isFalling) this.jumps++;
-                this.isFalling = true;
-            } else {
-                this.isFalling = false;
-            };
-
-            // console.log(dx, dy, dz, deltaVector, delta);
-
-            this.dx += .007 * deltaVector.x * delta;
-            this.dz += .007 * deltaVector.z * delta;
-            this.dy -= .003 * delta * (this.modifiers.gravityModifier || 1);
-            this.dy = Math.clamp(this.dy, -.2, .2);
-
-            var ndx = .5 * (this.dx + pdx) * delta;
-            var ndz = (ndy = .5 * (this.dy + pdy) * delta, .5 * (this.dz + pdz) * delta);
-
-            this.moveX(ndx * this.modifiers.speedModifier, delta);
-            this.moveZ(ndz * this.modifiers.speedModifier, delta);
-            this.moveY(ndy, delta)
-        };
         if (!resim) {
-            if (0 < this.shield && this.playing) {
+            if (isServer) { //collecting items
+                let itemManager = this.room.itemManager;
+                let pools = itemManager.pools;
+
+                for (let i = 0; i < pools.length; i++) {
+                    let pool = pools[i];
+
+                    pool.forEachActive((item) => {
+                        if ( //collision
+                            (Math.round(this.x * 2) / 2) == (item.x) &&
+                            Math.round(this.y) == Math.round(item.y) &&
+                            (Math.round(this.z * 2) / 2) == (item.z)
+                        ) {
+                            var itemCollected = this.collectItem(i, this.weaponIdx);
+                            // console.log("could collect?", itemCollected, i, this.weaponIdx);
+                            if (itemCollected) {
+                                this.client.pickupItem(i, this.weaponIdx, item.id);
+                            };
+                        };
+                    })
+                };
+            };
+
+            if (0 < this.shield && this.playing) { //shield countdown
                 this.shield -= delta;
-                if (0 != dx || 0 != dy || this.shield <= 0) {
+                if (0 != ddx || 0 != ddy || this.shield <= 0) {
                     this.disableShield();
                 };
             };
             var speed = Math.length3(this.dx, this.dy, this.dz);
-            if (this.actor && this.id == meId) {
+            if (this.actor && this.id == meId) { //wtf is this for
                 speed *= 0.75;
             };
             if (this.climbing || this.jumping) {
@@ -415,7 +353,7 @@ class Player {
                 this.weapon.update(delta)
             };
             // console.log("patrascru", this.playing, this.isDead(), this.canRespawn(), this.hp);
-            if (0 < this.hp && this.playing) {
+            if (0 < this.hp && this.playing) { //health regen
                 this.setHp(Math.min(100, this.hp + .05 * delta * this.modifiers.regenModifier)); //regenning, you can put `* -2` or something here to simulate hunger, or something
             };
             if (0 < this.swapWeaponCountdown) {
@@ -479,6 +417,146 @@ class Player {
             };
         };
     };
+    simulateMovement(input, dontAssign) {
+        const out = {
+            x: input.x ?? this.x,
+            y: input.y ?? this.y,
+            z: input.z ?? this.z,
+
+            dx: input.dx ?? this.dx,
+            dy: input.dy ?? this.dy,
+            dz: input.dz ?? this.dz,
+
+            ddx: input.ddx ?? 0,
+            ddy: input.ddy ?? 0,
+            ddz: input.ddz ?? 0,
+
+            delta: input.delta ?? 1,
+
+            corrected: {
+                dx: input.corrected?.dx ?? this.corrected.dx,
+                dy: input.corrected?.dy ?? this.corrected.dy,
+                dz: input.corrected?.dz ?? this.corrected.dz,
+            },
+            corrections: input.corrections ?? this.corrections,
+        };
+
+        if (this.climbing) { //ladders
+            this.setJumping(false);
+            var pdy = out.dy;
+            if (out.corrections) {
+                pdy += out.corrected.dy / 6;
+                out.corrections--
+            };
+            out.dy += .014 * out.ddy * out.delta;
+            var ndy = .5 * (out.dy + pdy) * out.delta;
+            out.y += ndy;
+            out.dy *= Math.pow(.5, out.delta);
+            var cx = Math.floor(this.climbingCell.x);
+            var cy = Math.floor(out.y + 1e-4);
+            var cz = Math.floor(this.climbingCell.z);
+
+            if (0 == this.climbingCell.ry || this.climbingCell.ry, cy >= this.map.height) {
+                this.climbing = false;
+            } else {
+                var cell = this.getOccupiedCell(cx, cy, cz, out.x, out.y, out.z);
+                if (!(cell.idx && this.mapMeshes[cell.idx].colliderType === "ladder" && cell.ry === this.climbingCell.ry)) {
+                    out.y = Math.round(out.y);
+                    this.climbing = false;
+                };
+            };
+
+            if (this.collidesWithMap(out)) {
+                if (0 < ndy && .3 < out.x % 1) {
+                    out.x -= ndy;
+                    out.dy *= .5;
+                } else {
+                    ndy < 0 && (out.x -= ndy, out.dy *= .5, this.climbing = false)
+                };
+            };
+        } else {
+            var deltaVector = new BABYLON.Vector3(out.ddx, out.ddy, out.ddz).normalize();
+            var pdx = out.dx;
+            var pdz = (pdy = out.dy, out.dz);
+
+            if (out.corrections) {
+                pdx += out.corrected.dx / 6;
+                this.jumping || (pdy += out.corrected.dy / 6);
+                pdz += out.corrected.dz / 6, out.corrections--;
+            };
+
+            if (this.jumping && this.jumps === 0) {
+                if (!this.isFalling) this.jumps++;
+                this.isFalling = true;
+            } else {
+                this.isFalling = false;
+            };
+
+            // console.log(out.dx, out.dy, out.dz, deltaVector, out.delta);
+
+            out.dx += .007 * deltaVector.x * out.delta;
+            out.dz += .007 * deltaVector.z * out.delta;
+            out.dy -= .003 * out.delta * (this.modifiers.gravityModifier || 1);
+            out.dy = Math.clamp(out.dy, -.2, .2);
+
+            var ndx = .5 * (out.dx + pdx) * out.delta;
+            var ndz = (ndy = .5 * (out.dy + pdy) * out.delta, .5 * (out.dz + pdz) * out.delta);
+
+            Object.assign(out, this.moveX(ndx * this.modifiers.speedModifier, out.delta, out));
+            Object.assign(out, this.moveZ(ndz * this.modifiers.speedModifier, out.delta, out));
+            Object.assign(out, this.moveY(ndy, out.delta, out));
+        };
+
+        if (dontAssign) return out;
+        Object.assign(this, out);
+    };
+    createSnapshot(returnShallow) { //save all necessary data to be able to restore player state
+        const shallow = {
+            x: this.x,
+            y: this.y,
+            z: this.z,
+            dx: this.dx,
+            dy: this.dy,
+            dz: this.dz,
+            yaw: this.yaw,
+            pitch: this.pitch,
+        };
+
+        if (returnShallow) return shallow;
+
+        return {
+            ...shallow,
+            corrections: this.corrections,
+            corrected: { ...this.corrected },
+            controlKeys: this.controlKeys,
+            stateIdx: this.stateIdx,
+            stateBuffer: this.stateBuffer.map(state => ({ ...state })), //deep copy
+            isFalling: this.isFalling,
+            climbing: this.climbing,
+            shield: this.shield,
+            reloadCountdown: this.reloadCountdown,
+            swapWeaponCountdown: this.swapWeaponCountdown,
+            rofCountdown: this.rofCountdown,
+            recoilCountdown: this.recoilCountdown,
+            shotSpread: this.shotSpread,
+            grenadeCountdown: this.grenadeCountdown,
+            grenadesQueued: this.grenadesQueued,
+            jumps: this.jumps,
+            maxJumps: this.maxJumps,
+            hp: this.hp,
+            playing: this.playing,
+            grenadeCount: this.grenadeCount,
+            grenadeCapacity: this.grenadeCapacity,
+            weaponIdx: this.weaponIdx,
+            equipWeaponIdx: this.equipWeaponIdx,
+            randomSeed: this.randomSeed,
+        };
+    };
+    restoreSnapshot(snapshot = {}) { //restore player state from snapshot
+        for (var key in snapshot) {
+            this[key] = snapshot[key];
+        }
+    };
     disableShield() { //shield is NOT the powerup, it is the spawning in protection!
         this.shield = 0;
         if (this.actor) { // client/server differentiation stuff
@@ -513,44 +591,71 @@ class Player {
             };
         };
     };
-    moveX(ndx, delta) {
-        var old_x = this.x;
-        this.x += ndx;
-        var collide = this.collidesWithMap();
-        if (collide) {
-            var old_y = this.y;
-            this.y += Math.abs(ndx) + .01 * delta;
-            if (this.collidesWithMap()) {
-                this.x = old_x;
-                this.dx *= .5;
-                this.y = old_y;
-            } else {
-                this.dx *= .92;
-            };
-            this.lookForLadder(collide);
+    moveX(ndx, delta, dontApply = {}) {
+        const out = {
+            x: dontApply.x ?? this.x,
+            y: dontApply.y ?? this.y,
+            z: dontApply.z ?? this.z,
+            dx: dontApply.dx ?? this.dx,
         };
-    };
-    moveZ(ndz, delta) { //fuck this function
-        var old_z = this.z;
-        this.z += ndz;
-        var collide = this.collidesWithMap();
+
+        var old_x = out.x;
+        out.x += ndx;
+        var collide = this.collidesWithMap(out);
         if (collide) {
-            var old_y = this.y;
-            this.y += Math.abs(ndz) + .01 * delta;
-            if (this.collidesWithMap()) {
-                this.z = old_z;
-                this.dz *= .5;
-                this.y = old_y;
+            var old_y = out.y;
+            out.y += Math.abs(ndx) + .01 * delta;
+            if (this.collidesWithMap(out)) {
+                out.x = old_x;
+                out.dx *= .5;
+                out.y = old_y;
             } else {
-                this.dz *= .92;
+                out.dx *= .92;
             };
-            this.lookForLadder(collide); //oh yeah its just sooo simple right so easy
-        }
+            this.lookForLadder(collide, out);
+        };
+
+        if (Object.keys(dontApply).length) return out;
+        Object.assign(this, out);
     };
-    moveY(ndy, delta) {
-        var old_y = this.y;
-        this.y += ndy;
-        if (this.collidesWithMap()) {
+    moveZ(ndz, delta, dontApply = {}) { //fuck this function
+        const out = {
+            x: dontApply.x ?? this.x,
+            y: dontApply.y ?? this.y,
+            z: dontApply.z ?? this.z,
+            dz: dontApply.dz ?? this.dz
+        }
+
+        var old_z = out.z;
+        out.z += ndz;
+        var collide = this.collidesWithMap(out);
+        if (collide) {
+            var old_y = out.y;
+            out.y += Math.abs(ndz) + .01 * delta;
+            if (this.collidesWithMap(out)) {
+                out.z = old_z;
+                out.dz *= .5;
+                out.y = old_y;
+            } else {
+                out.dz *= .92;
+            };
+            this.lookForLadder(collide, out); //oh yeah its just sooo simple right so easy
+        }
+
+        if (Object.keys(dontApply).length) return out;
+        Object.assign(this, out);
+    };
+    moveY(ndy, delta, dontApply = {}) {
+        const out = {
+            x: dontApply.x ?? this.x,
+            y: dontApply.y ?? this.y,
+            z: dontApply.z ?? this.z,
+            dy: dontApply.dy ?? this.dy
+        };
+
+        var old_y = out.y;
+        out.y += ndy;
+        if (this.collidesWithMap(out)) {
             if (ndy < 0) {
                 if (this.actor && this.id == meId && 0 == this.lastTouchedGround) {
                     this.lastTouchedGround = Date.now();
@@ -558,18 +663,18 @@ class Player {
                 this.setJumping(false);
                 this.jumps = 0;
             };
-            this.y = old_y;
-            this.dy *= .5;
+            out.y = old_y;
+            out.dy *= .5;
 
-            var cx = Math.floor(this.x);
-            var cz = Math.floor(this.z);
+            var cx = Math.floor(out.x);
+            var cz = Math.floor(out.z);
 
-            var cell = this.getOccupiedCell(cx, Math.floor(this.y - 0.5), cz);
-            var cellAbove = this.getOccupiedCell(cx, Math.floor(this.y + 0.5), cz);
+            var cell = this.getOccupiedCell(cx, Math.floor(out.y - 0.5), cz, out.x, out.y, out.z);
+            var cellAbove = this.getOccupiedCell(cx, Math.floor(out.y + 0.5), cz, out.x, out.y, out.z);
             if (cell) {
                 var mesh = cell.mesh;
                 if (mesh) {
-                    if (Math.length2(cx + 0.5 - this.x, cz + 0.5 - this.z) < 0.3) {
+                    if (Math.length2(cx + 0.5 - out.x, cz + 0.5 - out.z) < 0.3) {
                         this.onStandOnBlock(mesh);
                     };
                     //could always add more stuff here... like an elevator or something
@@ -583,12 +688,13 @@ class Player {
                     //other than a trampoline, we could add a trampoline
                     //or a trampoline
                     //other than a trampoline, it could be a trampoline, but not a trampoline, it could be a trampoline, however it could not be a trampoline
+                    //if you had to add something, it could be a trampoline, but try not to make it a trampoline
                 };
             };
             if (cellAbove) {
                 var mesh = cellAbove.mesh;
                 if (mesh) {
-                    if (Math.length2(cx + 0.5 - this.x, cz + 0.5 - this.z) < 0.3) {
+                    if (Math.length2(cx + 0.5 - out.x, cz + 0.5 - out.z) < 0.3) {
                         this.onStandOnTile(mesh);
                     };
                 };
@@ -596,6 +702,9 @@ class Player {
         } else {
             if (0 == this.jumping) this.setJumping(true);
         };
+
+        if (Object.keys(dontApply).length) return out;
+        Object.assign(this, out);
     };
     onStandOnBlock(mesh) {
         if (mesh.name == "jump-pad" && this.canJump()) {
@@ -1185,13 +1294,13 @@ class Player {
     isDead() {
         return this.hp <= 0;
     };
-    lookForLadder(collide) {
+    lookForLadder(collide, pos = this) {
         if (collide && collide.cell && this.controlKeys & CONTROL.up && "ladder" == this.mapMeshes[collide.cell.idx].colliderType) {
             var diff = Math.abs(Math.radDifference(this.yaw, collide.cell.ry));
             if (!(.75 < diff && diff < 2.391)) {
                 if (1 == collide.cell.ry || 3 == collide.cell.ry) {
-                    if (.2 < Math.abs(this.z - collide.z - .5)) return
-                } else if (.2 < Math.abs(this.x - collide.x - .5)) return;
+                    if (.2 < Math.abs(pos.z - collide.z - .5)) return
+                } else if (.2 < Math.abs(pos.x - collide.x - .5)) return;
                 this.climbingCell.x = collide.x;
                 this.climbingCell.z = collide.z;
                 this.climbingCell.ry = collide.cell.ry;
@@ -1201,8 +1310,8 @@ class Player {
             };
         };
     };
-    getOccupiedCell(cx = Math.floor(this.x), cy = Math.floor(this.y), cz = Math.floor(this.z)) {
-        if (this.x < 0 || this.y < 0 || this.z < 0 || this.x >= this.map.width || this.y >= this.map.height || this.z > this.map.depth) return {};
+    getOccupiedCell(cx = Math.floor(this.x), cy = Math.floor(this.y), cz = Math.floor(this.z), x = this.x, y = this.y, z = this.z) {
+        if (x < 0 || y < 0 || z < 0 || x >= this.map.width || y >= this.map.height || z > this.map.depth) return {};
 
         if (this.map && this.map.data && this.map.data[cx] && this.map.data[cx][cy] && this.map.data[cx][cy][cz]) {
             return this.map.data[cx][cy][cz];
@@ -1210,8 +1319,8 @@ class Player {
             return {};
         };
     };
-    collidesWithMap() {
-        return this.Collider.playerCollidesWithMap(this);
+    collidesWithMap(pos = this) {
+        return this.Collider.playerCollidesWithMap(this, pos);
     };
 };
 
