@@ -85,33 +85,26 @@ async function modifyFiles() {
         log.italic(`SHA-256 hash of the modified SERVERJS: ${hashes.SERVERJSHASH}`);
 
         var pluginInsertion = {};
-        pluginInsertion.stringBefore = "";
-        pluginInsertion.stringAfter = "";
+        pluginInsertion.strings = {};
+        pluginInsertion.strings.beforebefore = "";
+        pluginInsertion.strings.before = "";
+        pluginInsertion.strings.after = "";
         pluginInsertion.files = [];
     
         await plugins.emit('pluginSourceInsertion', { this: this, ss, pluginInsertion });
     
         pluginInsertion.files.forEach((file)=>{
             if (file.insertBefore) {
-                if (file.position === "before") {
-                    pluginInsertion.stringBefore += `${file.insertBefore}`;
-                } else {
-                    pluginInsertion.stringAfter += `${file.insertBefore}`;
-                };
+                pluginInsertion.strings[file.position] += `${file.insertBefore}`;
             };
             if (file.filepath) {
                 var fileContent = fs.readFileSync(path.join(file.filepath), 'utf8');
                 fileContent = misc.prepareForClient(fileContent);
                 console.log(`[PLUGIN] Inserting ${file.filepath} into shellshock.min.js...`);
-                if (file.position === "before") pluginInsertion.stringBefore += `\n${fileContent}\n\n`;
-                else pluginInsertion.stringAfter += `\n${fileContent}\n\n`;
+                pluginInsertion.strings[file.position] += `\n${fileContent}\n\n`;
             };
             if (file.insertAfter) {
-                if (file.position === "before") {
-                    pluginInsertion.stringBefore += `${file.insertAfter}`;
-                } else {
-                    pluginInsertion.stringAfter += `${file.insertAfter}`;
-                };
+                pluginInsertion.strings[file.position] += `${file.insertAfter}`;
             };
         });
 
@@ -157,8 +150,9 @@ async function modifyFiles() {
         skyboxes.sort();
 
         const replacementsBefore = [
-            { pattern: /LEGACYSHELLPLUGINSBEFORE/g, insertion: pluginInsertion.stringBefore },
-            { pattern: /LEGACYSHELLPLUGINSAFTER/g, insertion: pluginInsertion.stringAfter },
+            { pattern: /LEGACYSHELLPLUGINSBEFOREBEFORE/g, insertion: pluginInsertion.strings.beforebefore },
+            { pattern: /LEGACYSHELLPLUGINSBEFORE/g, insertion: pluginInsertion.strings.before },
+            { pattern: /LEGACYSHELLPLUGINSAFTER/g, insertion: pluginInsertion.strings.after },
 
             { pattern: /LEGACYSHELLVERSION/g, insertion: `'${ss.packageJson.version}'` },
             { pattern: /LEGACYSHELLDEVMODE/g, insertion: ss.config.devlogs ? "true" : "false" },

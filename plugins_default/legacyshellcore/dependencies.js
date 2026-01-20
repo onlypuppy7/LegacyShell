@@ -8,4 +8,5 @@ export const dependencies = {
     modernshellstamps: "plugin",
     legacyanalytics: "plugin",
     healthpackitem: "plugin",
+    legacysettings: "plugin",
 };

@@ -1,5 +1,5 @@
 //legacyshell: basic
-import { isClient, isServer } from "#constants";
+import { devlog, isClient, isServer } from "#constants";
 import Comm from "#comm";
 import { Rocket } from "#bullets";
 import { RPEGG } from "#guns";
@@ -19,6 +19,12 @@ export const LegacyShellCorePlugin = {
         this.plugins.on('game:fireCluck9mm', this.fireCluck9mm.bind(this));
 
         this.plugins.on('game:permissionsAfterSetup', this.registerSampleCommand.bind(this));
+        this.plugins.on('game:waitForSetupAndAuthCompleteReady', this.waitForSetupAndAuthCompleteReady.bind(this));
+    },
+
+    waitForSetupAndAuthCompleteReady(data) {
+        devlog("LegacyShellCorePlugin: finalising LegacySettings");
+        LegacySettings.finalise();
     },
 
     fireCluck9mm(data) {
