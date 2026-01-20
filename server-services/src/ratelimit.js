@@ -1,5 +1,5 @@
 //legacyshell: logging
-import log from '#coloured-logging';
+import log from 'puppylog';
 //
 
 const createIfNotExists = async (ss, ip, result) => {

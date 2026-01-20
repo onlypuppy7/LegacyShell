@@ -1,7 +1,7 @@
 //legacyshell: catalog
 import { isClient, ItemType, CharClass, Slot, item_classes, itemIdOffsets, itemIdOffsetsOLD, itemIdOffsetsByName, itemIdOffsetsByNameOLD, devlog } from '#constants';
 //legacyshell: logging
-import log from '#coloured-logging';
+import log from 'puppylog';
 //legacyshell: ss
 import { ss } from '#misc';
 //legacyshell: plugins

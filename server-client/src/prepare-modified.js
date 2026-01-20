@@ -9,11 +9,12 @@ import { prepareBabylons } from '#prepare-babylons';
 import { cacheModified } from '#stampsGenerator';
 import { devlog } from '#isClientServer';
 //legacyshell: logging
-import log from '#coloured-logging';
+import log from 'puppylog';
 //legacyshell: ss
 import { ss, misc } from '#misc';
 //legacyshell: plugins
 import { plugins } from '#plugins';
+import { getLastSavedTimestamp } from 'puppymisc';
 //
 
 async function prepareModified() {
@@ -183,9 +184,9 @@ async function modifyFiles() {
             { pattern: /LEGACYSHELLEVENTS/g, insertion: JSON.stringify(ss.events) },
             { pattern: /LEGACYSHELLDISTRIBUTEDDATA/g, insertion: JSON.stringify(ss.distributed_data) },
 
-            { pattern: /LEGACYSHELLZIPTIMES/g, insertion: (String(misc.getLastSavedTimestamp(path.join(ss.currentDir, 'store', 'client-modified', 'models', 'models.zip')))+String(misc.getLastSavedTimestamp(path.join(ss.currentDir, 'store', 'client-modified', 'models', 'map.zip')))) },
-            { pattern: /LEGACYSHELLMAPZIPTIMESTAMP/g, insertion: misc.getLastSavedTimestamp(path.join(ss.currentDir, 'store', 'client-modified', 'models', 'map.zip')) },
-            { pattern: /LEGACYSHELLSTAMPSPNG/g, insertion: misc.getLastSavedTimestamp(path.join(ss.currentDir, 'store', 'client-modified', 'img', 'stamps.png')) },
+            { pattern: /LEGACYSHELLZIPTIMES/g, insertion: (String(getLastSavedTimestamp(path.join(ss.currentDir, 'store', 'client-modified', 'models', 'models.zip')))+String(getLastSavedTimestamp(path.join(ss.currentDir, 'store', 'client-modified', 'models', 'map.zip')))) },
+            { pattern: /LEGACYSHELLMAPZIPTIMESTAMP/g, insertion: getLastSavedTimestamp(path.join(ss.currentDir, 'store', 'client-modified', 'models', 'map.zip')) },
+            { pattern: /LEGACYSHELLSTAMPSPNG/g, insertion: getLastSavedTimestamp(path.join(ss.currentDir, 'store', 'client-modified', 'img', 'stamps.png')) },
 
             { pattern: /SERVERJSHASH/g, insertion: hashes.SERVERJSHASH },
             { pattern: /SHELLSHOCKMINJSHASH/g, insertion: Date.now() }, //hashes.SHELLSHOCKMINJSHASH //whatever

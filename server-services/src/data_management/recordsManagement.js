@@ -9,7 +9,7 @@ import { convertMetaIdToAbsoluteId, convertOldItemIdToMetaId } from '#catalog';
 //legacyshell: plugins
 import { plugins } from '#plugins';
 //legacyshell: logging
-import log from '#coloured-logging';
+import log from 'puppylog';
 //legacyshell: ss
 import { ss } from '#misc'
 //

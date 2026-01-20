@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 //plugin: autorestartnotifications
 //legacyshell: logging
-import log from '#coloured-logging';
+import log from 'puppylog';
 //legacyshell: ss
 import { ss } from '#misc';
 //legacyshell: plugins

@@ -5,7 +5,7 @@ import path from 'node:path';
 //legacyshell: database
 import crypto from 'node:crypto'; //sessions
 //legacyshell: logging
-import log from '#coloured-logging';
+import log from 'puppylog';
 //legacyshell: ss
 import { ss } from '#misc';
 //

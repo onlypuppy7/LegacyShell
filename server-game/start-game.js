@@ -12,13 +12,14 @@ import Comm from '#comm';
 import rm from '#roomManager';
 import { getMapsByAvailabilityAsInts, GameTypes, getMapPool } from '#gametypes';
 //legacyshell: logging
-import log from '#coloured-logging';
+import log from 'puppylog';
 //legacyshell: ss
 import { ss } from '#misc';
 //legacyshell: plugins
 import { plugins } from '#plugins';
 import { prepareBabylons } from '#prepare-babylons';
 import events from '#events';
+import { getLastSavedTimestamp } from 'puppymisc';
 //
 
 //i know its called start, even though it should be the other way round. please excuse this.
@@ -155,9 +156,9 @@ export default async function run () {
             await wsrequest({
                 cmd: "requestConfig",
                 serverType: "game",
-                lastMaps: Math.floor(misc.getLastSavedTimestamp(mapsFilePath)/1000),
-                lastServers: Math.floor(misc.getLastSavedTimestamp(serversFilePath)/1000),
-                lastItems: Math.floor(misc.getLastSavedTimestamp(itemsFilePath)/1000),
+                lastMaps: Math.floor(getLastSavedTimestamp(mapsFilePath)/1000),
+                lastServers: Math.floor(getLastSavedTimestamp(serversFilePath)/1000),
+                lastItems: Math.floor(getLastSavedTimestamp(itemsFilePath)/1000),
             }, ss.config.game.services_server, ss.config.game.auth_key, async (event, wsP) => {
                 let response = event.data;
                 var msg = JSON.parse(response);

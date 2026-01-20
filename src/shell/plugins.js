@@ -9,7 +9,7 @@ import { isObject } from '#constants';
 //legacyshell: ss
 import misc, { ss } from '#misc';
 //legacyshell: logging
-import log from '#coloured-logging';
+import log from 'puppylog';
 //
 
 export class PluginManager {

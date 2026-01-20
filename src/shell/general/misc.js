@@ -7,7 +7,7 @@ import WebSocket, { WebSocketServer } from 'ws';
 import { isObject } from '#constants';
 import accs from '#accountManagement';
 //legacyshell: logging
-import log from '#coloured-logging';
+import log from 'puppylog';
 //legacyshell: dirname resolving
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
@@ -20,15 +20,6 @@ export var ss; //trollage. access it later.
 extendMath(Math);
 
 export const misc = {
-    getLastSavedTimestamp: function (filePath) {
-        try {
-            const stats = fs.statSync(filePath);
-            return Math.ceil(stats.mtimeMs);
-        } catch (error) {
-            log.yellow('Error getting file timestamp. It probably doesn\'t exist... yet!'); //it just doesnt exist. who cares LMAO
-            return 0;
-        }
-    },
     instantiateSS: function (meta, argv, noStorage, noConfig) {
         let ogDirname = meta.dirname;
         let miscDirname = import.meta.dirname;

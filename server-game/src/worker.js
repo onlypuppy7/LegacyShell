@@ -4,7 +4,7 @@ import { parentPort } from 'worker_threads';
 import { ss, misc } from '#misc';
 //legacyshell: plugins
 import { plugins } from '#plugins';
-import log from '#coloured-logging';
+import log from 'puppylog';
 //
 
 export var room;

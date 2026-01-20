@@ -12,11 +12,12 @@ import prepareModified from '#prepare-modified';
 import { spawn } from 'cross-spawn';
 import { prepareStamps } from '#stampsGenerator';
 //legacyshell: logging
-import log from '#coloured-logging';
+import log from 'puppylog';
 //legacyshell: ss
 import { ss } from '#misc';
 //legacyshell: plugins
 import { plugins } from '#plugins';
+import { getLastSavedTimestamp } from 'puppymisc';
 //
 
 export var ws;
@@ -230,9 +231,9 @@ export default async function run () {
             await wsrequest({
                 cmd: "requestConfig",
                 serverType: "client",
-                lastItems: Math.floor(misc.getLastSavedTimestamp(filepaths.items)/1000), //well in theory, if its not in existence this returns 0 and we should get it :D
-                lastMaps: Math.floor(misc.getLastSavedTimestamp(filepaths.maps)/1000),
-                lastServers: Math.floor(misc.getLastSavedTimestamp(filepaths.servers)/1000),
+                lastItems: Math.floor(getLastSavedTimestamp(filepaths.items)/1000), //well in theory, if its not in existence this returns 0 and we should get it :D
+                lastMaps: Math.floor(getLastSavedTimestamp(filepaths.maps)/1000),
+                lastServers: Math.floor(getLastSavedTimestamp(filepaths.servers)/1000),
             }, ss.config.client.sync_server, undefined, async (event, wsP) => {
                 let response = event.data;
                 var msg = JSON.parse(response);

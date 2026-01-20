@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import yaml from 'js-yaml';
 import path from 'node:path';
 //legacyshell: logging
-import log from '#coloured-logging';
+import log from 'puppylog';
 //legacyshell: ss
 import { ss } from '#misc';
 //

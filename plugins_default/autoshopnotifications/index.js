@@ -4,7 +4,7 @@ import path from 'node:path';
 //plugin: autoshopnotifications
 import Table from 'easy-table';
 //legacyshell: logging
-import log from '#coloured-logging';
+import log from 'puppylog';
 //legacyshell: ss
 import { ss } from '#misc';
 //legacyshell: plugins

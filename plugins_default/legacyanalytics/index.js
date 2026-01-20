@@ -6,7 +6,7 @@ import anal from './analytics.js';
 import sqlite3 from 'sqlite3';
 import util from 'node:util';
 //legacyshell: logging
-import log from '#coloured-logging';
+import log from 'puppylog';
 //legacyshell: ss
 import { ss } from '#misc';
 //legacyshell: plugins

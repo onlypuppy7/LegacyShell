@@ -17,7 +17,7 @@ import { removeCanvasResources } from '#stringWidth';
 //legacyshell: basic
 import { ss, misc } from '#misc';
 //legacyshell: logging
-import log from '#coloured-logging';
+import log from 'puppylog';
 //legacyshell: plugins
 import { plugins } from '#plugins';
 //legacyshell: room worker (bridge)

@@ -20,7 +20,7 @@ import { events } from '#events';
 import { setUpShopAvailable } from '#catalog';
 import { CharClass } from '#constants';
 //legacyshell: logging
-import log from '#coloured-logging';
+import log from 'puppylog';
 //legacyshell: ss
 import misc, { ss } from '#misc';
 //legacyshell: plugins

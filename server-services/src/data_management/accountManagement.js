@@ -8,7 +8,7 @@ import crypto from 'node:crypto'; //passwds
 //legacyshell: management
 import recs from '#recordsManagement';
 //legacyshell: logging
-import log from '#coloured-logging';
+import log from 'puppylog';
 //legacyshell: ss
 import { ss } from '#misc';
 import { CharClass, itemIdOffsets, ItemType } from '#constants';

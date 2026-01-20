@@ -1,7 +1,7 @@
 //basic
 import path from 'node:path';
 import { cssTemplate } from './css.js';
-import log from '#coloured-logging';
+import log from 'puppylog';
 //
 
 export const PluginMeta = {

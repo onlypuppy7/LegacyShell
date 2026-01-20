@@ -7,11 +7,12 @@ import jszip from 'jszip';
 import { createStampsUV } from '#stampsGenerator';
 import crypto from 'crypto';
 //legacyshell: logging
-import log from '#coloured-logging';
+import log from 'puppylog';
 //legacyshell: ss
 import { ss } from '#misc';
 //legacyshell: plugins
 import { plugins } from '#plugins';
+import { getLastSavedTimestamp } from 'puppymisc';
 //
 
 var debuggingLogs = false;
@@ -53,7 +54,7 @@ export async function prepareBabylons(endBabylonsDir = path.join(ss.rootDir, 'st
                 log.dim(`Copying ${filename}...`);
                 baseBabylon = JSON.parse(fs.readFileSync(baseBabylonPath, 'utf8'));
                 //get date of file saved
-                timestamp = misc.getLastSavedTimestamp(path.join(baseBabylonsDir, babylon));
+                timestamp = getLastSavedTimestamp(path.join(baseBabylonsDir, babylon));
             } else {
                 log.dim(`Base ${filename} doesn't exist, cannot copy.`);
             };
@@ -74,12 +75,12 @@ export async function prepareBabylons(endBabylonsDir = path.join(ss.rootDir, 'st
                     if (!baseBabylon) {
                         log.pink("Using extraBabylon as fallback base", extraBabylon);
                         baseBabylon = JSON.parse(fs.readFileSync(extraBabylon, 'utf8'));
-                        timestamp = misc.getLastSavedTimestamp(extraBabylon);
+                        timestamp = getLastSavedTimestamp(extraBabylon);
 
                         debuggingLogs && console.log(extraBabylonData);
                     };
 
-                    var thisTimestamp = misc.getLastSavedTimestamp(extraBabylon);
+                    var thisTimestamp = getLastSavedTimestamp(extraBabylon);
                     if (thisTimestamp > timestamp) timestamp = thisTimestamp;
 
                     await plugins.emit('prepareBabylonExtra', { filename, baseBabylon, extraBabylonData, item });

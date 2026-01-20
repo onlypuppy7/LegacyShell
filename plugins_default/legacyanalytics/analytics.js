@@ -4,7 +4,7 @@ import path from 'node:path';
 //plugin: analytics
 import { analDB } from './index.js';
 //legacyshell: logging
-import log from '#coloured-logging';
+import log from 'puppylog';
 //legacyshell: ss
 import { ss } from '#misc';
 //

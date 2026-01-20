@@ -14,7 +14,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 //legacyshell: logging
-import log from '#coloured-logging';
+import log from 'puppylog';
 //legacyshell: plugins
 import { pluginInstance } from '../index.js';
 //

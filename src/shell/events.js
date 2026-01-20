@@ -4,7 +4,7 @@ import path from 'node:path';
 //legacyshell: events
 import { devlog } from '#constants';
 //legacyshell: logging
-import log from '#coloured-logging';
+import log from 'puppylog';
 //legacyshell: ss
 import { ss } from '#misc';
 //legacyshell: plugins

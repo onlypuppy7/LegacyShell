@@ -6,7 +6,7 @@ import { devlog } from '#constants';
 //legacyshell: servicesWs
 import { ws as servicesWs } from '../start-game.js';
 //legacyshell: logging
-import log from '#coloured-logging';
+import log from 'puppylog';
 //legacyshell: ss
 import { ss } from '#misc';
 //legacyshell: plugins

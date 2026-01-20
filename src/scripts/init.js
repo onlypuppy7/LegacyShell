@@ -7,7 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import readline from 'node:readline';
 //legacyshell: basic
-import log from '#coloured-logging';
+import log from 'puppylog';
 import misc from '#misc';
 //legacyshell: database
 import sqlite3 from 'sqlite3'; //db

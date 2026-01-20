@@ -10,7 +10,7 @@ import extendMath from '#math';
 //legacyshell: getting user data
 import wsrequest from '#wsrequest';
 //legacyshell: logging
-import log from '#coloured-logging';
+import log from 'puppylog';
 //legacyshell: plugins
 import { plugins } from '#plugins';
 //legacyshell: ss
