@@ -2,6 +2,7 @@
 import BABYLON from "babylonjs";
 import { isClient, isServer, iteratePlayers } from '#constants';
 import Comm from "#comm";
+import { plugins } from "#plugins";
 //
 
 //(server-only-start)
@@ -136,7 +137,9 @@ Bullet.prototype.update = function (delta) {
                 var dz = .1 * -this.dz;
 
                 function onDestroy (x, y, z, dx, dy, dz) {
-                    if (isClient && !disableBulletSmoke) {
+                    plugins.emit('bulletHitEffect', { x, y, z, dx, dy, dz, player: this.player });
+                    
+                    if (isClient && !plugins.cancel) {
                         var s = explosionSmokeManager.getSprite();
                         s.animLength = 20 * Math.random() + 30;
                         s.easing = Ease.outQuint;
@@ -152,10 +155,8 @@ Bullet.prototype.update = function (delta) {
                         s.rotate = .08 * Math.random() - .04;
                         s.animColors = bulletHitColors;
                     };
-                    
-                    if (isClient && enableBulletHoles) { //bullet holes
-                        bulletHoleManager.addHole(0, x + (dx/4), y + (dy/4), z + (dz/4));
-                    };
+
+                    plugins.emit('bulletHitAfter', { x, y, z, dx, dy, dz, player: this.player });
                 };
 
                 onDestroy(pos.x, pos.y, pos.z, dx, dy, dz);

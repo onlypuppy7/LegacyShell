@@ -1,16 +1,15 @@
 //basic
 import path from 'node:path';
-import { cssTemplate } from './css.js';
 import log from 'puppylog';
 //
 
 export const PluginMeta = {
-    identifier: "legacysettings",
-    name: 'LegacySettings',
+    identifier: "fancygraphics",
+    name: 'FancyGraphics',
     author: 'onlypuppy7',
     version: '1.0.0-wip',
-    descriptionShort: 'Revamps the existing settings and adds a framework you can build plugins off of', //displayed when loading
-    descriptionLong: 'Revamps the existing settings and adds a framework you can build plugins off of',
+    descriptionShort: 'Readds old stuff and also some new fancy options', //displayed when loading
+    descriptionLong: 'Readds old stuff and also some new fancy options',
     legacyShellVersion: 561, //legacy shell version, can be found in /versionEnum.txt, or just on the homescreen
 };
 
@@ -33,10 +32,10 @@ export class Plugin {
 
     pluginSourceInsertion(data) {
         data.pluginInsertion.files.push({
-            insertBefore: `\nconsole.log("inserting before... (${PluginMeta.name})");\n${cssTemplate}\n`,
+            insertBefore: `\nconsole.log("inserting before... (${PluginMeta.name})");`,
             filepath: path.join(this.thisDir, 'client.js'),
             insertAfter: `\nconsole.log("inserting after... (${PluginMeta.name})!");`,
-            position: 'beforebefore'
+            position: 'before'
         });
     };
 };

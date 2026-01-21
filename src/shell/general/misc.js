@@ -202,6 +202,7 @@ export const misc = {
         };
     },
     prepareForClient: function (file) {
+        file = `\n${file}`;
         file = file.replaceAll("\nimport ", "\n//(ignore) import ");
         file = file.replaceAll("\nexport default ", "\n//(ignore) export default ");
         file = file.replaceAll("\nexport ", "\n/*(ignore) export*/ ");
