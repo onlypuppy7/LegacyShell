@@ -1,6 +1,6 @@
-//legacyshell: basic
-import { isClient } from '#constants';
 //
+
+//this doesnt use puppyscrambled because its also put into the shell js
 
 //(server-only-start)
 //(server-only-end)

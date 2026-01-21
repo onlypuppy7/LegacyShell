@@ -106,23 +106,9 @@ export const censor = { //old isBadWord function
         "suspic"
     ],
     init: function () {
-        let new_banned = [];
-        this.banned_words.forEach(word => {
-            new_banned.push(this.parse(word));
-        });
-        this.banned_words = new_banned;
-
-        let new_eighteen = [];
-        this.eighteen_words.forEach(word => {
-            new_eighteen.push(this.parse(word));
-        });
-        this.eighteen_words = new_eighteen;
-
-        let new_allowed = [];
-        this.allowed_words.forEach(word => {
-            new_allowed.push(this.parse(word));
-        });
-        this.allowed_words = new_allowed;
+        this.banned_words = this.banned_words.map(word => this.parse(word));
+        this.eighteen_words = this.eighteen_words.map(word => this.parse(word));
+        this.allowed_words = this.allowed_words.map(word => this.parse(word));
     },
     parse: function (str, retainSpaces) {
         if (!retainSpaces) str = str.replace(/ /g, "");
