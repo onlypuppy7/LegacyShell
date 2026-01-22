@@ -20,7 +20,21 @@ class LegacySettingsOptionClass {
         if (this.opt.label) {
             const label = document.createElement("label");
             label.textContent = this.opt.label;
-            row.appendChild(label);
+
+            if (this.opt.labelAbove) {
+                const container = document.createElement("div");
+                label.className = "ssLabelAbove";
+                container.appendChild(label);
+                container.className = "ssOptionContainer";
+                row.appendChild(container);
+                // input will also be appended to this container later
+                this._inputContainer = container;
+            } else {
+                row.appendChild(label);
+                this._inputContainer = row; // fallback
+            }
+        } else {
+            this._inputContainer = row;
         }
 
         let input;
@@ -137,7 +151,10 @@ class LegacySettingsOptionClass {
                 input.appendChild(optionEl);
             });
 
-            input.onchange = () => setState(input.value);
+            input.onchange = () => {
+                setState(input.value);
+                if (this.opt.onChange) this.opt.onChange(input.value);
+            };
         }
 
         if (this.opt.type === "radio") {
@@ -185,15 +202,191 @@ class LegacySettingsOptionClass {
             input.className = "ss_info_text";
             input.id = key ? `${this.parent.id}_info_${key}` : "";
             input.textContent = this.opt.text || "";
+            this._reactiveUpdate = (newText) => input.textContent = newText;
         }
 
-        row.appendChild(input);
+        if (this.opt.type === "list") {
+            input = document.createElement("div");
+            input.className = "ss_list";
+
+            let dragIndex = null;
+            let dragRow = null;
+
+            const render = () => {
+                input.innerHTML = "";
+                const values = Array.isArray(getState()) ? [...getState()] : [];
+
+                if (values.length === 0) {
+                    const emptyRow = document.createElement("div");
+                    emptyRow.className = "ss_list_row empty";
+                    emptyRow.textContent = "Empty";
+                    input.appendChild(emptyRow);
+                    return;
+                }
+
+                values.forEach((val, index) => {
+                    const row = document.createElement("div");
+                    row.className = "ss_list_row";
+                    row.dataset.index = index;
+
+                    if (this.opt.reorderable) {
+                        const handle = document.createElement("span");
+                        handle.className = "ss_list_handle";
+                        handle.textContent = "≡";
+                        row.append(handle);
+
+                        row.draggable = true;
+
+                        handle.onmousedown = () => {
+                            row.draggable = true;
+                        };
+
+                        row.ondragstart = (e) => {
+                            dragIndex = index;
+                            dragRow = row;
+                            row.classList.add("dragging");
+                            e.dataTransfer.setDragImage(row, 0, 0);
+                        };
+
+                        row.ondragend = () => {
+                            row.classList.remove("dragging");
+                            dragIndex = null;
+                            dragRow = null;
+                            this.opt.onChange?.(getState());
+                        };
+
+                        row.ondragover = (e) => {
+                            e.preventDefault();
+                            if (!dragRow || dragRow === row) return;
+
+                            const rect = row.getBoundingClientRect();
+                            const midpoint = rect.top + rect.height / 2;
+                            const after = e.clientY > midpoint;
+
+                            const rows = [...input.children];
+                            const dragPos = rows.indexOf(dragRow);
+                            const hoverPos = rows.indexOf(row);
+                            const targetPos = after ? hoverPos + 1 : hoverPos;
+
+                            if (dragPos === targetPos || dragPos + 1 === targetPos) return;
+
+                            input.insertBefore(
+                                dragRow,
+                                rows[targetPos] || null
+                            );
+
+                            const newValues = [...values];
+                            const moved = newValues.splice(dragPos, 1)[0];
+                            newValues.splice(targetPos > dragPos ? targetPos - 1 : targetPos, 0, moved);
+
+                            setState(newValues);
+                        };
+                    }
+
+                    const text = document.createElement("span");
+                    text.className = "ss_list_text";
+                    text.textContent = String(val);
+                    row.append(text);
+
+                    if (this.opt.removable) {
+                        const remove = document.createElement("button");
+                        remove.className = "ss_list_remove";
+                        remove.textContent = "✕";
+                        remove.onclick = () => {
+                            const arr = [...getState()];
+                            arr.splice(index, 1);
+                            setState(arr);
+                            render();
+                            this.opt.onChange?.(arr);
+                        };
+                        row.append(remove);
+                    };
+
+                    input.appendChild(row);
+                });
+            };
+
+            if (!Array.isArray(getState())) {
+                setState(this.opt.default ?? []);
+            }
+
+            this._reactiveUpdate = (newList) => {
+                setState(newList);
+                render();
+            };
+
+            render();
+        }
+
+        if (this.opt.type === "gallery") {
+            input = document.createElement("div");
+            input.className = "ss_image_gallery";
+
+            // reactive value
+            let images = this.opt.images || [];
+            if (!images.length) console.warn("gallery requires at least one image.");
+
+            const imgEl = document.createElement("img");
+            input.appendChild(imgEl);
+            
+            const left = document.createElement("div");
+            left.className = "ss_image_gallery_arrow left";
+            const right = document.createElement("div");
+            right.className = "ss_image_gallery_arrow right";
+
+            left.onclick = () => {
+                current = (current - 1 + images.length) % images.length;
+                updateImage();
+            };
+            right.onclick = () => {
+                current = (current + 1) % images.length;
+                updateImage();
+            };
+
+            let current = 0;
+            const updateImage = () => {
+                if (!images.length) return;
+                current = Math.min(current, images.length - 1);
+                imgEl.src = images[current];
+
+                if (images.length > 1) {
+                    left.style.display = "block";
+                    right.style.display = "block";
+                } else {
+                    left.style.display = "none";
+                    right.style.display = "none";
+                }
+            };
+
+            updateImage();
+
+            input.appendChild(left);
+            input.appendChild(right);
+
+            // store a reference to update reactively
+            this._reactiveUpdate = (newImages) => {
+                images = newImages;
+                if (current >= images.length) current = 0;
+                updateImage();
+            };
+        }
+
+        if (!input) {
+            console.warn(`LegacySettings: Unknown option type "${this.opt.type}" for key "${this.opt.key}".`);
+            input = document.createElement("div");
+            input.textContent = `Unknown option type: ${this.opt.type}`;
+        }
+
+        (this._inputContainer || row).appendChild(input);
         this.el = row;
         return row;
     }
 
     get() { return this.opt.key ? this.parent.get(this.opt.key) : undefined; }
-    set(val) { if (this.opt.key) this.parent.set(this.opt.key, val); }
+    set(val) {
+        if (this.opt.key) this.parent.set(this.opt.key, val);
+        if (this._reactiveUpdate) this._reactiveUpdate(val);
+    }
 }
 
 class LegacySettingsClass {
@@ -208,11 +401,19 @@ class LegacySettingsClass {
         this.finalised = false;
         this.absorbOldSettings = absorbOldSettings;
         this.globalBindingActive = false;
+        this.tabCache = {};
     }
 
     registerListeners(pluginManager) {
         console.log("registering listeners... (LegacySettings)");
         this.plugins = pluginManager;
+
+        this.plugins.on('game:waitForSetupAndAuthCompleteReady', this.waitForSetupAndAuthCompleteReady.bind(this));
+    }
+
+    waitForSetupAndAuthCompleteReady(data) {
+        devlog("LegacySettings: finalising LegacySettings");
+        this.finalise();
     }
 
     applyCSS() {
@@ -300,29 +501,53 @@ class LegacySettingsClass {
         return wrap;
     }
 
-    renderTab(tabName) {
-        const pane = this.root.querySelector(".ssPane");
-        pane.innerHTML = "";
-        const tab = this.tabs[tabName];
+renderTab(tabName) {
+    const pane = this.root.querySelector(".ssPane");
 
-        tab.panels.forEach(panelData => {
-            const panelEl = document.createElement("div");
-            panelEl.className = "ssPanel";
-            panelEl.style.flex = panelData.width;
+    // hide all tabs
+    Object.values(this.tabCache).forEach(el => {
+        el.style.display = "none";
+    });
 
-            if (panelData.standalone.length) {
-                const stand = document.createElement("div");
-                stand.className = "ssStandalone";
-                panelData.standalone.forEach(optionObj => {
-                    stand.appendChild(optionObj.build());
-                });
-                panelEl.appendChild(stand);
-            }
-
-            panelData.categories.forEach(cat => panelEl.appendChild(this.buildCategory(cat)));
-            pane.appendChild(panelEl);
-        });
+    // already built, just show
+    if (this.tabCache[tabName]) {
+        this.tabCache[tabName].style.display = "flex";
+        return;
     }
+
+    // build once
+    const tabRoot = document.createElement("div");
+    tabRoot.className = "ssTabRoot";
+    tabRoot.style.display = "flex";
+    tabRoot.style.width = "100%";
+    tabRoot.style.height = "100%";
+
+    const tab = this.tabs[tabName];
+
+    tab.panels.forEach(panelData => {
+        const panelEl = document.createElement("div");
+        panelEl.className = "ssPanel";
+        panelEl.style.flex = panelData.width;
+
+        if (panelData.standalone.length) {
+            const stand = document.createElement("div");
+            stand.className = "ssStandalone";
+            panelData.standalone.forEach(optionObj => {
+                stand.appendChild(optionObj.build());
+            });
+            panelEl.appendChild(stand);
+        }
+
+        panelData.categories.forEach(cat => {
+            panelEl.appendChild(this.buildCategory(cat));
+        });
+
+        tabRoot.appendChild(panelEl);
+    });
+
+    pane.appendChild(tabRoot);
+    this.tabCache[tabName] = tabRoot;
+}
 
     finalise(override = false) {
         if (this.finalised && !override) return;
@@ -380,6 +605,10 @@ class LegacySettingsClass {
         document.body.appendChild(overlay);
 
         this.root = overlay;
+
+        for (const tabName of this.tabOrder) {
+            this.renderTab(tabName);
+        }
         this.renderTab(this.activeTab);
     }
 
@@ -394,18 +623,18 @@ LegacySettings.applyCSS();
 
 /* ---------------- Example Usage ---------------- */
 LegacySettings.addTab("Gameplay", [1,1]);
-LegacySettings.addCategory("Gameplay", 0, "Movement", { defaultOpen: true, collapsible: true });
-LegacySettings.addOption("Gameplay", { type: "slider", showNumber: true, key: "speed", label: "Move Speed", min:1,max:10,step:1,default:5 }, 0, "Movement");
-LegacySettings.addOption("Gameplay", { type: "checkbox", key: "autoRun", label: "Auto Run", default: false }, 0, "Movement");
-LegacySettings.addOption("Gameplay", { type: "bind", key: "forwardKey", label: "Forward Key", default: "W" }, 0, "Movement");
-LegacySettings.addCategory("Gameplay", 1, "Jumping", { defaultOpen: true });
-LegacySettings.addOption("Gameplay", { type: "slider", key: "jumpHeight", label: "Jump Height", min:1,max:10,step:1,default:5 }, 1, "Jumping");
+LegacySettings.addCategory("Gameplay", 0, "Collapsible Category", { defaultOpen: true, collapsible: true });
+LegacySettings.addOption("Gameplay", { type: "slider", showNumber: true, key: "speed", label: "Slider", min:1,max:10,step:1,default:5 }, 0, "Collapsible Category");
+LegacySettings.addOption("Gameplay", { type: "checkbox", key: "autoRun", label: "Checkbox", default: false }, 0, "Collapsible Category");
+LegacySettings.addOption("Gameplay", { type: "bind", key: "forwardKey", label: "Bind", default: "W" }, 0, "Collapsible Category");
+LegacySettings.addCategory("Gameplay", 1, "Uncollapsible Category", { defaultOpen: true });
+LegacySettings.addOption("Gameplay", { type: "slider", key: "slider", label: "Slider", min:1,max:10,step:1,default:5 }, 1, "Uncollapsible Category");
 LegacySettings.addOption(
     "Gameplay",
     {
         type: "select",
         key: "difficulty",
-        label: "Difficulty",
+        label: "Dropdown",
         default: "normal",
         options: [
             { value: "easy", label: "Easy" },
@@ -415,14 +644,14 @@ LegacySettings.addOption(
         onChange: (val) => { console.log("Difficulty changed to:", val); }
     },
     0,
-    "Movement"
+    "Collapsible Category"
 );
 LegacySettings.addOption(
     "Gameplay",
     {
         type: "radio",
         key: "cameraMode",
-        label: "Camera Mode",
+        label: "Radio",
         default: "follow",
         options: [
             { value: "follow", label: "Follow" },
@@ -431,20 +660,20 @@ LegacySettings.addOption(
         ]
     },
     0,
-    "Movement"
+    "Collapsible Category"
 );
 LegacySettings.addOption(
     "Gameplay",
     {
         type: "text",
         key: "playerName",
-        label: "Player Name",
+        label: "Text Input",
         default: "",
         placeholder: "Enter your name",
         maxLength: 20
     },
     0,
-    "Movement"
+    "Collapsible Category"
 );
 //button
 LegacySettings.addOption(
@@ -452,22 +681,74 @@ LegacySettings.addOption(
     {
         type: "button",
         key: "testButton",
-        label: "Press the button",
+        label: "Button",
         text: "Random Test Button",
         onClick: (e) => {
             console.log("Button clicked!", e);
         }
     },
     0,
-    "Movement"
+    "Collapsible Category"
 );
 LegacySettings.addOption(
     "Gameplay",
     {
         type: "info",
-        key: "movementInfo",
+        key: "movementInfo2",
         text: "Use the sliders above to adjust your movement settings."
     },
     0,
-    "Movement"
+    "Collapsible Category"
+);
+LegacySettings.addOption(
+    "Gameplay",
+    {
+        type: "list",
+        key: "blockedPlayers2",
+        label: "List (removable)",
+        default: ["Player123", "AnnoyingGuy"],
+        removable: true
+    },
+    1,
+    "Uncollapsible Category"
+);
+LegacySettings.addOption(
+    "Gameplay",
+    {
+        type: "list",
+        key: "priority",
+        label: "List (reorderable)",
+        default: ["Option A", "Option B", "Option C"],
+        reorderable: true
+    },
+    1,
+    "Uncollapsible Category"
+);
+LegacySettings.addOption(
+    "Gameplay",
+    {
+        type: "list",
+        key: "priority2",
+        label: "List (reorderable & removable), label above",
+        labelAbove: true,
+        default: ["Option A", "Option B", "Option C"],
+        reorderable: true,
+        removable: true
+    },
+    1,
+    "Uncollapsible Category"
+);
+
+LegacySettings.addOption(
+    "Gameplay",
+    {
+        type: "gallery",
+        key: "promoImages",
+        images: [
+            "/img/promo/small_adblocker.png",
+            "/img/promo/PiperAd.png"
+        ]
+    },
+    0,
+    "Collapsible Category"
 );
