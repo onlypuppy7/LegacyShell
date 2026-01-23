@@ -20,5 +20,10 @@ LegacyThemesPlugin.stylePacks.push({
         '/themes/whatsapptheme/img/whatsappcar.png',
         '/themes/whatsapptheme/img/whatsappgame.png',
         '/themes/whatsapptheme/img/whatsapphorse.png',
+        '/themes/whatsapptheme/img/whatsappdog.png',
+        '/themes/whatsapptheme/img/whatsappchicken.jpg',
+        '/themes/whatsapptheme/img/whatsapp2.png',
+        '/themes/whatsapptheme/img/whatsappdrink.png',
+        '/themes/whatsapptheme/img/whatsappversions.png',
     ]
 });
