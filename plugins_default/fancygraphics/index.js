@@ -1,6 +1,7 @@
 //basic
 import path from 'node:path';
 import log from 'puppylog';
+import express from 'express';
 //
 
 export const PluginMeta = {
@@ -27,7 +28,14 @@ export class Plugin {
 
         pluginInstance = this;
 
+        this.plugins.on('client:onStartServer', this.onStartServer.bind(this));
         this.plugins.on('client:pluginSourceInsertion', this.pluginSourceInsertion.bind(this));
+    };
+    
+    async onStartServer(data) {
+        let app = data.app;
+
+        app.use(express.static(path.join(this.thisDir, 'client')));
     };
 
     pluginSourceInsertion(data) {
@@ -35,7 +43,7 @@ export class Plugin {
             insertBefore: `\nconsole.log("inserting before... (${PluginMeta.name})");`,
             filepath: path.join(this.thisDir, 'client.js'),
             insertAfter: `\nconsole.log("inserting after... (${PluginMeta.name})!");`,
-            position: 'before'
+            position: 'after'
         });
     };
 };
