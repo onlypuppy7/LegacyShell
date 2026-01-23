@@ -339,7 +339,7 @@ class ColliderConstructor {
             m = this.v1;
         p.copyFrom(ray.origin);
         d.copyFrom(ray.direction);
-        c.set(player.x, player.y + (0.32 * player.modifiers.scale), player.z);
+        c.set(player.predicted.x, player.predicted.y + (0.32 * player.modifiers.scale), player.predicted.z);
         p.subtractToRef(c, m);
         var b = BABYLON.Vector3.Dot(m, d);
         if (0 < (c = BABYLON.Vector3.Dot(m, m) - (0.140625 * player.modifiers.scale)) && 0 < b) return false;

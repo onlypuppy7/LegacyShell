@@ -139,9 +139,9 @@ export class DeadInternetBot {
     }
 
     getDistanceToPlayer(otherPlayer) {
-        const dx = otherPlayer.x - this.player.x;
-        const dy = otherPlayer.y - this.player.y;
-        const dz = otherPlayer.z - this.player.z;
+        const dx = otherPlayer.predicted.x - this.player.x;
+        const dy = otherPlayer.predicted.y - this.player.y;
+        const dz = otherPlayer.predicted.z - this.player.z;
         const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
         const yaw = Math.atan2(dx, dz);
         const pitch = -Math.asin(dy / distance);
