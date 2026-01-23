@@ -24385,7 +24385,7 @@
                         var targetStore;
                         targetStore = -1 !== url.indexOf(".babylon") ? "scenes" : "textures";
                         var fileData, xhr = new XMLHttpRequest;
-                        xhr.open("GET", url + "?" + Date.now(), !0), useArrayBuffer && (xhr.responseType = "arraybuffer"), progressCallback && (xhr.onprogress = progressCallback), xhr.addEventListener("load", function () {
+                        xhr.open("GET", url + "?" + this.manifestVersionFound, !0), useArrayBuffer && (xhr.responseType = "arraybuffer"), progressCallback && (xhr.onprogress = progressCallback), xhr.addEventListener("load", function () {
                             if (200 === xhr.status || xhr.status < 400 && BABYLON.Tools.ValidateXHRData(xhr, useArrayBuffer ? 6 : 1))
                                 if (fileData = useArrayBuffer ? xhr.response : xhr.responseText, !_this.hasReachedQuota && _this.db) {
                                     var newFile, transaction = _this.db.transaction([targetStore], "readwrite");
