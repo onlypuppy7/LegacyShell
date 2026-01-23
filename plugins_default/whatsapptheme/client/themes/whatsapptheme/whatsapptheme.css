@@ -1,29 +1,123 @@
-:root {
+* {
     --customizer-skyColor: #85CC85;
     --customizer-diffuseColor: #85CC85;
+
+    /* blue is now green.. yea */
+    --ss-blue0: #e4ffea;
+    --ss-blue1: #c8f6d3;
+    --ss-blue2: #a8e6b8;
+    --ss-blue3: #69bf81;
+    --ss-blue4: #43a461;
+
+    --ss-white0: #198500;
+    --ss-yellow0: #00ff27;
+
+    --ss-orange1: #44ff5a;
+    --ss-orange2: #3bff33;
+    --ss-orange6: #077e35;
+
+    --itemButton-gradient-start: #acf2ac;
+    --itemButton-gradient-end: #dfffdc;
+
+    --replaceImgSrc-noItemImg: url('/themes/whatsapptheme/img/noItem.png');
+    --replaceImgSrc-noHatImg: url('/themes/whatsapptheme/img/noHat.png');
+    --replaceImgSrc-noStampImg: url('/themes/whatsapptheme/img/noStamp.png');
+}
+
+h1 {
+    color: var(--ss-blue4);
+}
+
+#currentBalance {
+    color: var(--ss-blue0) !important;
+}
+
+#logo img {
+    content: url("/themes/whatsapptheme/img/logo.png");
 }
 
 img[src*="egg_icon.png"] {
-    content: url("themes/whatsapptheme/img/egg_icon.png") !important;
+    content: url("/themes/whatsapptheme/img/egg_icon.png");
+}
+img[src*="egg_icon2.png"] {
+    content: url("/themes/whatsapptheme/img/egg_icon.png");
 }
 img[src*="equipment.png"] {
-    content: url("themes/whatsapptheme/img/equipment.png") !important;
+    content: url("/themes/whatsapptheme/img/equipment.png");
 }
 img[src*="feedback.png"] {
-    content: url("themes/whatsapptheme/img/feedback.png") !important;
+    content: url("/themes/whatsapptheme/img/feedback.png");
 }
 img[src*="friends.png"] {
-    content: url("themes/whatsapptheme/img/friends.png") !important;
+    content: url("/themes/whatsapptheme/img/friends.png");
 }
 img[src*="fullScreen.png"] {
-    content: url("themes/whatsapptheme/img/fullScreen.png") !important;
+    content: url("/themes/whatsapptheme/img/fullScreen.png");
 }
 img[src*="home.png"] {
-    content: url("themes/whatsapptheme/img/home.png") !important;
-}
-img[src*="logo.png"] {
-    content: url("themes/whatsapptheme/img/logo.png?v=1") !important;
+    content: url("/themes/whatsapptheme/img/home.png");
 }
 img[src*="settings.png"] {
-    content: url("themes/whatsapptheme/img/settings.png") !important;
+    content: url("/themes/whatsapptheme/img/settings.png");
+}
+img[src*="discordLogo.png"] {
+    content: url("/themes/whatsapptheme/img/discordLogo.png");
+}
+img[src*="githubLogo.png"] {
+    content: url("/themes/whatsapptheme/img/githubLogo.png");
+}
+img[src*="noHat.png"] {
+    content: url("/themes/whatsapptheme/img/noHat.png");
+}
+img[src*="noStamp.png"] {
+    content: url("/themes/whatsapptheme/img/noStamp.png");
+}
+img[src*="anim_chicken.gif"] {
+    content: url("/themes/whatsapptheme/img/anim_chicken.gif");
+}
+img[src*="ico_chickenBadge.png"] {
+    content: url("/themes/whatsapptheme/img/ico_chickenBadge.png");
+}
+img[src*="ico_nugget.png"] {
+    content: url("/themes/whatsapptheme/img/ico_nugget.png");
+}
+
+.spinner {
+    border: 1.25em solid var(--ss-orange1);
+    background: url(/themes/whatsapptheme/img/spinnerIcon.png) no-repeat center / contain;
+}
+
+#health {
+    position: absolute;
+}
+
+#health::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 6vh;
+    height: 6vh;
+    transform: translate(-49%, -49%) scale(1.22);
+    background: url(/themes/whatsapptheme/img/whatsapp.png) no-repeat center / contain;
+    pointer-events: none;
+}
+
+#healthHp {
+    opacity: 0.75;
+}
+
+#buyNuggetText {
+    visibility: hidden;
+    position: relative;
+}
+
+#buyNuggetText::after {
+    content: "WHATSAPP VIP+";
+    visibility: visible;
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }

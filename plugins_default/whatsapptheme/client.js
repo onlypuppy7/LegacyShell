@@ -9,11 +9,16 @@ WhatsAppThemePlugin.registerListeners(plugins);
 LegacyThemesPlugin.stylePacks.push({
     name: "WhatsApp Theme",
     identifier: "whatsapptheme",
-    description: "A theme that makes LegacyShell look like WhatsApp.",
+    description: "A theme that makes LegacyShell look like WhatsApp.\nAn example theme made by onlypuppy7",
     cssFile: "/themes/whatsapptheme/whatsapptheme.css",
+    author: "onlypuppy7",
     images: [
         '/themes/whatsapptheme/img/logo.png',
+        '/themes/whatsapptheme/img/anim_chicken.gif',
         '/themes/whatsapptheme/img/egg_icon.png',
-        '/themes/whatsapptheme/img/egg_icon_alt.png',
+        '/themes/whatsapptheme/img/whatsapp.png',
+        '/themes/whatsapptheme/img/whatsappcar.png',
+        '/themes/whatsapptheme/img/whatsappgame.png',
+        '/themes/whatsapptheme/img/whatsapphorse.png',
     ]
 });
