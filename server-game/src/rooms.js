@@ -361,11 +361,14 @@ export class RoomConstructor {
                 // console.log("lóóp", delta, this.lastTimeStamp, currentTimeStamp, player.stateIdx, player.syncStateIdx);
                 if (!player.client.isHuman) {
                     await player.update(1);
-                } else while (player.stateIdx !== player.syncStateIdx) {
+                } else if (player.stateIdx !== player.syncStateIdx) while (player.stateIdx !== player.syncStateIdx) {
                     player.chatLineCap = Math.min(player.chatLineCap + 1 / (chatCooldown * 4), 3); //3 lines per second (idk why 4 works)
                     plugins.emit('playerStateUpdate', {this: this, player, delta, currentTimeStamp});
                     await player.update(1);
+                    player.resetPrediction();
                     // console.log(player.x, player.y, player.z, player.controlKeys, player.stateIdx, this.serverStateIdx);
+                } else {
+                    player.predictUpdate(1);
                 };
                 player.incrementStatesUsed();
             });

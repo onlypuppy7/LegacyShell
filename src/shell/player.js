@@ -170,6 +170,8 @@ class Player {
 
         this.modifiers = {};
         this.setDefaultModifiers(true);
+
+        this.predicted = this;
     };
     setDefaultModifiers(init) {
         this.changeModifiers({
@@ -417,6 +419,26 @@ class Player {
             };
         };
     };
+    resetPrediction() {
+        this.predicted = this.createSnapshot(true);
+        this.lastRealSnapshot = this.createSnapshot(true);
+    };
+    predictUpdate(delta = 1) {
+        //check if any values in this have changed since last real snapshot
+        if (this.lastRealSnapshot) {
+            const last = this.lastRealSnapshot;
+            const current = this.createSnapshot(true);
+            for (const key in current) {
+                if (key !== "corrected" && current[key] !== last[key]) {
+                    devlog(`prediction reset due to change in ${key}:`, last[key], "->", current[key]);
+                    this.resetPrediction();
+                    break;
+                }
+            };
+        };
+
+        this.predicted = this.simulateMovement({ ...this.predicted, delta }, true);
+    };
     simulateMovement(input, dontAssign) {
         const out = {
             x: input.x ?? this.x,
@@ -520,14 +542,14 @@ class Player {
             dz: this.dz,
             yaw: this.yaw,
             pitch: this.pitch,
+            corrections: this.corrections,
+            corrected: { ...this.corrected },
         };
 
         if (returnShallow) return shallow;
 
         return {
             ...shallow,
-            corrections: this.corrections,
-            corrected: { ...this.corrected },
             controlKeys: this.controlKeys,
             stateIdx: this.stateIdx,
             stateBuffer: this.stateBuffer.map(state => ({ ...state })), //deep copy
