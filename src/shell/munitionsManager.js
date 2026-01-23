@@ -10,7 +10,6 @@ export class MunitionsManagerConstructor {
         this.rocketPool = new Pool(function () { return new Rocket(scene) }, 20);
         this.grenadePool = new Pool(function () { return new Grenade(scene) }, 10);
     };
-
     update (delta) {
         this.bulletPool.forEachActive(function (bullet) { bullet.update(delta) });
         this.rocketPool.forEachActive(function (rocket) { rocket.update(delta) });

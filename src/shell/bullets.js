@@ -1,6 +1,6 @@
 //legacyshell: bullets
 import BABYLON from "babylonjs";
-import { isClient, isServer, iteratePlayers } from '#constants';
+import { devlog, isClient, isServer, iteratePlayers } from '#constants';
 import Comm from "#comm";
 import { plugins } from "#plugins";
 //
@@ -119,12 +119,16 @@ Bullet.prototype.fireThis = function (player, pos, dir, weaponClass) {
     res && (this.actor && this.end.copyFrom(res.pick.pickedPoint), this.range = BABYLON.Vector3.Distance(pos, res.pick.pickedPoint)), this.actor && this.actor.fire()
 };
 Bullet.prototype.remove = function () {
+    // devlog("Recycling bullet", this, this?.actor?.remove);
     getMunitionsManager().bulletPool.recycle(this);
     this.actor && this.actor.remove();
+    this.active = false;
 };
 Bullet.prototype.update = function (delta) {
     Bullet.origin.set(this.x, this.y, this.z);
     Bullet.direction.set(this.dx, this.dy, this.dz);
+
+    // devlog("Bullet update", this.active, this);
 
     if (!Collider.rayCollidesWithPlayer(Bullet.origin, Bullet.direction, this)) {
         if (this.range <= 0) {
@@ -138,7 +142,7 @@ Bullet.prototype.update = function (delta) {
 
                 function onDestroy (x, y, z, dx, dy, dz) {
                     plugins.emit('bulletHitEffect', { x, y, z, dx, dy, dz, player: this.player });
-                    
+
                     if (isClient && !plugins.cancel) {
                         var s = explosionSmokeManager.getSprite();
                         s.animLength = 20 * Math.random() + 30;
@@ -168,6 +172,8 @@ Bullet.prototype.update = function (delta) {
             this.z += this.dz * delta;
             this.range -= this.velocity * delta;
 
+            if (!this.active) return;
+            // devlog("Bullet actor update", this, this.active);
             this.actor && this.actor.update();
         };
     };
@@ -216,6 +222,8 @@ Bullet.prototype.collidesWithPlayer = function (player, point) {
     };
     //(server-only-end)
 
+    // devlog("Bullet collidesWithPlayer", this, player, point);
+
     this.remove();
 };
 
@@ -245,12 +253,15 @@ export function Rocket(scene) {
 Rocket.origin = new BABYLON.Vector3;
 Rocket.direction = new BABYLON.Vector3;
 Rocket.prototype.remove = function () {
+    // devlog("Recycling rocket", this, this?.actor?.remove);
     getMunitionsManager().rocketPool.recycle(this);
-    this.actor && this.actor.remove()
+    this.actor && this.actor.remove();
+    this.active = false;
 };
 Rocket.prototype.update = function (delta) {
     if (Rocket.origin.set(this.x, this.y, this.z), Rocket.direction.set(this.dx, this.dy, this.dz), !Collider.rayCollidesWithPlayer(Rocket.origin, Rocket.direction, this)) {
         if (this.range <= 0) return this.x -= this.dx, this.y -= this.dy, this.z -= this.dz, this.explode(), void this.remove();
+        if (!this.active) return;
         this.x += this.dx * delta, this.y += this.dy * delta, this.z += this.dz * delta, this.ttArmed -= delta, this.range -= this.velocity * delta, this.actor && this.actor.update()
     }
 };
@@ -330,6 +341,7 @@ Grenade.prototype.update = function (delta) {
             var pos = new BABYLON.Vector3(this.x, this.y, this.z);
             playSoundIndependent(this.actor.explodeSound, {pos});
             //this.actor.explodeSound.setPosition(pos), this.actor.explodeSound.play(), 
+            // devlog("Recycling grenade", this, this?.actor?.remove);
             this.actor.remove();
         } else checkExplosionCollisions(this);
     } else {
