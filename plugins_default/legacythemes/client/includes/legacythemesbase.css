@@ -94,8 +94,6 @@
 .text_grey { color: var(--ss-grey0); }
 
 
-button.shiny { background: linear-gradient(0deg, var(--ss-yellow1), var(--ss-orange3), var(--ss-orange-1)); }
-
 button.red    { --start: var(--ss-red0);    --end: var(--ss-red1); }
 button.orange { --start: var(--ss-orange2); --end: var(--ss-orange6); }
 button.yellow { --start: var(--ss-yellow2); --end: var(--ss-yellow3); }
@@ -107,8 +105,15 @@ button.clear  { --start: rgba(255,64,192,0.25); --end: rgba(128,32,96,0.75); }
 button.white  { --start: var(--ss-white0);  --end: var(--ss-white1); }
 button.grey   { --start: var(--ss-grey0);   --end: var(--ss-grey1); }
 
-button {
-    background: linear-gradient(var(--start), var(--end));
+.ssbutton {
+    /* !important to override rules like button.orange */
+    background: linear-gradient(var(--start), var(--end)) !important;
+}
+
+button.shiny { --start: var(--ss-orange-1); --middle: var(--ss-orange3); --end: var(--ss-yellow1); }
+
+.ssbutton.shiny {
+    background: linear-gradient(var(--start), var(--middle), var(--end)) !important;
 }
 
 .statBar {

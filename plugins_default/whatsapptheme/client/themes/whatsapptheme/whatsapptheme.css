@@ -1,3 +1,11 @@
+/* possible idea:
+    create colour themes, eg a green theme, then import it here, taking out the green stuff from here
+
+    eg:
+    
+    @import url("/themes/colourthemes/greentheme/greentheme.css");
+*/
+
 * {
     --customizer-skyColor: #85CC85;
     --customizer-diffuseColor: #85CC85;
@@ -14,7 +22,8 @@
 
     --ss-orange1: #44ff5a;
     --ss-orange2: #3bff33;
-    --ss-orange6: #077e35;
+    --ss-orange4: #30ae34;
+    --ss-orange6: #197e07;
 
     --itemButton-gradient-start: #acf2ac;
     --itemButton-gradient-end: #dfffdc;
@@ -80,6 +89,9 @@ img[src*="ico_chickenBadge.png"] {
 }
 img[src*="ico_nugget.png"] {
     content: url("/themes/whatsapptheme/img/ico_nugget.png");
+}
+img[src*="notificationIcon.png"] {
+    content: url("/themes/whatsapptheme/img/whatsapp.png");
 }
 
 .spinner {
