@@ -1,0 +1,12 @@
+.arrow {
+    opacity: 0.6;
+    transition: opacity 0.3s ease;
+}
+
+.arrow:hover {
+    opacity: 1;
+}
+
+button:hover {
+    background: linear-gradient(var(--end), var(--start));
+}

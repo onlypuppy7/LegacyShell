@@ -13,6 +13,21 @@ export const FancyItemsPlugin = {
         this.plugins.on('game:gunActorSetup', this.gunActorSetup.bind(this));
         this.plugins.on('game:bulletHitEffect', this.bulletHitEffect.bind(this));
         this.plugins.on('game:bulletHitAfter', this.bulletHitAfter.bind(this));
+
+        this.createTheme();
+    },
+
+    createTheme: function () {
+        LegacyThemesPlugin.stylePacks.push({
+            name: "Fancy Animations",
+            identifier: "fancyanimations",
+            description: "Adds little animations to the UI of LegacyShell.\nAn example theme made by onlypuppy7",
+            cssFile: "/themes/fancyanimations/fancyanimations.css",
+            author: "onlypuppy7",
+            // images: [
+            //     // '/themes/whatsapptheme/img/logo.png',
+            // ]
+        });
     },
 
     permissionsAfterSetup: function (data) {
