@@ -16,9 +16,10 @@ const LegacyThemesPlugin = {
     },
 
     applyBaseCSS: function () {
-        const style = document.createElement("style");
-        style.textContent = LegacyThemesCSS;
-        document.head.appendChild(style);
+        const link = document.createElement("link");
+        link.rel = "stylesheet";
+        link.href = "/includes/legacythemesbase.css";
+        document.head.appendChild(link);
     },
 
     setupSettings: function () {
@@ -29,7 +30,55 @@ const LegacyThemesPlugin = {
     },
 
     permissionsAfterSetup: function () {
-        const styleOptions = [{ value: "none", label: "None" }];
+        const styleOptions = []; //{ value: "none", label: "None" }
+
+        //order this.stylePacks by name
+        this.stylePacks.sort((a, b) => {
+            if (a.name < b.name) return -1;
+            if (a.name > b.name) return 1;
+            return 0;
+        });
+
+        this.stylePacks = [
+            {
+                name: "[Default Theme]",
+                identifier: "defaulttheme",
+                description: "The default colours of LegacyShell.",
+                cssFile: "/includes/legacythemesbase.css",
+                images: [
+                    'img/logo.png'
+                ]
+            },
+            {
+                name: "Old LegacyShell Assets",
+                identifier: "oldlegacyassets",
+                description: "Revert to the old LegacyShell look if you aren't a fan of the new ones!",
+                cssFile: "/includes/oldlegacyassets.css",
+                images: [
+                    'img/logo_old.png'
+                ]
+            },
+            {
+                name: "Shell Shockers Assets",
+                identifier: "shellshockersassets",
+                description: "Use the old Shell Shockers assets for a more familiar look.",
+                cssFile: "/includes/shellshockersassets.css",
+                images: [
+                    'img/logo_shell.png'
+                ]
+            },
+            {
+                name: "Classic Shell Background",
+                identifier: "classicshellbackground",
+                description: "Use the lighter background gradient found in versions pre 0.15.7.",
+                cssFile: "/includes/classicshellbackground.css",
+                images: [
+                    'img/classicbackground.png'
+                ]
+            },
+            ...this.stylePacks
+        ]
+
         for (const pack of this.stylePacks) {
             styleOptions.push({ value: pack.identifier, label: pack.name });
         }
@@ -103,10 +152,10 @@ const LegacyThemesPlugin = {
     addPackToCurrentList: function (identifier, listOption) {
         if (identifier === "none") return;
 
-        const currentItems = listOption.get();
+        let currentItems = listOption.get();
         if (currentItems.find(i => i === identifier)) return;
 
-        currentItems.push(identifier);
+        currentItems = [identifier, ...currentItems];
         listOption.set(currentItems);
 
         this.applyStylesFromList(currentItems);
@@ -140,32 +189,104 @@ const LegacyThemesPlugin = {
         return [r, g, b];
     },
 
-    getCSSVariable: function (varName) {
+    getCSSVariable: function (varName, reformat = true) {
         const style = getComputedStyle(document.documentElement);
         const value = style.getPropertyValue(varName).trim();
+        if (reformat) {
+            if (value.startsWith('#')) {
+                return this.hexToNormalizedRGB(value);
+            } else if (value.startsWith('url(')) {
+                const urlMatch = value.match(/url\(["']?(.*?)["']?\)/);
+                if (urlMatch) {
+                    return urlMatch[1];
+                }
+            }
+        }
         return value;
     },
+
+    getAllCSSVariables: function (cssRules = []) {
+        const results = {};
+
+        for (const rule of cssRules) {
+            if (!rule.style) continue;
+            for (const name of rule.style) {
+                if (!name.startsWith("--")) continue;
+                const value = this.getCSSVariable(name);
+                results[name] = value;
+            }
+        }
+
+        return results;
+    },
+
+    // searchCSSVariables: function (searchString, reformat = true) {
+    //     const style = getComputedStyle(document.documentElement);
+    //     const results = [];
+    //     for (let i = 0; i < style.length; i++) {
+    //         const varName = style[i];
+    //         if (varName.includes(searchString)) {
+    //             const value = this.getCSSVariable(varName, reformat);
+    //             results.push({ name: varName, value: value });
+    //         }
+    //     }
+    //     return results;
+    // },
 
     applyStylesFromList: function (list) {
         this.initialApplied = true;
 
         Object.values(this.styleCache).forEach(style => {
-            style.disabled = true;
+            style?.remove();
         });
+
+        list = list.slice().reverse();
+
+        devlog("Applying styles:", list);
+
+        const vars = {};
+
+        for (const style of document.styleSheets) {
+            try {
+                if (!style.cssRules) continue;
+                Object.assign(vars, this.getAllCSSVariables(style.cssRules));
+            } catch (error) { };
+        }
 
         list.forEach(id => {
             const style = this.styleCache[id];
             if (!style) return;
-
-            style.disabled = false;
-
-            style?.remove();
             document.head.appendChild(style);
+
+            Object.assign(vars, this.getAllCSSVariables(style?.sheet?.cssRules));
+
+            devlog("style inject", { id, style, cssRules: style?.sheet?.cssRules });
         });
 
-        Customizer.skyColor.set(...this.hexToNormalizedRGB(this.getCSSVariable('--customizer-skyColor')));
-        Customizer.diffuseColor.set(...this.hexToNormalizedRGB(this.getCSSVariable('--customizer-diffuseColor')));
+        devlog("applied all themes, Final CSS Variables:", vars);
+
+        this.updateThingsFromCSS(vars);
     },
+
+    updateThingsFromCSS: function (vars = {}) {
+        Customizer.skyColor.set(...this.getCSSVariable('--customizer-skyColor'));
+        Customizer.diffuseColor.set(...this.getCSSVariable('--customizer-diffuseColor'));
+
+        for (const cssVar of Object.keys(vars)) {
+            const value = vars[cssVar];
+
+            // devlog(`CSS Variable ${cssVar}: ${value}`);
+
+            if (cssVar.startsWith('--replaceImgSrc-')) {
+                const identifier = cssVar.replace('--replaceImgSrc-', '');
+                const el = document.getElementById(identifier);
+                if (el) {
+                    el.src = this.getCSSVariable(cssVar); //i want it cleaned
+                    devlog(`Replaced image source for #${identifier} to ${el.src}`);
+                }
+            }
+        }
+    }
 };
 
 LegacyThemesPlugin.registerListeners(plugins);

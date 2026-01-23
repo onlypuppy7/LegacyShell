@@ -1,6 +1,6 @@
 const css = `
 .ssMenuOverlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 99999; display: none; }
-.ssMenuRoot { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.85); background: var(--ss-blue2); border-radius: 0.3em; padding: 0.75em; min-width: 42em; color: var(--ss-white); display: flex; flex-direction: column; }
+.ssMenuRoot { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.85); background: var(--ss-blue2); border-radius: 0.3em; padding: 0.75em; min-width: 42em; color: var(--ss-white0); display: flex; flex-direction: column; }
 .ssTabs { display: flex; margin-bottom: 0.6em; }
 .ssTab { padding: 0.3em 0.9em; margin-right: 0.4em; cursor: pointer; background: var(--ss-blue1); color: var(--ss-blue4); border-radius: 0.2em; user-select: none; }
 .ssTab.active { background: var(--ss-blue4); color: var(--ss-blue1); }
@@ -38,7 +38,7 @@ const css = `
 .ssCategory.collapsible .ssArrow { transform: rotate(0deg); }
 .ssCategory.collapsible.open .ssArrow { transform: rotate(90deg); }
 .ssOption { display: flex; align-items: center; margin: 0.35em 0; }
-.ssOption label { flex: 1; margin-right: 0.5em; }
+.ssOption label { flex: 1; margin-right: 0.5em; color: var(--ss-white0); }
 .ssLabelAbove {
     display: flex;
     flex-direction: column;
@@ -94,6 +94,7 @@ const css = `
 
 .ss_slider_number {
     margin-right: 0.35em;
+    color: var(--ss-white0);
 }
 
 .ss_text_input {
@@ -104,10 +105,11 @@ const css = `
 .ss_info_text {
     padding: 0.3em 0.5em;
     font-size: 0.75em;
-    color: var(--ss-white);
+    color: var(--ss-white0);
     background: var(--ss-blue1);
     border-radius: 0.5em;
     width: 100%;
+    color: var(--ss-white0);
 }
 
 .ss_list {
@@ -166,7 +168,7 @@ const css = `
 .ss_list_text {
     flex: 1;
     font-size: 0.75em;
-    color: var(--ss-white);
+    color: var(--ss-white0);
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;

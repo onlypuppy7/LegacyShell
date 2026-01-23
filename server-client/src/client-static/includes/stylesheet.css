@@ -1,14 +1,15 @@
 /* ------------------------------------------------------------------------------------------------- Universal Stuff -- */
 * {
+    /* unused colours are commented out for less clutter. use the legacythemes plugin if you are looking to customize colors. */
     --egg-brown: #532a19;
-    --egg-yolk: #f7941d;
+    /* --egg-yolk: #f7941d; */
     --egg-tan: #fff2e3;
 
-    --ss-white: #ffffff;
-    --ss-offwhite: #fff3e4;
+    --ss-white0: #ffffff; /* 0 added here */
+    /* --ss-offwhite: #fff3e4;
     --ss-yellow: #faf179;
     --ss-yolk: #f79520;
-    --ss-brown: #532a1a;
+    --ss-brown: #532a1a; */
     --ss-blue1: #91cadb;
     --ss-blue2: #5ebbd9;
     --ss-blue3: #0b93bd;
@@ -465,7 +466,7 @@ button.shiny {
 #buyPassContainer, #createGameContainer, #gotNuggetContainer, #applixirContainer {
 	left: 50%; top: 45%;
     transform: translate(-50%, -50%);
-    background-image: linear-gradient(#1f91b6, #a8e2f6) !important;
+    background-image: linear-gradient(#1f91b6, #a8e2f6);
     padding: 1em;
     white-space: nowrap;
 }
@@ -989,7 +990,7 @@ button > h1 {
 
 #settingsContainer .label {
     display: inline-block;
-    color: var(--ss-white);
+    color: var(--ss-white0);
     margin: 0.2em;
     margin-left: 0.5em;
 }

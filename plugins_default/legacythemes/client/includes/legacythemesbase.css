@@ -1,0 +1,155 @@
+/* the purpose of this css is not to change the look, but to make more of the game use css variables for easier theming */
+/* a number of things may be duplicated from the original css */
+/* !important is added where the divs have styles applied to them via js/individual styling */
+
+* {
+    --customizer-skyColor: #59A6CC;
+    --customizer-diffuseColor: #598099;
+    --itemButton-gradient-start: #ace;
+    --itemButton-gradient-end: #def;
+
+    /* some colours are copied just to put this all into one place */
+    --egg-brown: #532a19; /* copied */
+    --egg-tan: #fff2e3; /* copied */
+
+    --ss-blue0: #a8e2f6;
+    --ss-blue1: #91cadb; /* copied */
+    --ss-blue2: #5ebbd9; /* copied */
+    --ss-blue3: #0b93bd; /* copied */
+    --ss-blue4: #0e7697; /* copied */
+    --ss-blue5: #004883;
+    --ss-blue6: #49d;
+    --ss-blue7: #38c;
+
+    --ss-orange-1: #fff8d6;/* shiny button top, lightest */
+    --ss-orange0: #ffbf72; /* yolk button top */
+    --ss-orange1: #ffa500; /* spinner, browser "orange" colour */
+    --ss-orange2: #ff8833; /* orange button top and orangeBoxContent div with help/tips */
+    --ss-orange3: #f7941d; /* yolk button bottom */
+    --ss-orange4: #ee8822; /* roundedBorder colour */
+    --ss-orange5: #ee7733; /* orange text colour */
+    --ss-orange6: #ee7733; /* orange button bottom, darkest */
+
+    --ss-red0: #e33;
+    --ss-red1: #d22;
+
+    --ss-yellow0: #ffff00; /* browser "yellow" colour */
+    --ss-yellow1: #ffd335;
+    --ss-yellow2: #db5;
+    --ss-yellow3: #ca4;
+
+    --ss-purple0: #e4b;
+    --ss-purple1: #c39;
+
+    --ss-green0:#4c9;
+    --ss-green1: #3b8;
+    --ss-green2: #066509;
+
+    --ss-white0: #ffffff; /* copied, browser "white" colour */
+    --ss-white1: #eee;
+
+    --ss-grey0: #ccc;
+    --ss-grey1: #bbb;
+
+    /* replacement image URLs, this doesnt directly replace anything but is instead interfaced with by the legacythemes plugin in js */
+    --replaceImgSrc-noItemImg: url('/img/noItem.png');
+    --replaceImgSrc-noHatImg: url('/img/noHat.png');
+    --replaceImgSrc-noStampImg: url('/img/noStamp.png');
+}
+
+#buyPassContainer, #createGameContainer, #gotNuggetContainer, #applixirContainer {
+    background-image: linear-gradient(var(--ss-blue3), var(--ss-blue0) );
+}
+
+.buyPassItem {
+    background: var(--ss-blue3);
+}
+
+#buyPassDetails {
+    background: var(--ss-blue2);
+}
+
+#buyPassChickenSpeech {
+    filter: drop-shadow(0.2em 0.25em 0 color-mix(in srgb, var(--ss-blue3) 50%, transparent));
+}
+
+.itemButton {
+    background: linear-gradient(var(--itemButton-gradient-start), var(--itemButton-gradient-end) );
+}
+
+#currentBalance {
+    color: var(--ss-white0) !important;
+}
+
+.text_red { color: var(--ss-red0); }
+.text_orange { color: var(--ss-orange5); }
+.text_yellow { color: var(--ss-yellow3); }
+.text_yolk { color: var(--ss-orange3); }
+.text_green { color: var(--ss-green1); }
+.text_blue { color: var(--ss-blue1); }
+.text_darkblue { color: var(--ss-blue5); }
+.text_darkgreen { color: var(--ss-green2); }
+.text_purple { color: var(--ss-purple1); }
+.text_white {color: var(--ss-white0);}
+.text_grey { color: var(--ss-grey0); }
+
+
+button.shiny { background: linear-gradient(0deg, var(--ss-yellow1), var(--ss-orange3), var(--ss-orange-1)); }
+
+button.red    { --start: var(--ss-red0);    --end: var(--ss-red1); }
+button.orange { --start: var(--ss-orange2); --end: var(--ss-orange6); }
+button.yellow { --start: var(--ss-yellow2); --end: var(--ss-yellow3); }
+button.yolk   { --start: var(--ss-orange0); --end: var(--ss-orange3); }
+button.green  { --start: var(--ss-green0);  --end: var(--ss-green1); }
+button.blue   { --start: var(--ss-blue6);   --end: var(--ss-blue7); }
+button.purple { --start: var(--ss-purple0); --end: var(--ss-purple1); }
+button.clear  { --start: rgba(255,64,192,0.25); --end: rgba(128,32,96,0.75); }
+button.white  { --start: var(--ss-white0);  --end: var(--ss-white1); }
+button.grey   { --start: var(--ss-grey0);   --end: var(--ss-grey1); }
+
+button {
+    background: linear-gradient(var(--start), var(--end));
+}
+
+.statBar {
+    background: var(--itemButton-gradient-end);
+}
+
+div#orangeBoxContent {
+    border: 0.2em solid var(--ss-orange2) !important;
+}
+
+.roundedBorder {
+    border-color: var(--ss-orange4);
+}
+
+#spinnerHeader, #spinnerFooter {
+    color: var(--ss-orange1);
+}
+
+.spinner {
+    border: 1.25em solid var(--ss-orange1);
+    border-top: 0.5em solid var(--ss-orange1);
+    background: var(--ss-white0);
+}
+
+input#chatIn {
+    color: var(--ss-yellow0) !important;
+}
+
+#autocomplete-dialog div.highlight {
+    color: var(--ss-yellow0);
+}
+
+#autocomplete-dialog div {
+    color: var(--ss-white0);
+}
+
+.command-info p.command-description {
+    color: var(--ss-yellow0);
+}
+
+#command-info-dialog {
+    color: var(--ss-white0);
+    border: 1px solid var(--ss-yellow0);
+}

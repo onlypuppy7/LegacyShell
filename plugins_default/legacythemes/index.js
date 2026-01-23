@@ -1,6 +1,5 @@
 import path from 'node:path';
 import express from 'express';
-import { cssTemplate } from './css.js';
 //
 
 export const PluginMeta = {
@@ -34,7 +33,7 @@ export class Plugin {
     
     pluginSourceInsertion(data) {
         data.pluginInsertion.files.push({
-            insertBefore: `\nconsole.log("inserting before... (${PluginMeta.name})");\n${cssTemplate}\n`,
+            insertBefore: `\nconsole.log("inserting before... (${PluginMeta.name})");\n`,
             filepath: path.join(this.thisDir, 'client.js'),
             insertAfter: `\nconsole.log("inserting after... (${PluginMeta.name})!");`,
             position: 'before'
