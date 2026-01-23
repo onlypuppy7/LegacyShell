@@ -47,30 +47,31 @@ export class Plugin {
 
         pluginInstance = this;
 
-        if (plugins.type === "game") {
-            this.storeFolder = path.join(this.thisDir, 'store');
-            if (!fs.existsSync(this.storeFolder)) {
-                fs.mkdirSync(this.storeFolder, { recursive: true });
-            };
-
-            this.config = this.getConfig();
-            // console.log(this.config)
-
-            this.giveup = {};
-
-            this.plugins.on('game:sendGameInfo', this.sendGameInfo.bind(this));
-            this.plugins.on('game:requestConfigReceived', this.requestConfigReceived.bind(this));
-
-            setInterval(()=>this.sendStuff(), this.config.sendInterval * 1e3);
-
-            setTimeout(() => {
-                highestPub = 0;
-                highestPriv = 0;
-                highestBoth = 0;
-            }, 24 * 60 * 60e3); //in public instance is restarts anyway but why not.
-        } else {
+        if (plugins.type !== "game") {
             log.orange(`${PluginMeta.identifier} won't run on this server type (game only).`);
+            return;
         };
+        
+        this.storeFolder = path.join(this.thisDir, 'store');
+        if (!fs.existsSync(this.storeFolder)) {
+            fs.mkdirSync(this.storeFolder, { recursive: true });
+        };
+
+        this.config = this.getConfig();
+        // console.log(this.config)
+
+        this.giveup = {};
+
+        this.plugins.on('game:sendGameInfo', this.sendGameInfo.bind(this));
+        this.plugins.on('game:requestConfigReceived', this.requestConfigReceived.bind(this));
+
+        setInterval(()=>this.sendStuff(), this.config.sendInterval * 1e3);
+
+        setTimeout(() => {
+            highestPub = 0;
+            highestPriv = 0;
+            highestBoth = 0;
+        }, 24 * 60 * 60e3); //in public instance is restarts anyway but why not.
     };
 
     async sendGameInfo(data) {
