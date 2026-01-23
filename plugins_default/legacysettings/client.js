@@ -227,7 +227,6 @@ class LegacySettingsOptionClass {
                 values.forEach((val, index) => {
                     const row = document.createElement("div");
                     row.className = "ss_list_row";
-                    row.dataset.index = index;
 
                     if (this.opt.reorderable) {
                         const handle = document.createElement("span");
@@ -275,7 +274,7 @@ class LegacySettingsOptionClass {
                                 rows[targetPos] || null
                             );
 
-                            const newValues = [...values];
+                            const newValues = [...getState()];
                             const moved = newValues.splice(dragPos, 1)[0];
                             newValues.splice(targetPos > dragPos ? targetPos - 1 : targetPos, 0, moved);
 
@@ -293,8 +292,13 @@ class LegacySettingsOptionClass {
                         remove.className = "ss_list_remove";
                         remove.textContent = "✕";
                         remove.onclick = () => {
+                            const rows = [...input.children].filter(r => !r.classList.contains("empty"));
+                            const i = rows.indexOf(row);
+
+                            if (i === -1) return;
+
                             const arr = [...getState()];
-                            arr.splice(index, 1);
+                            arr.splice(i, 1);
                             setState(arr);
                             render();
                             this.opt.onChange?.(arr);
