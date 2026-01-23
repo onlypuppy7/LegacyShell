@@ -289,8 +289,9 @@ export async function prepareBabylons(endBabylonsDir = path.join(ss.rootDir, 'st
     };
 
     var promise = Promise.all([
-        saveZip(modelsZip, 'models.zip'),
-        saveZip(mapZip, 'map.zip'),
+        //why was i still doing this pointless bullshit?
+        // saveZip(modelsZip, 'models.zip'),
+        // saveZip(mapZip, 'map.zip'),
     ]);
 
     if (fileChanged) {

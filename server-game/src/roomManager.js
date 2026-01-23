@@ -35,6 +35,8 @@ class newRoomManager {
         setInterval(() => {
             this.sendInfoToServices();
         }, ss.config.game.servicesInfoCollectInterval * 1e3);
+
+        this.createRoomWorker();
     };
 
     getUnusedID() {
@@ -156,13 +158,35 @@ class newRoomManager {
         return Math.getRandomInt(1, highestRoomID); //not 0. pain in the ass. 0 == false type shit
     };
 
+    async createRoomWorker() {
+        try {
+            log.green("Creating another room worker in preparation...");
+            this.roomWorker = new Worker(new URL('./worker.js', import.meta.url));
+
+            this.roomWorker.postMessage(["setSS", {
+                maps: ss.maps,
+                items: ss.items,
+                permissions: ss.permissions,
+                config: ss.config,
+            }]);
+        } catch (e) {
+            console.error("error making room worker", e);
+        };
+    }
+
+    getRoomWorker() {
+        const oldRoom = this.roomWorker;
+        this.createRoomWorker();
+        return oldRoom;
+    };
+
     createRoom(info) {
         // info.mapId
 
         info.gameId = this.getUnusedID();
         // info.gameKey = Math.getRandomInt(10, Math.pow(36, 2) - 10);
         info.gameKey = 784;
-        const worker = new Worker(new URL('./worker.js', import.meta.url));
+        const worker = this.getRoomWorker();
 
         info = {
             ...info,
@@ -255,13 +279,6 @@ class newRoomManager {
                 log.error("Error in worker exit", code, error);
             };
         });
-
-        worker.postMessage(["setSS", {
-            maps: ss.maps,
-            items: ss.items,
-            permissions: ss.permissions,
-            config: ss.config,
-        }]);
 
         worker.postMessage(["createRoom", info]);
 
