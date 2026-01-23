@@ -14,6 +14,8 @@ export const FancyItemsPlugin = {
         this.plugins.on('game:bulletHitEffect', this.bulletHitEffect.bind(this));
         this.plugins.on('game:bulletHitAfter', this.bulletHitAfter.bind(this));
 
+        this.plugins.on('game:onBalanceUpdated', this.onBalanceUpdated.bind(this));
+
         this.createTheme();
     },
 
@@ -94,6 +96,15 @@ export const FancyItemsPlugin = {
             bulletHoleManager.addHole(0, x + (dx/4), y + (dy/4), z + (dz/4));
         };
     },
+
+    onBalanceUpdated: function (data) {
+        const el = document.getElementById("currentBalanceContainer");
+        if (!el) return;
+
+        el.classList.remove("gain");
+        void el.offsetWidth;
+        el.classList.add("gain");
+    }
 };
 
 FancyItemsPlugin.registerListeners(plugins);

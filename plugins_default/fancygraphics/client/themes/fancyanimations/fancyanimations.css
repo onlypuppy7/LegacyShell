@@ -8,5 +8,59 @@
 }
 
 button:hover {
-    background: linear-gradient(var(--end), var(--start));
+    /* !important to override rules like button.orange */
+    background: linear-gradient(var(--end), var(--start)) !important;
+}
+
+#cornerButtons img, #sociallinks img {
+    transition: transform 120ms ease, filter 120ms ease, opacity 120ms ease;
+    will-change: transform;
+}
+
+#cornerButtons img:hover, #sociallinks img:hover {
+    transform: translateY(-1px) scale(1.04);
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.35));
+    opacity: 0.95;
+}
+
+#cornerButtons img:active, #sociallinks img:active {
+    transform: translateY(0) scale(0.95);
+    filter: none;
+}
+
+#currentBalanceContainer:hover img {
+    transform: translateY(-3px) scale(1.06);
+    filter: drop-shadow(0 3px 8px rgba(255, 230, 120, 0.45));
+}
+
+#currentBalanceContainer.gain img {
+    animation: eggGain 260ms ease-out;
+}
+
+@keyframes eggGain {
+    0%   { transform: scale(1); }
+    50%  { transform: scale(1.18) rotate(-6deg); }
+    100% { transform: scale(1) rotate(0); }
+}
+
+#currentBalanceContainer.gain #currentBalance {
+    animation: balanceGain 260ms ease-out;
+}
+
+@keyframes balanceGain {
+    0%   { color: #fff; text-shadow: none; }
+    40%  { color: #ffec7f; text-shadow: 0 0 10px #ffec7f; transform: translateY(-5px); }
+    100% { color: #fff; text-shadow: none; transform: translateY(0); }
+}
+
+.ss_checkbox {
+    width: 1.2em;
+    height: 1.2em;
+    cursor: pointer;
+    transition: transform 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
+}
+
+.ss_checkbox:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
