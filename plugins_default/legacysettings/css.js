@@ -56,7 +56,7 @@ const css = `
 .bindBox.active { background: var(--ss-blue4); color: var(--ss-blue1); }
 .ss_select {
     border: none;
-    width: 100%;
+    min-width: 13em;
 }
 .ss_radio_group.horizontal {
     display: flex;

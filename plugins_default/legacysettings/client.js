@@ -505,53 +505,53 @@ class LegacySettingsClass {
         return wrap;
     }
 
-renderTab(tabName) {
-    const pane = this.root.querySelector(".ssPane");
+    renderTab(tabName) {
+        const pane = this.root.querySelector(".ssPane");
 
-    // hide all tabs
-    Object.values(this.tabCache).forEach(el => {
-        el.style.display = "none";
-    });
-
-    // already built, just show
-    if (this.tabCache[tabName]) {
-        this.tabCache[tabName].style.display = "flex";
-        return;
-    }
-
-    // build once
-    const tabRoot = document.createElement("div");
-    tabRoot.className = "ssTabRoot";
-    tabRoot.style.display = "flex";
-    tabRoot.style.width = "100%";
-    tabRoot.style.height = "100%";
-
-    const tab = this.tabs[tabName];
-
-    tab.panels.forEach(panelData => {
-        const panelEl = document.createElement("div");
-        panelEl.className = "ssPanel";
-        panelEl.style.flex = panelData.width;
-
-        if (panelData.standalone.length) {
-            const stand = document.createElement("div");
-            stand.className = "ssStandalone";
-            panelData.standalone.forEach(optionObj => {
-                stand.appendChild(optionObj.build());
-            });
-            panelEl.appendChild(stand);
-        }
-
-        panelData.categories.forEach(cat => {
-            panelEl.appendChild(this.buildCategory(cat));
+        // hide all tabs
+        Object.values(this.tabCache).forEach(el => {
+            el.style.display = "none";
         });
 
-        tabRoot.appendChild(panelEl);
-    });
+        // already built, just show
+        if (this.tabCache[tabName]) {
+            this.tabCache[tabName].style.display = "flex";
+            return;
+        }
 
-    pane.appendChild(tabRoot);
-    this.tabCache[tabName] = tabRoot;
-}
+        // build once
+        const tabRoot = document.createElement("div");
+        tabRoot.className = "ssTabRoot";
+        tabRoot.style.display = "flex";
+        tabRoot.style.width = "100%";
+        tabRoot.style.height = "100%";
+
+        const tab = this.tabs[tabName];
+
+        tab.panels.forEach(panelData => {
+            const panelEl = document.createElement("div");
+            panelEl.className = "ssPanel";
+            panelEl.style.flex = panelData.width;
+
+            if (panelData.standalone.length) {
+                const stand = document.createElement("div");
+                stand.className = "ssStandalone";
+                panelData.standalone.forEach(optionObj => {
+                    stand.appendChild(optionObj.build());
+                });
+                panelEl.appendChild(stand);
+            }
+
+            panelData.categories.forEach(cat => {
+                panelEl.appendChild(this.buildCategory(cat));
+            });
+
+            tabRoot.appendChild(panelEl);
+        });
+
+        pane.appendChild(tabRoot);
+        this.tabCache[tabName] = tabRoot;
+    }
 
     finalise(override = false) {
         if (this.finalised && !override) return;
