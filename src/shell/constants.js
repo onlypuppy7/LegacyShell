@@ -7,7 +7,6 @@ import { isClient, isServer, isEditor, devlog, clientlog, serverlog, getTimestam
 import { ss } from '#misc';
 //legacyshell: plugins
 import { plugins } from "#plugins";
-import { room } from "#worker";
 //
 
 export { isClient, isServer, isEditor, devlog, clientlog, serverlog, getTimestamp, isObject };
@@ -514,8 +513,8 @@ export function sleep(ms) {
 };
 
 export function iteratePlayers(func = () => {}, keepEmpty = false) {
-    const playerArray = isClient ? players_by_id : room.players_by_id;
-    // const length = isClient ? playerLimit : room.playerLimit; //playerArray.length;
+    const playerArray = isClient ? players_by_id : ss.room.players_by_id;
+    // const length = isClient ? playerLimit : ss.room.playerLimit; //playerArray.length;
     const length = playerArray.length; //playerArray.length;
 
     for (let i = 0; i < length; i++) {
@@ -526,7 +525,7 @@ export function iteratePlayers(func = () => {}, keepEmpty = false) {
 };
 
 export async function iteratePlayersAsync(func = async () => {}, keepEmpty = false) {
-    const playerArray = isClient ? players_by_id : room.players_by_id;
+    const playerArray = isClient ? players_by_id : ss.room.players_by_id;
     const length = playerArray.length;
 
     for (let i = 0; i < length; i++) {

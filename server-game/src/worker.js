@@ -27,6 +27,7 @@ export var room;
                     break;
                 case "createRoom":
                     room = new RoomConstructor(message);
+                    ss.room = room;
                     break;
                 case "joinPlayer":
                     room.joinPlayer(message);
