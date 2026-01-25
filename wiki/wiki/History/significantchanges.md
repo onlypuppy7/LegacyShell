@@ -2,6 +2,9 @@
 
 ## Gameplay
 between [16 Aug 2018 (0.14.0)](https://discord.com/channels/350339162177798154/350344229005819905/468518456422039589) and [17 Aug 2018 (~0.13.5)](https://discord.com/channels/350339162177798154/366644989650010113/468881448372273152) timed rounds were added, and quickly reverted
+### Bullet Holes
+Added in 0.1.0, texture changed in 0.9.0, removed in 0.17.0.
+
 ## Models
 between [16 Jul 2018 (0.13.5)](https://web.archive.org/web/20180716191908/https://shellshock.io/) and [10 Sep 2018 (0.14.32)](https://web.archive.org/web/20180910212010/https://shellshock.io/) shell changed the gun models from the classics to the legacy ones
 ## Animations
@@ -18,10 +21,18 @@ between [5 May 2018 (0.12.4)](https://www.youtube.com/watch?v=hZL5Vg2cxBU) and [
 between [8 Aug 2019 (0.21.4)](https://www.youtube.com/watch?v=2GHXgeYDqfs) and [15 Aug 2019 (0.23.2)](https://www.youtube.com/watch?v=pTJgIl2gPoY) there was the older ui overhaul
 
 between [18 Oct 2022 (0.43.0)](https://www.youtube.com/watch?v=Z3RgGox7cW8) and [4 Mar 2023 (0.45.1)](https://www.youtube.com/watch?v=tWdo0vwNkcY) there was the new ui overhaul
+### Game UI
+<img src="./An FPS Game in Your Browser_ ShellShock.io EP 1_ I play as soldier 1-54 screenshot.png" alt="An FPS Game in Your Browser_ ShellShock.io EP 1_ I play as soldier 1-54 screenshot" width="40%">
+<img src="./Shellshock.io_ NEW GUNS AND SKINS! 1-13 screenshot.png" alt="Shellshock.io_ NEW GUNS AND SKINS! 1-13 screenshot" width="40%">
+
+between [22 Aug 2018 (0.14.1)](https://www.youtube.com/watch?v=O8TmU5iq3Hk) and [21 May 2018 (0.14.2)](https://www.youtube.com/watch?v=Bhk77Yc-5k0), the ingame ui was overhauled: moving positions of the leaderboard/kill messages/fps/ping, hiding top bar buttons, adding an egg png to the health bar, and adding golden egg count. some of the top bar icon images were also replaced.
+
 ### Minor
 between [7 Jan 2019 (0.15.6)](https://www.youtube.com/watch?v=b_WR0BORyTQ) and [17 Jan 2019 (0.15.7)](https://www.youtube.com/watch?v=2Ui_D7fE-1E) the health bar changed, and the background gradient also changed to a darker blue
 ## Lighting
 between [10 Sep 2020 (0.28.4)](https://www.youtube.com/watch?v=SmpvKkgdToU) and [24 Sep 2020 (0.28.6)](https://www.youtube.com/watch?v=6PNunaxZLk8) the lighting changed dramatically (less dark)
+
+
 
 # Maps:
 the earliest maps:
