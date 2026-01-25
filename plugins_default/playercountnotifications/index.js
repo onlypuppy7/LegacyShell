@@ -159,7 +159,7 @@ export class Plugin {
                         },
                         body: JSON.stringify({
                             username: `LegacyShell Player Count (${serverName})${dev ? " [dev]" : ""}` ,
-                            avatar_url: "https://cdn.onlypuppy7.online/legacyshell/playercount.png?v=1",
+                            avatar_url: "https://cdn.onlypuppy7.org/legacyshell/playercount.png?v=1",
                             content: msgs[i],
                         }),
                     });
