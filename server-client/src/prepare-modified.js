@@ -69,8 +69,8 @@ async function modifyFiles() {
         code.serversJs = fs.readFileSync(sourceServersJsPath, 'utf8');
         code.serversJs = code.serversJs.replace(/LEGACYSHELLSERVICESPORT/g, ss.config.services.port || "13371");
         code.serversJs = code.serversJs.replace(/LEGACYSHELLWEBSOCKETPORT/g, ss.config.game.port || "13372");
-        code.serversJs = code.serversJs.replace(/LEGACYSHELLSERVICESSERVER/g, ss.config.client.servicesURL || "wss://services.legacy.onlypuppy7.online:443");
-        code.serversJs = code.serversJs.replace(/LEGACYSHELLSERVERS/g, ss.cache.servers || "[{ name: 'LegacyShell', address: 'matchmaker.legacy.onlypuppy7.online:443' }]");
+        code.serversJs = code.serversJs.replace(/LEGACYSHELLSERVICESSERVER/g, ss.config.client.servicesURL || "wss://services.legacy.onlypuppy7.org:443");
+        code.serversJs = code.serversJs.replace(/LEGACYSHELLSERVERS/g, ss.cache.servers || "[{ name: 'LegacyShell', address: 'matchmaker.legacy.onlypuppy7.org:443' }]");
 
         await plugins.emit('serversJs', { ss, code });
 
