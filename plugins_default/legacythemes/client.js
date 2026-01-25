@@ -67,15 +67,6 @@ const LegacyThemesPlugin = {
                     'img/logo_shell.png'
                 ]
             },
-            {
-                name: "Classic Shell Background",
-                identifier: "classicshellbackground",
-                description: "Use the lighter background gradient found in versions pre 0.15.7.",
-                cssFile: "/includes/classicshellbackground.css",
-                images: [
-                    'img/classicbackground.png'
-                ]
-            },
             ...this.stylePacks
         ]
 
@@ -234,6 +225,7 @@ const LegacyThemesPlugin = {
     // },
 
     applyStylesFromList: function (list) {
+        if (!this.cacheComplete) return;
         this.initialApplied = true;
 
         Object.values(this.styleCache).forEach(style => {
