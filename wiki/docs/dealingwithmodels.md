@@ -80,7 +80,7 @@ The plugin should work regardless of OS.
 
 [From archive.org](https://web.archive.org/web/20241121215931/https://github.com/BabylonJS/BlenderExporter/raw/refs/heads/master/deprecated/Blender2Babylon-2.93x.zip)
 
-[From onlypuppy7's forum](https://forum.onlypuppy7.online/viewtopic.php?p=105036#p105036)
+[From onlypuppy7's forum](https://forum.onlypuppy7.org/viewtopic.php?p=105036#p105036)
 
 ### Adding the plugin
 
