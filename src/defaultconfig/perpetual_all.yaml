@@ -21,7 +21,7 @@ client:
   #webhook logging
   webhook_url: "" #empty disables it
   webhook_username: "LegacyShell: Client Server"
-  webhook_avatar: "https://cdn.onlypuppy7.online/legacyshell/client.png"
+  webhook_avatar: "https://cdn.onlypuppy7.org/legacyshell/client.png"
   webhook_ping_user: "" #ENTER THE USER ID. for when there is an error. empty = no ping.
   webhook_ping_role: "" #ENTER THE ROLE ID. for when there is an error. empty = no ping.
 
@@ -39,7 +39,7 @@ services:
   #webhook logging
   webhook_url: "" #empty disables it
   webhook_username: "LegacyShell: Services Server"
-  webhook_avatar: "https://cdn.onlypuppy7.online/legacyshell/services.png"
+  webhook_avatar: "https://cdn.onlypuppy7.org/legacyshell/services.png"
   webhook_ping_user: "" #ENTER THE USER ID. for when there is an error. empty = no ping.
   webhook_ping_role: "" #ENTER THE ROLE ID. for when there is an error. empty = no ping.
 
@@ -57,6 +57,6 @@ game:
   #webhook logging
   webhook_url: "" #empty disables it
   webhook_username: "LegacyShell: Game Server"
-  webhook_avatar: "https://cdn.onlypuppy7.online/legacyshell/game.png"
+  webhook_avatar: "https://cdn.onlypuppy7.org/legacyshell/game.png"
   webhook_ping_user: "" #ENTER THE USER ID. for when there is an error. empty = no ping.
   webhook_ping_role: "" #ENTER THE ROLE ID. for when there is an error. empty = no ping.

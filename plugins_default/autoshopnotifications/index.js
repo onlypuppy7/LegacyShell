@@ -141,7 +141,7 @@ export class Plugin {
                     },
                     body: JSON.stringify({
                         username: `LegacyShell Shop Notifications${dev ? " [dev]" : ""}` ,
-                        avatar_url: "https://cdn.onlypuppy7.online/legacyshell/shop.png?v=2",
+                        avatar_url: "https://cdn.onlypuppy7.org/legacyshell/shop.png?v=2",
                         content: msgs[i],
                     }),
                 });

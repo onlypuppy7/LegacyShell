@@ -26,4 +26,4 @@ Here is a list of known plugins for LegacyShell. (You may even notice a pattern 
 
 Made your own plugin? List it :>
 
-Alternatively, [check out this page on my forum](https://forum.onlypuppy7.online/viewforum.php?f=19).
+Alternatively, [check out this page on my forum](https://forum.onlypuppy7.org/viewforum.php?f=19).
