@@ -134,6 +134,10 @@ export class DeadInternetBot {
         await this.respawn();
     }
 
+    control(control) {
+        this.player.controlKeys |= control;
+    }
+
     async respawn() {
         await this.client.requestRespawn();
     }
@@ -153,12 +157,15 @@ export class DeadInternetBot {
         };
     }
 
-    getNearestPlayer() {
+    getNearestPlayer(human = true) {
         let nearestPlayer = null;
         let nearestDistance = Infinity;
 
         iteratePlayers((otherPlayer) => {
+            // devlog("DeadInternetBot checking player", otherPlayer.name, otherPlayer.client?.isHuman, otherPlayer.playing);
             if (otherPlayer === this.player) return;
+            if (!otherPlayer.playing) return;
+            if (human && !otherPlayer.client.isHuman) return;
 
             const distance = this.getDistanceToPlayer(otherPlayer).distance;
             // console.log("DeadInternetBot distance to", otherPlayer.name, distance.toFixed(2));

@@ -1,5 +1,5 @@
 //legacyshell: basic
-import { isClient, isServer, maxServerSlots } from "#constants";
+import { CONTROL, isClient, isServer, maxServerSlots } from "#constants";
 import Comm from "#comm";
 //legacyshell: plugins
 import { plugins } from '#plugins';
@@ -25,11 +25,11 @@ export const DeadInternetPlugin = {
             isCheat: true,
             name: "add",
             category: "bots",
-            description: "Spawns one useless bot.",
-            example: "true",
-            warningText: "This command will probably crash your game (however it's harmless).",
-            permissionLevel: [ctx.ranksEnum.Moderator, ctx.ranksEnum.Guest, true],
-            inputType: ["bool"],
+            description: "Spawns some useless bots.",
+            example: "1",
+            warningText: "Add some test bots to the server.",
+            permissionLevel: [ctx.ranksEnum.Moderator, ctx.ranksEnum.Guest, true], //later change to Moderator
+            inputType: ["number", 1, 18, 1],
             executeClient: ({ player, opts, mentions }) => { },
             executeServer: async ({ player, opts, mentions }) => {
                 // ctx.room.gameOptions.glitchyRoom1 = opts;
@@ -38,33 +38,40 @@ export const DeadInternetPlugin = {
                 //     nickname: "DeadInternetBot",
                 //     wsId: null,
                 // });
-                const bot = new DeadInternetBot(ctx.room, {
-                    // useOOBid: true,
-                });
+                for (let i = 0; i < opts; i++) {
+                    const bot = new DeadInternetBot(ctx.room, {
+                        // useOOBid: true,
+                    });
 
-                await bot.init();
+                    await bot.init();
 
-                bot.onDeath = () => {
-                    setTimeout(() => {
-                        bot.respawn();
-                    }, 7500);
-                };
+                    bot.player.changeModifiers({
+                        speedModifier: Math.getRandomInt(4,6) / 10,
+                    });
 
-                bot.onUpdate = async () => {
-                    const targetPlayer = bot.getNearestPlayer();
-                    // console.log("DeadInternetBot nearest player", targetPlayer?.name);
-                    if (targetPlayer) {
-                        bot.lookAtPlayer(targetPlayer);
-                    }
-                };
+                    bot.onDeath = () => {
+                        setTimeout(() => {
+                            bot.respawn();
+                        }, 7500);
+                    };
 
-                let weaponIdx = 1;
-                setInterval(() => {
-                    // console.log("DeadInternetBot swapping weapon", weaponIdx);
-                    bot.player.swapWeapon(weaponIdx);
-                    weaponIdx = (weaponIdx + 1) % 2;
-                    bot.player.jump();
-                }, 10e3);
+                    bot.onUpdate = async () => {
+                        const targetPlayer = bot.getNearestPlayer();
+                        // console.log("DeadInternetBot nearest player", targetPlayer?.name);
+                        if (targetPlayer) {
+                            bot.lookAtPlayer(targetPlayer);
+                            bot.control(CONTROL.up);
+                        }
+                    };
+
+                    let weaponIdx = 1;
+                    setInterval(() => {
+                        // console.log("DeadInternetBot swapping weapon", weaponIdx);
+                        bot.player.swapWeapon(weaponIdx);
+                        weaponIdx = (weaponIdx + 1) % 2;
+                        bot.player.jump();
+                    }, 10e3);
+                }
             }
         });
     },
