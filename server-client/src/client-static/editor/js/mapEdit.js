@@ -1,3 +1,6 @@
+const devmode = LEGACYSHELLDEVMODE;
+const isMapEditor = true;
+
 LEGACYSHELLISCLIENTSERVER
 
 // [LS] ######## Events ---------------------------------
