@@ -1,4 +1,4 @@
-//legacyshell: basic
+//(server-only-start)
 import fs from 'fs';
 import path from 'path';
 //legacyshell: plugins
@@ -13,7 +13,7 @@ import log from 'puppylog';
 //
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
-//
+//(server-only-end)
 
 export class PluginManager {
     constructor(type) {
