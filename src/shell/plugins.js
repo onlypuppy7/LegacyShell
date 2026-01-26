@@ -11,6 +11,9 @@ import misc, { ss } from '#misc';
 //legacyshell: logging
 import log from 'puppylog';
 //
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+//
 
 export class PluginManager {
     constructor(type) {
@@ -19,33 +22,30 @@ export class PluginManager {
         this.type = type || 'game';
     };
 
-    async retrievePluginAndDependencies(pluginFolder) {
-        const out = {pluginFolder};
+    async retrieveDependenciesCreatePluginObject(pluginFolder) {
+        const pluginObject = {pluginFolder};
         const timeBeforeLoadFiles = Date.now();
 
-        const pluginPath = path.join(pluginFolder, 'index.js');
-        if (fs.existsSync(pluginPath)) {
-            const dependenciesPath = path.join(pluginFolder, 'dependencies.js');
-            if (fs.existsSync(dependenciesPath)) {
-                out.dependencies = await import(pathToFileURL(dependenciesPath).href);
-            };
+        const dependenciesPath = path.join(pluginFolder, 'dependencies.js');
+        if (fs.existsSync(dependenciesPath)) {
+            pluginObject.dependencies = await import(pathToFileURL(dependenciesPath).href);
+        };
 
-            out.currentHash = execSync(`cd ${path.join(pluginFolder)} && git rev-parse HEAD`, { encoding: 'utf-8' }).trim();
-            out.Plugin = await import(pathToFileURL(pluginPath).href);
+        pluginObject.currentHash = execSync(`cd ${path.join(pluginFolder)} && git rev-parse HEAD`, { encoding: 'utf-8' }).trim();
 
-            out.timeToLoadFiles = Date.now() - timeBeforeLoadFiles;
+        pluginObject.timeToLoadFiles = Date.now() - timeBeforeLoadFiles;
 
-            return out;
-        } else return null;
+        return pluginObject;
     };
 
     async preloadPlugin(dirPath, pluginFolder) {
         try {
             log.boldGray("preloading plugin folder", pluginFolder);
-            const pluginObject = await this.retrievePluginAndDependencies(dirPath);
+            const pluginObject = await this.retrieveDependenciesCreatePluginObject(dirPath);
             if (!pluginObject) return;
 
-            const { currentHash, dependencies } = pluginObject.Plugin;
+            const { currentHash } = pluginObject.currentHash;
+            const { dependencies } = pluginObject?.dependencies || {};
             const timeBeforeDeps = Date.now();
 
             if (currentHash) {
@@ -71,8 +71,11 @@ export class PluginManager {
 
             let failed = false;
 
+            console.log(pluginFolder, "dependencies", dependencies, !!dependencies);
+
             if (dependencies) {
                 for (const [dependency, version] of Object.entries(dependencies)) {
+                    // console.log(`Checking dependency for plugin ${dirPath}:`, dependency, version);
                     if (version === "plugin") {
                         if (this.pluginsList.includes(dependency)) {
                             log.green(`Plugin dependency ${dependency} found`);
@@ -82,10 +85,7 @@ export class PluginManager {
                         };
                     } else {
                         try {
-                            const modulePath = path.join(ss.rootDir, 'node_modules', dependency);
-                            if (!fs.existsSync(modulePath)) {
-                                await import(dependency);
-                            };
+                            require.resolve(dependency);
                             // log.dim(`${dependency} is already installed.`);
                         } catch (error) {
                             log.warning(`${dependency} is not installed. Attempting to install (${version})...`);
@@ -107,6 +107,9 @@ export class PluginManager {
                 log.error(`Plugin ${dirPath} couldn't be loaded:\n${failed}`);
                 return null;
             };
+        
+            const pluginPath = path.join(dirPath, 'index.js');
+            pluginObject.Plugin = await import(pathToFileURL(pluginPath).href);
 
             pluginObject.timeToDoDeps = Date.now() - timeBeforeDeps;
 
