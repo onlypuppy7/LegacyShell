@@ -31,7 +31,7 @@
         "markdown-it": "^14.1.0",
         "puppylog": "^1.2.0",
         "puppymisc": "^1.1.2",
-        "puppyperpetual": "^1.1.5",
+        "puppyperpetual": "^1.2.7",
         "sharp": "^0.34.5",
         "sqlite3": "^5.1.7",
         "uglify-js": "^3.19.3",
