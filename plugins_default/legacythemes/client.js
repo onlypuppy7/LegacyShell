@@ -281,4 +281,4 @@ const LegacyThemesPlugin = {
     }
 };
 
-(!isMapEditor) && LegacyThemesPlugin.registerListeners(plugins);
+(typeof isMapEditor === 'undefined') && LegacyThemesPlugin.registerListeners(plugins);
