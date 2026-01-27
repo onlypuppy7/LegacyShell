@@ -12,6 +12,8 @@ export const FancyItemsPlugin = {
 
         this.plugins.on('game:onBalanceUpdated', this.onBalanceUpdated.bind(this));
 
+        this.plugins.on('game:bulletActorFired', this.bulletActorFired.bind(this));
+
         this.createTheme();
     },
 
@@ -33,6 +35,7 @@ export const FancyItemsPlugin = {
         LegacySettings.addCategory("Graphics", 1, "Modern Options", { defaultOpen: true, collapsible: false });
 
         this.fancyShadows = LegacySettings.addOption("Graphics", { type: "checkbox", key: "fancyShadows", label: "Fancy Shadows", default: false }, 1, "Modern Options");
+        this.fancyBullets = LegacySettings.addOption("Graphics", { type: "checkbox", key: "fancyBullets", label: "Fancy Bullets", default: false }, 1, "Modern Options");
     },
 
     playerActorShadowRenderList: function (data) {
@@ -66,7 +69,16 @@ export const FancyItemsPlugin = {
         el.classList.remove("gain");
         void el.offsetWidth;
         el.classList.add("gain");
-    }
+    },
+
+    bulletActorFired: function (data) {
+        var bulletActor = data.bulletActor;
+
+        const sourceMesh = bulletActor.mesh.sourceMesh;
+        sourceMesh.renderOutline = this.fancyBullets.get();
+        sourceMesh.outlineColor = new BABYLON.Color3.FromHexString("#EE8923");
+        sourceMesh.outlineWidth = 0.02;
+    },
 };
 
 FancyItemsPlugin.registerListeners(plugins);
