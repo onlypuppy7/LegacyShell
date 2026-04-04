@@ -4,7 +4,7 @@ import { Perpetual } from "puppyperpetual";
 
 const serverName = process.argv[2].replace("--","");
 
-const perpConfigLocation = path.join('store', 'config', 'perpetual_all.yaml');
+const perpConfigLocation = path.join(process.cwd(), 'store', 'config', 'perpetual_all.yaml');
 
 if (!fs.existsSync(perpConfigLocation)) {
     console.error(`Perpetual config file not found at ${perpConfigLocation}. Please run 'npm run init' first.`);
