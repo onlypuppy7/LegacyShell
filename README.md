@@ -25,7 +25,7 @@ So depending on your use case, you could either be using all or some of the serv
 - [x] To be a project which is easy to set up with nothing more required than just NodeJS, on any system
 - [x] To have the ability to easily upscale the servers with new regions that require minimal setup
 - [x] To be privacy respecting, with no telemetry and secure password encryption
-- [x] To include the necessary optimisations such as caching, multi-threaded game servers and the most cut down backend code
+- [x] To include the necessary optimisations such as caching, multi-threaded game servers and the most cut down backend code 
 
 ### Improvements Introduced By LegacyShell:
 
