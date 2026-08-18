@@ -13,7 +13,11 @@ export var room;
     try {
         misc.instantiateSS(import.meta, process.argv);
         await plugins.loadPlugins('game');
-    
+
+        //explicit, rather than relying on whatever import chain happens to evaluate '#items' first -
+        //see the comment on initItems() in items.js for why that was unreliable
+        await (await import('#items')).initItems();
+
         //importing, important to do after plugins are loaded so that they can inject their own methods
         const RoomConstructor = (await import('#rooms')).default;
         

@@ -1,5 +1,5 @@
 //legacyshell: items
-import { isServer } from "#constants";
+import { isClient, isServer } from "#constants";
 //legacyshell: plugins
 import { plugins } from '#plugins';
 //
@@ -83,17 +83,30 @@ export const AllItems = [
     },
 ];
 
-plugins.emit('AllItems', { AllItems, ItemActor, dummyItem });
-
 export const ItemTypes = {};
 
 // export const ItemConstructors = [];
 
-AllItems.forEach((item, index) => {
-    ItemTypes[item.codeName] = index;
-    if (isServer) item.actor = dummyItem;
-    // ItemConstructors.push([item.actor, item.poolSize, item]);
-    item.id = index;
-});
+// AllItems/itemsLoaded are extension points, but firing them here (at module-evaluation time)
+// is unreliable server-side: whichever code first imports '#items' - directly or transitively,
+// possibly during the plugin *preload* phase before any plugin has registered a listener - decides
+// when this runs, and ES modules only evaluate once. initItems() makes this an explicit step
+// instead, called once plugins are actually guaranteed to be loaded (see run-game.js, worker.js).
+let itemsInitialized = false;
+export async function initItems() {
+    if (itemsInitialized) return;
+    itemsInitialized = true;
 
-plugins.emit('itemsLoaded', { AllItems, ItemTypes, ItemActor, dummyItem });
+    await plugins.emit('AllItems', { AllItems, ItemActor, dummyItem });
+
+    AllItems.forEach((item, index) => {
+        ItemTypes[item.codeName] = index;
+        if (isServer) item.actor = dummyItem;
+        // ItemConstructors.push([item.actor, item.poolSize, item]);
+        item.id = index;
+    });
+
+    await plugins.emit('itemsLoaded', { AllItems, ItemTypes, ItemActor, dummyItem });
+};
+
+if (isClient) initItems(); // the browser bundle has no preload/instantiate split - safe to run immediately, as before
