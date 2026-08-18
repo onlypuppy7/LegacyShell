@@ -10,9 +10,6 @@ import { isObject } from '#constants';
 import misc, { ss } from '#misc';
 //legacyshell: logging
 import log from 'puppylog';
-//
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
 //(server-only-end)
 
 export class PluginManager {
@@ -20,6 +17,27 @@ export class PluginManager {
         this.plugins = {};
         this.listeners = {};
         this.type = type || 'game';
+        this.installQueue = Promise.resolve();
+    };
+
+    // A real plugin folder per the plugin contract: a directory, not disabled (leading "_"), with
+    // an index.js. Excludes incidental directories that could end up alongside plugins (e.g. an
+    // errant node_modules) from being treated as plugins themselves.
+    isPluginFolder(dirPath, name) {
+        return fs.statSync(dirPath).isDirectory() && !name.startsWith("_") && fs.existsSync(path.join(dirPath, 'index.js'));
+    };
+
+    // Deliberately a plain filesystem check, not require.resolve(dependency). Node's CJS resolver
+    // caches a *negative* lookup for a bare specifier for the rest of the process — confirmed by
+    // direct testing: probing with require.resolve, installing the package via a child npm process,
+    // then probing again in the same process still reports "not found" even though a brand new
+    // process resolves it fine. Since installMissingDependencies has to probe before it knows what's
+    // missing, that resolve call itself poisons the cache for exactly the packages it's about to
+    // install, so every later check in the same boot (including this one, if it used resolve) would
+    // keep reporting "missing" post-install and re-trigger single-package fallback installs — which
+    // is what actually re-introduces the prune-each-other bug this whole rework exists to avoid.
+    isDependencyInstalled(dependency) {
+        return fs.existsSync(path.join(ss.rootDir, 'node_modules', dependency));
     };
 
     async retrieveDependenciesCreatePluginObject(pluginFolder) {
@@ -84,20 +102,22 @@ export class PluginManager {
                             log.red(`Plugin dependency ${dependency} not found`);
                         };
                     } else {
-                        try {
-                            require.resolve(dependency);
+                        if (this.isDependencyInstalled(dependency)) {
                             // log.dim(`${dependency} is already installed.`);
-                        } catch (error) {
+                        } else {
                             log.warning(`${dependency} is not installed. Attempting to install (${version})...`);
-                            console.log(`Install result:\n`, execSync(`npm install ${dependency}@${version} --no-save`, (error, stdout, stderr) => {
-                                console.log(`.\n.\n.\n.\n.\n.\n.\n.\n`);
-                                if (error) {
-                                    console.error(`exec error: ${error}`);
-                                    return;
-                                };
-                                console.log(`stdout: ${stdout}`);
-                                console.error(`stderr: ${stderr}`);
-                            }).toString());
+                            // Fallback only — loadPlugins() batch-installs everything up front so this
+                            // shouldn't normally fire. Serialized (installQueue) so that if it ever does
+                            // fire more than once in the same boot, calls don't race each other; still
+                            // just a single package per call though, so unlike installMissingDependencies
+                            // this fallback path can still prune an unrelated undeclared package if two
+                            // different missing dependencies both hit this path in the same boot.
+                            const installPromise = this.installQueue.catch(() => {}).then(() => {
+                                const result = execSync(`npm install ${dependency}@${version} --no-save`).toString();
+                                console.log(`Install result:\n`, result);
+                            });
+                            this.installQueue = installPromise.catch(() => {});
+                            await installPromise;
                         };
                     };
                 };
@@ -120,6 +140,54 @@ export class PluginManager {
         };
     };
 
+    // Giving plugins_default/ or plugins/ their own package.json (to scope npm installs away from
+    // the tracked root one) was tried and reverted: Node resolves the project's #hashtag `imports`
+    // map (#comm, #misc, #constants, ...) against the *nearest* package.json, so any package.json
+    // placed between the root and a plugin file cuts that plugin off from the root's imports map
+    // entirely — breaking virtually every plugin's imports. Dependencies have to keep landing in
+    // the shared root node_modules.
+    //
+    // npm's "extraneous package" pruning runs on every `npm install` call, against whatever's
+    // declared in the adjacent package.json. With --no-save (so the tracked root package.json is
+    // never touched), any package not explicitly part of *that* install call is "extraneous" and
+    // gets pruned — including one a previous, separate call had just installed. The fix: whenever
+    // anything is missing, request the full set of currently-required plugin dependencies in one
+    // call, not just the missing ones, so nothing already-present-but-undeclared gets left out and
+    // pruned. If nothing is missing, skip npm entirely — no call means nothing to prune, which is
+    // how already-installed dependencies keep working across restarts without ever being declared.
+    async installMissingDependencies(pluginFolders) {
+        const required = new Map();
+        let anyMissing = false;
+
+        for (const baseDir of pluginFolders) {
+            if (!fs.existsSync(baseDir)) continue;
+
+            for (const dir of fs.readdirSync(baseDir)) {
+                const dirPath = path.join(baseDir, dir);
+                if (!this.isPluginFolder(dirPath, dir)) continue;
+
+                const dependenciesPath = path.join(dirPath, 'dependencies.js');
+                if (!fs.existsSync(dependenciesPath)) continue;
+
+                const { dependencies } = await import(pathToFileURL(dependenciesPath).href);
+                if (!dependencies) continue;
+
+                for (const [dependency, version] of Object.entries(dependencies)) {
+                    if (version === "plugin") continue;
+                    required.set(dependency, version);
+                    if (!this.isDependencyInstalled(dependency)) anyMissing = true;
+                };
+            };
+        };
+
+        if (!anyMissing || required.size === 0) return;
+
+        const specs = [...required.entries()].map(([dependency, version]) => `${dependency}@${version}`);
+        log.warning(`Installing plugin dependencies in one batch (some were missing): ${specs.join(', ')}...`);
+        const result = execSync(`npm install ${specs.join(' ')} --no-save`).toString();
+        console.log(`Batch install result:\n`, result);
+    };
+
     async preloadPluginsFromDir(pluginsDir, type, newSS) {
         try {
             if (!fs.existsSync(pluginsDir)) fs.mkdirSync(pluginsDir, { recursive: true });
@@ -131,7 +199,7 @@ export class PluginManager {
 
             for (const pluginFolder of pluginFolders) {
                 const dirPath = path.join(pluginsDir, pluginFolder);
-                if (fs.statSync(dirPath).isDirectory() && !pluginFolder.startsWith("_")) {
+                if (this.isPluginFolder(dirPath, pluginFolder)) {
                     promises.push(this.preloadPlugin(dirPath, pluginFolder));
                 }
             };
@@ -171,13 +239,19 @@ export class PluginManager {
             const dirs = fs.readdirSync(pluginFolder);
             for (const dir of dirs) {
                 const dirPath = path.join(pluginFolder, dir);
-                if (fs.statSync(dirPath).isDirectory()) {
+                // Deliberately doesn't exclude "_"-disabled plugins here (unlike isPluginFolder) —
+                // 'plugin' dependency checks below match against this list by folder name regardless
+                // of whether the dependency itself is currently enabled. Does exclude incidental
+                // directories like the scoped node_modules installMissingDependencies creates.
+                if (fs.statSync(dirPath).isDirectory() && fs.existsSync(path.join(dirPath, 'index.js'))) {
                     this.pluginsList.push(dir);
                 };
             };
         };
         
         console.log("pluginsList", this.pluginsList);
+
+        await this.installMissingDependencies(pluginFolders);
 
         const allPluginObjectsDirArrays = await Promise.all(
             pluginFolders.map(pluginsDir => this.preloadPluginsFromDir(pluginsDir, type, ss))
