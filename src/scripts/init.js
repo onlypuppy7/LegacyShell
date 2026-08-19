@@ -22,6 +22,20 @@ const rl = readline.createInterface({
     output: process.stdout
 });
 
+const AUTO_YES = process.argv.includes('-y') || process.argv.includes('--yes');
+
+function ask(promptText, callback) {
+    log.bold(promptText);
+
+    if (AUTO_YES) {
+        console.log('(y/n): y (auto, via -y)');
+        callback('y');
+        return;
+    };
+
+    rl.question('(y/n): ', callback);
+};
+
 misc.instantiateSS(import.meta, process.argv, undefined, true);
 
 const storeFolder = path.join(ss.rootDir, 'store');
@@ -82,8 +96,7 @@ function copyYamlFiles(callback) {
 const allYamlPath = path.join(configFolderPath, 'all.yaml');
 
 function askVerboseLogging(callback) {
-    log.bold('\nEnable verbose logging?');
-    rl.question('(y/n): ', answer => {
+    ask('\nEnable verbose logging?', answer => {
         const verbose = answer.trim().toLowerCase() === 'y';
         
         fs.readFile(allYamlPath, 'utf8', (err, data) => {
@@ -108,8 +121,7 @@ function askVerboseLogging(callback) {
 };
 
 function askDevLogging(callback) {
-    log.bold('\nEnable dev logging (appears in browser logs)?');
-    rl.question('(y/n): ', answer => {
+    ask('\nEnable dev logging (appears in browser logs)?', answer => {
         const devlogs = answer.trim().toLowerCase() === 'y';
         
         fs.readFile(allYamlPath, 'utf8', (err, data) => {
@@ -151,9 +163,8 @@ async function askAuthServer(callback) {
     log.green('Account DB set up!\n');
 
     log.info('\nIf just you wish to run LegacyShell on your one machine, select yes. If you otherwise want to act as a mirror/extra region/other standalone component, select no.');
-    log.bold('\n\nAdd the game server as an authed server?');
-    
-    rl.question('(y/n): ', async (answer) => {
+
+    ask('\n\nAdd the game server as an authed server?', async (answer) => {
         const addAuthServer = answer.trim().toLowerCase() === 'y';
 
         if (addAuthServer) {
