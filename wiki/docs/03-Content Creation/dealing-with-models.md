@@ -1,5 +1,9 @@
 # Dealing with Babylon Models
 
+> **Audience:** Map/model makers · **Prereqs:** [Getting Started](../01-Getting%20Started/)
+>
+> **Canonical source:** `src/base-babylons/` (base model files), `src/shell/general/prepare-babylons.js` (build step that merges them per-server)
+
 ## Preface
 
 Shell Shockers uses the BabylonJS engine to render the 3D world to the canvas. On the version that LegacyShell uses (3.3.0), Babylon uses it's own model system instead of the sensibler option of using GLBs or something as they do later.
