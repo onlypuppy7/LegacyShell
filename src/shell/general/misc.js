@@ -164,8 +164,9 @@ export const misc = {
 
         if (!sqlPassword) {
             //make seed extremely long and complex
-            sqlPassword = Math.getRandomAsciiChars(64);
-            ss.runQuery("INSERT INTO flags (name, value) VALUES ('sqlPassword', ?)", accs.hashPassword(sqlPassword));
+            const plaintext = Math.getRandomAsciiChars(64);
+            const hashed = accs.hashPassword(plaintext);
+            ss.runQuery("INSERT INTO flags (name, value) VALUES ('sqlPassword', ?)", hashed);
 
             log.orange(`
                 ############################################################
@@ -174,7 +175,9 @@ export const misc = {
                 #                                                          #
                 ############################################################
                 `);
-            log.bold(sqlPassword);
+            log.bold(plaintext);
+
+            sqlPassword = hashed;
         } else sqlPassword = sqlPassword.value;
 
         ss.sqlPassword = sqlPassword;

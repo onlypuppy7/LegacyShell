@@ -7,6 +7,7 @@
     "scripts": {
         "init": "node src/scripts/init.js",
         "bcrypt": "node src/scripts/bcrypt-tester.js",
+        "reset-sql-password": "node src/scripts/reset-sql-password.js",
         "gen-docs": "node src/scripts/gen-wiki-reference.js",
         "all": "node src/scripts/perpetual.js --client & node src/scripts/perpetual.js --services & node src/scripts/perpetual.js --game",
         "client": "node src/scripts/perpetual.js --client",
