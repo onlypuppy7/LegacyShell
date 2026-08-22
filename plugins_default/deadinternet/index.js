@@ -43,6 +43,8 @@ export class Plugin {
         this.plugins.on('game:clientUpdateLoadoutEnd', this.clientUpdateLoadoutEnd.bind(this));
         this.plugins.on('game:onPlayerDeath', this.onPlayerDeath.bind(this));
         this.plugins.on('game:updateBefore', this.updateBefore.bind(this));
+
+        this.plugins.on('services:initTablesMaps', this.initTablesMaps.bind(this));
     };
 
     pluginSourceInsertion(data) {
@@ -98,6 +100,10 @@ export class Plugin {
             }
         }
     }
+    
+        async initTablesMaps(data) {
+            await data.ss.recs.insertMaps(path.join(this.thisDir, 'maps')); //hopefully avoid the annoying startup crash
+        };
 };
 
 export var DeadInternetBots = [];
