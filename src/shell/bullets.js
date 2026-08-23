@@ -125,6 +125,8 @@ Bullet.prototype.remove = function () {
     this.active = false;
 };
 Bullet.prototype.update = function (delta) {
+    delta = delta * this.player.modifiers.bulletSpeedModifier;
+
     Bullet.origin.set(this.x, this.y, this.z);
     Bullet.direction.set(this.dx, this.dy, this.dz);
 
@@ -361,14 +363,31 @@ Grenade.prototype.update = function (delta) {
 
         this.dx *= Math.pow(.98, delta);
         this.dz *= Math.pow(.98, delta);
-        this.ttl -= delta;
+        this.ttl -= (delta / this.player.modifiers.grenadeTimerModifier);
         this.actor && this.actor.update();
     };
 };
 Grenade.prototype.collidesWithMap = function () {
-    Grenade.v1.set(this.x, this.y - .07, this.z), Grenade.v2.set(this.dx, this.dy, this.dz), Grenade.v3.set(this.dx, this.dy, this.dz);
+    Grenade.v1.set(this.x, this.y - .07, this.z);
+    Grenade.v2.set(this.dx, this.dy, this.dz);
+    Grenade.v3.set(this.dx, this.dy, this.dz);
     var res = Collider.rayCollidesWithMap(Grenade.v1, Grenade.v2, Collider.grenadeCollidesWithCell.bind(Collider));
-    return !!res && (Grenade.v3.subtractInPlace(res.normal.scale(1.6 * res.dot)), this.dx = .98 * Grenade.v3.x, this.dy = Grenade.v3.y, this.dz = .98 * Grenade.v3.z, this.actor && this.actor.bounce(), res)
+
+    if (!res) {
+        return false;
+    }
+
+    Grenade.v3.subtractInPlace(res.normal.scale(1.6 * res.dot * this.player.modifiers.grenadeBounceModifier));
+    
+    this.dx = .98 * Grenade.v3.x;
+    this.dy = Grenade.v3.y;
+    this.dz = .98 * Grenade.v3.z;
+
+    if (this.actor) {
+        this.actor.bounce();
+    }
+
+    return res;
 };
 Grenade.prototype.throw = function (player, pos, vec) {
     this.player = player, this.x = pos.x, this.y = pos.y, this.z = pos.z, this.dx = vec.x, this.dy = vec.y, this.dz = vec.z, this.ttl = 150, this.damage = 130, this.radius = 3, this.active = true, this.actor && this.actor.throw()

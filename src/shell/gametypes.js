@@ -52,6 +52,41 @@ export var defaultOptions = {
         0, //team1
         0, //team2
     ],
+    physicsSpeedModifier: [
+        1, //ffa
+        1, //team1
+        1, //team2
+    ],
+    bulletSpeedModifier: [
+        1, //ffa    
+        1, //team1
+        1, //team2
+    ],
+    reloadSpeedModifier: [
+        1, //ffa
+        1, //team1
+        1, //team2
+    ],
+    weaponSettleModifier: [
+        1, //ffa
+        1, //team1
+        1, //team2
+    ],
+    grenadeThrowModifier: [
+        1, //ffa
+        1, //team1
+        1, //team2
+    ],
+    grenadeTimerModifier: [
+        1, //ffa
+        1, //team1
+        1, //team2
+    ],
+    grenadeBounceModifier: [
+        1, //ffa
+        1, //team1
+        1, //team2
+    ],
     timedGame: {
         enabled: false,
         roundLength: 150, //2.5 mins in seconds

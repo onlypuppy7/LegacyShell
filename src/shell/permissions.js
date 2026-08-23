@@ -175,6 +175,146 @@ export class PermissionsConstructor {
             }
         });
         this.newCommand({
+            identifier: "physicsSpeed",
+            isCheat: true,
+            name: "physicsSpeed",
+            category: "change",
+            description: "Sets physics speed for players.",
+            example: "0.5",
+            autocomplete: "@",
+            usage: "[@mention] number (0.1 to 12, step 0.1)",
+            permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
+            inputType: ["number", 0.1, 12, 0.1],
+            executeClient: ({ player, opts, mentions }) => {
+                forEachMentionInMentions(mentions, (player) => {
+                    player.changeModifiers({physicsSpeedModifier: opts});
+                });
+            },
+            executeServer: ({ player, opts, mentions, mentionsLiteral }) => {
+                setGameOptionInMentions(player, mentions, mentionsLiteral, "physicsSpeedModifier", opts);
+            }
+        });
+        this.newCommand({
+            identifier: "bulletSpeed",
+            isCheat: true,
+            name: "bulletSpeed",
+            category: "change",
+            description: "Sets bullet speed for players.",
+            example: "0.5",
+            autocomplete: "@",
+            usage: "[@mention] number (0 to 12, step 0.001)",
+            permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
+            inputType: ["number", 0, 12, 0.001],
+            executeClient: ({ player, opts, mentions }) => {
+                forEachMentionInMentions(mentions, (player) => {
+                    player.changeModifiers({bulletSpeedModifier: opts});
+                });
+            },
+            executeServer: ({ player, opts, mentions, mentionsLiteral }) => {
+                setGameOptionInMentions(player, mentions, mentionsLiteral, "bulletSpeedModifier", opts);
+            }
+        });
+        this.newCommand({
+            identifier: "reloadSpeed",
+            isCheat: true,
+            name: "reloadSpeed",
+            category: "change",
+            description: "Sets reload speed for players.",
+            example: "0.5",
+            autocomplete: "@",
+            usage: "[@mention] number (0.1 to 12, step 0.1)",
+            permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
+            inputType: ["number", 0.1, 12, 0.1],
+            executeClient: ({ player, opts, mentions }) => {
+                forEachMentionInMentions(mentions, (player) => {
+                    player.changeModifiers({reloadSpeedModifier: opts});
+                });
+            },
+            executeServer: ({ player, opts, mentions, mentionsLiteral }) => {
+                setGameOptionInMentions(player, mentions, mentionsLiteral, "reloadSpeedModifier", opts);
+            }
+        });
+        this.newCommand({
+            identifier: "weaponSettle",
+            isCheat: true,
+            name: "weaponSettle",
+            category: "change",
+            description: "Sets weapon settle speed for players.",
+            example: "0.5",
+            autocomplete: "@",
+            usage: "[@mention] number (0.1 to 1000, step 0.1)",
+            permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
+            inputType: ["number", 0.1, 1000, 0.1],
+            executeClient: ({ player, opts, mentions }) => {
+                forEachMentionInMentions(mentions, (player) => {
+                    player.changeModifiers({weaponSettleModifier: opts});
+                });
+            },
+            executeServer: ({ player, opts, mentions, mentionsLiteral }) => {
+                setGameOptionInMentions(player, mentions, mentionsLiteral, "weaponSettleModifier", opts);
+            }
+        });
+        this.newCommand({
+            identifier: "grenadeThrow",
+            isCheat: true,
+            name: "grenadeThrow",
+            category: "change",
+            description: "Sets grenade throw speed multiplier for players. (Higher = farther throw)",
+            example: "0.5",
+            autocomplete: "@",
+            usage: "[@mention] number (-12 to 12, step 0.1)",
+            permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
+            inputType: ["number", -12, 12, 0.1],
+            executeClient: ({ player, opts, mentions }) => {
+                forEachMentionInMentions(mentions, (player) => {
+                    player.changeModifiers({grenadeThrowModifier: opts});
+                });
+            },
+            executeServer: ({ player, opts, mentions, mentionsLiteral }) => {
+                setGameOptionInMentions(player, mentions, mentionsLiteral, "grenadeThrowModifier", opts);
+            }
+        });
+        this.newCommand({
+            identifier: "grenadeTimer",
+            isCheat: true,
+            name: "grenadeTimer",
+            category: "change",
+            description: "Sets grenade timer multiplier for players. ",
+            example: "0.5",
+            autocomplete: "@",
+            usage: "[@mention] number (0 to 12, step 0.1)",
+            permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
+            inputType: ["number", 0, 12, 0.1],
+            executeClient: ({ player, opts, mentions }) => {
+                forEachMentionInMentions(mentions, (player) => {
+                    player.changeModifiers({grenadeTimerModifier: opts});
+                });
+            },
+            executeServer: ({ player, opts, mentions, mentionsLiteral }) => {
+                setGameOptionInMentions(player, mentions, mentionsLiteral, "grenadeTimerModifier", opts);
+            }
+        });
+        this.newCommand({
+            identifier: "grenadeBounce",
+            isCheat: true,
+            name: "grenadeBounce",
+            category: "change",
+            description: "Sets grenade bounce multiplier for players.",
+            example: "0.5",
+            autocomplete: "@",
+            usage: "[@mention] number (0 to 3, step 0.1)",
+            permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
+            inputType: ["number", 0, 3, 0.1],
+            executeClient: ({ player, opts, mentions }) => {
+                forEachMentionInMentions(mentions, (player) => {
+                    player.changeModifiers({grenadeBounceModifier: opts});
+                });
+            },
+            executeServer: ({ player, opts, mentions, mentionsLiteral }) => {
+                setGameOptionInMentions(player, mentions, mentionsLiteral, "grenadeBounceModifier", opts);
+            }
+        });
+        this.newCommand({
             identifier: "scale",
             isCheat: true,
             name: "scale",
@@ -717,6 +857,15 @@ class Command {
                 break;
             case "number": //["number", min, max, step]
                 opts = formatNumber(opts, this.inputType);
+                //reject if not a number
+                if (isNaN(opts)) {
+                    if (isClient) {
+                        addChat(`Invalid input. Usage: ${this.usage}`, null, Comm.Chat.cmd);
+                    } else {
+                        player.client.commandFeedback(`Invalid input. Usage: ${this.usage}`);
+                    }
+                    return false;
+                }
                 break;
             default:
                 break;

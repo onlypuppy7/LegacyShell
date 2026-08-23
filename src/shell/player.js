@@ -183,6 +183,13 @@ class Player {
             jumpBoostModifier: this.gameOptions.jumpBoostModifier[this.team],
             scale: this.gameOptions.scale[this.team],
             knockbackModifier: this.gameOptions.knockbackModifier[this.team],
+            physicsSpeedModifier: this.gameOptions.physicsSpeedModifier[this.team],
+            bulletSpeedModifier: this.gameOptions.bulletSpeedModifier[this.team],
+            reloadSpeedModifier: this.gameOptions.reloadSpeedModifier[this.team],
+            weaponSettleModifier: this.gameOptions.weaponSettleModifier[this.team],
+            grenadeThrowModifier: this.gameOptions.grenadeThrowModifier[this.team],
+            grenadeTimerModifier: this.gameOptions.grenadeTimerModifier[this.team],
+            grenadeBounceModifier: this.gameOptions.grenadeBounceModifier[this.team],
         }, init);
     };
     changeScale (newScale, init) {
@@ -230,6 +237,7 @@ class Player {
         }
     };
     async update(delta, resim) {
+        delta *= this.modifiers.physicsSpeedModifier;
         await plugins.emit('updateBefore', { player: this, delta, resim });
 
         var ddx = 0;
@@ -349,7 +357,7 @@ class Player {
                 speed *= 2;
             };
 
-            this.bobble = (this.bobble + 7 * speed) % Math.PI2;
+            this.bobble = (this.bobble + (7 * speed * this.modifiers.physicsSpeedModifier)) % Math.PI2;
             this.settleWeapon(speed, delta);
             if (this.weapon) {
                 this.weapon.update(delta)
@@ -885,6 +893,7 @@ class Player {
         return (!this.betweenRounds()) && !(!(this.playing && this.weapon && this.reloadCountdown <= 0 && this.swapWeaponCountdown <= 0 && this.grenadeCountdown <= 0) || this.actor && 0 != grenadePowerUp);
     };
     settleWeapon(speed = 0, delta = 1) {
+        delta *= this.modifiers.weaponSettleModifier;
         var stillSettleFactor = 1 + ((this.weapon.subClass.stillSettleSpeed - 1) / (1 + (speed * 100)));
         this.shotSpread += Math.floor(150 * speed * delta);
         var settleFactor = Math.pow(this.weapon.subClass.accuracySettleFactor, delta);
@@ -991,9 +1000,9 @@ class Player {
                 this.reloadsQueued--;
             };
             if (this.weapon.ammo.rounds == 0) {
-                this.reloadCountdown = this.weapon.longReloadTime;
+                this.reloadCountdown = this.weapon.longReloadTime / this.modifiers.reloadSpeedModifier;
             } else {
-                this.reloadCountdown = this.weapon.shortReloadTime;
+                this.reloadCountdown = this.weapon.shortReloadTime / this.modifiers.reloadSpeedModifier;
             };
         };
     };
@@ -1007,7 +1016,7 @@ class Player {
     };
     queueGrenade(throwPower) {
         this.grenadesQueued++;
-        this.grenadeThrowPower = Math.clamp(throwPower, 0, 1);
+        this.grenadeThrowPower = Math.clamp(throwPower, 0, 1) * this.modifiers.grenadeThrowModifier;
         this.grenadeCountdown = 20;
         this.actor || (this.grenadeCountdown *= .9);
     };
