@@ -356,7 +356,7 @@ export function buildMapData (errorFunc) { //[12th], (name from deobf leak)
                         colliderMesh: colliderMesh,
                         colliderPrecise: colliderPrecise,
                         colliderChildren: colliderChildren,
-                        colliderMatrix: BABYLON.Matrix.RotationYawPitchRoll(-ry, -rx, -rz),
+                        colliderMatrix: BABYLON.Matrix.RotationYawPitchRoll(ry, rx, rz).invert(),
                         rx: rx,
                         ry: ry,
                         rz: rz
