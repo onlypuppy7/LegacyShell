@@ -705,7 +705,7 @@ class Player {
                 var mesh = cell.mesh;
                 if (mesh) {
                     if (Math.length2(cx + 0.5 - out.x, cz + 0.5 - out.z) < 0.3) {
-                        this.onStandOnBlock(mesh);
+                        this.onStandOnBlock(mesh, out);
                     };
                     //could always add more stuff here... like an elevator or something
                     //not a trampoline though, that would be too much
@@ -736,14 +736,14 @@ class Player {
         if (Object.keys(dontApply).length) return out;
         Object.assign(this, out);
     };
-    onStandOnBlock(mesh) {
+    onStandOnBlock(mesh, out = this) {
         if (mesh.name == "jump-pad" && this.canJump()) {
             this.jumps++;
-            this.y += 0.26;
-            this.dy = 0.13; //approx 3 blocks in height
+            out.y += 0.26;
+            out.dy = 0.13; //approx 3 blocks in height
             this.setJumping(true);
         };
-        plugins.emit("onStandOnBlock", {mesh, this: this});
+        plugins.emit("onStandOnBlock", {mesh, this: this, out});
     };
     onStandOnTile(mesh) {
         plugins.emit("onStandOnTile", {mesh, this: this});
