@@ -396,6 +396,71 @@ export class PermissionsConstructor {
             executeServer: ({ player, opts, mentions }) => { }
         });
 
+        //player
+        this.newCommand({
+            identifier: "playerKill",
+            isCheat: true,
+            name: "kill",
+            category: "player",
+            description: "Instantly kills a player.",
+            example: "@onlypuppy7",
+            autocomplete: "@",
+            usage: "[@mention] (multiple mentions supported)",
+            permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
+            inputType: ["string"],
+            executeClient: ({ player, opts, mentions }) => {},
+            executeServer: ({ player, opts, mentions }) => {
+                forEachMentionInMentions(mentions, (target) => {
+                    target.setHp(0, target.id); //self-attributed, so a stale firedPlayer from an earlier hit doesn't get credited with this kill
+                });
+            }
+        });
+        this.newCommand({
+            identifier: "playerExplode",
+            isCheat: true,
+            name: "explode",
+            category: "player",
+            description: "Instantly kills a player and spawns a cosmetic explosion effect at their position.",
+            example: "@onlypuppy7",
+            autocomplete: "@",
+            usage: "[@mention] (multiple mentions supported)",
+            permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
+            inputType: ["string"],
+            executeClient: ({ player, opts, mentions }) => {},
+            executeServer: ({ player, opts, mentions }) => {
+                forEachMentionInMentions(mentions, (target) => {
+                    target.setHp(0, target.id); //self-attributed, see /player kill
+
+                    var output = new Comm.Out(2);
+                    output.packInt8U(Comm.Code.explosionEffect);
+                    output.packInt8U(target.id);
+                    this.room.sendToAll(output, null, "explosionEffect");
+                });
+            }
+        });
+        this.newCommand({
+            identifier: "playerHp",
+            isCheat: true,
+            name: "hp",
+            category: "player",
+            description: "Sets a player's HP directly. Unlike healing, this can push HP beyond the usual 100 cap.",
+            example: "@onlypuppy7 150",
+            autocomplete: "@",
+            usage: "[@mention] number (0 to 100, step 1)",
+            permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
+            inputType: ["number", 0, 100, 1],
+            executeClient: ({ player, opts, mentions }) => {},
+            executeServer: ({ player, opts, mentions }) => {
+                forEachMentionInMentions(mentions, (target) => {
+                    if (opts <= 0) {
+                        target.setHp(0, target.id); //still routes through the normal death flow, self-attributed
+                    } else {
+                        target.hp = opts; //bypass setHp's 100 clamp on purpose
+                    };
+                });
+            }
+        });
+
         //room
         this.newCommand({
             identifier: "notify",

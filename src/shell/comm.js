@@ -624,6 +624,13 @@ const Comm = {
          */
         syncData: 57,
 
+        /** LEGACYSHELL ADDED
+         *
+         * SERVER: spawns a cosmetic (non-damaging) explosion effect at a player's position, used by /player explode
+         * @constant {number}
+         */
+        explosionEffect: 58,
+
         /** CLIENT: used by bwd admins to look at ips and stuff (scary).
         * @constant {number}
         */
