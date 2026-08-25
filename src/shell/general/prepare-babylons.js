@@ -1,6 +1,7 @@
 //basic
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 //plugin: prepare-babylons
 import misc from '#misc';
 import jszip from 'jszip';
@@ -43,14 +44,72 @@ export async function prepareBabylons(endBabylonsDir = path.join(ss.rootDir, 'st
 
     await plugins.emit('prepareBabylonBefore', { baseBabylons, babylonDirFiles, addBabylonToZip });
 
+    const cachePath = path.join(endBabylonsDir, '.babylon-cache.json');
+    const selfMtime = fs.statSync(fileURLToPath(import.meta.url)).mtimeMs;
+    let babylonCache = {};
+    try {
+        if (fs.existsSync(cachePath)) {
+            const loaded = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
+            if (loaded.__meta?.selfMtime === selfMtime) babylonCache = loaded;
+        };
+    } catch (error) {
+        log.warning("Failed to read babylon cache, rebuilding everything:", error);
+    };
+
+    function statSig(filepath) {
+        try {
+            const stat = fs.statSync(filepath);
+            return { mtimeMs: stat.mtimeMs, size: stat.size };
+        } catch (error) {
+            return null;
+        };
+    };
+
+    let stampCount = null;
+    try {
+        if (ss.cache?.items) stampCount = JSON.parse(ss.cache.items).filter(item => item.item_type_name === 'Stamp').length;
+    } catch (error) { /* fine, just means no stamp-change invalidation this run */ };
+
+    let cacheDirty = false;
+
     for (const babylon of baseBabylons) {
         try {
             const filename = path.basename(babylon, '.babylon');
+
+            var baseBabylonPath = path.join(baseBabylonsDir, babylon);
+            const baseBabylonExists = fs.existsSync(baseBabylonPath);
+
+            var extraBabylons = [];
+
+            await plugins.emit('prepareBabylon', { filename, baseBabylon: undefined, extraBabylons });
+
+            const fingerprint = {
+                base: baseBabylonExists ? statSig(baseBabylonPath) : null,
+                extras: extraBabylons.map(item => ({
+                    path: item.filepath,
+                    sig: item.filepath ? statSig(item.filepath) : null,
+                    overwrite: !!item.overwrite,
+                    attemptFixSkeleton: !!item.attemptFixSkeleton,
+                })),
+                stampCount,
+            };
+
+            const outputBabylonPath = path.join(endBabylonsDir, `${filename}.babylon`);
+            const outputManifestPath = path.join(endBabylonsDir, `${filename}.babylon.manifest`);
+
+            const cached = babylonCache[filename];
+            const unchanged = cached && JSON.stringify(cached) === JSON.stringify(fingerprint)
+                && fs.existsSync(outputBabylonPath) && fs.existsSync(outputManifestPath);
+
+            if (unchanged) {
+                debuggingLogs && log.dim(`Skipping ${filename}, inputs unchanged.`);
+                continue;
+            };
+
             let baseBabylon;
             let timestamp;
 
-            var baseBabylonPath = path.join(baseBabylonsDir, babylon);
-            if (fs.existsSync(baseBabylonPath)) {
+            if (baseBabylonExists) {
                 log.dim(`Copying ${filename}...`);
                 baseBabylon = JSON.parse(fs.readFileSync(baseBabylonPath, 'utf8'));
                 //get date of file saved
@@ -58,10 +117,6 @@ export async function prepareBabylons(endBabylonsDir = path.join(ss.rootDir, 'st
             } else {
                 log.dim(`Base ${filename} doesn't exist, cannot copy.`);
             };
-
-            var extraBabylons = [];
-
-            await plugins.emit('prepareBabylon', { filename, baseBabylon, extraBabylons });
 
             // debuggingLogs && baseBabylon && console.log(babylon, "before", baseBabylon.meshes.length, extraBabylons);
 
@@ -255,6 +310,10 @@ export async function prepareBabylons(endBabylonsDir = path.join(ss.rootDir, 'st
 	"enableSceneOffline" : true,
 	"enableTextureOffline" : true
 }`);
+
+            babylonCache[filename] = fingerprint;
+            cacheDirty = true;
+
             if (babylon !== "map.babylon") {
                 addBabylonToZip(modelsZip, filename, baseBabylon);
             } else {
@@ -262,6 +321,15 @@ export async function prepareBabylons(endBabylonsDir = path.join(ss.rootDir, 'st
             };
         } catch (error) {
             log.error(`Error preparing babylon ${babylon}:`, error);
+        };
+    };
+
+    if (cacheDirty) {
+        try {
+            babylonCache.__meta = { selfMtime };
+            fs.writeFileSync(cachePath, JSON.stringify(babylonCache));
+        } catch (error) {
+            log.warning("Failed to write babylon cache:", error);
         };
     };
 
