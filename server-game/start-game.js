@@ -50,6 +50,7 @@ export default async function run () {
         wss.on('connection', (ws, req) => {
 
             let ip = req.socket.remoteAddress;
+            req.socket.setNoDelay(true); //disable Nagle's algorithm - these are small, frequent, latency-sensitive gameplay packets
 
             if (!ss.config.game.closed) try {
                 ws.on('message', async (message) => {

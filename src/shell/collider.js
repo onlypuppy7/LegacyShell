@@ -316,17 +316,22 @@ class ColliderConstructor {
     rayCollidesWithPlayer(origin, direction, proj) {
         var fromTeam = proj ? proj.player.team : null;
         var fromId = proj ? proj.player.id : null;
-        
+        var result = false;
+
         iteratePlayers(player => {
             if (player.playing && player.id != fromId && (0 == player.team || player.team != fromTeam)) {
                 this.ray.origin.copyFrom(origin);
                 this.ray.direction.copyFrom(direction);
                 this.ray.length = 1;
                 var point = this.rayCollidesWithPlayerHelper(this.ray, player);
-                if (point) return proj && proj.collidesWithPlayer(player, point), point;
+                if (point) {
+                    proj && proj.collidesWithPlayer(player, point);
+                    result = point;
+                    return false; //stop iterating - a projectile can only ever hit one player
+                };
             };
         });
-        return false;
+        return result;
     };
 
     rayCollidesWithPlayerHelper(ray, player) {
@@ -336,6 +341,9 @@ class ColliderConstructor {
             m = this.v1;
         p.copyFrom(ray.origin);
         d.copyFrom(ray.direction);
+        var segmentLength = d.length(); //ray.direction is the raw per-tick displacement, not a unit vector
+        if (segmentLength <= 0) return false;
+        d.scaleInPlace(1 / segmentLength); //normalize - the formula below is only valid for a unit direction
         c.set(player.predicted.x, player.predicted.y + (0.32 * player.modifiers.scale), player.predicted.z);
         p.subtractToRef(c, m);
         var b = BABYLON.Vector3.Dot(m, d);
@@ -343,7 +351,9 @@ class ColliderConstructor {
         var discr = b * b - c;
         if (discr < 0) return false;
         var t = -b - Math.sqrt(discr);
-        return t < 0 && (t = 0), d.scaleInPlace(t), p.addInPlace(d), p;
+        if (t < 0) t = 0;
+        if (t > segmentLength) return false; //intersection lies beyond what actually moved this tick
+        return d.scaleInPlace(t), p.addInPlace(d), p;
     };
 };
 
