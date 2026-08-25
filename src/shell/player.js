@@ -1329,7 +1329,7 @@ class Player {
         if (collide && collide.cell && this.controlKeys & CONTROL.up && "ladder" == this.mapMeshes[collide.cell.idx].colliderType) {
             var diff = Math.abs(Math.radDifference(this.yaw, collide.cell.ry));
             if (!(.75 < diff && diff < 2.391)) {
-                if (1 == collide.cell.ry || 3 == collide.cell.ry) {
+                if (Math.cardVals[1] == collide.cell.ry || Math.cardVals[3] == collide.cell.ry) {
                     if (.2 < Math.abs(pos.z - collide.z - .5)) return
                 } else if (.2 < Math.abs(pos.x - collide.x - .5)) return;
                 this.climbingCell.x = collide.x;
