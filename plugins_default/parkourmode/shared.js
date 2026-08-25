@@ -1,6 +1,7 @@
 //legacyshell: basic
 import { devlog, isClient, isServer } from "#constants";
 import Comm from "#comm";
+import { GameType } from "#gametypes";
 //legacyshell: plugins
 import { plugins } from '#plugins';
 import { setGameOptionInMentions } from "#permissions";
@@ -243,6 +244,9 @@ export const ParkourModePlugin = {
     onStandOnTile(data) {
         var mesh = data.mesh;
         var player = data.this;
+
+        var currentGameType = isServer ? player.room.gameType : gameType;
+        if (currentGameType !== GameType.parkour) return;
 
         if (player.highestCheckpoint == undefined) player.highestCheckpoint = 0;
 
