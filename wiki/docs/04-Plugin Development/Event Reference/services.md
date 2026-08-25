@@ -33,6 +33,7 @@ Every `plugins.emit(...)` call site found in the files below, extracted directly
 | `redeemResult` | `server-services/start-services.js:673` | `{redeemResult, userData, msg}` | An item/egg code redemption attempt resolved. |
 | `previewResult` | `server-services/start-services.js:704` | `{canBeUsed, previewResult, userData, msg}` | A code "preview" (check without redeeming) resolved. |
 | `tokenSuccess` | `server-services/start-services.js:769` | `{ userData }` | The VIP/"nugget" token unlock flow succeeded. |
+| `unhandledCommand` | `server-services/start-services.js:794` | `{ msg, ws, accs }` | *(undocumented — add an entry to `src/scripts/event-descriptions.json`)* |
 | `insertMaps` | `server-services/src/data_management/recordsManagement.js:411` | `{this: this, jsonDir, map}` | Fired once per map JSON file as `insertMaps()` writes a `maps` row — the low-level counterpart to `initTablesMaps`. |
 
 ---

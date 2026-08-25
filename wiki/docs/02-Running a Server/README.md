@@ -11,6 +11,7 @@ This section covers actually operating a LegacyShell deployment: the database, u
 - **[Users and ranks](./users-and-ranks.md)** - `adminRoles`, granting yourself/others admin, banning.
 - **[Adding game servers](./adding-game-servers.md)** - `game_servers` rows, `auth_key`, running more than one region.
 - **[Client mirrors](./client-mirrors.md)** - running extra client servers pointed at one services instance.
+- **[Hosting for someone else's instance](./hosting-for-another-instance.md)** - volunteering a mirror or game server to an instance you don't own.
 - **[Perpetual](./perpetual.md)** - the process manager: crash restarts, daily restart schedule, auto git-pull, Discord webhook alerts.
 - **[Backups](./backups.md)** - rotation and retention, how to restore one.
 - **[Rate limiting](./rate-limiting.md)** - the regular/sensitive buckets and how `auth_key` bypasses them.

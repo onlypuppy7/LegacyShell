@@ -14,7 +14,7 @@ Grant the **Moderator** rank (`10`) to trusted players via the database - see [U
 UPDATE users SET adminRoles = 10 WHERE username = 'someone';
 ```
 
-At Moderator rank or above, a player can use every command tagged `Moderator` in the [generated slash command reference](../05-Codebase%20Reference/Generated/slash-commands.md) - which is most of the built-in room-management surface: `boot`, `notify`, `enableCheats`, `limit`, `warpall`, `lock`, `rounds enable/length/skip`, `time day/night`, `weather rain/storm/snowstorm`, and every `change` command (gravity, speed, scale, etc.).
+At Moderator rank or above, a player can use every command tagged `Moderator` in the [generated slash command reference](../05-Codebase%20Reference/Generated/slash-commands.md) - which is most of the built-in room-management surface: `boot`, `notify`, `enableCheats`, `limit`, `warpall`, `lock`, `rounds enable/length/skip`, `time day/night`, `weather rain/storm/snowstorm`, and every `change` command (gravity, speed, scale, etc. - see [Modifiers](../04-Plugin%20Development/modifiers.md) for exactly what each one does and how `@a`/`@t`/`@o` scoping works).
 
 ## The commands you'll actually use
 

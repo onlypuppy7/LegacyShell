@@ -4,7 +4,7 @@
 >
 > **Canonical source:** `server-client/src/client-static/src/apollon/Apollo.js`
 
-LegacyShell replaced the original game's audio with its own Howler.js-based wrapper, **Apollo** - see [Codebase Reference](../05-Codebase%20Reference/) for the engine-level detail; this page covers adding/replacing sound files as a content creator.
+LegacyShell replaced the original game's audio with its own Howler.js-based wrapper, **Apollo** - see [Sound and Apollo](../04-Plugin%20Development/sound-and-apollo.md) for the API a plugin uses to register and play sounds in code; this page covers adding/replacing sound files as a content creator.
 
 ## Where sound files live
 
@@ -22,7 +22,7 @@ Overwrite the file in place, keeping the same filename and format(s) - the game 
 
 ## Adding a new sound
 
-Adding a genuinely new sound effect (not replacing an existing one) means it also needs to be referenced somewhere in the game logic that decides *when* to play it - which is a code change, not just a file drop. If you're doing this as part of a plugin (e.g. a new gamemode with its own sound cues), that's normal client-side plugin work - see [Client-Side Code](../04-Plugin%20Development/client-side-code.md).
+Adding a genuinely new sound effect (not replacing an existing one) means it also needs to be referenced somewhere in the game logic that decides *when* to play it - which is a code change, not just a file drop. If you're doing this as part of a plugin (e.g. a new gamemode with its own sound cues), see [Sound and Apollo](../04-Plugin%20Development/sound-and-apollo.md) for the `loadSounds` hook and the functions that actually trigger playback.
 
 ## Common Issues
 

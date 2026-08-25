@@ -59,6 +59,7 @@ Every entry in `Comm.Code` (`src/shell/comm.js`), extracted directly from source
 | `doThunderStrike` | `55` | LEGACYSHELL ADDED SERVER: inits a thunderstrike |
 | `heal` | `56` | LEGACYSHELL ADDED SERVER: heals a player |
 | `syncData` | `57` | LEGACYSHELL ADDED SERVER: syncs the data of the player, with less pertinent data |
+| `explosionEffect` | `58` | LEGACYSHELL ADDED SERVER: spawns a cosmetic (non-damaging) explosion effect at a player's position, used by /player explode |
 | `info` | `255` | CLIENT: used by bwd admins to look at ips and stuff (scary). |
 
 ---

@@ -29,12 +29,14 @@ Skip straight to `plugins_default/` (first-party plugins bundled with LegacyShel
 ## Adding content
 
 - **...add a new gamemode.** [Recipe: New Gamemode](./Recipes/new-gamemode.md), background in [Gamemodes](../03-Content%20Creation/gamemodes.md).
+- **...understand or add gameplay multipliers like speed, gravity, or damage.** [Modifiers](./modifiers.md).
+- **...add a theme, or understand how the theming system actually works.** [Recipe: Custom Theme](./Recipes/custom-theme.md).
 - **...change how an existing weapon fires, or add a new one.** [Recipe: Custom Weapon](./Recipes/custom-weapon.md).
 - **...add a new pickup item (health, ammo, a custom power-up).** [Recipe: New Pickup Item](./Recipes/new-pickup-item.md), background in [Items and Skins](../03-Content%20Creation/items-and-skins.md).
 - **...add a new hat, stamp, or weapon skin.** [Hats and Stamps](../03-Content%20Creation/hats-and-stamps.md) and [Items and Skins](../03-Content%20Creation/items-and-skins.md), shipped via [Content Packs](./content-packs.md#items).
 - **...add a new collidable map block, and actually understand how its collision gets generated.** [Map Blocks](../03-Content%20Creation/map-blocks.md) - covers the naming convention *and* exactly where each `colliderType`'s collision geometry comes from.
 - **...build or edit a map.** [Maps](../03-Content%20Creation/maps.md).
-- **...add sound effects or music.** [Sounds](../03-Content%20Creation/sounds.md).
+- **...add sound effects or music.** [Sounds](../03-Content%20Creation/sounds.md) for the assets, [Sound and Apollo](./sound-and-apollo.md) for triggering them from code.
 - **...add a seasonal/limited-time shop event.** [Seasonal Events](../03-Content%20Creation/seasonal-events.md).
 - **...ship models, items, and maps together as one plugin.** [Content Packs](./content-packs.md) - the pattern `legacyshellcore` itself uses.
 

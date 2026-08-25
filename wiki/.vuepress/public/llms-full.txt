@@ -573,6 +573,7 @@ This section covers actually operating a LegacyShell deployment: the database, u
 - **[Users and ranks](./users-and-ranks.md)** - `adminRoles`, granting yourself/others admin, banning.
 - **[Adding game servers](./adding-game-servers.md)** - `game_servers` rows, `auth_key`, running more than one region.
 - **[Client mirrors](./client-mirrors.md)** - running extra client servers pointed at one services instance.
+- **[Hosting for someone else's instance](./hosting-for-another-instance.md)** - volunteering a mirror or game server to an instance you don't own.
 - **[Perpetual](./perpetual.md)** - the process manager: crash restarts, daily restart schedule, auto git-pull, Discord webhook alerts.
 - **[Backups](./backups.md)** - rotation and retention, how to restore one.
 - **[Rate limiting](./rate-limiting.md)** - the regular/sensitive buckets and how `auth_key` bypasses them.
@@ -988,6 +989,74 @@ WantedBy=multi-user.target
 
 ---
 
+## wiki/docs/02-Running a Server/hosting-for-another-instance.md
+
+# Hosting for Someone Else's Instance
+
+> **Audience:** Community members volunteering a client mirror or game server to an instance they don't own · **Prereqs:** [Architecture Overview](./architecture-overview.md)
+>
+> **Canonical source:** `server-services/src/data_management/recordsManagement.js` (`game_servers` schema), `server-services/src/ratelimit.js` (`auth_key` bypass)
+
+[Adding Game Servers](./adding-game-servers.md) and [Client Mirrors](./client-mirrors.md) are written for the person who owns the whole deployment - they assume you have filesystem access to `LegacyShellData.db` and are adding capacity to your own instance. This page is for the other case: someone else already runs a public instance, and you want to donate a machine to it - a game server for a new region, or a client mirror closer to a specific audience - without owning any part of their stack yourself.
+
+## Which role you can actually volunteer
+
+| Role | Needs the owner's permission? | Why |
+|---|---|---|
+| **Client mirror** | No | Stateless and unauthenticated by design - it just polls the owner's services server for maps/items/config and serves static files (see [Client Mirrors](./client-mirrors.md#setting-one-up)). Anyone can point one at any services server, the same way anyone can mirror a public website. |
+| **Game server** | Yes | It needs an `auth_key` matching a row in the owner's `game_servers` table before it can do anything - record kills, read account data, appear in the server list. That row can only be created by whoever has access to their database. |
+
+## Volunteering a client mirror
+
+Nothing beyond a normal install (see [Installation](../01-Getting%20Started/installation.md)), with `store/config/client.yaml`'s `sync_server` pointed at the owner's services server instead of a local one. Ask the owner for the exact WebSocket URL they want you to use - it may not be the same address players see in their browser if they're behind a reverse proxy (see [Deployment](./deployment.md)).
+
+```yaml
+# store/config/client.yaml
+port: 13370
+sync_server: "wss://their-services-host:443"   # get this from the owner, not the game's own URL
+```
+
+You don't need to tell them anything to start receiving traffic - a mirror is just another reader of their public config. Whether they actually point players at your mirror (DNS, a server-list entry, geographic load balancing) is a separate conversation to have with them.
+
+## Volunteering a game server
+
+1. **Ask the owner to create the `game_servers` row.** They do this on their end using [Adding Game Servers - Option A or B](./adding-game-servers.md#adding-another-game-server-manually); give them a name (e.g. `eu-west-community`) and the address your server will be reachable at.
+2. **They send you back the `auth_key`.** Per [Adding Game Servers - Why this exists](./adding-game-servers.md#why-this-exists), this one string lets a game server add kills, read account data, and bypass rate limiting entirely - treat it exactly like a database password, not a config value to paste into a public repo or a Discord channel. If you ever suspect it leaked, tell the owner immediately so they can rotate it (see the same page's [Removing / revoking a server](./adding-game-servers.md#removing-revoking-a-server)).
+3. **Configure your own `store/config/game.yaml`:**
+
+```yaml
+# store/config/game.yaml
+port: 13372
+services_server: "wss://their-services-host:443"
+auth_key: "the key they gave you"
+```
+
+4. Start it with `npm run game` as usual. It'll show up in their server list on its first successful `requestConfig` handshake - nothing further to coordinate.
+
+## Match their plugin set, not just their config
+
+A game server's item catalog and map list are pulled automatically from services, but **plugins are local to each install** - nothing about the plugin folder contract syncs them for you (see [Anatomy](../04-Plugin%20Development/anatomy.md)). If the owner's instance runs custom gamemodes, guns, or map blocks as plugins, and your game server doesn't have those same plugins installed, room simulation for anything those plugins add will behave differently (or error) on your server than everywhere else on the same instance - even though you're both talking to the same services server. Ask the owner exactly which plugins their instance runs, and ideally get their `plugins/` folder directly rather than reconstructing it from a list.
+
+The same applies to a client mirror, for a different reason: the browser bundle is one statically-built file assembled from whatever plugins are installed on *that specific machine* (`client:pluginSourceInsertion` - see [Client-Side Code](../04-Plugin%20Development/client-side-code.md)). A mirror with a different plugin set than the owner's other mirrors will look and behave differently for players who happen to land on it.
+
+## Keeping it running
+
+Use [Perpetual](./perpetual.md) the same way the owner does for their own servers - it isn't optional here any more than it would be for your own instance. One thing you can't opt out of: your server will [self-restart automatically](./architecture-overview.md#how-they-find-each-other) whenever the owner's services server restarts and reports a newer `startTime`, so don't be surprised by a restart you didn't trigger - that's expected behavior, not a crash.
+
+## Common Issues
+
+**My game server never appears in the owner's server list.** Same cause as [Adding Game Servers - Common Issues](./adding-game-servers.md#common-issues): an `auth_key` mismatch between your `game.yaml` and their `game_servers` row. Double-check you copied the whole key with no extra whitespace.
+
+**My server stopped being recognized out of nowhere.** The owner likely rotated your `auth_key` (deliberately, or after a suspected leak) - ask them for the current one and update `game.yaml`.
+
+**I don't have database access - how do I even get a key?** You don't, and you're not supposed to - that's the owner's side of this process (Option A/B in [Adding Game Servers](./adding-game-servers.md#adding-another-game-server-manually)). If you're being asked to run the database steps yourself, you've effectively been handed co-ownership of their services server, which is a bigger trust decision than volunteering a game or client server - worth confirming that's actually what's intended.
+
+**Items, maps, or gamemodes look different on my server than on the owner's other servers.** Almost always a plugin mismatch - see [Match their plugin set, not just their config](#match-their-plugin-set-not-just-their-config) above.
+
+Next: [Adding Game Servers](./adding-game-servers.md) or [Client Mirrors](./client-mirrors.md) for the owner's side of this same process, or [Perpetual](./perpetual.md) for keeping your server running unattended.
+
+---
+
 ## wiki/docs/02-Running a Server/moderation.md
 
 # Moderation
@@ -1006,7 +1075,7 @@ Grant the **Moderator** rank (`10`) to trusted players via the database - see [U
 UPDATE users SET adminRoles = 10 WHERE username = 'someone';
 ```
 
-At Moderator rank or above, a player can use every command tagged `Moderator` in the [generated slash command reference](../05-Codebase%20Reference/Generated/slash-commands.md) - which is most of the built-in room-management surface: `boot`, `notify`, `enableCheats`, `limit`, `warpall`, `lock`, `rounds enable/length/skip`, `time day/night`, `weather rain/storm/snowstorm`, and every `change` command (gravity, speed, scale, etc.).
+At Moderator rank or above, a player can use every command tagged `Moderator` in the [generated slash command reference](../05-Codebase%20Reference/Generated/slash-commands.md) - which is most of the built-in room-management surface: `boot`, `notify`, `enableCheats`, `limit`, `warpall`, `lock`, `rounds enable/length/skip`, `time day/night`, `weather rain/storm/snowstorm`, and every `change` command (gravity, speed, scale, etc. - see [Modifiers](../04-Plugin%20Development/modifiers.md) for exactly what each one does and how `@a`/`@t`/`@o` scoping works).
 
 ## The commands you'll actually use
 
@@ -1952,7 +2021,7 @@ This means adding a new entry to `defaultEvents` itself - either by editing `src
 >
 > **Canonical source:** `server-client/src/client-static/src/apollon/Apollo.js`
 
-LegacyShell replaced the original game's audio with its own Howler.js-based wrapper, **Apollo** - see [Codebase Reference](../05-Codebase%20Reference/) for the engine-level detail; this page covers adding/replacing sound files as a content creator.
+LegacyShell replaced the original game's audio with its own Howler.js-based wrapper, **Apollo** - see [Sound and Apollo](../04-Plugin%20Development/sound-and-apollo.md) for the API a plugin uses to register and play sounds in code; this page covers adding/replacing sound files as a content creator.
 
 ## Where sound files live
 
@@ -1970,7 +2039,7 @@ Overwrite the file in place, keeping the same filename and format(s) - the game 
 
 ## Adding a new sound
 
-Adding a genuinely new sound effect (not replacing an existing one) means it also needs to be referenced somewhere in the game logic that decides *when* to play it - which is a code change, not just a file drop. If you're doing this as part of a plugin (e.g. a new gamemode with its own sound cues), that's normal client-side plugin work - see [Client-Side Code](../04-Plugin%20Development/client-side-code.md).
+Adding a genuinely new sound effect (not replacing an existing one) means it also needs to be referenced somewhere in the game logic that decides *when* to play it - which is a code change, not just a file drop. If you're doing this as part of a plugin (e.g. a new gamemode with its own sound cues), see [Sound and Apollo](../04-Plugin%20Development/sound-and-apollo.md) for the `loadSounds` hook and the functions that actually trigger playback.
 
 ## Common Issues
 
@@ -2039,7 +2108,9 @@ Not sure where to start, or looking for a specific answer rather than a linear r
 - **[Networking](./networking.md)** - registering new wire-protocol opcodes with `Comm.Add`.
 - **[Workers and state](./workers-and-state.md)** - the worker-per-room isolation gotcha, and using `wsrequest` for state that needs to cross rooms.
 - **[Prediction and authority](./prediction-and-authority.md)** - why most nontrivial gameplay code needs both an `executeClient` and an `executeServer` half.
-- **[Recipes](./Recipes/)** - complete worked examples: killstreaks, a new gamemode, a custom weapon, a new pickup item, UI changes, Discord integration, persistent storage, player currency, custom per-player data, and replacing core behavior outright.
+- **[Modifiers](./modifiers.md)** - the per-team gameplay multipliers (speed, gravity, damage, and a dozen others) behind both gamemodes and the `change` slash commands.
+- **[Sound and Apollo](./sound-and-apollo.md)** - registering and playing sounds from a plugin via LegacyShell's Howler.js wrapper.
+- **[Recipes](./Recipes/)** - complete worked examples: killstreaks, a new gamemode, a custom weapon, a new pickup item, UI changes, a custom theme, Discord integration, persistent storage, player currency, custom per-player data, and replacing core behavior outright.
 - **[Publishing](./publishing.md)** - versioning a plugin and listing it publicly.
 - **[Pitfalls](./pitfalls.md)** - the mistakes real plugins in this repo have actually made (a shared cancel flag stepping on another plugin, listening for events that don't exist, assuming state persists across worker threads).
 
@@ -2064,6 +2135,7 @@ Not sure which recipe (or which page in general) actually answers your question?
 - **[New Gamemode](./new-gamemode.md)** - registering an entirely new gamemode via `game:GameTypesInit`, and why `resistanceModifier` alone is enough to build a "Sudden Death" mode.
 - **[Custom Weapon](./custom-weapon.md)** - replacing an existing weapon's fire behavior entirely (a three-pellet spread) via a per-weapon `fireX` hook and `plugins.cancel`.
 - **[UI Modification](./ui-modification.md)** - injecting a custom DOM element into the game UI via [Client-Side Code](../client-side-code.md), with no Babylon.js needed for a plain 2D overlay.
+- **[Custom Theme](./custom-theme.md)** - building a theme on the `LegacyThemes` framework, annotated against the real, shipping `whatsapptheme` plugin.
 - **[Discord Integration](./discord-integration.md)** - relaying room chat to a Discord webhook via `packChat`, and why the request shouldn't be awaited.
 - **[Replacing Core Behaviour](./replacing-core-behaviour.md)** - the smallest complete `plugins.cancel` example (skipping client-build minification entirely), plus how to go from "cancel" to "replace."
 - **[Persistent Storage](./persistent-storage.md)** - a plugin's own JSON state surviving a restart, extracted from the real pattern two bundled plugins already use.
@@ -2665,41 +2737,41 @@ Every `plugins.emit(...)` call site found in the files below, extracted directly
 | `startUp` | `server-client/src/client-static/src/shellshock.min.js:99` | `{ }` | The in-browser game client script finished its own top-level setup. |
 | `afterBullshit` | `server-client/src/client-static/src/shellshock.min.js:405` | `{}` | Fires after an early setup block (the name is kept verbatim from the original game source). |
 | `LegacyShellOnMessage` | `server-client/src/client-static/src/shellshock.min.js:499` | `{cmd, cmdName, input}` | Every incoming server packet, after opcode decoding, before dispatch — a general-purpose network message hook; `data.input` is a still-positioned `Comm.In` reader, so a plugin can read a custom opcode's payload here. |
-| `roundEndSFX` | `server-client/src/client-static/src/shellshock.min.js:620` | `{roundLength, roundEndTime, betweenRounds}` | Round-end sound/UI cue. |
-| `playerDeathAnimation` | `server-client/src/client-static/src/shellshock.min.js:804` | `{killedPlayer}` | A player's death animation is playing. |
-| `inGameSync1` | `server-client/src/client-static/src/shellshock.min.js:911` | `{ id, stateIdx, x, y, z, dx, dy, dz, climbing, pingLevelInt }` | First stage of processing an incoming per-player sync entry. |
-| `inGameSync2` | `server-client/src/client-static/src/shellshock.min.js:1007` | `{ id, stateIdx, x, y, z, dx, dy, dz, climbing, pingLevelInt, dist, player }` | Second stage of processing an incoming per-player sync entry (remote players, distance-based detail). |
-| `inGameSync3` | `server-client/src/client-static/src/shellshock.min.js:1041` | `{ id, stateIdx, x, y, z, dx, dy, dz, climbing, pingLevelInt, player }` | Third stage of processing an incoming per-player sync entry. |
-| `clearItemButtons` | `server-client/src/client-static/src/shellshock.min.js:1450` | `{ i, canvas }` | Shop/loadout UI item-button reset. |
-| `encloseRenderPageFunc` | `server-client/src/client-static/src/shellshock.min.js:1600` | `{ i, b, canvas, renderingItem, locked, requiresPhysicalUnlock }` | Rendering one catalog item tile in the shop UI. |
-| `playerActorBodyMeshCreated` | `server-client/src/client-static/src/shellshock.min.js:1931` | `{ playerActor: this, bodyMesh: this.bodyMesh, player }` | A player's visual body mesh finished loading. |
-| `playerActorShadowRenderList` | `server-client/src/client-static/src/shellshock.min.js:1960` | `{ playerActor: this, shadowGen: shadowGen }` | The player mesh was registered with the shadow generator. |
-| `playerActorRemoveFromPlay` | `server-client/src/client-static/src/shellshock.min.js:2143` | `{ playerActor: this }` | A player's visual actor is being hidden (died or left). |
-| `playerActorRestoreToPlay` | `server-client/src/client-static/src/shellshock.min.js:2152` | `{ playerActor: this }` | A player's visual actor is being restored (respawned). |
-| `bulletActorFired` | `server-client/src/client-static/src/shellshock.min.js:2311` | `{ bulletActor: this }` | A visual bullet actor was fired client-side. |
-| `gunActorSetup` | `server-client/src/client-static/src/shellshock.min.js:2382` | `{ gunActor: this, shadowGen }` | A weapon's visual model finished setup. |
-| `onPageLoadedEnd` | `server-client/src/client-static/src/shellshock.min.js:3174` | `{}` | The game's HTML page finished loading. |
-| `joinGame` | `server-client/src/client-static/src/shellshock.min.js:3207` | `{ joinGameIdPassed }` | The client is about to send its join request. |
-| `onExtraParams` | `server-client/src/client-static/src/shellshock.min.js:3298` | `{ extraParams }` | Extra join params (session, custom map, etc.) are being assembled. |
-| `clientOnExtraGameInfo` | `server-client/src/client-static/src/shellshock.min.js:3406` | `{ extraInfo }` | Extra per-game info received from the server after joining. |
-| `onShadowGeneratorCreated` | `server-client/src/client-static/src/shellshock.min.js:3562` | `{ shadowGen }` | The Babylon shadow generator was created for the scene. |
-| `loadSounds` | `server-client/src/client-static/src/shellshock.min.js:3907` | `{ soundsList }` | Before the Apollo/Howler sound list is loaded. |
-| `createMapCellsMapLoaded` | `server-client/src/client-static/src/shellshock.min.js:3981` | `{ minMap, SPS, gameScene, shadowGen, shadowLight }` | The raw map JSON has been fetched and is about to be turned into cells. |
-| `modifyMinMap` | `server-client/src/client-static/src/shellshock.min.js:4012` | `event` | A direct hook to rewrite the map data itself before cell generation. |
-| `createMapCells` | `server-client/src/client-static/src/shellshock.min.js:4039` | `{ minMap, SPS, gameScene, shadowGen, shadowLight }` | Map cells are being generated from `minMap`. |
-| `onMapCompleteBeforeSetup` | `server-client/src/client-static/src/shellshock.min.js:4296` | `{ gameScene, minMap }` | Before final map setup finishes. |
-| `onMapComplete` | `server-client/src/client-static/src/shellshock.min.js:4309` | `{ gameScene }` | After final map setup finishes. |
-| `resetGamePlayer` | `server-client/src/client-static/src/shellshock.min.js:4655` | `{player}` | Client-local counterpart to the server's `resetGamePlayer` — round-scoped UI/state reset. |
-| `addKillTextBefore` | `server-client/src/client-static/src/shellshock.min.js:5020` | `{msgs}` | Before the kill-feed text is rendered. |
-| `onBalanceUpdated` | `server-client/src/client-static/src/shellshock.min.js:5042` | `{balance: playerAccount.currentBalance}` | The player's currency balance display changed. |
-| `onResourcesLoadedEnd` | `server-client/src/client-static/src/shellshock.min.js:5087` | `{}` | All game resources (models/sounds/textures) finished loading. |
-| `shellFragBurstBefore` | `server-client/src/client-static/src/shellshock.min.js:6181` | `{ player, count, theSize, theAnimLength }` | Before a shell-casing particle burst effect plays. |
-| `syncToServer` | `server-client/src/client-static/src/shellshock.min.js:6744` | `{loadout}` | The client is about to push a loadout change to the server. |
-| `waitForSetupAndAuthComplete` | `server-client/src/client-static/src/shellshock.min.js:6981` | `{waitIteration}` | The startup poll loop, waiting for auth and page setup to both finish, has started. |
-| `waitForSetupAndAuthCompleteCheck` | `server-client/src/client-static/src/shellshock.min.js:6994` | `{waitIteration, customizer, authAttemptComplete, houseAdsLoaded}` | The startup poll loop is checking whether auth and page setup have both finished yet. |
-| `waitForSetupAndAuthCompleteReady` | `server-client/src/client-static/src/shellshock.min.js:6997` | `{waitIteration}` | The startup poll loop has confirmed both auth and page setup are ready. |
-| `setupComplete` | `server-client/src/client-static/src/shellshock.min.js:7012` | `{}` | The startup poll loop concluded successfully. |
-| `reachedEnd` | `server-client/src/client-static/src/shellshock.min.js:7846` | `{}` | End of the whole client script file, once. |
+| `roundEndSFX` | `server-client/src/client-static/src/shellshock.min.js:629` | `{roundLength, roundEndTime, betweenRounds}` | Round-end sound/UI cue. |
+| `playerDeathAnimation` | `server-client/src/client-static/src/shellshock.min.js:813` | `{killedPlayer}` | A player's death animation is playing. |
+| `inGameSync1` | `server-client/src/client-static/src/shellshock.min.js:920` | `{ id, stateIdx, x, y, z, dx, dy, dz, climbing, pingLevelInt }` | First stage of processing an incoming per-player sync entry. |
+| `inGameSync2` | `server-client/src/client-static/src/shellshock.min.js:1016` | `{ id, stateIdx, x, y, z, dx, dy, dz, climbing, pingLevelInt, dist, player }` | Second stage of processing an incoming per-player sync entry (remote players, distance-based detail). |
+| `inGameSync3` | `server-client/src/client-static/src/shellshock.min.js:1050` | `{ id, stateIdx, x, y, z, dx, dy, dz, climbing, pingLevelInt, player }` | Third stage of processing an incoming per-player sync entry. |
+| `clearItemButtons` | `server-client/src/client-static/src/shellshock.min.js:1459` | `{ i, canvas }` | Shop/loadout UI item-button reset. |
+| `encloseRenderPageFunc` | `server-client/src/client-static/src/shellshock.min.js:1609` | `{ i, b, canvas, renderingItem, locked, requiresPhysicalUnlock }` | Rendering one catalog item tile in the shop UI. |
+| `playerActorBodyMeshCreated` | `server-client/src/client-static/src/shellshock.min.js:1940` | `{ playerActor: this, bodyMesh: this.bodyMesh, player }` | A player's visual body mesh finished loading. |
+| `playerActorShadowRenderList` | `server-client/src/client-static/src/shellshock.min.js:1969` | `{ playerActor: this, shadowGen: shadowGen }` | The player mesh was registered with the shadow generator. |
+| `playerActorRemoveFromPlay` | `server-client/src/client-static/src/shellshock.min.js:2152` | `{ playerActor: this }` | A player's visual actor is being hidden (died or left). |
+| `playerActorRestoreToPlay` | `server-client/src/client-static/src/shellshock.min.js:2161` | `{ playerActor: this }` | A player's visual actor is being restored (respawned). |
+| `bulletActorFired` | `server-client/src/client-static/src/shellshock.min.js:2321` | `{ bulletActor: this }` | A visual bullet actor was fired client-side. |
+| `gunActorSetup` | `server-client/src/client-static/src/shellshock.min.js:2392` | `{ gunActor: this, shadowGen }` | A weapon's visual model finished setup. |
+| `onPageLoadedEnd` | `server-client/src/client-static/src/shellshock.min.js:3190` | `{}` | The game's HTML page finished loading. |
+| `joinGame` | `server-client/src/client-static/src/shellshock.min.js:3223` | `{ joinGameIdPassed }` | The client is about to send its join request. |
+| `onExtraParams` | `server-client/src/client-static/src/shellshock.min.js:3314` | `{ extraParams }` | Extra join params (session, custom map, etc.) are being assembled. |
+| `clientOnExtraGameInfo` | `server-client/src/client-static/src/shellshock.min.js:3422` | `{ extraInfo }` | Extra per-game info received from the server after joining. |
+| `onShadowGeneratorCreated` | `server-client/src/client-static/src/shellshock.min.js:3578` | `{ shadowGen }` | The Babylon shadow generator was created for the scene. |
+| `loadSounds` | `server-client/src/client-static/src/shellshock.min.js:3923` | `{ soundsList }` | Before the Apollo/Howler sound list is loaded. |
+| `createMapCellsMapLoaded` | `server-client/src/client-static/src/shellshock.min.js:3997` | `{ minMap, SPS, gameScene, shadowGen, shadowLight }` | The raw map JSON has been fetched and is about to be turned into cells. |
+| `modifyMinMap` | `server-client/src/client-static/src/shellshock.min.js:4028` | `event` | A direct hook to rewrite the map data itself before cell generation. |
+| `createMapCells` | `server-client/src/client-static/src/shellshock.min.js:4055` | `{ minMap, SPS, gameScene, shadowGen, shadowLight }` | Map cells are being generated from `minMap`. |
+| `onMapCompleteBeforeSetup` | `server-client/src/client-static/src/shellshock.min.js:4312` | `{ gameScene, minMap }` | Before final map setup finishes. |
+| `onMapComplete` | `server-client/src/client-static/src/shellshock.min.js:4325` | `{ gameScene }` | After final map setup finishes. |
+| `resetGamePlayer` | `server-client/src/client-static/src/shellshock.min.js:4671` | `{player}` | Client-local counterpart to the server's `resetGamePlayer` — round-scoped UI/state reset. |
+| `addKillTextBefore` | `server-client/src/client-static/src/shellshock.min.js:5036` | `{msgs}` | Before the kill-feed text is rendered. |
+| `onBalanceUpdated` | `server-client/src/client-static/src/shellshock.min.js:5058` | `{balance: playerAccount.currentBalance}` | The player's currency balance display changed. |
+| `onResourcesLoadedEnd` | `server-client/src/client-static/src/shellshock.min.js:5103` | `{}` | All game resources (models/sounds/textures) finished loading. |
+| `shellFragBurstBefore` | `server-client/src/client-static/src/shellshock.min.js:6197` | `{ player, count, theSize, theAnimLength }` | Before a shell-casing particle burst effect plays. |
+| `syncToServer` | `server-client/src/client-static/src/shellshock.min.js:6760` | `{loadout}` | The client is about to push a loadout change to the server. |
+| `waitForSetupAndAuthComplete` | `server-client/src/client-static/src/shellshock.min.js:6997` | `{waitIteration}` | The startup poll loop, waiting for auth and page setup to both finish, has started. |
+| `waitForSetupAndAuthCompleteCheck` | `server-client/src/client-static/src/shellshock.min.js:7010` | `{waitIteration, customizer, authAttemptComplete, houseAdsLoaded}` | The startup poll loop is checking whether auth and page setup have both finished yet. |
+| `waitForSetupAndAuthCompleteReady` | `server-client/src/client-static/src/shellshock.min.js:7013` | `{waitIteration}` | The startup poll loop has confirmed both auth and page setup are ready. |
+| `setupComplete` | `server-client/src/client-static/src/shellshock.min.js:7028` | `{}` | The startup poll loop concluded successfully. |
+| `reachedEnd` | `server-client/src/client-static/src/shellshock.min.js:7862` | `{}` | End of the whole client script file, once. |
 | `loadMeshesBeforeMaterial` | `server-client/src/client-static/editor/js/mapEdit.js:88278` | `{mesh}` | Same hook as the shared `loading.js` version, duplicated for the standalone map-editor page. |
 
 ---
@@ -2851,13 +2923,13 @@ Every `plugins.emit(...)` call site found in the files below, extracted directly
 
 | Event | Location | Payload | Fires when |
 |---|---|---|---|
-| `bulletHitEffect` | `src/shell/bullets.js:144` | `{ x, y, z, dx, dy, dz, player: this.player }` | A bullet impact occurred (wall or player) — a visual/effect hook, fires on both client and server. |
-| `bulletHitAfter` | `src/shell/bullets.js:163` | `{ x, y, z, dx, dy, dz, player: this.player }` | After hit resolution/damage has been applied for that bullet. |
+| `bulletHitEffect` | `src/shell/bullets.js:146` | `{ x, y, z, dx, dy, dz, player: this.player }` | A bullet impact occurred (wall or player) — a visual/effect hook, fires on both client and server. |
+| `bulletHitAfter` | `src/shell/bullets.js:165` | `{ x, y, z, dx, dy, dz, player: this.player }` | After hit resolution/damage has been applied for that bullet. |
 | `setUpShopAvailableBeforeEventLoop` | `src/shell/catalog.js:255` | `{ shop, Math, items, mondayStart, eventsMonday }` | Inside the weekly shop-rotation algorithm, before seasonal-event item pools are folded into the candidate set. |
 | `setUpShopAvailableBeforeApply` | `src/shell/catalog.js:309` | `{ shop, Math, items, mondayStart, eventsMonday }` | Inside the weekly shop-rotation algorithm, before the final tier selection is written to the database. |
 | `constantsFinished` | `src/shell/constants.js:538` | `{}` | All shared constants/enums have been computed at module load — signals other shared modules that it's now safe to reference them. |
 | `eventsInit` | `src/shell/events.js:256` | `{ events: this.events, this: this }` | The seasonal `EventManager` finished loading `defaultEvents`. This same call site fires under either `services:` or `game:` depending on which process is running it. |
-| `GameTypesInit` | `src/shell/gametypes.js:100` | `{ GameTypes, ItemTypes, defaultOptions }` | Before `GameTypes` is deep-merged against `defaultOptions` — the extension point for registering an entirely new gamemode. |
+| `GameTypesInit` | `src/shell/gametypes.js:135` | `{ GameTypes, ItemTypes, defaultOptions }` | Before `GameTypes` is deep-merged against `defaultOptions` — the extension point for registering an entirely new gamemode. |
 | `fireEggk47` | `src/shell/guns.js:117` | `{this: this, pos, dir, Eggk47}` | The Eggk47 fired — immediately followed by `if (!plugins.cancel) Bullet.fire(...)`, so a listener can fully replace this weapon's projectile behavior by setting `plugins.cancel`. |
 | `fireDozenGauge` | `src/shell/guns.js:147` | `{this: this, pos, dir, DozenGauge}` | The Dozen Gauge fired — same `plugins.cancel` override pattern as `fireEggk47`. |
 | `fireDozenGaugeBullet` | `src/shell/guns.js:154` | `{this: this, pos, v1: this.v1, DozenGauge}` | One pellet of the Dozen Gauge's shotgun spread is about to fire — fires once per pellet, distinct from the single `fireDozenGauge` event for the overall trigger pull. |
@@ -2867,15 +2939,15 @@ Every `plugins.emit(...)` call site found in the files below, extracted directly
 | `AllItems` | `src/shell/items.js:100` | `{ AllItems, ItemActor, dummyItem }` | Before the flat pickup-item array (`AMMO`, `GRENADE`, …) is indexed into `ItemTypes` — push a new pickup item type onto `data.AllItems` here. Fired from inside the exported `initItems()` function, called explicitly once `plugins.loadPlugins('game')` resolves (see `server-game/run-game.js` and `server-game/src/worker.js`) rather than automatically at module load — module-load-time firing was unreliable server-side. Still fires immediately at module load on the client, where no such ordering issue exists. |
 | `itemsLoaded` | `src/shell/items.js:109` | `{ AllItems, ItemTypes, ItemActor, dummyItem }` | After pickup items are indexed — `ItemTypes` and each item's `id` are now final. Same `initItems()` timing as `AllItems` above. |
 | `loadMeshesBeforeMaterial` | `src/shell/loading.js:79` | `{mesh}` | During mesh loading, before a material is assigned — lets a plugin swap in a different material/texture. |
-| `permissionsAfterSetup` | `src/shell/permissions.js:599` | `{ this: this }` | End of `PermissionsConstructor`'s constructor, after every built-in command is registered — the extension point for registering new slash commands via `data.this.newCommand(...)`. |
-| `updateBefore` | `src/shell/player.js:233` | `{ player: this, delta, resim }` | Start of `Player.update()`, before movement/physics for that tick — the main per-player-per-tick hook. |
-| `onStandOnBlock` | `src/shell/player.js:738` | `{mesh, this: this}` | Per-tick, when a player's feet resolve against a block mesh — used for special surface behavior (e.g. a parkour gamemode). |
-| `onStandOnTile` | `src/shell/player.js:741` | `{mesh, this: this}` | Per-tick, when a player's feet resolve against a tile mesh — same use case as `onStandOnBlock` for a different mesh category. |
-| `canJump` | `src/shell/player.js:750` | `{ this: this, canJump }` | Before jump eligibility is finalized — a listener can override the boolean. |
-| `onPlayerDeath` | `src/shell/player.js:1196` | `{player: this, firedId}` | A player has died — `firedId` identifies the killer (or is absent/null for an environmental death). |
-| `prepareBabylonBefore` | `src/shell/general/prepare-babylons.js:44` | `{ baseBabylons, babylonDirFiles, addBabylonToZip }` | Model-build pipeline: register new `.babylon` filenames into `data.baseBabylons` before file paths are resolved. |
-| `prepareBabylon` | `src/shell/general/prepare-babylons.js:64` | `{ filename, baseBabylon, extraBabylons }` | Model-build pipeline: supply the actual file path for a previously-registered `.babylon` filename. |
-| `prepareBabylonExtra` | `src/shell/general/prepare-babylons.js:86` | `{ filename, baseBabylon, extraBabylonData, item }` | Model-build pipeline: reconcile a per-item "extra" babylon/skeleton against the base model (e.g. bone-index fixups). |
+| `permissionsAfterSetup` | `src/shell/permissions.js:806` | `{ this: this }` | End of `PermissionsConstructor`'s constructor, after every built-in command is registered — the extension point for registering new slash commands via `data.this.newCommand(...)`. |
+| `updateBefore` | `src/shell/player.js:241` | `{ player: this, delta, resim }` | Start of `Player.update()`, before movement/physics for that tick — the main per-player-per-tick hook. |
+| `onStandOnBlock` | `src/shell/player.js:746` | `{mesh, this: this, out}` | Per-tick, when a player's feet resolve against a block mesh — used for special surface behavior (e.g. a parkour gamemode). |
+| `onStandOnTile` | `src/shell/player.js:749` | `{mesh, this: this}` | Per-tick, when a player's feet resolve against a tile mesh — same use case as `onStandOnBlock` for a different mesh category. |
+| `canJump` | `src/shell/player.js:758` | `{ this: this, canJump }` | Before jump eligibility is finalized — a listener can override the boolean. |
+| `onPlayerDeath` | `src/shell/player.js:1205` | `{player: this, firedId}` | A player has died — `firedId` identifies the killer (or is absent/null for an environmental death). |
+| `prepareBabylonBefore` | `src/shell/general/prepare-babylons.js:45` | `{ baseBabylons, babylonDirFiles, addBabylonToZip }` | Model-build pipeline: register new `.babylon` filenames into `data.baseBabylons` before file paths are resolved. |
+| `prepareBabylon` | `src/shell/general/prepare-babylons.js:84` | `{ filename, baseBabylon: undefined, extraBabylons }` | Model-build pipeline: supply the actual file path for a previously-registered `.babylon` filename. |
+| `prepareBabylonExtra` | `src/shell/general/prepare-babylons.js:141` | `{ filename, baseBabylon, extraBabylonData, item }` | Model-build pipeline: reconcile a per-item "extra" babylon/skeleton against the base model (e.g. bone-index fixups). |
 
 ---
 
@@ -2914,6 +2986,7 @@ Every `plugins.emit(...)` call site found in the files below, extracted directly
 | `redeemResult` | `server-services/start-services.js:673` | `{redeemResult, userData, msg}` | An item/egg code redemption attempt resolved. |
 | `previewResult` | `server-services/start-services.js:704` | `{canBeUsed, previewResult, userData, msg}` | A code "preview" (check without redeeming) resolved. |
 | `tokenSuccess` | `server-services/start-services.js:769` | `{ userData }` | The VIP/"nugget" token unlock flow succeeded. |
+| `unhandledCommand` | `server-services/start-services.js:794` | `{ msg, ws, accs }` | *(undocumented — add an entry to `src/scripts/event-descriptions.json`)* |
 | `insertMaps` | `server-services/src/data_management/recordsManagement.js:411` | `{this: this, jsonDir, map}` | Fired once per map JSON file as `insertMaps()` writes a `maps` row — the low-level counterpart to `initTablesMaps`. |
 
 ---
@@ -3124,12 +3197,14 @@ Skip straight to `plugins_default/` (first-party plugins bundled with LegacyShel
 ## Adding content
 
 - **...add a new gamemode.** [Recipe: New Gamemode](./Recipes/new-gamemode.md), background in [Gamemodes](../03-Content%20Creation/gamemodes.md).
+- **...understand or add gameplay multipliers like speed, gravity, or damage.** [Modifiers](./modifiers.md).
+- **...add a theme, or understand how the theming system actually works.** [Recipe: Custom Theme](./Recipes/custom-theme.md).
 - **...change how an existing weapon fires, or add a new one.** [Recipe: Custom Weapon](./Recipes/custom-weapon.md).
 - **...add a new pickup item (health, ammo, a custom power-up).** [Recipe: New Pickup Item](./Recipes/new-pickup-item.md), background in [Items and Skins](../03-Content%20Creation/items-and-skins.md).
 - **...add a new hat, stamp, or weapon skin.** [Hats and Stamps](../03-Content%20Creation/hats-and-stamps.md) and [Items and Skins](../03-Content%20Creation/items-and-skins.md), shipped via [Content Packs](./content-packs.md#items).
 - **...add a new collidable map block, and actually understand how its collision gets generated.** [Map Blocks](../03-Content%20Creation/map-blocks.md) - covers the naming convention *and* exactly where each `colliderType`'s collision geometry comes from.
 - **...build or edit a map.** [Maps](../03-Content%20Creation/maps.md).
-- **...add sound effects or music.** [Sounds](../03-Content%20Creation/sounds.md).
+- **...add sound effects or music.** [Sounds](../03-Content%20Creation/sounds.md) for the assets, [Sound and Apollo](./sound-and-apollo.md) for triggering them from code.
 - **...add a seasonal/limited-time shop event.** [Seasonal Events](../03-Content%20Creation/seasonal-events.md).
 - **...ship models, items, and maps together as one plugin.** [Content Packs](./content-packs.md) - the pattern `legacyshellcore` itself uses.
 
@@ -3283,6 +3358,129 @@ Every server type still instantiates your `Plugin` class (there's no way to skip
 If your plugin targets `game:` events, be aware that `plugins.loadPlugins('game')` doesn't run just once per game server process - it runs again, completely independently, **inside every room's worker thread** (see [Workers and State](./workers-and-state.md) for the full explanation and why it matters for anything involving shared state). Nothing about the boot sequence described above changes because of this - it's just that "the game server" is, in practice, several separate JS execution contexts each running this exact sequence on their own.
 
 Next: [Dependencies](./dependencies.md).
+
+---
+
+## wiki/docs/04-Plugin Development/modifiers.md
+
+# Modifiers
+
+> **Audience:** Plugin authors building gamemodes, moderators using in-game `change` commands · **Prereqs:** [Events (concept)](./events-concept.md)
+>
+> **Canonical source:** `src/shell/gametypes.js` (`defaultOptions`), `src/shell/player.js:176-193` (`setDefaultModifiers`), `src/shell/permissions.js:37-333` (the `change`-category commands)
+
+Modifiers are the per-team numeric multipliers that make up most of what a gamemode actually *is* mechanically - speed, gravity, damage, and a dozen others. They're set two ways: baked into a `GameType`'s `options` at boot (the gamemode-authoring path), or changed live in a room via slash commands (the moderator path, `/gravity`, `/speed`, etc. - see the [generated slash command reference](../05-Codebase%20Reference/Generated/slash-commands.md) for the full list and permission levels). This page covers the mechanism underneath both.
+
+## Shape: one array of three, per modifier, per team
+
+Every modifier in `defaultOptions` is a 3-element array, indexed by team:
+
+```js
+// src/shell/gametypes.js:20-24 - real code
+speedModifier: [
+    1, //ffa
+    1, //team1
+    1, //team2
+],
+```
+
+Index `0` is used for FFA (everyone's on "team 0" in a non-team gamemode), `1` and `2` are the two real teams in a Teams-enabled gamemode. A room's live values live at `room.gameOptions[key][team]`, seeded from `defaultOptions` and overridden per-`GameType` (see [Recipe: New Gamemode](./Recipes/new-gamemode.md) for a worked example that overrides `resistanceModifier` this way).
+
+A player's own effective modifiers are copied out of `gameOptions` onto the player object once, in `setDefaultModifiers`:
+
+```js
+// src/shell/player.js:176-193 - real code (abridged)
+setDefaultModifiers(init) {
+    this.changeModifiers({
+        gravityModifier: this.gameOptions.gravityModifier[this.team],
+        speedModifier: this.gameOptions.speedModifier[this.team],
+        // ...one line per modifier, same pattern
+    }, init);
+};
+```
+
+This is why changing a team's modifier live doesn't retroactively need every player object rebuilt - `changeModifiers` (below) pushes the new value onto already-joined players directly.
+
+## The full catalog and exactly what each one does
+
+Traced to its actual usage, not just its name:
+
+| Modifier | Default | Effect | Where |
+|---|---|---|---|
+| `scale` | `1` | Multiplies outgoing damage dealt *and* divides incoming damage taken - a de facto "player size" stat, not purely cosmetic. | `bullets.js:115`, `player.js:1140` |
+| `speedModifier` | `1` | Multiplies horizontal movement input. | `player.js:535-536` |
+| `gravityModifier` | `1` | Multiplies downward acceleration. | `player.js:529` |
+| `regenModifier` | `1` | Multiplies passive HP regen rate. | `player.js:367` |
+| `damageModifier` | `1` | Multiplies damage *dealt* by this player's shots/explosions (attacker-side). | `bullets.js:52,115` |
+| `resistanceModifier` | `1` | Divides damage *taken* by this player (defender-side) - the modifier [Recipe: New Gamemode](./Recipes/new-gamemode.md) sets to `0.01` for a one-hit-kill mode. | `player.js:1140` |
+| `jumpBoostModifier` | `1` | Multiplies jump velocity. | `player.js:771` |
+| `knockbackModifier` | `0` | Multiplies self-knockback taken from incoming damage - **off by default**, unlike every other combat modifier. | `player.js:1123` |
+| `physicsSpeedModifier` | `1` | Multiplies the delta-time used for this player's own physics step and view bobble - a personal slow-motion/fast-forward dial. | `player.js:240,360` |
+| `bulletSpeedModifier` | `1` | Multiplies bullet travel speed. | `bullets.js:128` |
+| `reloadSpeedModifier` | `1` | Divides reload time (higher = faster reload). | `player.js:1003,1005` |
+| `weaponSettleModifier` | `1` | Multiplies the delta-time used for weapon sway/settle animation. | `player.js:896` |
+| `grenadeThrowModifier` | `1` | Multiplies throw power. | `player.js:1019` |
+| `grenadeTimerModifier` | `1` | Divides the rate a grenade's fuse counts down (higher = longer fuse before detonation). | `bullets.js:366` |
+| `grenadeBounceModifier` | `1` | Multiplies bounce impulse off surfaces. | `bullets.js:380` |
+
+Two more team-indexed arrays exist alongside the modifiers but aren't named `*Modifier`: `lifesteal` (defaults `0`) and `scale`'s sibling `itemsEnabled`/`teamSwitchMaximumDifference` are plain `defaultOptions` entries, not per-modifier multipliers - see `gametypes.js` directly if you need those.
+
+## Setting modifiers from a gamemode plugin
+
+At `GameTypesInit` time, before any room exists - this is baked into every room of that gamemode from creation:
+
+```js
+// pattern from Recipe: New Gamemode - real code
+this.plugins.on('game:GameTypesInit', ({ GameTypes }) => {
+    GameTypes.push({
+        shortName: "Sudden Death",
+        longName: "Sudden Death",
+        codeName: "suddendeath",
+        mapPool: "FFA",
+        options: {
+            resistanceModifier: [0.01, 0.01, 0.01],   // [ffa, team1, team2]
+        },
+    });
+});
+```
+
+`options` only needs to list what differs from `defaultOptions` - everything else deep-merges in automatically (see [Recipe: New Gamemode](./Recipes/new-gamemode.md#the-plugin) for the full mechanism).
+
+## Setting modifiers live, at runtime
+
+This is what every `change`-category slash command does, and it's available to your own commands too via `setGameOptionInMentions` (server-side, authoritative) paired with `changeModifiers` (client-side, predicted) - see [Prediction and Authority](./prediction-and-authority.md) for why both halves exist:
+
+```js
+// pattern from src/shell/permissions.js:37-56 - real code, abridged
+executeClient: ({ player, opts, mentions }) => {
+    forEachMentionInMentions(mentions, (player) => {
+        player.changeModifiers({ gravityModifier: opts });
+    });
+},
+executeServer: ({ player, opts, mentions, mentionsLiteral }) => {
+    setGameOptionInMentions(player, mentions, mentionsLiteral, "gravityModifier", opts);
+}
+```
+
+`setGameOptionInMentions` (`permissions.js:963`) understands three scope literals, checked against the command's `@mention`:
+
+| Mention | Effect |
+|---|---|
+| `@a` | Sets the value for **all three** team slots at once - the modifier applies room-wide regardless of team. |
+| `@t` | Sets only the sender's own team's slot. |
+| `@o` | Sets only the *opposing* team's slot - the asymmetric case (e.g. handicapping one side). |
+
+Any other mention resolves to specific players via `forEachMentionInMentions` and calls `changeModifiers` on each one directly, bypassing `gameOptions` entirely - a per-player override that doesn't touch the team-wide default, and so doesn't persist for players who join after the command runs (`setDefaultModifiers` would just re-seed them from the unchanged `gameOptions`).
+
+## Common Issues
+
+**I set a modifier via `GameTypesInit` but it's not taking effect.** Check you're mutating `options`, not `defaultOptions` directly - editing `defaultOptions` in place changes the value for *every* gamemode, including the built-in ones, since they all deep-merge from the same object.
+
+**A per-player override I applied with a specific `@mention` disappeared after they respawned or reconnected.** Expected - a targeted-player override lives only on that player object, not in `room.gameOptions`. Use `@a`/`@t`/`@o` instead if you want the change to persist for anyone who joins or respawns afterward.
+
+**`knockbackModifier` seems to do nothing by default.** It's the one modifier that defaults to `0`, not `1` - knockback-on-hit is opt-in, not a baseline effect scaled by `1`.
+
+Next: [Recipe: New Gamemode](./Recipes/new-gamemode.md) for a complete worked example, or [Commands](./commands.md) for building your own `change`-style command from scratch.
 
 ---
 
@@ -3757,6 +3955,198 @@ Loaded against a real (isolated, scratch) game server, alongside [Persistent Sto
 **`client.comboData` is `undefined` somewhere in my code.** You're reading it before `clientInitEnd` has fired for that client - a bot or a very fast reconnect can hit edge timing here. Guard with `if (client.comboData)` rather than assuming it's always present, the same defensive check the example above already does.
 
 **My data resets when I didn't expect it to.** Confirm you're not accidentally re-triggering `clientInitEnd` logic (it only fires once per join, but a player leaving and rejoining the same room creates an entirely new `ClientConstructor`, and therefore a fresh `comboData`) - see "why this doesn't survive a disconnect" above.
+
+---
+
+## wiki/docs/04-Plugin Development/Recipes/custom-theme.md
+
+# Recipe: Custom Theme
+
+> **Audience:** Plugin authors · **Prereqs:** [Client-Side Code](../client-side-code.md), [Dependencies](../dependencies.md), [Static Assets](../static-assets.md)
+>
+> **Canonical source:** `plugins_default/legacythemes` (the framework), `plugins_default/whatsapptheme` (a complete, shipping example theme built on it)
+
+A "theme" in LegacyShell is a CSS stylesheet plus an image set, registered into the `LegacyThemes` framework so it shows up as a selectable, stackable option under Settings → Theming. `whatsapptheme` (bundled, shown to every player as "WhatsApp Theme") is a real, currently-shipping theme - this page walks through exactly how it works and how to build your own the same way, rather than inventing a new unvalidated example.
+
+## The framework, in one picture
+
+`legacythemes` does three things from its own `client.js` (spliced into the bundle via `client:pluginSourceInsertion`, same mechanism as any other plugin's client code):
+
+1. **Loads a base stylesheet** (`legacythemesbase.css`) unconditionally, so there's always a coherent default even with no theme selected.
+2. **Builds a Settings UI** (`LegacySettings.addTab("Theming", ...)`) listing every registered style pack, plus a reorderable, stackable "Current Applied Style Packs" list - players can layer more than one theme at once.
+3. **Applies theme CSS and reads specific variables back out into the game itself** - most of a theme is just CSS the browser applies normally, but two things live outside the DOM (the 3D scene's sky/lighting, and swapping a few `<img>` elements) and need a JS bridge, described below.
+
+A theme plugin's only job is to add one entry to `LegacyThemesPlugin.stylePacks` and ship the CSS/images that entry points at. `legacythemes` itself doesn't need to know your theme exists ahead of time.
+
+## Registering a theme: the whole of `whatsapptheme`'s client code
+
+```js
+// plugins_default/whatsapptheme/client.js - real code, complete
+const WhatsAppThemePlugin = {
+    registerListeners: function (pluginManager) {
+        this.plugins = pluginManager;
+    },
+};
+
+WhatsAppThemePlugin.registerListeners(plugins);
+
+LegacyThemesPlugin.stylePacks.push({
+    name: "WhatsApp Theme",
+    identifier: "whatsapptheme",
+    description: "A theme that makes LegacyShell look like WhatsApp.\nAn example theme made by onlypuppy7",
+    cssFile: "/themes/whatsapptheme/whatsapptheme.css",
+    author: "onlypuppy7",
+    images: [
+        '/themes/whatsapptheme/img/logo.png',
+        '/themes/whatsapptheme/img/anim_chicken.gif',
+        // ...more preview images, shown in the settings gallery
+    ]
+});
+```
+
+That's the entire registration - a plain object pushed onto a global array. `name`/`description` show up in the settings UI, `images` populate the preview gallery when the pack is selected, and `cssFile` is the actual stylesheet that gets fetched and cached (`cacheAllStyles`) the first time settings load.
+
+This only works because `LegacyThemesPlugin` already exists as a global by the time this code runs - which is why `whatsapptheme`'s `dependencies.js` declares:
+
+```js
+// plugins_default/whatsapptheme/dependencies.js - real code
+export const dependencies = {
+    legacysettings: "plugin",
+    legacythemes: "plugin",
+};
+```
+
+`version: "plugin"` means "this other plugin must also be installed" (see [Dependencies](../dependencies.md)) - without it, nothing guarantees `legacythemes` loaded (and its client code executed) before yours does.
+
+## The plugin shell around it
+
+```js
+// plugins_default/whatsapptheme/index.js - real code
+import path from 'node:path';
+import express from 'express';
+
+export const PluginMeta = {
+    identifier: "whatsapptheme",
+    name: 'WhatsAppTheme',
+    author: 'onlypuppy7',
+    version: '1.0.0',
+    descriptionShort: 'A little demonstration theme',
+    descriptionLong: 'A little demonstration theme',
+    legacyShellVersion: 562,
+};
+
+export class Plugin {
+    constructor(plugins, thisDir) {
+        this.plugins = plugins;
+        this.thisDir = thisDir;
+
+        this.plugins.on('client:onStartServer', this.onStartServer.bind(this));
+        this.plugins.on('client:pluginSourceInsertion', this.pluginSourceInsertion.bind(this));
+    };
+
+    async onStartServer(data) {
+        data.app.use(express.static(path.join(this.thisDir, 'client')));
+    };
+
+    pluginSourceInsertion(data) {
+        data.pluginInsertion.files.push({
+            filepath: path.join(this.thisDir, 'client.js'),
+            position: 'after',
+        });
+    };
+};
+```
+
+Two hooks, nothing else:
+
+- **`client:onStartServer`** serves the plugin's own `client/` folder as static files (see [Static Assets](../static-assets.md)) - this is what makes `/themes/whatsapptheme/whatsapptheme.css` and every image under it actually reachable over HTTP.
+- **`client:pluginSourceInsertion`** splices `client.js` into the browser bundle **at `position: 'after'`** - not optional here. `legacythemes`' own `client.js` defines the `LegacyThemesPlugin` global your code reaches into; if your code ran before that module existed in the concatenated bundle, `LegacyThemesPlugin.stylePacks.push(...)` would throw. `position: 'after'` guarantees the whole bundle (including every other plugin's `client.js`) has already executed once before yours runs - see [Recipe: Custom Weapon - why `position: 'after'` specifically](./custom-weapon.md#why-position-after-specifically) for the general rule this follows.
+
+Your theme's own folder layout ends up identical in shape:
+
+```
+plugins/yourtheme/
+├── index.js              # same two hooks as above, your own PluginMeta
+├── dependencies.js        # { legacythemes: "plugin" }
+└── client/
+    └── themes/yourtheme/
+        ├── yourtheme.css
+        └── img/
+            └── logo.png   # at least one preview image
+```
+
+## Writing the CSS: what's just CSS, and what's actually a bridge into the 3D scene
+
+Most of a theme is ordinary CSS - repaint the base game's own color variables, override selectors, done. `whatsapptheme.css` repaints the base palette on the wildcard selector so it cascades everywhere:
+
+```css
+/* plugins_default/whatsapptheme/client/themes/whatsapptheme/whatsapptheme.css - real code (abridged) */
+* {
+    --ss-blue0: #e4ffea;
+    --ss-blue1: #c8f6d3;
+    --ss-white0: #198500;
+    --ss-yellow0: #00ff27;
+    --itemButton-gradient-start: #acf2ac;
+    --itemButton-gradient-end: #dfffdc;
+}
+```
+
+None of that needs JavaScript - it's the base stylesheet's own custom properties, redefined. Two variable *namespaces* are special, because they control things CSS itself has no reach into:
+
+### `--customizer-skyColor` / `--customizer-diffuseColor`
+
+The 3D scene's sky color and ambient light aren't DOM elements - CSS can't touch them directly. `legacythemes` reads these two variables back out with `getComputedStyle` after applying your stylesheet and feeds them into the Babylon.js scene itself:
+
+```js
+// plugins_default/legacythemes/client.js:264-265 - real code
+Customizer.skyColor.set(...this.getCSSVariable('--customizer-skyColor'));
+Customizer.diffuseColor.set(...this.getCSSVariable('--customizer-diffuseColor'));
+```
+
+Set them as hex colors, same as any other CSS color value:
+
+```css
+* {
+    --customizer-skyColor: #85CC85;
+    --customizer-diffuseColor: #85CC85;
+}
+```
+
+### `--replaceImgSrc-<elementId>`
+
+Any variable named `--replaceImgSrc-` followed by a DOM element's `id` swaps that element's `src` to the variable's `url(...)` value:
+
+```css
+/* plugins_default/whatsapptheme/client/themes/whatsapptheme/whatsapptheme.css - real code */
+* {
+    --replaceImgSrc-noItemImg: url('/themes/whatsapptheme/img/noItem.png');
+    --replaceImgSrc-noHatImg: url('/themes/whatsapptheme/img/noHat.png');
+    --replaceImgSrc-noStampImg: url('/themes/whatsapptheme/img/noStamp.png');
+}
+```
+
+This is resolved generically - `updateThingsFromCSS` (`legacythemes/client.js:263-281`) scans every custom property collected from all currently-applied stylesheets, and for any name matching the `--replaceImgSrc-` prefix, looks up `document.getElementById(identifier)` and sets `.src`. You aren't limited to the three images `whatsapptheme` replaces - any element with an `id` in the base game's markup is a valid target, as long as your variable name matches it exactly.
+
+## Stacking order, if you support being combined with other themes
+
+Players can apply more than one style pack at once via the reorderable "Current Applied Style Packs" list. `applyStylesFromList` reverses that list before appending each stylesheet to `<head>` in order:
+
+```js
+// plugins_default/legacythemes/client.js:235 - real code
+list = list.slice().reverse();
+```
+
+Later `<head>` entries win the normal CSS cascade for any variable both stylesheets define - so the list's reversal means **the first item in the player's visible list has final say**, matching what a player would expect ("top of my list wins"). If your theme is meant to layer under others rather than override them, don't redefine variables you don't actually need to change - an unset variable simply falls through to whatever's beneath it.
+
+## Common Issues
+
+**`LegacyThemesPlugin is not defined` in the browser console.** Your `dependencies.js` is missing `legacythemes: "plugin"`, or your `pluginSourceInsertion` entry isn't using `position: 'after'` - either way, your code ran before `legacythemes`' own `client.js` did.
+
+**My theme applies but the 3D sky/lighting never changes.** Confirm `--customizer-skyColor`/`--customizer-diffuseColor` are defined as plain hex colors (`hexToNormalizedRGB` only handles `#rrggbb`, not `rgb()`/named colors) on a selector that's actually active - `*` is the safest choice, matching both bundled examples.
+
+**An `--replaceImgSrc-` variable doesn't do anything.** The identifier after the prefix must exactly match a real element's `id` in the page - check the base game's markup (or an existing working example like `noItemImg`) rather than guessing at an id name.
+
+Next: [Recipe: UI Modification](./ui-modification.md) for DOM changes that aren't theme-related, or back to [Recipes](./README.md).
 
 ---
 
@@ -4645,6 +5035,114 @@ Loaded against a real (isolated, scratch) client server: the build pipeline succ
 
 ---
 
+## wiki/docs/04-Plugin Development/sound-and-apollo.md
+
+# Sound and Apollo
+
+> **Audience:** Plugin authors adding or triggering sound effects · **Prereqs:** [Client-Side Code](./client-side-code.md)
+>
+> **Canonical source:** `server-client/src/client-static/src/apollon/Apollo.js` (imported client-side via `#apollo`), `plugins.emit("loadSounds", ...)` in `server-client/src/client-static/src/shellshock.min.js:3914`
+
+**Apollo** is LegacyShell's own audio wrapper around [Howler.js](https://howlerjs.com), spliced into the browser bundle the same way `src/shell/*` modules are, despite physically living outside that folder. [Sounds](../03-Content%20Creation/sounds.md) covers the asset side - file formats, where files live, replacing an existing sound. This page covers the code side: how a plugin actually registers a new sound and plays it.
+
+Every function below is a client-side global once Apollo has loaded into the bundle - there's nothing to import.
+
+## Registering a new sound file
+
+The base game builds one big `soundsList` of `[src, name]` pairs and fires `loadSounds` before loading them, specifically so plugins can append to the same list:
+
+```js
+// shellshock.min.js:3914 - real code
+await plugins.emit("loadSounds", { soundsList });
+// ...
+loadSoundsFromList(soundsList, onComplete);
+```
+
+A plugin hooks it and pushes its own entries - this is the exact code `5_crackshot` uses to add its M24 sounds:
+
+```js
+// plugins_default/5_crackshot/shared.js:113-123 - real code
+loadSounds(data) {
+    const additionalSounds = [
+        ["sound/m24/boltClose.mp3", "m24.boltClose"],
+        ["sound/m24/boltOpen.mp3", "m24.boltOpen"],
+        ["sound/m24/fire.mp3", "m24.fire"]
+    ];
+
+    data.soundsList.push(...additionalSounds);
+},
+```
+
+`loadSounds` only ever fires client-side (it's emitted from the browser bundle itself, never from server code), so there's no need to guard this listener with `isClient` - it simply never fires on a game server.
+
+Sound paths are resolved the same way the base game's own sounds are - relative to `server-client/src/client-static/sound/` if you're shipping through core, or your plugin's own served static directory if you're serving the file yourself (see [Static Assets](./static-assets.md)). Apollo automatically retries a failed `.mp3` load as `.ogg` at the same path - see [Sounds - Format and fallback](../03-Content%20Creation/sounds.md#format-and-fallback).
+
+## Playing a sound
+
+Which function you want depends on whether the sound has a position, and whether it should follow something moving:
+
+| Situation | Use |
+|---|---|
+| One-off sound at a fixed point in the 3D world (an explosion, an impact) | `playSoundIndependent(name, { pos, rate, loop, vol })` |
+| One-off sound with no position (a UI click, a notification) | `playSoundIndependent2D(name, { rate, loop, vol })` |
+| A sound that should keep following a moving object (footsteps, an engine, anything attached to a mesh) | `new Emitter(parentTransformNode)`, then `.play(name, rate)` |
+
+`playSoundIndependent` is what grenade/rocket explosions use:
+
+```js
+// src/shell/bullets.js:284 - real code
+var pos = new BABYLON.Vector3(this.x, this.y, this.z);
+playSoundIndependent(this.actor.explodeSound, {pos});
+```
+
+`pos` gets run through Apollo's own axis translation before being handed to Howler - pass a plain `BABYLON.Vector3`, don't pre-translate it yourself.
+
+### `Emitter` - sounds that follow something
+
+```js
+const engineEmitter = new Emitter(vehicleMesh);   // parent: any BABYLON.TransformNode (Mesh included)
+engineEmitter.play("vehicle.engine", 1.0);
+```
+
+An `Emitter` subscribes to its parent's `onBeforeRenderObservable` and repositions every playing sound on that emitter each frame automatically - you don't need your own update loop. Pass no parent (`new Emitter()`) for a 2D emitter that isn't attached to anything in the scene. `Emitter.activeEmitters` holds every emitter ever created, if you need to enumerate them.
+
+### `Cue` - a pool of variations played as one logical sound
+
+Useful for anything that shouldn't sound identical every time - footsteps, death screams, ambient thunder. Load a cue once, then treat its name exactly like a normal sound everywhere else (`playSoundIndependent`, `Emitter.play`, etc.) - Apollo resolves it to one of its sounds at play time:
+
+```js
+// shellshock.min.js:3924-3938 - real code, the base game's own death-scream cue
+let deathsSrcs = [];
+for (var i = 1; i < 11; i++) {
+    deathsSrcs.push("sound/death/scream" + i + ".mp3");
+}
+loadCue("death.scream", deathsSrcs);
+
+// later, played exactly like any other sound name:
+playSoundIndependent("death.scream", { pos });
+```
+
+The default `selectSound` picks uniformly at random. Override it on the `Cue` instance for non-random selection (e.g. cycling in order, weighting toward a rarer variant).
+
+## Global controls
+
+- `apolloSetVolume(vol)` - sets Howler's master volume (`0`-`1`); `0` mutes without needing to pause/suspend anything.
+- `stopAllSounds()` - a thin wrapper over `Howler.stop()`, stops every currently-playing sound immediately.
+
+## Gotchas
+
+**All sound names share one global namespace.** `sounds` is a single flat object keyed by name - there's no per-plugin prefixing built in. Registering a name that already exists (from another plugin, or the base game) logs a warning and **unloads the old sound**, replacing it outright. Prefix your own names the way `5_crackshot` does (`m24.boltClose`, `m24.fire`) rather than something generic like `fire` or `hit` that's likely already taken.
+
+**Two names are reserved.** `""` (blank) and `"reserved"` both log a console error if used (`APOLLO_FORBIDDEN` in `Apollo.js`) - this doesn't hard-fail, the sound still gets registered, but it means something's likely wrong with how the name was constructed (an unset variable interpolated into a template string, for instance).
+
+**Code that calls Apollo functions immediately (not just registering a listener for later) needs `position: 'after'`** in its `pluginSourceInsertion` entry, same as any code that reads a real game object at parse time - see [Recipe: UI Modification](./Recipes/ui-modification.md#why-me-works-here-and-why-position-after-still-matters) for why. Reacting to `loadSounds` itself is fine at any position, since it doesn't fire until well after the whole bundle is assembled.
+
+**A sound that never loads plays the fallback tone, not silence.** If you hear the same generic tone for a sound you just added, the file failed to load in both formats - see [Sounds - Common Issues](../03-Content%20Creation/sounds.md#common-issues).
+
+Next: [Sounds](../03-Content%20Creation/sounds.md) for the asset side, or [Client-Side Code](./client-side-code.md) for `pluginSourceInsertion` in general.
+
+---
+
 ## wiki/docs/04-Plugin Development/static-assets.md
 
 # Static Assets
@@ -5362,6 +5860,7 @@ Every entry in `Comm.Code` (`src/shell/comm.js`), extracted directly from source
 | `doThunderStrike` | `55` | LEGACYSHELL ADDED SERVER: inits a thunderstrike |
 | `heal` | `56` | LEGACYSHELL ADDED SERVER: heals a player |
 | `syncData` | `57` | LEGACYSHELL ADDED SERVER: syncs the data of the player, with less pertinent data |
+| `explosionEffect` | `58` | LEGACYSHELL ADDED SERVER: spawns a cosmetic (non-damaging) explosion effect at a player's position, used by /player explode |
 | `info` | `255` | CLIENT: used by bwd admins to look at ips and stuff (scary). |
 
 ---
@@ -5836,27 +6335,37 @@ Every built-in `this.newCommand({...})` call in `src/shell/permissions.js`, extr
 | `/change damage` | "change" | Sets damage modifiers for players. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["number", -12, 12, 0.1]` | Yes | `src/shell/permissions.js:117` |
 | `/change resistance` | "change" | Sets resistance modifiers for players. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["number", -12, 12, 0.1]` | Yes | `src/shell/permissions.js:137` |
 | `/change jumpBoost` | "change" | Sets jump boost for players. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["number", -12, 12, 0.1]` | Yes | `src/shell/permissions.js:157` |
-| `/change scale` | "change" | Sets scaling for players. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["number", 0.1, 25, 0.1]` | Yes | `src/shell/permissions.js:177` |
-| `/change lifesteal` | "change" | Multiplier for how much health to give back from damage. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["number", -10, 10, 0.1]` | Yes | `src/shell/permissions.js:199` |
-| `/admin announce` | "admin" | Sets the homescreen text. | `[this.ranksEnum.Admin, this.ranksEnum.Admin, false]` | `["string"]` | No | `src/shell/permissions.js:220` |
-| `/mod boot` | "mod" | Boot problematic players. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["string"]` | No | `src/shell/permissions.js:240` |
-| `/room notify` | "room" | Announces a message to all players. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["string"]` | No | `src/shell/permissions.js:260` |
-| `/room enableCheats` | "room" | Enable/disable cheats. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["bool"]` | No | `src/shell/permissions.js:276` |
-| `/room limit` | "room" | Set the max player limit. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["number", 1, maxServerSlots, 1]` | No | `src/shell/permissions.js:296` |
-| `/room warp` | "room" | Change to another room. | `[this.ranksEnum.Guest, this.ranksEnum.Guest, false]` | `["string"]` | No | `src/shell/permissions.js:313` |
-| `/room warpall` | "room" | Transfer all players to another room. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["string"]` | No | `src/shell/permissions.js:326` |
-| `/room gameoptions` | "room" | View current game options. | `[this.ranksEnum.Guest, this.ranksEnum.Guest, false]` | `["bool"]` | No | `src/shell/permissions.js:344` |
-| `/room info` | "room" | View current rooms info. | `[this.ranksEnum.Guest, this.ranksEnum.Guest, false]` | `["bool"]` | No | `src/shell/permissions.js:357` |
-| `/room lock` | "room" | Prevent any new players from joining your room. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["bool"]` | No | `src/shell/permissions.js:381` |
-| `/room isPublic` | "room" | Change this rooms visibility. | `[this.ranksEnum.Moderator, this.ranksEnum.Moderator, false]` | `["bool"]` | No | `src/shell/permissions.js:402` |
-| `/rounds enable` | "rounds" | Enable/disable rounds. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["bool"]` | No | `src/shell/permissions.js:428` |
-| `/rounds length` | "rounds" | Set the length of rounds in seconds. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["number", 1, 60 * 60, 1]` | No | `src/shell/permissions.js:456` |
-| `/rounds skip` | "rounds" | Skip to the end of this round. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["string"]` | No | `src/shell/permissions.js:480` |
-| `/time day` | "time" | Set time to day (default). | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["string"]` | No | `src/shell/permissions.js:500` |
-| `/time night` | "time" | Set time to night. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["string"]` | No | `src/shell/permissions.js:519` |
-| `/weather rain` | "weather" | Enable/disable rainy weather. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["bool"]` | No | `src/shell/permissions.js:540` |
-| `/weather storm` | "weather" | Enable/disable stormy weather. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["bool"]` | No | `src/shell/permissions.js:559` |
-| `/weather snowstorm` | "weather" | Enable/disable the snowstorm. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["bool"]` | No | `src/shell/permissions.js:578` |
+| `/change physicsSpeed` | "change" | Sets physics speed for players. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["number", 0.1, 12, 0.1]` | Yes | `src/shell/permissions.js:177` |
+| `/change bulletSpeed` | "change" | Sets bullet speed for players. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["number", 0, 12, 0.001]` | Yes | `src/shell/permissions.js:197` |
+| `/change reloadSpeed` | "change" | Sets reload speed for players. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["number", 0.1, 12, 0.1]` | Yes | `src/shell/permissions.js:217` |
+| `/change weaponSettle` | "change" | Sets weapon settle speed for players. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["number", 0.1, 1000, 0.1]` | Yes | `src/shell/permissions.js:237` |
+| `/change grenadeThrow` | "change" | Sets grenade throw speed multiplier for players. (Higher = farther throw) | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["number", -12, 12, 0.1]` | Yes | `src/shell/permissions.js:257` |
+| `/change grenadeTimer` | "change" | Sets grenade timer multiplier for players.  | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["number", 0, 12, 0.1]` | Yes | `src/shell/permissions.js:277` |
+| `/change grenadeBounce` | "change" | Sets grenade bounce multiplier for players. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["number", 0, 3, 0.1]` | Yes | `src/shell/permissions.js:297` |
+| `/change scale` | "change" | Sets scaling for players. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["number", 0.1, 25, 0.1]` | Yes | `src/shell/permissions.js:317` |
+| `/change lifesteal` | "change" | Multiplier for how much health to give back from damage. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["number", -10, 10, 0.1]` | Yes | `src/shell/permissions.js:339` |
+| `/admin announce` | "admin" | Sets the homescreen text. | `[this.ranksEnum.Admin, this.ranksEnum.Admin, false]` | `["string"]` | No | `src/shell/permissions.js:360` |
+| `/mod boot` | "mod" | Boot problematic players. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["string"]` | No | `src/shell/permissions.js:380` |
+| `/player kill` | "player" | Instantly kills a player. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["string"]` | Yes | `src/shell/permissions.js:400` |
+| `/player explode` | "player" | Instantly kills a player and spawns a cosmetic explosion effect at their position. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["string"]` | Yes | `src/shell/permissions.js:418` |
+| `/player hp` | "player" | Sets a players HP directly. Unlike healing, this can push HP beyond the usual 100 cap. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["number", 0, 109, 1]` | Yes | `src/shell/permissions.js:441` |
+| `/room notify` | "room" | Announces a message to all players. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["string"]` | No | `src/shell/permissions.js:467` |
+| `/room enableCheats` | "room" | Enable/disable cheats. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["bool"]` | No | `src/shell/permissions.js:483` |
+| `/room limit` | "room" | Set the max player limit. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["number", 1, maxServerSlots, 1]` | No | `src/shell/permissions.js:503` |
+| `/room warp` | "room" | Change to another room. | `[this.ranksEnum.Guest, this.ranksEnum.Guest, false]` | `["string"]` | No | `src/shell/permissions.js:520` |
+| `/room warpall` | "room" | Transfer all players to another room. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["string"]` | No | `src/shell/permissions.js:533` |
+| `/room gameoptions` | "room" | View current game options. | `[this.ranksEnum.Guest, this.ranksEnum.Guest, false]` | `["bool"]` | No | `src/shell/permissions.js:551` |
+| `/room info` | "room" | View current rooms info. | `[this.ranksEnum.Guest, this.ranksEnum.Guest, false]` | `["bool"]` | No | `src/shell/permissions.js:564` |
+| `/room lock` | "room" | Prevent any new players from joining your room. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["bool"]` | No | `src/shell/permissions.js:588` |
+| `/room isPublic` | "room" | Change this rooms visibility. | `[this.ranksEnum.Moderator, this.ranksEnum.Moderator, false]` | `["bool"]` | No | `src/shell/permissions.js:609` |
+| `/rounds enable` | "rounds" | Enable/disable rounds. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["bool"]` | No | `src/shell/permissions.js:635` |
+| `/rounds length` | "rounds" | Set the length of rounds in seconds. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["number", 1, 60 * 60, 1]` | No | `src/shell/permissions.js:663` |
+| `/rounds skip` | "rounds" | Skip to the end of this round. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["string"]` | No | `src/shell/permissions.js:687` |
+| `/time day` | "time" | Set time to day (default). | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["string"]` | No | `src/shell/permissions.js:707` |
+| `/time night` | "time" | Set time to night. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["string"]` | No | `src/shell/permissions.js:726` |
+| `/weather rain` | "weather" | Enable/disable rainy weather. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["bool"]` | No | `src/shell/permissions.js:747` |
+| `/weather storm` | "weather" | Enable/disable stormy weather. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["bool"]` | No | `src/shell/permissions.js:766` |
+| `/weather snowstorm` | "weather" | Enable/disable the snowstorm. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["bool"]` | No | `src/shell/permissions.js:785` |
 
 ---
 
@@ -7224,21 +7733,205 @@ The procedural decoration logic runs once per map load and its own source commen
 
 # DeadInternet
 
-Adds real, controllable bot players to a room via `/bots add <count>` - not fake decorations, actual `ClientConstructor` instances joined through the normal `room.joinPlayer` flow, with their input driven by code instead of a real WebSocket connection.
+Adds bot players to your game. As of this version, DeadInternet also ships a general-purpose
+**A\* pathfinding engine** over the game's real voxel collision grid, so bots (or any other
+plugin) can navigate maps naturally — walking, using ramps, jumping single-level gaps, falling
+off ledges, and climbing ladders.
 
-## Commands
+## Files
 
-| Command | Category / Name | What it does |
-|---|---|---|
-| `/bots add <1-18>` | `bots` / `add` | Spawns that many bots into the current room. Cheat-tagged (`isCheat: true`) - needs `gameOptions.cheatsEnabled` regardless of rank - and defaults to Moderator-only (`permissionLevel: [Moderator, Guest, true]`). |
+| File | Role |
+|---|---|
+| `index.js` | The plugin's public API surface. Other plugins should import from here. |
+| `pathfinding.js` | The A\* engine itself. Pure/framework-agnostic — takes a `room`-shaped object and plain `{x,y,z}` positions, knows nothing about bots or players. |
+| `shared.js` | Demo/test commands only (`/bots add`, `/bots pathtest`) and the client-side plugin registration glue. Not the reusable API — see "Scope" below. |
+| `test-pathfinding.js` | Standalone unit tests for `pathfinding.js`. No server needed. |
+| `test-ingame.js` | Live integration test — drives a real running game server as a raw WebSocket client and triggers `/bots pathtest`. |
 
-## How the bots actually behave
+## Scope: index.js is the API, shared.js is the demo
 
-Each bot walks toward the nearest human player (`getNearestPlayer(human = true)`), always holding the forward (`CONTROL.up`) key, and switches weapons plus jumps once every 10 seconds on a plain `setInterval` - simple, deliberately not sophisticated ("Adds a basic command" energy, not a real AI). On death, a bot respawns automatically after 7.5 seconds. Each bot's `player.modifiers.speedModifier` is randomized between 0.4x and 0.6x on spawn, so a room full of bots doesn't move in lockstep.
+`index.js` (plus the pathfinding functions it re-exports from `pathfinding.js`) is meant to be
+the thing other plugins import from:
 
-## Notes
+```js
+import { DeadInternetBot, findPath, isStandable, EDGE_TYPE, MOVEMENT_PROFILE } from '../deadinternet/index.js';
+```
 
-`DeadInternetBot` (exported from `index.js`) is a small reusable class wrapping the join/control/respawn logic - a real reference if you want to build your own bot-driving plugin, since spawning a fully-functional player without a real socket connection isn't otherwise documented anywhere else in this wiki. `executeClient` on the `/bots add` command is intentionally empty - there's no instant client-side feedback when you type it, only once the server actually processes the request and the bot's presence syncs down like any other player joining.
+`shared.js`'s two commands (`/bots add`, `/bots pathtest`) are real working examples of driving a
+bot, kept there deliberately so the test/demo surface stays separate from the API other plugins
+build against. If you're looking for how to *use* `DeadInternetBot`, read `shared.js` for
+working examples — but depend on `index.js`, not `shared.js`.
+
+## Pathfinding API (`pathfinding.js`, re-exported from `index.js`)
+
+### `findPath(room, start, goal, opts = {})`
+
+A\* search from `start` to `goal` (both `{x, y, z}` world positions — a real `Player` instance
+works directly since it has those properties). Returns an array of waypoints, or `null` if no
+path exists.
+
+Each waypoint is `{ x, y, z, type }`: `x`/`z` are cell centers, `y` is the standing height at
+that cell, and `type` (one of `EDGE_TYPE`) describes how to get from the *previous* waypoint to
+this one.
+
+`opts`:
+- `maxExpansions` (default `4000`) — search node budget before giving up.
+- `avoidEdges` — a `Set` of `"x,y,z->x,y,z"` strings naming edges to skip entirely. Used by
+  `DeadInternetBot`'s stuck-recovery to route around an edge that turned out not to be
+  physically traversable, without the exact same edge just getting re-selected on the next
+  search (see "Self-correcting execution" below).
+
+The start position doesn't need to land exactly on a standable cell — `findPath` searches
+around/below it first (handles being mid-jump, mid-fall, or right at a cell boundary when the
+search is triggered).
+
+### `EDGE_TYPE`
+
+```js
+{ WALK: 'walk', RAMP: 'ramp', JUMP: 'jump', FALL: 'fall', LADDER: 'ladder' }
+```
+
+- **WALK** — same-level move, 8-directional (includes diagonals).
+- **RAMP** — one level up via a `wedge`/`iwedge` collider (cheap — no jump needed).
+- **JUMP** — one level up via a standing jump, no ramp involved. Weighted heavily (cost `4` vs.
+  `1.1` for a ramp, `1` for a walk) because live testing showed a standing jump clearing a full
+  level is frequently unreliable in practice — the planner only reaches for one when there's
+  genuinely no walk/ramp/fall route around it.
+- **FALL** — walking off a ledge, landing up to `MOVEMENT_PROFILE.maxFallLevels` cells below.
+  There's no fall damage in this game, so these are allowed fairly liberally, just cost-weighted
+  by drop distance so a gentler path is preferred when one exists.
+- **LADDER** — climbing a stack of `ladder` collider cells, including stepping off at the top
+  onto solid ground.
+
+### `MOVEMENT_PROFILE`
+
+```js
+{ maxJumpLevels: 1, maxFallLevels: 4, arrivalRadius: 0.3 }
+```
+
+These are **estimates**, not exact physics — derived from reading `player.js`'s real movement
+constants (jump initial velocity, gravity, the documented "a jump pad's dy=0.13 clears approx 3
+blocks" comment used as a calibration anchor), not hand-tuned to match the physics engine
+exactly. `test-pathfinding.js` sanity-checks them; `DeadInternetBot.followPath()`/`checkStuck()`
+are what actually make an imperfect value harmless at runtime (see below) rather than stranding
+a bot.
+
+### `isStandable(map, x, y, z)` / `isBlockingCell(cell)` / `isLadderCell(cell)` / `isRampCell(cell)`
+
+Lower-level cell classification helpers, exported in case a consuming plugin wants to reason
+about the grid directly rather than only through `findPath`.
+
+## Collision model handled
+
+Every real `colliderType` from `buildMapData` (`src/shell/loading.js`) is accounted for:
+
+- `full` — blocks fully, no edge offered through it.
+- `wedge` / `iwedge` — ramps; walkable up onto, and enables the cheap RAMP edge type for an
+  adjacent level-up move.
+- `aabb` / `obb` — custom collision geometry; treated as fully blocking (same as `full`) for
+  pathfinding purposes.
+- `ladder` — climbable via dedicated LADDER edges, matched by `ry` between stacked ladder cells
+  the same way `player.js`'s real `lookForLadder` does, so the planner never offers a climb the
+  physics engine would reject.
+- `none` — passable, no collision.
+
+## `DeadInternetBot` pathfinding methods (`index.js`)
+
+- **`pathTo(target, opts = {})`** — computes/recomputes a route to `target` (anything with
+  `x`/`y`/`z`, including a `Player`). Throttled to at most once per second by default
+  (`opts.recomputeIntervalMs`) unless `opts.force: true` — safe to call every tick to chase a
+  moving target without re-running A\* 60 times a second. Clears the bot's avoided-edges set
+  whenever the destination itself changes.
+- **`followPath()`** — call once per tick (typically from `onUpdate`) to steer along the last
+  computed path: sets yaw, holds forward, jumps when the active waypoint is a JUMP edge. Returns
+  `'idle'` (no path), `'following'`, or `'arrived'`.
+- **`stopPath()`** — clears the current path/progress state.
+
+### Self-correcting execution
+
+`MOVEMENT_PROFILE`'s constants are estimates, and other players/bots can wander into a planned
+route — rather than trying to model every failure case up front, `followPath()`/`checkStuck()`
+detect when the bot hasn't actually made horizontal progress in a while and react in two stages:
+
+1. **~600–900ms stuck** — a cheap `jump()` nudge (fixes most "technically blocked by a lip"
+   cases).
+2. **≥1800ms stuck** — blacklists the specific failing edge into the bot's own
+   `pathAvoidedEdges` set and forces a full replan via `pathTo(..., { force: true })`. Blacklisting
+   the exact edge (not just "try again") matters — without it, a replan from the same position
+   just finds and re-selects the same bad edge forever, since nothing about the map changed.
+
+This is why `MOVEMENT_PROFILE` doesn't need to be physically exact: an imperfect estimate costs
+at most ~1.8s of stall before the bot routes around it.
+
+## `/bots pathtest` (shared.js, demo command)
+
+`permissionLevel: [Guest, Guest, false]`, not `isCheat` — deliberately low-ceremony since it's a
+read-only debug aid rather than anything gameplay-affecting. Anyone in the room can run it, no
+game-owner requirement.
+
+Spawns one bot that **wanders forever between random spawn points** on the map (`room.spawnPoints`,
+the same list the real spawn-selection logic in `rooms.js` draws from) — not to wherever you're
+standing. Each time it picks a new destination, and each time it arrives, it announces it via
+`ctx.room.notify` (visible in chat) and logs the full detail server-side:
+
+- On picking a destination: the target coordinates and the route's waypoint count/edge-type
+  breakdown (e.g. "5 walk, 1 ramp, 1 jump").
+- On arrival: the arrival position, followed 1 second later by a new random destination.
+- If a particular spawn point turns out unreachable, it says so and tries another after the same
+  1-second beat, rather than getting stuck.
+
+Targeting random spawn points instead of your position is deliberate: spawn points are scattered
+around the map by design, so routes between them reliably exercise ramps/jumps/falls/ladders on
+their own — no need to manually go stand somewhere tricky first. Just run the command and watch
+it go; it'll keep looping (including respawning and resuming after it dies) until you stop the
+bot yourself (e.g. by removing it from the room).
+
+## Testing
+
+### `test-pathfinding.js` — unit tests, no server required
+
+```bash
+node plugins_default/deadinternet/test-pathfinding.js
+```
+
+Builds synthetic `room.map`-shaped fixtures and asserts on `findPath`'s output for: flat floor,
+wall with a gap, jumpable parapet, an unclimbable wall (correct refusal), a ramp, a ladder shaft
+(exactly the expected LADDER-only edges), a sealed/unreachable goal (correct refusal), an
+imprecise start position, and direct `isStandable` checks. 21 assertions, all passing.
+
+### `test-ingame.js` — live integration test against a real running server
+
+```bash
+node plugins_default/deadinternet/test-ingame.js [gameHost] [gamePort]
+```
+
+Defaults to `localhost:13372`. Requires `services` + `game` already running. Connects as a raw
+WebSocket client (using the real `Comm` class for correct wire framing — no browser, no
+rendering), joins a fresh private room, sends `requestRespawn` to get a real position, then
+issues `/bots pathtest`. The actual proof of correctness is the **game server's own console
+output** (route summary, 1s position samples, arrival time) — this script deliberately doesn't
+fully parse incoming payloads itself; watch the server log while it runs.
+
+Confirmed via repeated live runs against the "Two Towers" map: consistent successful arrivals in
+the 14–16 second range, including routes requiring ramps, falls, and (when unavoidable) jumps,
+with automatic recovery via the replan/avoid-edge mechanism on the rare edge that didn't clear
+as estimated.
+
+**Gotchas if you're testing from a non-git-cloned working copy** (e.g. a scratch/throwaway
+server instance):
+- Every plugin folder must be its own git repo with at least one commit — the plugin loader
+  (`src/shell/plugins.js`) silently skips (never instantiates) any plugin whose
+  `git rev-parse HEAD` fails, with no fatal error.
+- A raw WS test client like `test-ingame.js` needs to send `requestRespawn` before it has a real
+  position — without it, a target position of `(0,0,0)` isn't on the map and `findPath` will
+  (correctly) refuse it as unreachable.
+- Chat messages must be packed with `packLongString`, not `packString` — `client.js`'s chat
+  handler reads a 2-byte length prefix; the 1-byte-prefix `packString` garbles the text.
+
+## Not yet implemented
+
+Aiming, firing, and other "natural player-like" combat behavior — out of scope for this pass.
+Pathfinding/navigation only.
 
 ---
 

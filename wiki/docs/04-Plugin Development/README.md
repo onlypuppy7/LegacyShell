@@ -21,7 +21,9 @@ Not sure where to start, or looking for a specific answer rather than a linear r
 - **[Networking](./networking.md)** - registering new wire-protocol opcodes with `Comm.Add`.
 - **[Workers and state](./workers-and-state.md)** - the worker-per-room isolation gotcha, and using `wsrequest` for state that needs to cross rooms.
 - **[Prediction and authority](./prediction-and-authority.md)** - why most nontrivial gameplay code needs both an `executeClient` and an `executeServer` half.
-- **[Recipes](./Recipes/)** - complete worked examples: killstreaks, a new gamemode, a custom weapon, a new pickup item, UI changes, Discord integration, persistent storage, player currency, custom per-player data, and replacing core behavior outright.
+- **[Modifiers](./modifiers.md)** - the per-team gameplay multipliers (speed, gravity, damage, and a dozen others) behind both gamemodes and the `change` slash commands.
+- **[Sound and Apollo](./sound-and-apollo.md)** - registering and playing sounds from a plugin via LegacyShell's Howler.js wrapper.
+- **[Recipes](./Recipes/)** - complete worked examples: killstreaks, a new gamemode, a custom weapon, a new pickup item, UI changes, a custom theme, Discord integration, persistent storage, player currency, custom per-player data, and replacing core behavior outright.
 - **[Publishing](./publishing.md)** - versioning a plugin and listing it publicly.
 - **[Pitfalls](./pitfalls.md)** - the mistakes real plugins in this repo have actually made (a shared cancel flag stepping on another plugin, listening for events that don't exist, assuming state persists across worker threads).
 
