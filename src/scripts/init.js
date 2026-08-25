@@ -10,8 +10,8 @@ import readline from 'node:readline';
 import log from 'puppylog';
 import misc from '#misc';
 //legacyshell: database
-import sqlite3 from 'sqlite3'; //db
-import util from 'node:util';
+import Database from 'better-sqlite3'; //db
+import { wrapDatabase } from '#sqliteWrap';
 import recs from '#recordsManagement';
 //legacyshell: ss
 import { ss } from '#misc';
@@ -150,13 +150,9 @@ async function askAuthServer(callback) {
 
     fs.mkdirSync(servicesStoreFolder, { recursive: true });
 
-    const db = new sqlite3.Database(path.join(servicesStoreFolder, 'LegacyShellData.db'));
+    const db = new Database(path.join(servicesStoreFolder, 'LegacyShellData.db'));
 
-    Object.assign(ss, {
-        runQuery: util.promisify(db.run.bind(db)),
-        getOne:   util.promisify(db.get.bind(db)),
-        getAll:   util.promisify(db.all.bind(db)),
-    });
+    Object.assign(ss, wrapDatabase(db));
     
     await recs.initDB(db);
     

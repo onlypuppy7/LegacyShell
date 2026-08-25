@@ -43,13 +43,7 @@ var usersTable = `
 
 const exported = {
     initDB: async (db) => {
-        await new Promise((resolve, reject) => {
-            db.serialize(() => {
-                exported.initTables(db)
-                    .then(resolve)
-                    .catch(reject);
-            });
-        });
+        await exported.initTables(db);
     },
     initTables: async (db) => {
         //USERS

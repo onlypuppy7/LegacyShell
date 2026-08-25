@@ -66,7 +66,8 @@ const exported = {
             return true;
         } catch (error) {
             console.error('Error creating account:', error.code);
-            return error.code;
+            //better-sqlite3 returns extended codes like SQLITE_CONSTRAINT_UNIQUE; normalize to the base code callers check for
+            return error.code && error.code.startsWith('SQLITE_CONSTRAINT') ? 'SQLITE_CONSTRAINT' : error.code;
         };
     },
     getUserData: async (identifier, convertJson, retainSensitive) => {

@@ -1,12 +1,12 @@
 //basic
 import fs from 'node:fs';
 import path from 'node:path';
-import util from 'node:util';
 //legacyshell: basic
 import log from 'puppylog';
 import misc from '#misc';
 //legacyshell: database
-import sqlite3 from 'sqlite3';
+import Database from 'better-sqlite3';
+import { wrapDatabase } from '#sqliteWrap';
 //legacyshell: ss
 import { ss } from '#misc';
 //
@@ -23,12 +23,8 @@ if (!fs.existsSync(dbPath)) {
     process.exit(1);
 };
 
-const db = new sqlite3.Database(dbPath);
-Object.assign(ss, {
-    runQuery: util.promisify(db.run.bind(db)),
-    getOne: util.promisify(db.get.bind(db)),
-    getAll: util.promisify(db.all.bind(db)),
-});
+const db = new Database(dbPath);
+Object.assign(ss, wrapDatabase(db));
 
 (async () => {
     // The only thing that actually needs to happen: drop the existing row so
