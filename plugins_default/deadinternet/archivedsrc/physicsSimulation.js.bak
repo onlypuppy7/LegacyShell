@@ -1,3 +1,8 @@
+// ARCHIVED SNAPSHOT - 2026-08-26. Backup of physicsSimulation.js as synced to main, taken right
+// before an in-progress experiment (widening JUMP_RUNUP_BACKAWAY_SECONDS 0.1->0.13, not yet
+// synced/kept at snapshot time) - this file still has the verified 0.1 value. See index.js.bak's
+// own header for this snapshot's full test-result state (offline suite 21/21, 3 of 4 priority
+// maps deterministically clean, Castle 86-89% clean-rate, PathJumpTest partially improved).
 // Real-physics edge verification. pathfinding.js's static classification (isStandable /
 // hasHeadroom / the jump-cost estimate) approximates whether an edge is traversable from cell
 // occupancy alone - every real bug found this session (corner-cutting through a wall, "walkable"
@@ -86,25 +91,9 @@ export function simulateEdge(player, from, to, { jump = false, maxTicks = 600, a
         // direction key - a hand-tuned velocity seed isn't needed to make this realistic, it was
         // only ever compensating for the delta bug fixed above, and risked its own inaccuracy
         // (an arbitrary "how long was the runup" guess) once that compensation wasn't needed.
-        // Arrive already moving, not from a dead stop. A real bot reaches a takeoff cell walking -
-        // it came from the previous waypoint - so by the time it commits to an edge it is already at
-        // the walk equilibrium speed and slightly PAST the cell centre. Starting cold at the exact
-        // centre understates both, and once the drag below makes speeds honest that understatement
-        // is the difference between an edge verifying and being rejected: measured on
-        // "PathJumpHardTest" checkpoint3->4, the live bot began its jump at x=5.702 already at speed
-        // and mantled up onto the block (y 2.001 -> 2.655), while the cold-start simulation of the
-        // same edge fell into the gap instead (y 2 -> 1.688) and stalled 0.25 short of even
-        // entering the target cell.
-        // The seed is the drag equilibrium itself (.007 accel against .8/tick drag settles at
-        // .007*.8/(1-.8)), not a hand-tuned guess - it's the speed the physics actually converges
-        // to, so this starts the sim where a walking bot genuinely already is rather than making it
-        // spend the whole edge accelerating up to it. An earlier version of this file had a velocity
-        // seed removed for being an arbitrary "how long was the runup" guess compensating for a
-        // since-fixed delta bug; this one is derived from the engine's own constants.
-        const equilibriumSpeed = 0.007 * 0.8 / (1 - 0.8);
-        player.dx = ddx * equilibriumSpeed;
-        player.dz = ddz * equilibriumSpeed;
+        player.dx = 0;
         player.dy = 0;
+        player.dz = 0;
         player.jumping = false;
         player.jumps = 0;
         player.isFalling = false;
@@ -315,25 +304,6 @@ export function simulateEdge(player, from, to, { jump = false, maxTicks = 600, a
             };
 
             player.simulateMovement({ ddx, ddy, ddz, delta: deltaSeconds });
-            // Horizontal drag. player.js's update() applies this to dx/dz EVERY tick, airborne or
-            // not, right after its own simulateMovement() call (the `this.dx *= Math.pow(.8, delta)`
-            // pair at the end of update). This module drives simulateMovement directly instead of
-            // going through update(), so it never picked the drag up - meaning it was simulating a
-            // different physics engine than the one the bot actually runs under.
-            //
-            // The error was not subtle. Drag at .8/tick against the .007/tick air acceleration
-            // settles at .007*.8/(1-.8) = .028, and that is exactly what the real bot does -
-            // measured live, horizontal speed climbs to ~0.028 and sits there for the whole flight.
-            // Without the drag this loop's speed grew linearly past 0.14, so every jump was judged
-            // as reaching roughly FIVE TIMES further than the bot can actually throw itself. Found
-            // by trapping writes to the live player's dx and reading the stack: player.js:419,
-            // a clean 0.03404 -> 0.02723 (exactly x0.8) on the tick after acceleration was applied.
-            //
-            // This MUST land together with the cell-based arrival check below - see that comment.
-            // Applying drag alone regresses things badly, because the old centre-to-centre arrival
-            // test silently depended on the inflated speeds to ever be satisfiable.
-            player.dx *= Math.pow(0.8, deltaSeconds);
-            player.dz *= Math.pow(0.8, deltaSeconds);
 
             // Ground-loss guard: the takeoff cell isn't necessarily the middle of a wide platform
             // - backing straight away from the target for the full fixed window can walk the
@@ -398,19 +368,7 @@ export function simulateEdge(player, from, to, { jump = false, maxTicks = 600, a
 
             const horizontalDistance = Math.length2(player.x - to.x, player.z - to.z);
             const verticalDistance = Math.abs(player.y - to.y);
-            // Arriving means "got onto the target cell", not "got within arrivalRadius of its exact
-            // centre". A grid cell is a whole unit across, so demanding the centre asks for up to
-            // half a cell of extra travel that the real edge never requires - and with the drag
-            // above making speeds honest, that half-cell is the difference between an edge passing
-            // and being rejected outright. Measured on "PathJumpHardTest" checkpoint3->4, a jump the
-            // bot completes reliably in 1.7s: centre-to-centre is 2.0 units, the bot's real reach is
-            // ~1.7, and it succeeds only because it starts at x=5.702 (not the cell centre 5.5) and
-            // lands on the block's near EDGE. Judged centre-to-centre that working jump verifies as
-            // impossible; judged by "is it standing on the block" it verifies as the routine hop it
-            // actually is. The vertical tolerance still applies either way, so this can't accept a
-            // player merely passing high over the cell mid-arc.
-            const inTargetCell = Math.floor(player.x) === Math.floor(to.x) && Math.floor(player.z) === Math.floor(to.z);
-            if ((horizontalDistance < arrivalRadius || inTargetCell) && verticalDistance < verticalTolerance) {
+            if (horizontalDistance < arrivalRadius && verticalDistance < verticalTolerance) {
                 return { success: true, x: player.x, y: player.y, z: player.z, ticks: tick };
             };
 

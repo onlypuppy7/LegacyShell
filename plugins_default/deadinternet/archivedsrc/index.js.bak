@@ -1,3 +1,11 @@
+// ARCHIVED SNAPSHOT - 2026-08-26. Backup of index.js as synced to main after this session's 7
+// verified fixes (ramp-climb metric, fall-settle detection, position-discontinuity baseline
+// reset, jump-phase staleness on teleport, wall-collision-cutoff epsilon, ground-loss-guard
+// epsilon, edge-blacklist-exhaustion permanent-stall fix). State at snapshot time: offline suite
+// 21/21; PathHalfTest 2/2, PathLadderTest 4/4, PathMazeTest 1/1 all deterministically clean;
+// Castle 35/35 arrival across 5 full runs, clean-rate 86-89%; PathJumpTest ~50-75% clean per
+// fresh server instance (one diagonal jump has real OS-scheduling-jitter sensitivity, root-caused
+// but not fully eliminated). See physicsSimulation.js.bak's own header for the matching snapshot.
 //basic
 import fs from 'node:fs';
 import path from 'node:path';

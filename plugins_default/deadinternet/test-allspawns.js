@@ -40,7 +40,18 @@ const pairTo = process.argv[6];
 const url = `ws://${host}:${port}`;
 const mapName = process.env.TEST_MAP || 'Castle';
 
-const castleMapPath = path.join(__dirname, '..', '..', 'server-services', 'src', 'maps', `${mapName}.json`);
+// Shipped maps live under server-services/src/maps/; this plugin's own hand-built test maps
+// (auto-inserted into the DB by index.js's initTablesMaps) live under its own maps/ dir instead -
+// check both so TEST_MAP works for either without the caller needing to know which.
+const candidatePaths = [
+    path.join(__dirname, '..', '..', 'server-services', 'src', 'maps', `${mapName}.json`),
+    path.join(__dirname, 'maps', `${mapName}.json`),
+];
+const castleMapPath = candidatePaths.find(p => fs.existsSync(p));
+if (!castleMapPath) {
+    console.error(`[test-allspawns] map "${mapName}" not found in any of:`, candidatePaths);
+    process.exit(1);
+};
 const castleMap = JSON.parse(fs.readFileSync(castleMapPath, 'utf8'));
 console.log(`[test-allspawns] loaded ${castleMapPath} (surfaceArea ${castleMap.surfaceArea})`);
 

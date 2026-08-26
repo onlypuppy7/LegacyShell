@@ -1,3 +1,8 @@
+// ARCHIVED SNAPSHOT - 2026-08-26. Backup of pathfinding.js as synced to main - unmodified this
+// session (investigated but not edited; confirmed the WALK-edge generators structurally cap
+// vertical rise to <=1.0 unit, ruling out a suspected graph bug). See index.js.bak's own header
+// for this snapshot's full test-result state (offline suite 21/21, 3 of 4 priority maps
+// deterministically clean, Castle 86-89% clean-rate, PathJumpTest partially improved).
 // A* pathfinding over the same voxel grid `#collider`/`player.js` use for real collision -
 // `room.map.data[x][y][z]`, populated by `buildMapData` (src/shell/loading.js). Deliberately
 // independent of DeadInternetBot/Player - everything here takes a plain `room`-shaped object
@@ -151,42 +156,6 @@ function findRampRestY(map, x, y, z, player) {
     return y + 0.5;
 }
 
-// Where a bot departing a ramp toward (dirX,dirZ) would actually be standing when it commits to
-// the jump - the ramp's real far edge in that direction, not the cell's geometric center.
-// findRampRestY (above) already fixes the Y half of this same problem; this is the X/Z half,
-// which surfaced separately because nothing needed it until a jump departs a ramp toward open air
-// on a specific side of the cell rather than just resting centered on it.
-//
-// A real bot walks a ramp to its edge before jumping - it doesn't jump from the cell's midpoint
-// with half the ramp still ahead of it. Verifying from cell-center therefore both UNDERSTATES the
-// bot's real approach (loses however much of the cell lies between center and the true edge) and,
-// worse, can plant the simulated player somewhere that isn't even a valid ramp surface at that
-// exact (x,z) for a diagonally-oriented wedge. Confirmed on "PathJumpHardTest" checkpoint4->5: the
-// ramp at (7,2,5) verified its departing jump from z=5.5 (cell center) needing 3.0 units of travel
-// to reach checkpoint5's platform at z=2.5, and reliably fell ~0.75 short - a real, reproducible
-// gap this file had otherwise resolved to a physics-reliability question rather than a routing one.
-//
-// Sweeps from center toward the neighbor in small steps, using the SAME real-collider height probe
-// findRampRestY uses at each point, and keeps the farthest one that's still a valid ramp surface -
-// the true edge, whatever the wedge's ry happens to be, without needing to decode its rotation by
-// hand. Falls back to plain cell-center + findRampRestY's own y when no player is available (the
-// offline/no-collider path), identical to every other edge type's existing behavior.
-function findRampExitXZ(map, x, y, z, dirX, dirZ, player) {
-    const cx = x + 0.5, cz = z + 0.5;
-    if (!player) return { x: cx, y: findRampRestY(map, x, y, z, player), z: cz };
-    let bestX = cx, bestZ = cz, bestY = findRampRestY(map, x, y, z, player);
-    for (let d = 0.05; d <= 0.45; d += 0.05) {
-        const px = cx + dirX * d, pz = cz + dirZ * d;
-        let found = null;
-        for (const dy of [0.5, 0.75, 0.25, 0.9, 0.1]) {
-            if (!player.Collider.playerCollidesWithMap(player, { x: px, y: y + dy, z: pz })) { found = y + dy; break; };
-        };
-        if (found === null) break; // walked off the ramp's real surface - previous point was the edge
-        bestX = px; bestZ = pz; bestY = found;
-    };
-    return { x: bestX, y: bestY, z: bestZ };
-}
-
 // Whether real game geometry actually occupies (x,y,z) at roughly body height (0.3 units up from
 // the cell floor - inside a standing player's ~0.6-tall collision box, see collider.js). Plugins
 // get the real room/Collider/Player objects handed to them, not a parallel copy of the game to
@@ -296,73 +265,37 @@ export function isStandable(map, x, y, z, player) {
 // just walked in small steps instead of assumed at a fixed y. Returns null if this cell isn't an
 // aabb/obb (nothing to probe) or if no clear resting spot was found up to y+1 (e.g. no player to
 // probe with, or genuinely solid the whole way through).
+// Multi-point footprint sample offsets from cell center, roughly matching the player's own
+// half-width (playerCollisionMesh is size 0.5, so ~0.25 to each side) - a single center probe
+// can't tell a uniform box-like shape (the half-block, a full-footprint crate) from one that's
+// only solid off to one side (an L-piece, a pole hugging a corner), since the center point might
+// clear on either regardless of whether the player's actual body would fit there too.
+const AABB_PROBE_OFFSETS = [[0, 0], [0.2, 0.2], [-0.2, 0.2], [0.2, -0.2], [-0.2, -0.2]];
 
-// Returns { y, cx, cz } (the resting height and the real-world x/z the player would actually
-// stand at) or null. cx/cz usually equal the cell's own center (x+0.5, z+0.5) - only differ when
-// the coarse footprint scan below finds the object's solid volume isn't centered in its cell.
 function findAabbStandY(map, x, y, z, player) {
     if (!player) return null;
     const cell = cellAt(map, x, y, z);
     if (!cell || !cell.mesh || (cell.mesh.colliderType !== 'aabb' && cell.mesh.colliderType !== 'obb')) return null;
-    const cellCx = x + 0.5, cellCz = z + 0.5;
-
-    // Locate the actual solid footprint's center within this cell rather than assuming it's
-    // simply the cell's geometric center - some AABB placements (a small crate, an off-grid-
-    // aligned prop) aren't centered in their cell at all. Confirmed live on "PathJumpHardTest":
-    // a "small crate" (shipyard.crate-wood-sml-single.aabb, ry:2) had its entire solid volume
-    // sitting in roughly the negative-x half of its cell, leaving the geometric center - and
-    // every one of the (now-removed) fixed ±0.2 diagonal probe points that used to surround it -
-    // landing either right on the boundary or fully in the empty half. None of them ever found solid ground at
-    // any height, so this AABB was never offered as climbable at all, stranding the entire route
-    // on the far side of it (findPath's search explored 84 same-level cells around the start and
-    // never found a way up - traced live). A coarse grid scan at a fixed low probe height (0.06
-    // above the cell floor - close enough to intersect almost any real AABB's base) finds
-    // whichever points are actually solid and centers the rest of this function on their
-    // average instead of the cell's blind center. Just fixing the reachability check here
-    // wouldn't be enough on its own, either - the waypoint this produces has to actually BE where
-    // the solid ground is, or the live bot would walk to the same empty spot and fall through;
-    // see getNeighbors()' smallHop candidate push and reconstructPath()'s waypoint building,
-    // which both thread standX/standZ through for exactly this case.
-    let sumOx = 0, sumOz = 0, hits = 0;
-    for (let sox = -0.45; sox <= 0.45; sox += 0.15) {
-        for (let soz = -0.45; soz <= 0.45; soz += 0.15) {
-            if (player.Collider.pointCollidesWithMap({ x: cellCx + sox, y: y + 0.06, z: cellCz + soz })) {
-                sumOx += sox; sumOz += soz; hits++;
-            };
-        };
-    };
-    const cx = hits > 0 ? cellCx + sumOx / hits : cellCx;
-    const cz = hits > 0 ? cellCz + sumOz / hits : cellCz;
-    // Only bother sweeping at all if the coarse scan actually found solid ground somewhere -
-    // skips straight to "nothing here" for a genuinely empty aabb/obb cell (e.g. probed from the
-    // wrong side) instead of running the full height sweep below for no reason.
-    if (hits === 0) return null;
-
+    const cx = x + 0.5, cz = z + 0.5;
     // pointCollidesWithMap uses a near-zero-size probe mesh (see collider.js's
     // pointCollisionMesh, size 0.01) - far cheaper than the full player box, so it's affordable
-    // to sweep at fine (0.02) resolution. Only the CENTER offset is checked here, deliberately -
-    // a ±0.2 diagonal spread (this function's first version) assumes a footprint at least ~0.4
-    // units across, which a genuinely small object (this whole function exists for "half-height aabb/obb
-    // steps", not full blocks) can easily be narrower than. Confirmed live on
-    // "PathJumpHardTest": a "small crate" (shipyard.crate-wood-sml-single.aabb) had a real
-    // footprint only ~0.3 units across even at its refined (non-cell-center) centroid above - the
-    // diagonal offsets landed outside its solid volume at every single height in the sweep, so it
-    // was never found climbable at all despite the centroid fix correctly locating it. The
-    // player-sized box check right after this loop is the real, authoritative arbiter of whether
-    // a full player actually fits (that's what it's FOR - it doesn't just repeat what the point
-    // sweep already proved), so relying on it alone here isn't a weaker check, just a differently
-    // shaped one that doesn't assume a minimum footprint width the object might not have.
+    // to sweep at fine (0.02) resolution and sample several points per height instead of one.
     for (let h = 0.98; h >= 0.02; h -= 0.02) {
         const candidateY = y + h;
-        const clearAbove = !player.Collider.pointCollidesWithMap({ x: cx, y: candidateY, z: cz });
-        const supportedBelow = player.Collider.pointCollidesWithMap({ x: cx, y: candidateY - 0.1, z: cz });
-        if (!clearAbove || !supportedBelow) continue;
-        // The point check only proves the center clears, not that the player's whole box does (a
-        // point can slip through a gap the real body would clip) - the real player-sized box is
-        // the actual arbiter, checked here at the refined center, which is where the resulting
-        // waypoint will actually sit.
+        let footprintClear = true;
+        for (const [ox, oz] of AABB_PROBE_OFFSETS) {
+            const px = cx + ox, pz = cz + oz;
+            const clearAbove = !player.Collider.pointCollidesWithMap({ x: px, y: candidateY, z: pz });
+            const supportedBelow = player.Collider.pointCollidesWithMap({ x: px, y: candidateY - 0.1, z: pz });
+            if (!clearAbove || !supportedBelow) { footprintClear = false; break; };
+        };
+        if (!footprintClear) continue;
+        // The point sweep only proves points at the sample offsets clear, not that the player's
+        // whole box does (a point can slip through a gap the real body would clip) - the real
+        // player-sized box is the actual arbiter, checked once here at the cell's center, which
+        // is where the resulting waypoint will actually sit.
         if (!player.Collider.playerCollidesWithMap(player, { x: cx, y: candidateY, z: cz })) {
-            return { y: candidateY, cx, cz };
+            return candidateY;
         };
     };
     return null;
@@ -424,31 +357,17 @@ function getNeighbors(map, x, y, z, player) {
     // checked here too so the planner doesn't offer a climb the physics engine would reject.
     const hereCell = cellAt(map, x, y, z);
     if (isLadderCell(hereCell)) {
-        // Math.floor(y), not y, for the same reason the jump generators below use it: `y` can
-        // already be FRACTIONAL when the bot is standing on a half-height aabb/obb step or a ramp
-        // (findAabbStandY / findRampRestY both return real sub-cell resting heights). Ladder rungs
-        // are whole cells, so "one rung up" has to mean the next whole level, not the step's own
-        // sub-height plus one. Without this, standing at y=2.92 produced a node at 3.92, and since
-        // key() uses the raw y that .92 offset then propagated up the entire climb - building a
-        // parallel family of fractional ladder nodes that never unify with the integer ones, and
-        // waypoints asking the bot to stop at heights a ladder never actually rests it at.
-        // Confirmed live on "Castle": `13,2.92,0 -> 13,3.92,0 (ladder)` failed with 4 stuck events,
-        // in two separate legs of the same tour. cellAt() already floors internally, so every
-        // occupancy check here was always looking at the right CELL - it's only the pushed
-        // waypoint height that was wrong, which is why this survived the earlier fractional-y
-        // sweep that fixed the three jump generators. A no-op for every integer-y case.
-        const ladderBaseY = Math.floor(y);
-        const up = cellAt(map, x, ladderBaseY + 1, z);
+        const up = cellAt(map, x, y + 1, z);
         if (isLadderCell(up) && up.ry === hereCell.ry) {
-            neighbors.push({ x, y: ladderBaseY + 1, z, type: EDGE_TYPE.LADDER, cost: 1 });
-        } else if (isStandable(map, x, ladderBaseY + 1, z, player)) {
+            neighbors.push({ x, y: y + 1, z, type: EDGE_TYPE.LADDER, cost: 1 });
+        } else if (isStandable(map, x, y + 1, z, player)) {
             // top of the ladder - stepping off onto solid ground directly above it, same as
             // climbing out at the top of a real ladder.
-            neighbors.push({ x, y: ladderBaseY + 1, z, type: EDGE_TYPE.LADDER, cost: 1 });
+            neighbors.push({ x, y: y + 1, z, type: EDGE_TYPE.LADDER, cost: 1 });
         };
-        const down = cellAt(map, x, ladderBaseY - 1, z);
-        if (down && (isLadderCell(down) ? down.ry === hereCell.ry : isStandable(map, x, ladderBaseY - 1, z, player))) {
-            neighbors.push({ x, y: ladderBaseY - 1, z, type: EDGE_TYPE.LADDER, cost: 1 });
+        const down = cellAt(map, x, y - 1, z);
+        if (down && (isLadderCell(down) ? down.ry === hereCell.ry : isStandable(map, x, y - 1, z, player))) {
+            neighbors.push({ x, y: y - 1, z, type: EDGE_TYPE.LADDER, cost: 1 });
         };
     };
 
@@ -491,23 +410,11 @@ function getNeighbors(map, x, y, z, player) {
         const rampAtTarget = cellAt(map, nx, y, nz);
         const rampClimbBlocked = rampBlocksDirection(rampAtTarget, dx, dz) || rampBlocksDirection(hereCell, dx, dz);
         const viaRamp = isRampCell(rampAtTarget) || isRampCell(hereCell);
-        // "One level up" from a FRACTIONAL current y (standing on a half-height aabb/obb step -
-        // see findAabbStandY) means the next whole level up from the cell that step's IN, not
-        // literally y+1 - a jump from y=1.6 (a small crate's real top, one such step found live on
-        // "PathJumpHardTest") needs to land at y=2 exactly, not 2.6, to actually reach a normal
-        // full-block platform. Math.floor(y) is a no-op for every ordinary integer-y case (all of
-        // this generator's non-aabb candidates), so existing behavior is unchanged there - it only
-        // does something different once y itself is already fractional. Confirmed live: without
-        // this, standing on the crate only ever offered same-level steps back down to the floor
-        // around it (the aabb half-step loop's own short-range candidates), nothing upward at
-        // all - the search reached the crate but had no way off it toward the rest of the route.
-        const climbBaseY = Math.floor(y);
-        if (!rampClimbBlocked && viaRamp && isStandable(map, nx, climbBaseY + 1, nz, player) && hasHeadroom(map, x, y, z, nx, climbBaseY + 1, nz, player)) {
-            neighbors.push({ x: nx, y: climbBaseY + 1, z: nz, type: EDGE_TYPE.RAMP, cost: 1.1 });
+        if (!rampClimbBlocked && viaRamp && isStandable(map, nx, y + 1, nz, player) && hasHeadroom(map, x, y, z, nx, y + 1, nz, player)) {
+            neighbors.push({ x: nx, y: y + 1, z: nz, type: EDGE_TYPE.RAMP, cost: 1.1 });
         } else if (!rampClimbBlocked && !viaRamp) {
             for (let levels = 1; levels <= effectiveMaxJumpLevels(player); levels++) {
-                const targetY = climbBaseY + levels;
-                if (!isStandable(map, nx, targetY, nz, player) || !hasHeadroom(map, x, y, z, nx, targetY, nz, player)) continue;
+                if (!isStandable(map, nx, y + levels, nz, player) || !hasHeadroom(map, x, y, z, nx, y + levels, nz, player)) continue;
                 // Jumps are weighted heavily against, not just mildly - real in-game testing
                 // showed a standing jump clearing a full level is frequently unreliable in
                 // practice (the estimated MOVEMENT_PROFILE clearance doesn't always match what
@@ -522,7 +429,7 @@ function getNeighbors(map, x, y, z, player) {
                 // further penalty on top - a taller jump is a harder one, same reasoning as the
                 // gap-jump distance penalty below.
                 neighbors.push({
-                    x: nx, y: targetY, z: nz,
+                    x: nx, y: y + levels, z: nz,
                     type: EDGE_TYPE.JUMP,
                     cost: 8 + (levels - 1) * 4,
                 });
@@ -598,12 +505,7 @@ function getNeighbors(map, x, y, z, player) {
                 // cost still competitive with the ladder detour on further testing.
                 const maxRangePremium = dist === maxGapCells ? 20 : 0;
                 neighbors.push({ x: jx, y, z: jz, type: EDGE_TYPE.JUMP, cost: dist + 1 + maxRangePremium });
-            // Math.floor(y), not y, for the same reason as the up-one-level jump above: a
-            // fractional CURRENT y (standing on a half-height aabb/obb step) needs "one level up"
-            // to mean the next whole level up from the cell that step's in, not the step's own
-            // sub-height plus one - confirmed live on "PathJumpHardTest" (a small crate's real
-            // top at y=1.6 jumping to a full-block platform at y=2, not 2.6).
-            } else if (isStandable(map, jx, Math.floor(y) + 1, jz, player) && hasHeadroom(map, x, y, z, jx, Math.floor(y) + 1, jz, player)) {
+            } else if (isStandable(map, jx, y + 1, jz, player) && hasHeadroom(map, x, y, z, jx, y + 1, jz, player)) {
                 // Landing a level higher than takeoff relies on the same marginal step-up-on-
                 // collision quirk the up-one-level jump above does, PLUS covering real horizontal
                 // distance mid-arc at the same time - a genuinely harder, less reliable jump than
@@ -618,9 +520,9 @@ function getNeighbors(map, x, y, z, player) {
                 // the cost model to reflect how much less reliable the risky jump actually is in
                 // practice. 20 (instead of 8) as the base premium was the smallest bump that
                 // actually flipped the planner's preference to the reliable route in that test.
-                neighbors.push({ x: jx, y: Math.floor(y) + 1, z: jz, type: EDGE_TYPE.JUMP, cost: 20 + (dist - 2) });
+                neighbors.push({ x: jx, y: y + 1, z: jz, type: EDGE_TYPE.JUMP, cost: 20 + (dist - 2) });
             } else {
-                const landing = findLandingBelow(map, jx, Math.floor(y) + 1, jz, player);
+                const landing = findLandingBelow(map, jx, y + 1, jz, player);
                 if (landing && landing.drop <= MOVEMENT_PROFILE.maxFallLevels && hasHeadroom(map, x, y, z, jx, landing.y, jz, player)) {
                     neighbors.push({ x: jx, y: landing.y, z: jz, type: EDGE_TYPE.JUMP, cost: dist + 1 + landing.drop * 0.3 });
                 };
@@ -648,54 +550,29 @@ function getNeighbors(map, x, y, z, player) {
         // sail straight through a wall the same way the cardinal check above prevents. Confirmed
         // by testing: without this, the offline "wall taller than a jump can clear" and
         // "unreachable goal" fixtures both got a bogus path straight through their sealing walls.
-        // Checked at a given height rather than baked in, because a jump that's GAINING a level
-        // doesn't fly flat at takeoff height the whole way - it arcs up toward the landing height,
-        // so an obstruction that only occupies the takeoff's own level (a single-level "full"
-        // block, not a genuine floor-to-ceiling wall) shouldn't rule out a level-up landing past
-        // it. Confirmed live on "PathJumpHardTest": a level-up knight's-move jump from a small
-        // crate's real (fractional) top at y=1.6 toward a platform at y=2 sampled a mid-path point
-        // that lands inside an ordinary one-level-tall "full" block at that SAME y=1.6 - correctly
-        // blocked for a same-level jump, but that block doesn't reach anywhere near y=2, so it's
-        // not actually in the way of a jump landing there instead.
-        const isBlockedAlongLineAt = (checkY) => {
-            for (let t = 0.25; t < 1; t += 0.25) {
-                const sx = Math.round(x + jdx * t), sz = Math.round(z + jdz * t);
-                if ((sx === x && sz === z) || (sx === jx && sz === jz)) continue;
-                if (isBlockedAt(map, sx, checkY, sz, player) && !isRampCell(cellAt(map, sx, checkY, sz)) && !isLadderCell(cellAt(map, sx, checkY, sz))) return true;
+        let blockedAlongLine = false;
+        for (let t = 0.25; t < 1; t += 0.25) {
+            const sx = Math.round(x + jdx * t), sz = Math.round(z + jdz * t);
+            if ((sx === x && sz === z) || (sx === jx && sz === jz)) continue;
+            if (isBlockedAt(map, sx, y, sz, player) && !isRampCell(cellAt(map, sx, y, sz)) && !isLadderCell(cellAt(map, sx, y, sz))) {
+                blockedAlongLine = true;
+                break;
             };
-            return false;
         };
-        // No single early "continue" here on purpose - same-level and falling candidates both
-        // need the ORIGINAL, stricter takeoff-height-only check (a fall's real trajectory stays
-        // close to takeoff height, not the possibly-much-higher floor(y)+1 relaxation below, so it
-        // gets no benefit from that reasoning and shouldn't get the weaker check either), but that
-        // check can't gate the WHOLE candidate up front, or a takeoff-height obstruction (like the
-        // one-level "full" block below the level-up branch's own reasoning is about) would reject
-        // the level-up branch before it ever got a chance to run its own, separately-relevant
-        // check - confirmed live: exactly this happened on "PathJumpHardTest" until this was
-        // split apart. Each branch below checks the height that's actually relevant to it.
-        if (!isBlockedAlongLineAt(y) && isStandable(map, jx, y, jz, player) && hasHeadroom(map, x, y, z, jx, y, jz, player)) {
+        if (blockedAlongLine) continue;
+
+        if (isStandable(map, jx, y, jz, player) && hasHeadroom(map, x, y, z, jx, y, jz, player)) {
             neighbors.push({ x: jx, y, z: jz, type: EDGE_TYPE.JUMP, cost: dist + 1 });
-        // Math.floor(y), not y - see the identical fractional-current-y fix and its own comment
-        // on the cardinal/45°-diagonal gap-jump above (same underlying cause, confirmed on the
-        // same live case: "PathJumpHardTest"'s checkpoint1->2 crate-to-platform jump is itself a
-        // (dx=2, dz=1) knight's-move offset, so it's THIS branch, not the cardinal one, that
-        // needed the fix for that specific edge to be found at all). This branch specifically
-        // checks blocked-along-line at the landing height, independent of whatever the takeoff
-        // height's own check found - see the header comment on this whole block for why.
-        } else if (!isBlockedAlongLineAt(Math.floor(y) + 1) && isStandable(map, jx, Math.floor(y) + 1, jz, player) && hasHeadroom(map, x, y, z, jx, Math.floor(y) + 1, jz, player)) {
+        } else if (isStandable(map, jx, y + 1, jz, player) && hasHeadroom(map, x, y, z, jx, y + 1, jz, player)) {
             // Same marginal step-up-on-collision quirk as every other level-up jump, PLUS a
             // non-cardinal knight's-move approach angle on top - see the identical reasoning on
             // the cardinal/45°-diagonal gap-jump's own "+1 level" cost a bit above (same fix,
             // same "PathHalfTest planner preferred an unreliable one-shot jump over a reliable
             // multi-step route because the old cost model didn't price the risk gap widely
             // enough" finding, same empirically-validated premium).
-            neighbors.push({ x: jx, y: Math.floor(y) + 1, z: jz, type: EDGE_TYPE.JUMP, cost: 20 + dist });
-        // Falling keeps the ORIGINAL takeoff-height-only check (see the header comment above) -
-        // its real trajectory stays close to takeoff height, not the level-up branch's landing-
-        // height relaxation, so a takeoff-height obstruction still correctly rules it out here.
-        } else if (!isBlockedAlongLineAt(y)) {
-            const landing = findLandingBelow(map, jx, Math.floor(y) + 1, jz, player);
+            neighbors.push({ x: jx, y: y + 1, z: jz, type: EDGE_TYPE.JUMP, cost: 20 + dist });
+        } else {
+            const landing = findLandingBelow(map, jx, y + 1, jz, player);
             if (landing && landing.drop <= MOVEMENT_PROFILE.maxFallLevels && hasHeadroom(map, x, y, z, jx, landing.y, jz, player)) {
                 neighbors.push({ x: jx, y: landing.y, z: jz, type: EDGE_TYPE.JUMP, cost: dist + 1 + landing.drop * 0.3 });
             };
@@ -718,7 +595,7 @@ function getNeighbors(map, x, y, z, player) {
         const nearbyIntegerYs = [Math.floor(y), Math.floor(y) + 1, Math.ceil(y)];
         for (const [dx, dz] of HORIZONTAL_4) {
             const nx = x + dx, nz = z + dz;
-            const candidates = new Map(); // targetY -> {cx,cz} (aabb-probed real stand position) | null (plain cell-center)
+            const candidates = new Set(); // targetY -> fractional (aabb-probed heights only)
             const fractionalTargets = new Set();
             // Normal, full-height standable cells near the current height - needed even for an
             // ordinary integer-to-integer step whenever the CURRENT y is fractional, since the
@@ -734,28 +611,21 @@ function getNeighbors(map, x, y, z, player) {
             // the main loop already generates (cost 8, real run-up), so the ONLY route offered
             // to climb this wall was the one that couldn't actually be executed.
             for (const checkY of nearbyIntegerYs) {
-                if (Math.abs(checkY - y) <= 1.0 && isStandable(map, nx, checkY, nz, player)) candidates.set(checkY, null);
+                if (Math.abs(checkY - y) <= 1.0 && isStandable(map, nx, checkY, nz, player)) candidates.add(checkY);
             };
-            // Half-height aabb/obb steps, probed for their real (possibly fractional, possibly
-            // off-cell-center - see findAabbStandY's own comment) resting position rather than
-            // assumed from colliderType alone. These ARE genuine small hops - a standing jump
-            // already clears them, so they're marked separately below.
+            // Half-height aabb/obb steps, probed for their real (possibly fractional) resting
+            // height rather than assumed from colliderType alone. These ARE genuine small hops -
+            // a standing jump already clears them, so they're marked separately below.
             for (const checkY of nearbyIntegerYs) {
-                const stand = findAabbStandY(map, nx, checkY, nz, player);
-                if (stand !== null && Math.abs(stand.y - y) <= 1.0) {
-                    candidates.set(stand.y, { cx: stand.cx, cz: stand.cz });
-                    fractionalTargets.add(stand.y);
-                };
+                const standY = findAabbStandY(map, nx, checkY, nz, player);
+                if (standY !== null && Math.abs(standY - y) <= 1.0) { candidates.add(standY); fractionalTargets.add(standY); };
             };
-            for (const [targetY, standPos] of candidates) {
+            for (const targetY of candidates) {
                 const rise = targetY - y;
                 if (Math.abs(rise) < 0.05) continue; // not a real step
                 // Headroom at the landing spot - a standing player is ~0.6 tall, well under one
                 // cell, so a hair above the resting height is enough to sample real clearance.
-                // Uses the refined stand position when one exists (see findAabbStandY) rather
-                // than blindly the cell center, for the same off-center-AABB reason.
-                const headroomX = standPos ? standPos.cx : nx + 0.5, headroomZ = standPos ? standPos.cz : nz + 0.5;
-                if (player.Collider.playerCollidesWithMap(player, { x: headroomX, y: targetY + 0.3, z: headroomZ })) continue;
+                if (player.Collider.playerCollidesWithMap(player, { x: nx + 0.5, y: targetY + 0.3, z: nz + 0.5 })) continue;
                 const isSmallHop = fractionalTargets.has(targetY);
                 // Climbing onto a half-height ledge is just a smaller version of the ordinary
                 // "up one level" case a few lines above - the player's box hits the ledge's
@@ -773,11 +643,7 @@ function getNeighbors(map, x, y, z, player) {
                 // it doesn't out-compete the correctly-typed edge on price.
                 const type = rise > 0 ? EDGE_TYPE.JUMP : EDGE_TYPE.WALK;
                 const cost = rise <= 0 ? 1 + Math.abs(rise) * 0.3 : isSmallHop ? 3 + rise * 2 : 8;
-                // standX/standZ carry the real off-center stand position through to
-                // reconstructPath()'s waypoint building (see findAabbStandY's own comment) -
-                // undefined for every other edge type, which just falls back to cell-center there
-                // exactly as before this existed.
-                neighbors.push({ x: nx, y: targetY, z: nz, type, cost, smallHop: isSmallHop && rise > 0, standX: standPos?.cx, standZ: standPos?.cz });
+                neighbors.push({ x: nx, y: targetY, z: nz, type, cost, smallHop: isSmallHop && rise > 0 });
             };
         };
     };
@@ -906,18 +772,14 @@ export function findPath(room, start, goal, opts = {}) {
         if (visited.has(currentKey)) continue;
         visited.add(currentKey);
 
-        if (currentKey === goalKey) return reconstructPath(cameFrom, currentKey, map, player);
+        if (currentKey === goalKey) return reconstructPath(cameFrom, currentKey);
 
         if (++expansions > maxExpansions) return null;
 
         // What edge type actually got us TO `current` - used below to penalize chaining a jump
-        // directly off another jump/fall with no flat run-up in between (see cost comment), and
-        // to recover the real (possibly off-center, see findAabbStandY) stand position `current`
-        // represents - `current` itself is just the plain {x,y,z} cell popped off the open-set
-        // heap (see the `open.push` calls above), it never carries standX/standZ itself.
-        const incomingEntry = cameFrom.get(currentKey);
-        const incomingType = incomingEntry?.type;
-        const incomingWasSmallHop = !!incomingEntry?.smallHop;
+        // directly off another jump/fall with no flat run-up in between (see cost comment).
+        const incomingType = cameFrom.get(currentKey)?.type;
+        const incomingWasSmallHop = !!cameFrom.get(currentKey)?.smallHop;
 
         for (const neighbor of getNeighbors(map, current.x, current.y, current.z, player)) {
             const nKey = key(neighbor.x, neighbor.y, neighbor.z);
@@ -939,26 +801,9 @@ export function findPath(room, start, goal, opts = {}) {
                 // actually-clear height with the real collider instead of guessing one.
                 const fromCell = cellAt(map, current.x, current.y, current.z);
                 const toCell = cellAt(map, neighbor.x, neighbor.y, neighbor.z);
-                // A jump departing a ramp needs the real exit edge (see findRampExitXZ), not just
-                // the corrected rest height findRampRestY already gives every other ramp case
-                // (walking onto/off one, or landing on one) - only scoped to JUMP so an ordinary
-                // walk across a ramp still uses its own existing center-based handling untouched.
-                const rampExit = (isRampCell(fromCell) && neighbor.type === EDGE_TYPE.JUMP)
-                    ? findRampExitXZ(map, current.x, current.y, current.z, neighbor.x - current.x, neighbor.z - current.z, player)
-                    : null;
-                const fromY = rampExit ? rampExit.y : isRampCell(fromCell) ? findRampRestY(map, current.x, current.y, current.z, player) : current.y;
+                const fromY = isRampCell(fromCell) ? findRampRestY(map, current.x, current.y, current.z, player) : current.y;
                 const toY = isRampCell(toCell) ? findRampRestY(map, neighbor.x, neighbor.y, neighbor.z, player) : neighbor.y;
-                // Verify from where the bot would REALLY be standing, not the cell's nominal
-                // center - for an off-center AABB stand (e.g. a crate whose solid mass isn't
-                // centered in its cell, see findAabbStandY), cell-center can be several tenths of
-                // a unit away from the real takeoff point, silently verifying a different jump
-                // (different distance/angle to the target) than the one the live bot ever
-                // actually attempts. incomingEntry is undefined for the search's start node, which
-                // falls back to plain cell-center same as before.
-                const fromCenter = {
-                    x: rampExit ? rampExit.x : incomingEntry?.standX ?? (current.x + 0.5), y: fromY,
-                    z: rampExit ? rampExit.z : incomingEntry?.standZ ?? (current.z + 0.5),
-                };
+                const fromCenter = { x: current.x + 0.5, y: fromY, z: current.z + 0.5 };
                 const toCenter = { x: neighbor.x + 0.5, y: toY, z: neighbor.z + 0.5 };
                 const simResult = simulateEdgeCached(room, player, currentKey, nKey, fromCenter, toCenter, { jump: neighbor.type === EDGE_TYPE.JUMP });
                 if (!simResult.success) continue;
@@ -994,7 +839,7 @@ export function findPath(room, start, goal, opts = {}) {
             const tentativeG = gScore.get(currentKey) + edgeCost;
             if (tentativeG < (gScore.get(nKey) ?? Infinity)) {
                 gScore.set(nKey, tentativeG);
-                cameFrom.set(nKey, { from: currentKey, type: neighbor.type, x: neighbor.x, y: neighbor.y, z: neighbor.z, smallHop: neighbor.smallHop, standX: neighbor.standX, standZ: neighbor.standZ });
+                cameFrom.set(nKey, { from: currentKey, type: neighbor.type, x: neighbor.x, y: neighbor.y, z: neighbor.z, smallHop: neighbor.smallHop });
                 open.push({ x: neighbor.x, y: neighbor.y, z: neighbor.z, f: tentativeG + heuristic(neighbor.x, neighbor.y, neighbor.z, gx, gy, gz) });
             };
         };
@@ -1003,46 +848,14 @@ export function findPath(room, start, goal, opts = {}) {
     return null;
 };
 
-function reconstructPath(cameFrom, goalKey, map, player) {
+function reconstructPath(cameFrom, goalKey) {
     const waypoints = [];
     let currentKey = goalKey;
     while (cameFrom.has(currentKey)) {
         const step = cameFrom.get(currentKey);
-        // standX/standZ (see findAabbStandY/getNeighbors) override the plain cell-center for an
-        // off-center AABB stand position - undefined for every other edge type, which keeps the
-        // original x+0.5/z+0.5 exactly as before this existed. gridX/Y/Z (raw, non-centered) are
-        // kept alongside for the ramp-exit pass below and stripped before returning.
-        waypoints.push({
-            x: step.standX ?? (step.x + 0.5), y: step.y, z: step.standZ ?? (step.z + 0.5),
-            type: step.type, smallHop: step.smallHop,
-            gridX: step.x, gridY: step.y, gridZ: step.z,
-        });
+        waypoints.push({ x: step.x + 0.5, y: step.y, z: step.z + 0.5, type: step.type, smallHop: step.smallHop });
         currentKey = step.from;
     };
     waypoints.reverse();
-
-    // A JUMP departing a ramp needs to start from the ramp's real edge, not its geometric center
-    // (see findRampExitXZ) - but which edge that is depends on which DIRECTION the bot leaves in,
-    // and that's only known once the NEXT waypoint is known too. findPath's own edge-verification
-    // loop discovers this ramp waypoint before its outgoing edge is chosen, so it can't apply this
-    // there; reconstructPath already has the full ordered sequence, so it's the natural place to
-    // look one step ahead and correct it. Confirmed on "PathJumpHardTest" checkpoint4->5: without
-    // this, the live bot walked to the ramp's cell-center and jumped from there, needing 3.0 units
-    // of real travel to reach the landing platform against a measured ~2.2-2.3 unit reach - a
-    // consistent ~0.75 unit shortfall, not borderline jitter.
-    if (player) {
-        for (let i = 0; i < waypoints.length - 1; i++) {
-            const w = waypoints[i], next = waypoints[i + 1];
-            if (next.type !== EDGE_TYPE.JUMP) continue;
-            const cell = cellAt(map, w.gridX, w.gridY, w.gridZ);
-            if (!isRampCell(cell)) continue;
-            const dx = next.gridX - w.gridX, dz = next.gridZ - w.gridZ;
-            const len = Math.sqrt(dx * dx + dz * dz) || 1;
-            const exit = findRampExitXZ(map, w.gridX, w.gridY, w.gridZ, dx / len, dz / len, player);
-            w.x = exit.x; w.y = exit.y; w.z = exit.z;
-        };
-    };
-
-    for (const w of waypoints) { delete w.gridX; delete w.gridY; delete w.gridZ; };
     return waypoints;
 };
