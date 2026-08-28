@@ -5,7 +5,7 @@ import path from 'node:path';
 import { DeadInternetPlugin } from './shared.js';
 import Comm from '#comm';
 import { CONTROL, devlog, iteratePlayers, ticksPerSecond } from '#constants';
-import { findPath, isStandable, EDGE_TYPE, MOVEMENT_PROFILE } from './pathfinding.js';
+import { findPath, isStandable, isLadderCell, EDGE_TYPE, MOVEMENT_PROFILE } from './pathfinding.js';
 import { simulateEdge, canSimulate, JUMP_RUNUP_BACKAWAY_SECONDS } from './physicsSimulation.js';
 //
 
@@ -18,7 +18,7 @@ export const PluginMeta = {
     identifier: "deadinternet",
     name: 'DeadInternet',
     author: 'onlypuppy7',
-    version: '1.0.0',
+    version: '0.1.0',
     descriptionShort: 'Adds bot players to your game', //displayed when loading
     descriptionLong: 'Adds bot players to your game',
     legacyShellVersion: 459, //legacy shell version, can be found in /versionEnum.txt, or just on the homescreen
@@ -136,6 +136,7 @@ export class DeadInternetBot {
         this.fallCheckedWaypointIndex = null; // which waypoint index has already had its pre-commit fall dry run - see followPath()
         this.jumpRunupWaypointIndex = null; // which waypoint index the current jump run-up backup is for - see followPath()
         this.jumpRunupUntilTime = null; // simulatedTime value at the end of phase 1 (back away)
+        this.jumpLiftoffFired = false; // whether phase 3 has already called player.jump() once for the CURRENT jump waypoint - see followPath()'s phase 3
         this.jumpNeedsRunup = false; // whether the current jump waypoint needs the phase-1/2 run-up at all (height gain OR a long same-level gap) - see followPath()
         this.jumpChargeMaxTime = null; // safety-net simulatedTime cap on phase 2 (charge to the takeoff edge, grounded) - jump() fires once reached or this fires
         this.jumpRunupTargetDist = 0; // straight-line distance from where phase 2 began to the near edge of that cell - see followPath()
@@ -386,6 +387,7 @@ export class DeadInternetBot {
         this.fallCheckedWaypointIndex = null;
         this.jumpRunupWaypointIndex = null;
         this.jumpRunupUntilTime = null;
+        this.jumpLiftoffFired = false;
         this.jumpNeedsRunup = false;
         this.jumpChargeMaxTime = null;
         this.jumpRunupTargetDist = 0;
@@ -536,9 +538,9 @@ export class DeadInternetBot {
                 if (!preCheck.success) {
                     const from = this.currentPath[this.pathIndex - 1];
                     const fromKey = from
-                        ? `${Math.floor(from.x)},${from.y},${Math.floor(from.z)}`
+                        ? `${Math.floor(from.x)},${Math.floor(from.y)},${Math.floor(from.z)}`
                         : `${Math.floor(this.player.x)},${Math.floor(this.player.y)},${Math.floor(this.player.z)}`;
-                    const toKey = `${Math.floor(waypoint.x)},${waypoint.y},${Math.floor(waypoint.z)}`;
+                    const toKey = `${Math.floor(waypoint.x)},${Math.floor(waypoint.y)},${Math.floor(waypoint.z)}`;
                     this.pathAvoidedEdges.add(`${fromKey}->${toKey}`);
 
                     devlog('DeadInternetBot pre-flight check rejected a fall from its actual position, replanning before stepping off', fromKey, '->', toKey, this.player.name);
@@ -613,6 +615,7 @@ export class DeadInternetBot {
         // fool the stuck-timer into resetting every cycle, since moving away is still "movement",
         // and the bot would time out forever without the stuck/replan safety net ever firing).
         if (waypoint.type === EDGE_TYPE.JUMP) {
+            const prevWp = this.currentPath[this.pathIndex - 1];
             // Don't start a FRESH run-up/jump sequence while still airborne from whatever the
             // player was just doing (typically a big previous jump that overshot its own target
             // waypoint's arrival tolerance and is still rising or falling when THIS waypoint
@@ -639,13 +642,49 @@ export class DeadInternetBot {
             // forward - the run-up literally cannot do its job while the control scheme means
             // something else entirely. No directional input at all while still climbing (as
             // opposed to holding forward for the airborne case above) - CONTROL.up here would
-            // mean "keep climbing", the opposite of what dismounting to jump needs. player.jump()
-            // itself already has a dedicated ladder-detach branch (see checkStuck's cheap-
-            // recovery), so leaving climbing to resolve on its own and letting that existing
-            // detach path fire if it's ever genuinely stuck is enough - it doesn't need its own
-            // duplicate detach logic here.
-            if (this.jumpRunupWaypointIndex !== this.pathIndex && this.player.climbing) {
-                // no input - see comment above
+            // mean "keep climbing", the opposite of what dismounting to jump needs.
+            //
+            // player.jump()'s ladder-detach (dy=0.03, half a normal jump's impulse - see
+            // player.js) used to be left for checkStuck's own cheap-recovery jump() to trigger
+            // whenever it noticed no progress, on the theory that leaning on the existing
+            // detach path was enough without duplicating it here. Confirmed live on "PathMapTest"
+            // checkpoint2->checkpoint3 that theory doesn't hold: checkStuck's cheap-recovery only
+            // fires after 0.6-0.9s of registered non-progress, so the player hangs motionless on
+            // the ladder for most of a real second doing nothing before the first detach attempt
+            // even happens - and the detach's own boost is already only half height/duration of
+            // an ordinary jump, so burning most of that brief flight window waiting instead of
+            // using it left essentially no time to build the horizontal distance this branch's
+            // forward-hold (below) needs. The player fell straight back onto the same ladder cell
+            // and re-attached before ever making real progress, over and over, for the whole 90s
+            // timeout. Detaching immediately the first tick this waypoint is active - not waiting
+            // on a stuck timer for a transition that's ALWAYS going to need detaching, not just
+            // when something's gone wrong - hands the forward-hold below the entire flight to work
+            // with instead of a fraction of it.
+            if (this.player.climbing) {
+                // No `jumpRunupWaypointIndex !== pathIndex` gate - the ORIGINAL version of this
+                // check only ever detached on the very first tick this waypoint became active, on
+                // the assumption that `climbing` becoming true again afterward would be caught by
+                // the general stuck-timer instead. Confirmed live on "PathShipyardTest" by a
+                // tick-by-tick trace that assumption doesn't hold for every ladder-to-ladder jump:
+                // a flight that's already past its first tick (jumpRunupWaypointIndex already set)
+                // can still re-collide with the departure ladder mid-arc, and once that happens
+                // this whole branch stopped applying - falling through to the ordinary run-up
+                // phases below, which have no climbing-awareness at all and just hold CONTROL.up
+                // while ACTUALLY CLIMBING (a completely different control meaning - see this
+                // block's own header comment), going nowhere until the 1.8s stuck-timer eventually
+                // notices and forces a full replan. Detaching again immediately, every single tick
+                // `climbing` reads true regardless of which tick this waypoint is on, turns an
+                // 1.8s+ stall into (at most) one extra tick's delay - the same safe, already-proven
+                // detach this branch always used, just no longer limited to firing once.
+                //
+                // Also checks the actual departure CELL, not just prevWp.type === LADDER - a jump
+                // can depart a ladder cell without the edge that landed the bot there itself being
+                // typed LADDER (pathfinding.js's ladder-sideways-step-off jump lands on a ladder
+                // cell via a JUMP-type edge; the NEXT jump departing from that same waypoint has
+                // prevWp.type reading JUMP, not LADDER, which silently skipped this branch for
+                // exactly that case before).
+                const prevCell = prevWp && this.room.map.data[Math.floor(prevWp.x)]?.[Math.floor(prevWp.y)]?.[Math.floor(prevWp.z)];
+                if (prevWp?.type === EDGE_TYPE.LADDER || isLadderCell(prevCell)) this.player.jump();
             } else if (this.jumpRunupWaypointIndex !== this.pathIndex && (this.player.jumping || this.player.isFalling)) {
                 // Only keep walking toward the target while waiting to settle if there's actually
                 // solid ground ahead to walk onto - blindly holding forward here (the original
@@ -666,11 +705,29 @@ export class DeadInternetBot {
                 // the forward hold to cases where it can't do this harm.
                 const aheadLen = Math.sqrt(dx * dx + dz * dz) || 1;
                 const aheadPos = { x: this.player.x + (dx / aheadLen) * 0.4, y: this.player.y - 0.15, z: this.player.z + (dz / aheadLen) * 0.4 };
-                if (this.player.Collider.playerCollidesWithMap(this.player, aheadPos)) this.control(CONTROL.up);
+                // A jump departing straight off a ladder (the previous waypoint was LADDER) is a
+                // different case from the "settling after landing" scenario the ground-ahead check
+                // above exists for - there IS no ground ahead by construction (that's why it's a
+                // jump edge at all), so that check always reads false here and this branch does
+                // nothing, every tick, for the entire flight. player.jump()'s ladder-detach gives
+                // only a small vertical boost (see this block's own header comment) with no
+                // horizontal push of its own; without forward input converting that hop into real
+                // horizontal distance, gravity just pulls the player straight back down onto the
+                // same ladder cell it detached from, re-triggering `climbing` and repeating -
+                // confirmed live on "PathMapTest" checkpoint2->checkpoint3: jumpRunupWaypointIndex
+                // stayed null and `climbing` kept flipping true/false/true for the entire 90s
+                // timeout, the player never traveling more than a few tenths of a unit from the
+                // ladder the whole time. Holding forward unconditionally for this specific case is
+                // safe precisely because there's nothing to accidentally walk off of mid-settle -
+                // the "walked off a ledge" failure mode the ground-ahead check guards against can't
+                // happen here, since the player is already airborne off the ladder, not standing on
+                // a platform that might not extend as far as assumed.
+                if (this.player.Collider.playerCollidesWithMap(this.player, aheadPos) || prevWp?.type === EDGE_TYPE.LADDER) this.control(CONTROL.up);
             } else {
             if (this.jumpRunupWaypointIndex !== this.pathIndex) {
                 this.jumpRunupWaypointIndex = this.pathIndex;
                 this.jumpRunupStartY = this.player.y;
+                this.jumpLiftoffFired = false;
                 // Run-up only matters for a jump that has to GAIN height - it exists specifically
                 // to build enough approach speed for the marginal step-up-on-collision mantle a
                 // level-up jump relies on (see pathfinding.js's up-one-level cost comment). A
@@ -738,7 +795,29 @@ export class DeadInternetBot {
                 // passing edge, because zero-run-up same-level jumps only ever accumulate speed
                 // DURING the ~40-tick flight, which isn't enough runway at the far edge of the
                 // distance this game's gap-jumps attempt.
-                const needsRunup = (!waypoint.smallHop && waypoint.y > this.player.y) || horizontalDistance > 2;
+                // A same-level jump under the 2-unit distance threshold was deliberately left
+                // without run-up (see this whole block's own header comment on "PathTestMap") on
+                // the theory that a standing jump's natural ~40-tick flight always covers that
+                // little ground fine - true when the far side has forgiving footing, but not when
+                // the gap being crossed is a genuine PIT with nothing to catch a landing that falls
+                // even slightly short. Confirmed live on "PathShipyardTest": an exactly-2.0-unit
+                // same-level jump (horizontalDistance > 2 reads false right at the boundary) flew a
+                // completely normal rise-then-fall arc, lost horizontal speed to ordinary air drag
+                // partway across, and plunged straight through an unsupported gap below its own
+                // flight path instead of landing anywhere - not a wall hit (traced tick by tick:
+                // no sudden stop, a gradual decay matching drag, not collision), a standing jump's
+                // natural reach simply wasn't enough margin for THIS specific gap's real geometry.
+                // Distance alone can't tell that apart from "PathTestMap"'s already-safe case - a
+                // real probe for whether solid ground actually exists anywhere under the path can:
+                // same real-collider check hasGroundBehind/groundAhead already use elsewhere in
+                // this same run-up machinery, just checking the midpoint of the flight instead of
+                // immediately behind or ahead the takeoff point.
+                const midX = (this.player.x + waypoint.x) / 2, midZ = (this.player.z + waypoint.z) / 2;
+                const midY = Math.max(this.player.y, waypoint.y);
+                const hasMidpointPit = horizontalDistance <= 2 && waypoint.y <= this.player.y && ![0.1, 0.4, 0.7, 1.0, 1.5].some(dy =>
+                    this.player.Collider.playerCollidesWithMap(this.player, { x: midX, y: midY - dy, z: midZ })
+                );
+                const needsRunup = (!waypoint.smallHop && waypoint.y > this.player.y) || horizontalDistance > 2 || hasMidpointPit;
                 this.jumpNeedsRunup = needsRunup;
                 // Proactive ground-loss check, not just the reactive one a few lines below - that
                 // one can only detect a drop AFTER it's already happened (by which point a real
@@ -753,8 +832,23 @@ export class DeadInternetBot {
                 // from a standing start - when there's no solid ground there avoids ever taking
                 // the step that would need reacting to in the first place.
                 const runupLen = Math.sqrt(dx * dx + dz * dz) || 1;
-                const behindPos = { x: this.player.x - (dx / runupLen) * 0.6, y: this.player.y - 0.15, z: this.player.z - (dz / runupLen) * 0.6 };
-                const hasGroundBehind = this.player.Collider.playerCollidesWithMap(this.player, behindPos);
+                const behindX = this.player.x - (dx / runupLen) * 0.6;
+                const behindZ = this.player.z - (dz / runupLen) * 0.6;
+                // A single fixed vertical offset (0.15 below the CURRENT position) assumes the
+                // ground 0.6 units behind sits at roughly the same height the player is at right
+                // now - true for flat ground, but not for a ramp, whose height changes
+                // continuously along the very direction being probed. Reported live on
+                // "PathJumpHardTest": backing away from partway up a ramp (y=2.64) toward its low
+                // end checks around y=2.49, but the low end is a full block at y=2.0 - nowhere near
+                // that probe height - so this found nothing and reported no ground behind at all,
+                // skipping the back-away phase entirely for a jump the map's own author built
+                // specifically expecting one. Sweeping several candidate offsets (the same ladder
+                // findRampRestY already uses for "where does a sloped/stepped surface actually
+                // rest") catches a real surface wherever it is along that slope, not just at
+                // whatever height happens to match wherever the player is standing right now.
+                const hasGroundBehind = [0.15, 0.4, 0.65, 0.9, 1.15].some(dy =>
+                    this.player.Collider.playerCollidesWithMap(this.player, { x: behindX, y: this.player.y - dy, z: behindZ })
+                );
                 // this.simulatedTime already accumulates the real, physicsSpeedModifier-scaled
                 // delta every call (see followPath()'s header comment) - so a duration is just
                 // added directly, in simulated seconds, no ticksPerSecond conversion or
@@ -765,16 +859,51 @@ export class DeadInternetBot {
                 this.jumpRunupSpeed = 0;
                 this.jumpRunupStartX = this.player.x;
                 this.jumpRunupStartZ = this.player.z;
-                this.jumpRunupTargetDist = 0.5;
+                // Used to be a tight per-direction estimate of "distance from center to this
+                // cell's own edge" (0.5 cardinal, up to 0.5*sqrt(2) diagonal - see git history),
+                // reasoning that a flat takeoff only ever has about half a cell of real charging
+                // room. That's backwards: this value is a CAP, and the two reactive checks below
+                // (wall-collision speed-drop, ground-ahead) are what actually decide when to stop
+                // charging - "keep walking for as long as genuinely still possible, then jump the
+                // INSTANT that stops being true" (see this phase's own header comment) is exactly
+                // the design goal a tight estimated cap works against, cutting the charge off
+                // before those reactive checks ever get a chance to run. Confirmed live on
+                // "PathJumpDiagTest" checkpoint1->goal: even the direction-aware diagonal estimate
+                // (~0.665 for this specific angle) ended the charge while the takeoff block's real,
+                // solid surface still extended well past it - the reactive wall-collision check
+                // never fired because there was never a wall, just cap hit first. The bot landed a
+                // full level short and fell into the gap below. A single generous cap for every
+                // takeoff shape - flat cell OR ramp alike, no longer distinguished - lets whichever
+                // reactive check actually applies (a wall on a small platform, lost ground at a
+                // ramp's real peak) be the one that decides, the same way both already do for a
+                // ramp departure. Only matters as a safety net for the rare case neither ever
+                // fires (a corner-clipped approach with no wall and continuous ground) - it should
+                // essentially never be the deciding factor for the real edges this file targets.
+                this.jumpRunupTargetDist = 2.5;
+                this.jumpChargeSpeed = 0;
                 // Phase 2 itself is NOT shared with physicsSimulation.js's jumpChargeSeconds the
                 // way the back-away duration above is - deliberately, not by oversight. This live
                 // version ends the charge the instant the bot reaches the takeoff cell's edge
-                // (jumpRunupTargetDist), because it has a real position to check against every
-                // tick; physicsSimulation.js verifies edges ahead of time from an idealized
-                // cell-center start with no "real" position to react to, so it still uses a fixed
-                // charge duration there. 0.2s is just this phase's safety-net CAP, not its normal
-                // duration - it almost always ends earlier, once the edge is reached.
-                this.jumpChargeMaxTime = this.jumpRunupUntilTime + 0.2;
+                // (jumpRunupTargetDist) or runs out of real ground/hits a wall (the checks just
+                // below), because it has a real position to react to every tick; physicsSimulation.js
+                // verifies edges ahead of time from an idealized cell-center start with no "real"
+                // position to react to, so it still uses a fixed charge duration there.
+                //
+                // The safety-net CAP itself isn't one-size-fits-all, though - an ASCENDING jump
+                // (waypoint.y > where this run-up started) relies on repeated short charge-then-
+                // attempt cycles for its mantle nudge (see jumpLiftoffFired's own comment on why
+                // ascending jumps are exempted from the once-only liftoff guard), so a short 0.2s
+                // cap is what that case needs and already had. But a same-level or descending jump
+                // has no such repeated-cycle mechanic to fall back on - it gets exactly one real
+                // shot at covering ground before liftoff, and per the wall/ground-ahead checks just
+                // below, the win there isn't more built-up speed, it's reaching a physically closer
+                // takeoff point. Confirmed live on "PathJumpHardTest": tried widening this cap
+                // uniformly first, and it broke the (ascending) crate-climb badly - checkpoint1->2
+                // went from rock-solid to a full 90s timeout, because the longer cap let a SINGLE
+                // charge cycle run long enough to disrupt the mantle sequence's own repeated-attempt
+                // rhythm. Scoping the wider cap to non-ascending jumps only keeps the crate's
+                // existing, already-correct behavior completely untouched.
+                this.jumpChargeMaxTime = this.jumpRunupUntilTime + (waypoint.y > this.jumpRunupStartY ? 0.2 : 1.0);
             };
 
             if (this.simulatedTime < this.jumpRunupUntilTime) {
@@ -835,18 +964,86 @@ export class DeadInternetBot {
                 // actually matters (see comment above). The tick cap is just a safety net for the
                 // rare case the edge is never reached (e.g. a corner-clipped approach).
                 this.control(CONTROL.up);
+                // Phase 2's own wall-collision cutoff - physicsSimulation.js's offline verifier
+                // already has the exact equivalent of this (see its chargeBlockedAtTick), and
+                // phase 1 (back-away, just above) already has its own live version - this phase
+                // was the one place in the whole run-up that was missing it entirely, silently
+                // holding CONTROL.up uselessly against a wall it had already hit until an
+                // unrelated cap (jumpChargeMaxTime or jumpRunupTargetDist) eventually ended it.
+                //
+                // The distinction matters more here than it sounds: this ISN'T really about
+                // building extra speed at all - a standing jump and a run-up jump cover close to
+                // the same distance in this physics model. What actually matters is TAKEOFF
+                // POSITION - waiting even 1-2 more ticks before jumping means leaving the ground
+                // from a point that's physically closer to the target, which is the entire margin
+                // on a jump this tight (confirmed by direct live report: on real controls, closing
+                // that last sliver of distance by hand is razor-thin). So the right behavior isn't
+                // "charge for an assumed distance/duration, then jump" - it's "keep walking for as
+                // long as genuinely still possible, then jump the INSTANT that stops being true".
+                // A wall-collision speed-drop is exactly that instant, and jumping one tick late
+                // because the game kept walking forward right up to it is the whole fix - not
+                // building more speed.
+                //
+                // Same grace-period reasoning as physicsSimulation.js's own version: phase 1 ending
+                // and phase 2 beginning reverses direction, which causes a genuine, momentary dip
+                // in speed MAGNITUDE (decelerating through zero before accelerating the other way)
+                // that a bare "did speed drop" check can't tell apart from a real wall. Skipping
+                // the first stretch of phase 2 before watching for a drop avoids tripping on that
+                // reversal instead of an actual collision.
+                if (this.simulatedTime - this.jumpRunupUntilTime > 0.05) {
+                    const chargeSpeed = Math.length2(this.player.dx, this.player.dz);
+                    if (chargeSpeed < this.jumpChargeSpeed - 1e-3) this.jumpChargeMaxTime = this.simulatedTime;
+                    this.jumpChargeSpeed = chargeSpeed;
+                };
+                // A wall-collision speed-drop (just above) only catches a genuine solid obstruction
+                // - it does NOT catch charging off the far edge of a ramp into open air, since
+                // there's no collision there to cause a speed drop at all, only a subsequent fall
+                // that's already one tick too late to react to cleanly. Reported live on
+                // "PathJumpHardTest": this exact ramp's own edge is an open drop into the gap it's
+                // jumping across, not a wall - and per the report, that's what actually needs
+                // riding right up to: on a ramp specifically, walking one tick further is BOTH
+                // physically closer to the target AND higher (the incline itself), so the ideal
+                // liftoff tick is the literal last one solid ground still exists under the NEXT
+                // step, not the first tick after it stops. A short forward probe using the same
+                // multi-height sweep the ground-behind check above uses (a ramp's surface height
+                // changes continuously along this exact direction, so one fixed offset can't be
+                // trusted here either) answers that directly instead of waiting to react to a fall
+                // that's already begun.
+                const chargeLen = Math.sqrt(dx * dx + dz * dz) || 1;
+                const chargeAheadX = this.player.x + (dx / chargeLen) * 0.2;
+                const chargeAheadZ = this.player.z + (dz / chargeLen) * 0.2;
+                const groundAhead = [0.15, 0.4, 0.65, 0.9].some(dy =>
+                    this.player.Collider.playerCollidesWithMap(this.player, { x: chargeAheadX, y: this.player.y + 0.05 - dy, z: chargeAheadZ })
+                );
+                if (!groundAhead) this.jumpChargeMaxTime = this.simulatedTime;
             } else {
-                // Phase 3 - liftoff. jump() is a no-op here on every tick after the first - calling
-                // it again every subsequent tick is fine, not something to dedupe. player.js's
-                // canJump() isn't a strict "once per jump" gate though: it has its own near-ground
-                // grace check (temporarily lowers y by 0.2 and checks collidesWithMap - a small
-                // coyote-time allowance) that CAN return true again while already mid-air, if the
-                // player happens to pass close enough over solid ground during the arc - so calling
-                // jump() from somewhere else entirely while this phase's flight is still in
-                // progress is not actually harmless the way it looks; see checkStuck's
-                // suppressCheapJump for the real bug that assumption caused.
+                // Phase 3 - liftoff. Calling jump() again every subsequent tick here was assumed
+                // harmless (canJump() blocks re-firing while already jumping) but isn't: player.js's
+                // canJump() has its own near-ground grace check (temporarily lowers y by 0.2 and
+                // checks collidesWithMap - a small coyote-time allowance) that CAN return true again
+                // while still technically `jumping`, if the player happens to pass close enough over
+                // solid ground - and for a SAME-LEVEL or descending jump, the whole shallow arc stays
+                // close to ground the entire flight, so this can trigger well before the waypoint
+                // actually registers as arrived. Reported live (not just traced): every same-level
+                // gap jump visibly double-jumps the instant it lands, adding a full second flight's
+                // wait before the bot can continue - confirmed NOT happening on an ascending jump
+                // (e.g. "PathHalfTest"), which matches the mechanism exactly: an ascending jump stays
+                // elevated above nearby ground for most of its arc, only satisfying the grace check
+                // once genuinely landing.
+                //
+                // jumpLiftoffFired makes this call-once EXCEPT when the jump needs height - an
+                // ascending jump's repeated re-triggers are load-bearing (see the up-one-level cost
+                // comment in pathfinding.js: the climb relies on the marginal step-up-on-collision
+                // mantle nudge accumulating across several boosts, confirmed by testing - an earlier,
+                // blanket "call jump() at most once, ever" version broke exactly that mantling and
+                // regressed a previously-clean crate climb). Scoping the guard to same-level/
+                // descending jumps only, where a repeat was never doing anything useful in the first
+                // place, keeps the ascending case's real behavior completely untouched.
                 this.control(CONTROL.up);
-                this.player.jump();
+                if (!this.jumpLiftoffFired || waypoint.y > this.jumpRunupStartY) {
+                    this.player.jump();
+                    this.jumpLiftoffFired = true;
+                };
             };
             };
         } else {
@@ -870,9 +1067,9 @@ export class DeadInternetBot {
         if ((waypoint.type === EDGE_TYPE.WALK || waypoint.type === EDGE_TYPE.RAMP) && this.player.y < waypoint.y - 2) {
             const from = this.currentPath[this.pathIndex - 1];
             const fromKey = from
-                ? `${Math.floor(from.x)},${from.y},${Math.floor(from.z)}`
+                ? `${Math.floor(from.x)},${Math.floor(from.y)},${Math.floor(from.z)}`
                 : `${Math.floor(this.player.x)},${Math.floor(waypoint.y)},${Math.floor(this.player.z)}`;
-            const toKey = `${Math.floor(waypoint.x)},${waypoint.y},${Math.floor(waypoint.z)}`;
+            const toKey = `${Math.floor(waypoint.x)},${Math.floor(waypoint.y)},${Math.floor(waypoint.z)}`;
             this.pathAvoidedEdges.add(`${fromKey}->${toKey}`);
 
             devlog('DeadInternetBot fell off an unmodeled ledge attempting', fromKey, '->', toKey, ', replanning from where it landed', this.player.name);
@@ -1071,6 +1268,29 @@ export class DeadInternetBot {
         if (stuckForSeconds > stuckFor600 && stuckForSeconds < stuckFor900) {
             if (!climbing && !suppressCheapJump) this.player.jump(); // cheap first recovery attempt
         } else if (stuckForSeconds >= stuckFor1800) {
+            // Briefly defer the hard replan while genuinely airborne: forcing a replan calls
+            // pathTo() -> findPath(), which runs real-physics verification (simulateEdgeCached)
+            // against THIS SAME live player via createSnapshot/simulateMovement/restoreSnapshot -
+            // thorough for position/velocity but not perfect, and running it while the player has
+            // a genuine jump in flight on a DIFFERENT part of the path can leave stale velocity on
+            // landing, corrupting the live jump it interrupted.
+            //
+            // BOUNDED, not unconditional - an earlier version just returned whenever `jumping` was
+            // true, with no cap. That's exactly what let it go wrong: `jumping` isn't a clean
+            // "mid-flight" signal on its own, it also flickers true-then-false-then-true-again
+            // during a bot that's genuinely bouncing/re-jumping near a bad edge (a ladder grab that
+            // keeps failing, say) - and every one of those flickers re-satisfies `if (jumping)
+            // return`, so the escalating recovery this branch exists to run (blacklist-and-retry,
+            // eventually the 5-strikes force-respawn) never got a chance to fire at all. Confirmed
+            // via a controlled A/B on "Castle": with the unconditional version, several spawns hit
+            // a genuine 90s TIMEOUT that never happened without it - worse than the corruption bug
+            // it was trying to prevent, since a timeout never recovers at all. A real jump's flight
+            // is a fixed, short, known duration (~40 ticks, under a second) - capping the defer
+            // window at stuckGraceMaxSeconds well beyond that covers the genuine case (an actual
+            // jump in flight elsewhere finishing up) while guaranteeing this branch's own recovery
+            // ladder still runs on schedule for a bot that's actually stuck, jumping-flicker or not.
+            const stuckGraceMaxSeconds = stuckFor1800 + 1.5;
+            if (this.player.jumping && stuckForSeconds < stuckGraceMaxSeconds) return;
             this.stuckEventCount++;
             this.totalStuckEvents++;
 
@@ -1097,18 +1317,31 @@ export class DeadInternetBot {
             // Blacklist the specific edge that failed, not just "try again" - without this, a
             // replan from the same stuck position finds the exact same edge again (nothing about
             // the map changed) and the bot just re-stalls on it forever (confirmed by testing).
+            //
+            // x/z were always floored here, but y wasn't - harmless while every waypoint's y was a
+            // plain integer, but the ramp-exit-position and WALK-support-height fixes both now
+            // legitimately put a FRACTIONAL y on some waypoints (e.g. 2.9 for a ramp's real rest
+            // height). pathfinding.js's own graph keys (see key() in pathfinding.js) are always
+            // built from the plain integer grid y, computed before either of those corrections
+            // apply - so an unfloored blacklist key like "7,2.9,5" silently never matches the real
+            // graph edge "7,3,5" that findPath()'s avoidEdges check looks for, and the blacklist
+            // does nothing at all. Confirmed live on "PathJumpHardTest": a stuck bot kept
+            // rediscovering and re-attempting the exact same failing checkpoint3->ramp approach
+            // every ~12s, identically, forever - the blacklist should have ruled it out after the
+            // first failure and never has. Flooring y here makes this match pathfinding.js's own
+            // key format exactly, the same way x/z already did.
             const target = this.currentPath?.[this.pathIndex];
             const from = this.currentPath?.[this.pathIndex - 1];
             const fromKey = from
-                ? `${Math.floor(from.x)},${from.y},${Math.floor(from.z)}`
+                ? `${Math.floor(from.x)},${Math.floor(from.y)},${Math.floor(from.z)}`
                 : `${Math.floor(this.player.x)},${Math.floor(this.player.y)},${Math.floor(this.player.z)}`;
             if (target) {
-                const toKey = `${Math.floor(target.x)},${target.y},${Math.floor(target.z)}`;
+                const toKey = `${Math.floor(target.x)},${Math.floor(target.y)},${Math.floor(target.z)}`;
                 this.pathAvoidedEdges.add(`${fromKey}->${toKey}`);
                 this.lastStuckEdge = { from: fromKey, to: toKey, type: target.type };
             };
 
-            devlog('DeadInternetBot stuck, forcing replan around', fromKey, '->', target ? `${Math.floor(target.x)},${target.y},${Math.floor(target.z)}` : '?', this.player.name);
+            devlog('DeadInternetBot stuck, forcing replan around', fromKey, '->', target ? `${Math.floor(target.x)},${Math.floor(target.y)},${Math.floor(target.z)}` : '?', this.player.name);
             this.pathStuckSinceTime = null;
             // Re-path right now, ourselves - don't just flag it and hope the caller calls
             // pathTo() again next tick. followPath() needs to be safe to call on its own (some

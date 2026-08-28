@@ -6,6 +6,11 @@ import { plugins } from '#plugins';
 import { setGameOptionInMentions } from "#permissions";
 import ClientConstructor from "#client";
 import { DeadInternetBot, findPath } from "./index.js";
+//(server-only-start)
+import { ss } from "#misc";
+import fs from 'node:fs';
+import path from 'node:path';
+//(server-only-end)
 //
 
 // This file is the "demo" half of the plugin - the actual reusable bot/pathfinding API lives in
@@ -25,6 +30,11 @@ function roomChat(room, text) {
     room.sendToAll(output, null, "chat");
 };
 
+// Keyed by player.id, not room - a room only ever has one worker/thread, and player ids are
+// only meaningful within it, so this never needs to be broken out per-room separately. One
+// entry per player CURRENTLY recording; playerStateUpdate (below) is a no-op for everyone else.
+const activeRecordings = new Map();
+
 export const DeadInternetPlugin = {
     registerListeners: function (pluginManager) {
         console.log("registering listeners... (DeadInternetPlugin)");
@@ -32,8 +42,77 @@ export const DeadInternetPlugin = {
         this.plugins = pluginManager;
 
         this.plugins.on('game:permissionsAfterSetup', this.permissionsAfterSetup.bind(this));
+        // playerStateUpdate (see rooms.js's updateLoop) fires once per REPLAYED INPUT STATE for
+        // each real (non-bot) player - not once per outer tick, and not at all for bots, which is
+        // exactly the granularity a manual recording wants: the same buffered-input replay a real
+        // player's own movement is reconstructed from server-side, at full resolution, with no
+        // separate sampling/throttling needed. Registered once here, not per-room-worker-restart-
+        // safe by construction the same way every other listener in this file already is (see
+        // permissionsAfterSetup's own commands, none of which guard against being called more than
+        // once either) - each room worker independently loads plugins exactly once for its own
+        // lifetime (see CLAUDE.md's "Game server internals").
+        this.plugins.on('game:playerStateUpdate', this.recordPlayerState.bind(this));
     },
-    
+
+    // Records one full-resolution row into whichever player's recording is currently active (a
+    // no-op for every other player, checked first since this fires for every real player, every
+    // state, all the time). Kept a flat array, not a keyed object, to avoid repeating six-plus
+    // property names per row - explicitly requested over a coarser sampling rate, since 1-3 tick
+    // differences are exactly what this tool exists to capture (an ordinary run is at most a few
+    // thousand rows either way, not something a compact row format needs to trade accuracy for).
+    // Row shape: [t, x, y, z, yaw, pitch, dx, dy, dz, controlKeys, jumping].
+    recordPlayerState: function (data) {
+        const player = data.player;
+        const rec = activeRecordings.get(player.id);
+        if (!rec) return;
+
+        const t = +((Date.now() - rec.startedAt) / 1000).toFixed(3);
+        rec.samples.push([
+            t, +player.x.toFixed(3), +player.y.toFixed(3), +player.z.toFixed(3),
+            +player.yaw.toFixed(3), +player.pitch.toFixed(3),
+            +player.dx.toFixed(3), +player.dy.toFixed(3), +player.dz.toFixed(3),
+            player.controlKeys, player.jumping ? 1 : 0,
+        ]);
+
+        const targetName = rec.route[rec.nextIndex];
+        const target = rec.checkpoints[targetName];
+        if (!target) return;
+        // A generous 1.0-unit radius, not the live bot's own tighter MOVEMENT_PROFILE.arrivalRadius
+        // - a human player overshoots/undershoots a marker tile by more than a bot's own steering
+        // ever would, and this only needs to notice "reached roughly this tile", not verify a
+        // precise arrival the way pathtestcheckpoints' bot-driven version does.
+        const dist = Math.length3(player.x - target.x, player.y - target.y, player.z - target.z);
+        if (dist >= 1.0) return;
+
+        const legSeconds = +((Date.now() - rec.lastCheckpointAt) / 1000).toFixed(1);
+        rec.legTimes.push({ from: rec.nextIndex === 0 ? '(start)' : rec.route[rec.nextIndex - 1], to: targetName, seconds: legSeconds });
+        roomChat(data.this, `[beginmanualrecording] reached ${targetName} (${legSeconds}s)`);
+        rec.lastCheckpointAt = Date.now();
+        rec.nextIndex++;
+
+        if (rec.nextIndex < rec.route.length) return;
+
+        // Route complete - write out and clear the active recording.
+        activeRecordings.delete(player.id);
+        const totalSeconds = +((Date.now() - rec.startedAt) / 1000).toFixed(1);
+        const outDir = path.join(ss.rootDir, 'store', 'deadinternet', 'recordings');
+        try {
+            fs.mkdirSync(outDir, { recursive: true });
+            const fname = `${rec.mapName}-${rec.startedAt}.json`;
+            fs.writeFileSync(path.join(outDir, fname), JSON.stringify({
+                mapName: rec.mapName, playerName: rec.playerName, route: rec.route,
+                totalSeconds, legTimes: rec.legTimes,
+                sampleColumns: ['t', 'x', 'y', 'z', 'yaw', 'pitch', 'dx', 'dy', 'dz', 'controlKeys', 'jumping'],
+                samples: rec.samples,
+            }));
+            roomChat(data.this, `[beginmanualrecording] done - reached the goal in ${totalSeconds}s total, saved as ${fname}.`);
+            console.log(`[deadinternet beginmanualrecording] saved`, fname, 'legTimes:', rec.legTimes);
+        } catch (error) {
+            roomChat(data.this, `[beginmanualrecording] done in ${totalSeconds}s, but failed to save: ${error.message}`);
+            console.log(`[deadinternet beginmanualrecording] save FAILED:`, error);
+        };
+    },
+
     permissionsAfterSetup: function (data) {
         var ctx = data.this;
 
@@ -236,14 +315,27 @@ export const DeadInternetPlugin = {
                 roomChat(ctx.room, `[pathtestall] starting: ${spawns.length} spawn points on this map.`);
                 console.log(`[deadinternet pathtestall] ${spawns.length} spawn points:`, spawns);
 
-                // Pass 1: algorithmic. Every ordered pair, i != j.
+                const bot = new DeadInternetBot(ctx.room, {});
+                await bot.init();
+
+                // Pass 1: algorithmic. Every ordered pair, i != j. Uses the bot's own real Player
+                // (respawned to each source spawn in turn) as findPath's `start`, not a plain
+                // {x,y,z} object - isStandable/isBlockedAt/hasHeadroom all fall back to a coarse,
+                // colliderType-based guess when no real player is given (see pathfinding.js's own
+                // comments on this), which is close enough for the small, simple test maps this
+                // whole system was originally built against but badly understates real connectivity
+                // on genuinely complex geometry. Confirmed live on "Castle": the plain-object version
+                // reported spawn 0 unable to reach a point 3 cells away on its own flat platform,
+                // and a real player respawned there found a plain 2-edge walk to it instantly - the
+                // guess isn't a close approximation for this map's geometry, it's simply wrong.
                 const algoFailures = [];
                 let algoChecked = 0;
                 for (let i = 0; i < spawns.length; i++) {
+                    bot.player.respawn(spawns[i]);
                     for (let j = 0; j < spawns.length; j++) {
                         if (i === j) continue;
                         algoChecked++;
-                        if (!findPath(ctx.room, spawns[i], spawns[j])) algoFailures.push([i, j]);
+                        if (!findPath(ctx.room, bot.player, spawns[j])) algoFailures.push([i, j]);
                     };
                 };
 
@@ -263,9 +355,6 @@ export const DeadInternetPlugin = {
                 if (opts > 0) order = order.slice(0, opts);
                 roomChat(ctx.room, `[pathtestall] starting live tour of ${order.length} spawn points...`);
                 console.log(`[deadinternet pathtestall] live tour order:`, order);
-
-                const bot = new DeadInternetBot(ctx.room, {});
-                await bot.init();
 
                 // 30s was tight enough to falsely "fail" legs that were genuinely still
                 // recovering, not stuck - a bad-luck streak of landing on several tricky spawns
@@ -504,6 +593,26 @@ export const DeadInternetPlugin = {
                     legResults.push(result);
                 };
 
+                // A full route run (not an isolated "from to" pair debug request - see
+                // requestedPair above) finishes with one more leg: the ACTUAL start straight to
+                // the ACTUAL goal, no intermediate checkpoints guiding it along the way. Every leg
+                // above already passing doesn't by itself prove the bot can navigate the whole
+                // route unassisted - each one only has to find its way to the NEXT checkpoint, a
+                // much shorter search than the map author's own real distance between the two
+                // ends, and a search that's easy across five separate short hops can still fail to
+                // find (or fail to execute) the genuinely longer, more complex path a real player
+                // would take start to end. Respawning back at the true start and pathing directly
+                // to the true goal, skipping every intermediate stop, is the only check that
+                // actually exercises that full-length route as one continuous problem.
+                if (requestedPair.length !== 2 && route.length > 2) {
+                    bot.player.respawn({ ...checkpoints[route[0]], yaw: 0, pitch: 0 });
+                    bot.player.dx = 0;
+                    bot.player.dy = 0;
+                    bot.player.dz = 0;
+                    const e2eResult = await travelTo(`${route[0]} (direct)`, route[route.length - 1]);
+                    legResults.push(e2eResult);
+                };
+
                 bot.onUpdate = async () => { };
 
                 const succeeded = legResults.filter(r => r.ok).length;
@@ -512,6 +621,61 @@ export const DeadInternetPlugin = {
                 if (legResults.some(r => !r.ok)) {
                     console.log(`[deadinternet pathtestcheckpoints] FAILED LEGS:`, legResults.filter(r => !r.ok).map(r => `${r.from} -> ${r.to} (${fmt(checkpoints[r.to])}): ${r.reason}`));
                 };
+            }
+        });
+
+        // --- Debug tool: records a REAL player's own manual attempt at the map's PARKOUR
+        // checkpoint route, full tick resolution, as a rough reference trace for tricky jumps -
+        // not meant to substitute for pathtestcheckpoints' own pass/fail verification, just a
+        // ground-truth "here's what a real run through this looks like" to compare a stuck bot's
+        // behavior against, instead of only ever inferring the intended route from bailed/FAILED
+        // simulateEdge traces. See recordPlayerState (registered against playerStateUpdate) for
+        // where the actual per-tick capture happens - this command only sets up the checkpoint
+        // route and hands off to it.
+        ctx.newCommand({
+            identifier: "beginmanualrecording",
+            name: "beginmanualrecording",
+            category: "bots",
+            description: "Records your own movement (position/direction/velocity/held controls) through the map's PARKOUR checkpoint route as you walk it manually, printing each checkpoint as you reach it and saving the full trace to store/deadinternet/recordings/ once you reach the goal.",
+            warningText: "Debug tool: records your movement until you reach the goal tile (or /bots beginmanualrecording again to discard and restart).",
+            permissionLevel: [ctx.ranksEnum.Guest, ctx.ranksEnum.Guest, false],
+            inputType: [],
+            executeClient: ({ player, opts, mentions }) => { },
+            executeServer: async ({ player, opts, mentions }) => {
+                const map = ctx.room.map;
+                const checkpoints = {};
+                for (let x = 0; x < map.width; x++) {
+                    for (let y = 0; y < map.height; y++) {
+                        for (let z = 0; z < map.depth; z++) {
+                            const cell = map.data[x]?.[y]?.[z];
+                            if (cell?.mesh?.theme === 'PARKOUR') {
+                                checkpoints[cell.mesh.name] = { x: x + 0.5, y, z: z + 0.5 };
+                            };
+                        };
+                    };
+                };
+                const order = ['checkpoint1', 'checkpoint2', 'checkpoint3', 'checkpoint4', 'checkpoint5', 'goal'];
+                const route = order.filter(name => checkpoints[name]);
+                if (route.length < 2) {
+                    roomChat(ctx.room, `[beginmanualrecording] map needs at least checkpoint1 and one more PARKOUR marker - found: ${route.join(', ') || '(none)'}.`);
+                    return;
+                };
+
+                if (activeRecordings.has(player.id)) {
+                    roomChat(ctx.room, `[beginmanualrecording] discarding ${player.name}'s previous unfinished recording and starting a new one.`);
+                };
+
+                const startedAt = Date.now();
+                activeRecordings.set(player.id, {
+                    mapName: ctx.room.minMap?.name || map.name || 'unknown',
+                    playerName: player.name,
+                    startedAt, lastCheckpointAt: startedAt,
+                    route, checkpoints, nextIndex: 0,
+                    samples: [], legTimes: [],
+                });
+
+                roomChat(ctx.room, `[beginmanualrecording] recording started for ${player.name} - route: ${route.join(' -> ')}. Walk to ${route[0]} to begin.`);
+                console.log(`[deadinternet beginmanualrecording] started for`, player.name, 'route:', route);
             }
         });
 
@@ -584,6 +748,78 @@ export const DeadInternetPlugin = {
                         } else {
                             console.log(`[deadinternet pathtestpair] arrived in ${elapsedSeconds}s`);
                             roomChat(ctx.room, `[pathtestpair] arrived in ${elapsedSeconds}s.`);
+                        };
+                        bot.onUpdate = async () => { };
+                    };
+                };
+            }
+        });
+
+        // --- Debug tool: like pathtestpair, but for two exact raw coordinates instead of spawn
+        // indices - useful for reproducing one specific edge from a bug report or a purpose-built
+        // diagnostic map without needing a spawn point placed exactly there.
+        ctx.newCommand({
+            identifier: "pathtestraw",
+            name: "pathtestraw",
+            category: "bots",
+            description: "Tests live pathfinding between two exact raw coordinates (grid cell + 0.5 for center).",
+            example: "1.5 1 4.5 3.5 1 6.5",
+            warningText: "Debug tool: reproduces one specific arbitrary from/to pair on demand.",
+            permissionLevel: [ctx.ranksEnum.Guest, ctx.ranksEnum.Guest, false],
+            inputType: ["string"],
+            executeClient: ({ player, opts, mentions }) => { },
+            executeServer: async ({ player, opts, mentions }) => {
+                const parts = opts.trim().split(/\s+/).map(Number);
+                if (parts.length !== 6 || parts.some(Number.isNaN)) {
+                    roomChat(ctx.room, `[pathtestraw] usage: /bots pathtestraw <fromX fromY fromZ toX toY toZ>`);
+                    return;
+                };
+                const [fx, fy, fz, tx, ty, tz] = parts;
+                const from = { x: fx, y: fy, z: fz };
+                const to = { x: tx, y: ty, z: tz };
+                const fmt = (p) => `${p.x.toFixed(1)}, ${p.y.toFixed(1)}, ${p.z.toFixed(1)}`;
+
+                const bot = new DeadInternetBot(ctx.room, {});
+                await bot.init();
+                bot.player.respawn(from);
+
+                roomChat(ctx.room, `[pathtestraw] testing ${fmt(from)} -> ${fmt(to)}`);
+                console.log(`[deadinternet pathtestraw] testing ${fmt(from)} -> ${fmt(to)}`);
+
+                const startedAt = Date.now();
+                const stuckEventsBefore = bot.totalStuckEvents;
+                const path = bot.pathTo(to, { force: true });
+                if (!path) {
+                    console.log(`[deadinternet pathtestraw] no path found immediately`);
+                    roomChat(ctx.room, `[pathtestraw] no path found immediately.`);
+                    return;
+                };
+                console.log(`[deadinternet pathtestraw] planned:`, path.map(w => `${w.type}(${w.x.toFixed(1)},${w.y.toFixed(1)},${w.z.toFixed(1)})`));
+
+                const legTimeoutMs = 90000;
+                let settled = false;
+                const timeout = setTimeout(() => {
+                    if (settled) return;
+                    settled = true;
+                    console.log(`[deadinternet pathtestraw] TIMED OUT (bot at ${bot.player.x.toFixed(2)}, ${bot.player.y.toFixed(2)}, ${bot.player.z.toFixed(2)})`);
+                    roomChat(ctx.room, `[pathtestraw] timed out.`);
+                    bot.onUpdate = async () => { };
+                }, legTimeoutMs);
+
+                bot.onUpdate = async (data) => {
+                    const status = bot.followPath(data?.delta);
+                    if (status === 'arrived' && !settled) {
+                        settled = true;
+                        clearTimeout(timeout);
+                        const elapsedSeconds = ((Date.now() - startedAt) / 1000).toFixed(1);
+                        const stuckEvents = bot.totalStuckEvents - stuckEventsBefore;
+                        if (stuckEvents > 0) {
+                            const edge = bot.lastStuckEdge;
+                            console.log(`[deadinternet pathtestraw] arrived in ${elapsedSeconds}s but NOT first-try - ${stuckEvents} stuck event(s), last around ${edge?.from} -> ${edge?.to} (${edge?.type})`);
+                            roomChat(ctx.room, `[pathtestraw] FAILED - arrived but needed ${stuckEvents} stuck-recovery cycle(s), not first try.`);
+                        } else {
+                            console.log(`[deadinternet pathtestraw] arrived in ${elapsedSeconds}s`);
+                            roomChat(ctx.room, `[pathtestraw] arrived in ${elapsedSeconds}s.`);
                         };
                         bot.onUpdate = async () => { };
                     };

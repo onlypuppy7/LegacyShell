@@ -175,8 +175,50 @@ export function simulateEdge(player, from, to, { jump = false, maxTicks = 600, a
         // (JUMP_RUNUP_BACKAWAY_SECONDS, 0.15) and compared against that running total, not
         // against a pre-computed, speed-blind tick count.
         const physicsSpeed = player?.modifiers?.physicsSpeedModifier || 1;
-        const jumpChargeSeconds = 0.15;
+        // Used to be 0.15s for a flat takeoff and 1.0s only when fromOnRamp, on the theory that a
+        // standing jump already covers about as much distance as a full run-up on FLAT ground, so
+        // a short window was fine there and only a ramp (continuing to walk up a slope keeps
+        // gaining real distance AND height) needed the wider one. That theory doesn't hold once a
+        // same-level jump is close enough to its real max range that the difference matters: a
+        // flat takeoff's real solid surface commonly extends well past what 0.15s of charge would
+        // ever reach, and the reactive checks just below (chargeBlockedAtTick's wall-collision
+        // drop, and the ground-ahead probe) are what actually decide when a real player would stop
+        // and jump - not an assumed duration. Confirmed live on "PathJumpDiagTest"
+        // checkpoint1->goal: a flat, same-level, non-ramp diagonal jump landed a full level short
+        // and fell into the gap below, with the 0.15s window ending the charge while the takeoff
+        // block's real surface still continued - the wall-collision check never had a chance to
+        // fire because there was never a wall, just the short window running out first.
+        //
+        // Scoped to NON-ascending jumps specifically (same-level or descending), not widened
+        // universally - an ascending (level-up) jump's approach ends at the base of a rising wall,
+        // not on a continuous flat/sloped surface, and the reactive ground-ahead probe just below
+        // has no way to tell "no ground within the probe's height range because it's open air"
+        // apart from "no ground within range because the real surface is a wall taller than the
+        // probe reaches" - both look identical to a downward-only height sweep. Confirmed live on
+        // "PathJumpHardTest": widening this unconditionally broke checkpoint1->checkpoint2 and
+        // every other ascending jump in the map outright (findPath returned null for all of them,
+        // not just a marginal shortfall) - the wide window let the charge get close enough to the
+        // target's base wall to trip the ground-ahead probe as a false "lost ground", cutting the
+        // charge to nothing right at the one point an ascending jump most needs speed for the
+        // step-up-on-collision mantle it relies on (see pathfinding.js's up-one-level cost
+        // comment). Ascending jumps keep the original narrow window and no reactive ground-ahead
+        // check at all - already correct and extensively verified across tonight's whole session,
+        // untouched by this fix.
+        const jumpChargeSeconds = to.y > from.y ? 0.15 : 1.0;
         const jumpLiftoffSeconds = JUMP_RUNUP_BACKAWAY_SECONDS + jumpChargeSeconds;
+        // Mutable ceiling on top of the fixed jumpLiftoffSeconds cap above - phase 2's own ground-
+        // ahead check (below) can only ever CUT this shorter (never extend past jumpLiftoffSeconds
+        // itself), the same relationship index.js's followPath() has between its safety-net TIME
+        // cap and its reactive jumpChargeMaxTime. A ramp cell's charge window here is wide (1.0s)
+        // specifically because continuing to walk up the slope keeps gaining real ground and real
+        // height - but past the ramp's actual PEAK there's no more slope to gain from, only open
+        // air, and blindly holding forward for the rest of that 1.0s window walks straight off the
+        // edge into a genuine fall instead of ever lifting off. Confirmed live on "PathJumpHardTest"
+        // checkpoint5->goal: without this, the simulated player fell continuously from y=3.96 to
+        // y=1.0 over about a second of "charging" that was never actually charging past the first
+        // few ticks, `jumping` staying false the entire time - not a slow charge, a genuine
+        // uncontrolled fall the fixed time cap alone had no way to react to.
+        let jumpChargeMaxTime = jumpLiftoffSeconds;
         // followPath() holds "back away" for a fixed 0.35s regardless of what's actually behind
         // the takeoff point - on a tight/compact layout that's often a wall a few ticks in.
         // moveX/moveZ's collision response halves velocity on failure (`out.dx *= .5`), so a
@@ -302,7 +344,7 @@ export function simulateEdge(player, from, to, { jump = false, maxTicks = 600, a
                     // which negates the same yaw-facing direction used for "up").
                     ddx = -ddx;
                     ddz = -ddz;
-                } else if (jump && jumpNeedsRunup && chargeBlockedAtTick === null && simulatedTime <= jumpLiftoffSeconds) {
+                } else if (jump && jumpNeedsRunup && chargeBlockedAtTick === null && simulatedTime <= jumpChargeMaxTime) {
                     // Phase 2 - charge forward, STILL grounded (no jump() yet) - ddx/ddz already
                     // point toward the target from the assignment above, nothing to flip. This is
                     // what actually builds real ground speed before ever leaving the ground.
@@ -377,7 +419,7 @@ export function simulateEdge(player, from, to, { jump = false, maxTicks = 600, a
             // backing into one does; this just needs to stop charging and let the very next tick
             // fall through to liftoff instead of continuing to push into the wall for the rest of
             // the fixed window.
-            if (jump && jumpNeedsRunup && chargeBlockedAtTick === null && simulatedTime > JUMP_RUNUP_BACKAWAY_SECONDS && simulatedTime <= jumpLiftoffSeconds) {
+            if (jump && jumpNeedsRunup && chargeBlockedAtTick === null && simulatedTime > JUMP_RUNUP_BACKAWAY_SECONDS && simulatedTime <= jumpChargeMaxTime) {
                 const speed = Math.sqrt(player.dx * player.dx + player.dz * player.dz);
                 // Skip the first few LOOP ITERATIONS of the charge phase before watching for a
                 // drop - the direction reversal from phase 1's back-away to phase 2's OPPOSITE-
@@ -394,6 +436,46 @@ export function simulateEdge(player, from, to, { jump = false, maxTicks = 600, a
                 const ticksIntoCharge = tick - phase2StartTick;
                 if (ticksIntoCharge > 3 && speed < chargeSpeed - 1e-6) chargeBlockedAtTick = tick;
                 chargeSpeed = speed;
+                // A wall-collision speed-drop (just above) only catches a genuine solid obstruction
+                // - it does NOT catch charging off the far edge of a takeoff surface into open air,
+                // since there's no collision there to cause a speed drop at all: the player keeps
+                // moving horizontally at full speed while ALSO falling, which this check has no way
+                // to distinguish from ordinary charging. Confirmed live on "PathJumpHardTest"
+                // checkpoint5->goal (a ramp): without this, the simulated player walked straight
+                // off the second wedge's peak and fell continuously for most of a full second
+                // before ever lifting off - `jumping` stayed false the whole time, y dropped from
+                // 3.96 to 1.0, and the eventual jump had almost none of its intended height or
+                // reach left. Originally scoped to fromOnRamp only, on the theory that only a
+                // ramp's own edge could be walked off mid-charge undetected by the wall check - but
+                // the exact same shape of failure showed up on a flat, non-ramp takeoff too
+                // (confirmed on "PathJumpDiagTest" checkpoint1->goal), so this is scoped the same
+                // way jumpChargeSeconds above now is: non-ascending only, not fromOnRamp-only.
+                //
+                // Still gated to non-ascending specifically, not made fully unconditional - this
+                // probe only sweeps DOWNWARD from close to the player's current height (0.15-0.9
+                // units below), which can't distinguish real open air from simply approaching a
+                // rising wall taller than that range, the exact situation every ascending jump's
+                // charge phase is in by design. Confirmed live on "PathJumpHardTest": making this
+                // unconditional broke checkpoint1->checkpoint2 and every other ascending jump in
+                // the map outright (findPath returned null, not a marginal shortfall) - the wide
+                // charge window let the approach get close enough to the target's base wall to
+                // trip this probe as a false "lost ground", killing the charge at the exact point
+                // an ascending jump most needs the speed for its step-up mantle. Same multi-height
+                // forward probe index.js's followPath() already uses for its own live version of
+                // this exact check (a takeoff surface's height can change or simply end along the
+                // approach direction, so one fixed probe offset can't be trusted) - cutting the
+                // charge the instant real ground stops being there, not after the fall has already
+                // begun, is what "jump on the literal last tick before losing ground" (the map
+                // author's own principle, already applied on the live-bot side) means here.
+                if (to.y <= from.y) {
+                    const chargeLen = Math.sqrt(curDx * curDx + curDz * curDz) || 1;
+                    const chargeAheadX = player.x + (curDx / chargeLen) * 0.2;
+                    const chargeAheadZ = player.z + (curDz / chargeLen) * 0.2;
+                    const groundAhead = [0.15, 0.4, 0.65, 0.9].some(probeDy =>
+                        player.Collider.playerCollidesWithMap(player, { x: chargeAheadX, y: player.y + 0.05 - probeDy, z: chargeAheadZ })
+                    );
+                    if (!groundAhead) jumpChargeMaxTime = simulatedTime;
+                };
             };
 
             const horizontalDistance = Math.length2(player.x - to.x, player.z - to.z);
@@ -410,7 +492,53 @@ export function simulateEdge(player, from, to, { jump = false, maxTicks = 600, a
             // actually is. The vertical tolerance still applies either way, so this can't accept a
             // player merely passing high over the cell mid-arc.
             const inTargetCell = Math.floor(player.x) === Math.floor(to.x) && Math.floor(player.z) === Math.floor(to.z);
-            if ((horizontalDistance < arrivalRadius || inTargetCell) && verticalDistance < verticalTolerance) {
+            // A jump can satisfy proximity while genuinely still mid-flight, not just at the actual
+            // moment of landing - the comment above claims verticalTolerance alone rules this out,
+            // but 1.25 units stays satisfied for almost the player's whole arc, not just near
+            // touchdown. Confirmed on "PathJumpHardTest" checkpoint4->5: this returned success with
+            // the player still ASCENDING (dy=+0.042, before the arc's apex) over a target with open
+            // space below it - the real live bot, same physics, keeps flying, passes straight
+            // through that point, and eventually falls a full unit further to an actual floor in a
+            // pit. Requiring the player to have fully landed (checked via `!jumping` first) turned
+            // out to be the wrong fix, not just a stricter one - EVERY edge in this model exits via
+            // the proximity check before physically landing, since the loop's own progress-stall
+            // bailout has nothing left to react to once movement toward an already-close target
+            // stops improving, so demanding a real landing broke every jump, not just this one.
+            //
+            // A velocity threshold (dy near zero) was tried next and ALSO turned out wrong, not
+            // just for the same reason as `!jumping` but a new one: gravity's own per-tick decel
+            // here is tiny (~0.003/tick), so dy lingers inside any narrow "settled" band for a
+            // dozen-plus ticks while still rising toward the apex - a threshold just delays the
+            // false accept a few ticks, it doesn't remove it. Confirmed directly on this same
+            // edge: dy=0.018 (under a 0.02 band) at tick 88 while y was still climbing tick-over-
+            // tick (2.610 -> 2.639 -> ... -> 2.706), nowhere near the apex turning over, let alone
+            // landed. Velocity alone can't tell "still rising, coincidentally slow" from "at rest
+            // on solid ground" when the rise itself is that gradual.
+            //
+            // Ground truth (a `playerCollidesWithMap` footing probe under the player's feet, same
+            // pattern index.js already uses for hasGroundBehind/phase-2 groundAhead) was tried
+            // next, alone, and ALSO turned out wrong on its own - not because the concept is
+            // wrong, but because a single fixed probe depth can't serve both jump shapes at once.
+            // A shallow probe (0.1) never found the crate-mantle's real landing at all (0 hits in
+            // ~9800 checks on a previously-reliable edge - real regression, confirmed live). A
+            // deep enough probe to catch that (0.5) started reaching straight through open air
+            // into the target platform's surface while the player was still meaningfully above it
+            // and still ascending - reproducing the EXACT original false positive (dy=+0.042,
+            // same value as the very first traced case) through a different mechanism.
+            //
+            // The fix is to require BOTH signals together, not pick one: the player must not be
+            // rising (`dy <= 0` rules out the ascending/apex case outright, so the probe no longer
+            // needs to be shallow to avoid it) AND have real support within a generous probe depth
+            // (so the probe no longer needs to be shallow to avoid the apex case either, since
+            // `notRising` already excludes it). Each condition covers the other's blind spot -
+            // together they accept a genuine landing (however gradually dy settles) without ever
+            // accepting a still-rising pass over a lower surface. Scoped to jump edges - WALK/
+            // RAMP/FALL don't arc through unrelated airspace the way a jump does.
+            const notRising = player.dy <= 0;
+            const grounded = !jump || (notRising && [0.1, 0.3, 0.5].some(dy =>
+                player.Collider.playerCollidesWithMap(player, { x: player.x, y: player.y - dy, z: player.z })
+            ));
+            if ((horizontalDistance < arrivalRadius || inTargetCell) && verticalDistance < verticalTolerance && grounded) {
                 return { success: true, x: player.x, y: player.y, z: player.z, ticks: tick };
             };
 

@@ -31,6 +31,7 @@ export const EDGE_TYPE = {
     LADDER: 'ladder',
 };
 
+
 export const MOVEMENT_PROFILE = {
     maxJumpLevels: 1, // how many grid levels a standing jump can clear at the DEFAULT (1.0x) modifiers - see effectiveMaxJumpLevels for the modifier-scaled version actually used
     maxFallLevels: 4, // how far a bot will voluntarily walk off a ledge (no fall damage in this game, but an unbounded drop looks unnatural and can strand a bot in an unreachable pit)
@@ -117,19 +118,50 @@ export function isRampCell(cell) {
 // along Z) completely blocked every X-axis approach in real physics, at every height tried,
 // while its own comment already noted ramps "may not register a collision right at the center-top
 // point" - both symptoms of the same thing, treating a directional incline as if it were
-// omnidirectionally walkable. sin(ry) is ~0 for ry a multiple of pi (slope along Z) and ~±1 for ry
-// an odd multiple of pi/2 (slope along X) - this mirrors the same per-instance Y-rotation the real
-// collision mesh is built with, not a separate guess.
+// omnidirectionally walkable.
+//
+// The raw map FILE stores ry as a 0-3 facing index (confirmed directly by the map author), but
+// the RUNTIME cell object this function actually receives (from cellAt(), sourced from the loaded
+// map/mesh data) already carries that converted to radians by the loading pipeline before this
+// code ever sees it - confirmed directly by inspecting a live cell's ry: exactly
+// Math.PI (3.14159...) for a raw ry=2 wedge, not the integer 2. Multiplying by Math.PI/2 again
+// here (an earlier version of this function did exactly that, following the raw-file format
+// instead of the runtime one) double-converts an already-converted value into nonsense - the
+// direct cause of a real regression, confirmed live: it broke a previously-working, already-
+// verified wedge entry the moment it landed. cell.ry is used as-is, in radians, matching the
+// runtime data this function actually operates on.
 function rampClimbAxisIsX(cell) {
     return Math.abs(Math.sin(cell.ry)) > 0.5;
 }
 
-// True when moving (dx,dz) into/out of a ramp cell would approach from the wrong axis - a solid
-// wall from the ramp's perspective, not a climbable slope. Cardinal-only: a diagonal move against
-// a ramp hits the wrong face on at least one axis regardless of the other, so it's blocked too.
+// The EXACT uphill direction (unit vector, x/z), not just which axis it's mostly along -
+// rampClimbAxisIsX only answers "is this closer to X or Z", useless for aiming a sweep precisely.
+// At ry=0 the canonical mesh's slope rises along +Z (see rampClimbAxisIsX's own comment on the
+// wedge's bake order); a per-instance ry is a rotation around Y, which carries that same direction
+// to (sin(ry), cos(ry)) - cell.ry already in radians at runtime (see rampClimbAxisIsX's own
+// comment on why no extra conversion belongs here). Used to derive the exact sweep direction for
+// findRampExitXZ.
+function rampSlopeAxis(cell) {
+    return { x: Math.sin(cell.ry), z: Math.cos(cell.ry) };
+}
+
+// True when moving (dx,dz) into/out of a ramp cell would approach PURELY from the wrong axis - a
+// solid wall from the ramp's perspective, not a climbable slope. Only blocks a move with ZERO
+// component along the climb axis, not a diagonal one - reported live by the map author (and
+// confirmed as intentional map design, not a fluke) that a genuinely diagonal approach onto a
+// wedge at "PathJumpHardTest" checkpoint5->goal is the actually-intended, fully-traversable route,
+// which a blanket "any cross-axis component blocks it" version ruled out at the static-
+// classification stage before the edge was ever even offered for real-physics verification. This
+// only matters for the WALK generator (see its own HORIZONTAL_8/diagonal handling) - the ramp-
+// climb generator a few lines below only ever iterates cardinal (dx,dz) pairs via HORIZONTAL_4, so
+// dx*dz is always 0 there and this change is a no-op for it. Loosening the STATIC gate, not
+// declaring diagonal ramp approaches universally safe - simulateEdgeCached (see getNeighbors'
+// verification block) still has to actually approve any edge this lets through, the same real-
+// physics check every other WALK/RAMP/JUMP/FALL edge in this file already answers to, so a
+// genuinely bad diagonal approach on some OTHER ramp still gets rejected there, not here.
 function rampBlocksDirection(cell, dx, dz) {
     if (!isRampCell(cell)) return false;
-    return rampClimbAxisIsX(cell) ? dz !== 0 : dx !== 0;
+    return rampClimbAxisIsX(cell) ? (dz !== 0 && dx === 0) : (dx !== 0 && dz === 0);
 }
 
 // A ramp/wedge cell's real collision mesh is a diagonal incline, not a flat floor at the cell's
@@ -323,13 +355,26 @@ function findAabbStandY(map, x, y, z, player) {
     // the solid ground is, or the live bot would walk to the same empty spot and fall through;
     // see getNeighbors()' smallHop candidate push and reconstructPath()'s waypoint building,
     // which both thread standX/standZ through for exactly this case.
+    // The probe height (0.06 above the cell floor) assumed every aabb/obb's solid mass starts
+    // near the BOTTOM of its cell, true for a "half-height step" or a crate resting on the floor.
+    // It isn't true in general - an object's `ry` rotation can place its mass anywhere in the
+    // cell, including the top half. Confirmed on "Castle": `gray-brick-half` at ry:2 found zero
+    // hits at y+0.06 (its actual mass sits higher in the cell at that rotation), so this returned
+    // null for a cell that's genuinely climbable/standable, silently telling isStandable's WALK-
+    // support check "nothing here" for a real half-height step. Trying a handful of base heights
+    // and stopping at the first one that finds any solid ground generalizes the same technique
+    // (already proven for the crate's off-center footprint) to the vertical axis too, instead of
+    // assuming one fixed low probe height covers every possible orientation.
     let sumOx = 0, sumOz = 0, hits = 0;
-    for (let sox = -0.45; sox <= 0.45; sox += 0.15) {
-        for (let soz = -0.45; soz <= 0.45; soz += 0.15) {
-            if (player.Collider.pointCollidesWithMap({ x: cellCx + sox, y: y + 0.06, z: cellCz + soz })) {
-                sumOx += sox; sumOz += soz; hits++;
+    for (const baseH of [0.06, 0.3, 0.55, 0.8]) {
+        for (let sox = -0.45; sox <= 0.45; sox += 0.15) {
+            for (let soz = -0.45; soz <= 0.45; soz += 0.15) {
+                if (player.Collider.pointCollidesWithMap({ x: cellCx + sox, y: y + baseH, z: cellCz + soz })) {
+                    sumOx += sox; sumOz += soz; hits++;
+                };
             };
         };
+        if (hits > 0) break;
     };
     const cx = hits > 0 ? cellCx + sumOx / hits : cellCx;
     const cz = hits > 0 ? cellCz + sumOz / hits : cellCz;
@@ -370,11 +415,29 @@ function findAabbStandY(map, x, y, z, player) {
 
 // Vertical drop to the first standable cell below (x,z), starting the search at y-1. Returns
 // `null` if nothing standable is found within MOVEMENT_PROFILE.maxFallLevels.
+//
+// Also probes each level for a fractional aabb/obb resting surface (findAabbStandY) alongside the
+// ordinary full-height isStandable check, not just the latter - this used to be isStandable-only,
+// which silently made falling/jumping DOWN onto a half-height aabb/obb step (a crate, a low ledge)
+// undiscoverable as a candidate at all, even though climbing UP onto the exact same kind of step
+// has been supported (via getNeighbors()' own findAabbStandY probing) since findAabbStandY was
+// introduced - see that function's own header for why an aabb/obb's real standable top can't be
+// assumed from colliderType/placement alone. Confirmed on "PathEasyParkourTestA": a chain of small
+// crates forming a stepping-stone path is only ever approached from ABOVE (jumping down onto the
+// first one off a raised walkway) - every candidate that could reach it fell through this same
+// isStandable-only gap, since the crates' real solid mass sits well above their placement index's
+// naive "full block" top and isStandable correctly refuses to stand at a height still inside that
+// mass. Every caller already threads a `landing.y` straight into a neighbor's `y` and (as of this
+// change) `standX`/`standZ` into `standX`/`standZ` - both already fractional/off-center-aware
+// throughout the rest of this file - so returning a fractional, refined landing here needs no
+// further plumbing changes downstream.
 function findLandingBelow(map, x, y, z, player) {
     for (let dy = 1; dy <= MOVEMENT_PROFILE.maxFallLevels; dy++) {
         const cy = y - dy;
         if (cy < 0) return null;
         if (isStandable(map, x, cy, z, player)) return { x, y: cy, z, drop: dy };
+        const stand = findAabbStandY(map, x, cy, z, player);
+        if (stand !== null) return { x, y: stand.y, z, drop: y - stand.y, standX: stand.cx, standZ: stand.cz };
     }
     return null;
 }
@@ -441,15 +504,89 @@ function getNeighbors(map, x, y, z, player) {
         const up = cellAt(map, x, ladderBaseY + 1, z);
         if (isLadderCell(up) && up.ry === hereCell.ry) {
             neighbors.push({ x, y: ladderBaseY + 1, z, type: EDGE_TYPE.LADDER, cost: 1 });
-        } else if (isStandable(map, x, ladderBaseY + 1, z, player)) {
-            // top of the ladder - stepping off onto solid ground directly above it, same as
-            // climbing out at the top of a real ladder.
-            neighbors.push({ x, y: ladderBaseY + 1, z, type: EDGE_TYPE.LADDER, cost: 1 });
+        } else {
+            // Top of the ladder - stepping off onto solid ground directly above it, same as
+            // climbing out at the top of a real ladder. Deliberately NOT plain isStandable: its
+            // hasRealSupport treats "a ladder directly below" as valid support on its own - true
+            // for standing ON a rung mid-climb, but the cell directly below THIS step-off target
+            // is, by construction, always this same ladder's own top rung - so that shortcut made
+            // this check pass unconditionally, regardless of whether real ground exists up there
+            // at all. Confirmed on "Castle": the ladder at (18,*,10) has nothing above its top
+            // rung (18,4,10 is genuinely empty air), yet this branch kept offering a step-off edge
+            // into it - the bot climbed to the top, found nowhere real to land, and fell straight
+            // back down, causing a repeated stuck/replan cycle. This was the single most common
+            // "ladder" stuck-event across today's Castle runs, on several unrelated ladders - not
+            // an isolated case. Checks the SAME real collider hasRealSupport uses for an ordinary
+            // full block, just without going through the ladder-implies-support shortcut first.
+            const stepOffCell = cellAt(map, x, ladderBaseY + 1, z);
+            const hasRealFooting = stepOffCell && !isBlockedAt(map, x, ladderBaseY + 1, z, player) &&
+                (player
+                    ? player.Collider.playerCollidesWithMap(player, { x: x + 0.5, y: ladderBaseY + 1 - 0.05, z: z + 0.5 })
+                    : hasFullFootprint(cellAt(map, x, ladderBaseY, z)));
+            if (hasRealFooting) {
+                neighbors.push({ x, y: ladderBaseY + 1, z, type: EDGE_TYPE.LADDER, cost: 1 });
+            };
+            // A ladder's top rung doesn't always have anywhere to step off directly above it - a
+            // real ladder is frequently bolted to the SIDE of whatever it's meant to reach, with
+            // the actual landing (another ledge, a taller crate, a second ladder segment starting
+            // higher up) one cell over, not straight up. The same-column check above only ever
+            // considers straight up, so a ladder whose only continuation is sideways looked like a
+            // dead end and got no edge here at all - not a wrong edge, no edge whatsoever. Confirmed
+            // on "PathShipyardTest": a 2-rung ladder climbing a container stack has genuinely empty
+            // air directly above its top rung (the same column keeps going up as a THIRD container,
+            // not more ladder), with the only real continuation a cardinal step onto the adjacent
+            // container's top, one cell over and one level up - findPath returned null for the
+            // whole leg because of it, not just a slow/roundabout route. Only tried when the
+            // straight-up step-off itself failed - a ladder that already has a clean landing directly
+            // above it doesn't need this, and same real-collider footing check as the same-column
+            // case just above, at each of the 4 cardinal neighbors instead of (x,z) itself.
+            if (!hasRealFooting) {
+                for (const [dx, dz] of HORIZONTAL_4) {
+                    const nx = x + dx, nz = z + dz;
+                    if (!inBounds(map, nx, ladderBaseY + 1, nz)) continue;
+                    // isStandable, not a hand-rolled footing check - the earlier version re-tested
+                    // solid-ground collision directly, which is wrong for the exact case this
+                    // exists to catch: the adjacent structure is very often ANOTHER ladder (its own
+                    // self-supporting rung, no solid floor underneath - see isStandable's own ramp/
+                    // ladder special case), not solid ground, and a plain ground-collision probe
+                    // finds nothing there at all. Confirmed on "PathShipyardTest": the real
+                    // continuation one cell over from this exact ladder's top rung is a second,
+                    // separate ladder segment starting one level higher - reusing isStandable
+                    // (already correct for every one of these cases, ramp/ladder/real-support
+                    // alike) instead of a second, narrower reimplementation of the same check.
+                    if (isStandable(map, nx, ladderBaseY + 1, nz, player) && hasHeadroom(map, x, ladderBaseY, z, nx, ladderBaseY + 1, nz, player)) {
+                        // JUMP, not WALK - this gains a full level (ladderBaseY -> ladderBaseY+1),
+                        // same shape as the ordinary up-one-level crate-mantle jump elsewhere in
+                        // this file, not a same-level step. Classifying it as WALK would both read
+                        // wrong (EDGE_TYPE's own convention: WALK is same-level only) and skip the
+                        // real-physics jump verification this kind of step-up genuinely needs.
+                        neighbors.push({ x: nx, y: ladderBaseY + 1, z: nz, type: EDGE_TYPE.JUMP, cost: 1.2 });
+                    };
+                };
+            };
         };
         const down = cellAt(map, x, ladderBaseY - 1, z);
         if (down && (isLadderCell(down) ? down.ry === hereCell.ry : isStandable(map, x, ladderBaseY - 1, z, player))) {
             neighbors.push({ x, y: ladderBaseY - 1, z, type: EDGE_TYPE.LADDER, cost: 1 });
         };
+    // hasRealSupport (see isStandable) treats a ladder cell directly below as valid support on
+    // its own, the same way it does for a full block - correct for "standing on the ledge right
+    // above a ladder's own top rung", but that leaves the CURRENT cell genuinely empty (not
+    // itself a ladder), so the ladder-climb block just above never fires here at all (its own
+    // gate is isLadderCell(hereCell), and hereCell isn't one). The result: this spot is walkable
+    // TO, but the only way further down - stepping into the ladder's actual top rung one level
+    // below - had no edge offered anywhere, a dead end the search couldn't see past. Confirmed on
+    // "PathShipyardTest": a ledge exactly one level above a 2-rung ladder (itself the only route
+    // down off that ledge) reached this exact state - isStandable was correctly satisfied, and
+    // findPath still couldn't progress, because "descend into the ladder from here" was simply
+    // never generated as a candidate. Mirrors the sideways step-OFF fix above (same asymmetry,
+    // opposite direction: that one covers leaving a ladder sideways when there's nothing directly
+    // above its top rung, this one covers entering a ladder from directly above when the current
+    // cell itself isn't part of it).
+    } else if (isLadderCell(cellAt(map, x, Math.floor(y) - 1, z))) {
+        // Math.floor(y), same reasoning as ladderBaseY above - a fractional current y (a ramp/
+        // half-step rest height) still means "the next whole level down", not y-1 itself.
+        neighbors.push({ x, y: Math.floor(y) - 1, z, type: EDGE_TYPE.LADDER, cost: 1 });
     };
 
     // Same-level walk (8-directional) and single-level ramp/jump (4-directional only - a
@@ -470,9 +607,30 @@ function getNeighbors(map, x, y, z, player) {
         // platform whose side cell was open-but-unsupported clipped through it and fell a full
         // level, landing well past the intended target. isStandable requires actual support (or a
         // ramp/ladder exemption), which closes that gap too.
-        const cornerClear = !isDiagonal || (isStandable(map, x + dx, y, z, player) && isStandable(map, x, y, z + dz, player));
+        //
+        // Exempts a diagonal move landing ON a ramp cell from the two-side-clear requirement -
+        // this guard's whole premise is a FLAT floor corner (the two side cells' emptiness is
+        // what makes the corner a real hole to fall through), which doesn't hold for a wedge's
+        // own tilted mass sitting diagonally adjacent. Reported live and confirmed as intentional
+        // map design on "PathJumpHardTest" checkpoint5->goal: the correct route walks diagonally
+        // onto a wedge whose own two orthogonal neighbor cells are genuinely empty air (nothing to
+        // corner-cut INTO - they're not a false floor, they're just not part of the route), which
+        // this guard was rejecting outright before the edge ever reached real-physics
+        // verification. Scoped to the target being a ramp specifically - an ordinary flat-floor
+        // diagonal still needs both sides genuinely clear, same as before.
         const targetCell = cellAt(map, nx, y, nz);
-        const rampDirBlocked = rampBlocksDirection(targetCell, dx, dz) || rampBlocksDirection(hereCell, dx, dz);
+        const cornerClear = !isDiagonal || isRampCell(targetCell) || (isStandable(map, x + dx, y, z, player) && isStandable(map, x, y, z + dz, player));
+        // Two adjacent ramps whose slope axes are genuinely perpendicular are a deliberate peak
+        // turn junction (see reconstructPath's peak-insertion pass and the matching verification
+        // exemption further down this file for the full reasoning), not a wrong-axis approach
+        // into a wall - rampBlocksDirection alone can't tell the two apart, since the move that
+        // aligns with one ramp's climb axis is BY DEFINITION off-axis for the other (that's what
+        // makes it a turn, not a straight continuation). Without this, the two ramps' individual
+        // axis checks contradict each other and this edge is never generated as a static
+        // candidate at all, regardless of what the later verification exemption allows.
+        const rampAxisTurn = isRampCell(targetCell) && isRampCell(hereCell)
+            && Math.abs(rampSlopeAxis(targetCell).x * rampSlopeAxis(hereCell).x + rampSlopeAxis(targetCell).z * rampSlopeAxis(hereCell).z) <= 0.3;
+        const rampDirBlocked = !rampAxisTurn && (rampBlocksDirection(targetCell, dx, dz) || rampBlocksDirection(hereCell, dx, dz));
         if (!rampDirBlocked && cornerClear && isStandable(map, nx, y, nz, player) && hasHeadroom(map, x, y, z, nx, y, nz, player)) {
             const cost = isDiagonal ? Math.SQRT2 : 1;
             neighbors.push({ x: nx, y, z: nz, type: EDGE_TYPE.WALK, cost });
@@ -489,7 +647,6 @@ function getNeighbors(map, x, y, z, player) {
         // actually allows it - default modifiers still cap this at exactly one level, same as
         // before).
         const rampAtTarget = cellAt(map, nx, y, nz);
-        const rampClimbBlocked = rampBlocksDirection(rampAtTarget, dx, dz) || rampBlocksDirection(hereCell, dx, dz);
         const viaRamp = isRampCell(rampAtTarget) || isRampCell(hereCell);
         // "One level up" from a FRACTIONAL current y (standing on a half-height aabb/obb step -
         // see findAabbStandY) means the next whole level up from the cell that step's IN, not
@@ -502,8 +659,38 @@ function getNeighbors(map, x, y, z, player) {
         // around it (the aabb half-step loop's own short-range candidates), nothing upward at
         // all - the search reached the crate but had no way off it toward the rest of the route.
         const climbBaseY = Math.floor(y);
+        // rampAtTarget above is looked up at the CURRENT y, which is wrong for judging whether
+        // this climb is blocked when the real target ramp sits a level higher (the ordinary
+        // "climbing a ramp" case) - two adjacent ramps a level apart, like "PathJumpHardTest"
+        // checkpoint5->goal's second wedge, need the cell at the actual landing height to even
+        // recognize a ramp-to-ramp axis-turn junction is happening; at the current y that cell is
+        // just empty air, so isRampCell on it is always false and the exemption below could never
+        // trigger. See the matching WALK-generator exemption above for the full peak-turn
+        // reasoning - this is the same case, just reached by climbing a level instead of a
+        // same-level step.
+        const climbTargetCell = cellAt(map, nx, climbBaseY + 1, nz);
+        const climbAxisTurn = isRampCell(climbTargetCell) && isRampCell(hereCell)
+            && Math.abs(rampSlopeAxis(climbTargetCell).x * rampSlopeAxis(hereCell).x + rampSlopeAxis(climbTargetCell).z * rampSlopeAxis(hereCell).z) <= 0.3;
+        const rampClimbBlocked = !climbAxisTurn && (rampBlocksDirection(rampAtTarget, dx, dz) || rampBlocksDirection(hereCell, dx, dz));
         if (!rampClimbBlocked && viaRamp && isStandable(map, nx, climbBaseY + 1, nz, player) && hasHeadroom(map, x, y, z, nx, climbBaseY + 1, nz, player)) {
-            neighbors.push({ x: nx, y: climbBaseY + 1, z: nz, type: EDGE_TYPE.RAMP, cost: 1.1 });
+            // A perpendicular ramp-to-ramp junction (climbAxisTurn) was previously classified as
+            // an ordinary RAMP edge and trusted structurally at verification time (see the
+            // rampAxisTurn exemption below) on the theory that it's just a two-segment walk the
+            // offline verifier can't model, not a real physics failure. Confirmed live on
+            // "PathJumpHardTest" checkpoint5->goal that theory was wrong: a live trace showed the
+            // bot's x pinned dead at the exact same coordinate every attempt, walking straight
+            // into solid geometry at the seam between the two wedges - not a verifier limitation,
+            // a genuine collision gap a plain walk can't cross. What DOES cross it, confirmed by
+            // watching the search's own fallback after the walk edge got blacklisted twice: a
+            // JUMP from the first ramp's peak to the second ramp's entry, using the exact same two
+            // points (reconstructPath's peak-insertion pass and the rampEntry computation below)
+            // already computed for the walk attempt - they're the right takeoff/landing points
+            // either way, only the edge TYPE was wrong. Classifying it as JUMP here routes it
+            // through real verification (the WALK||RAMP-only rampAxisTurn check below no longer
+            // matches) and reuses the ramp-aware run-up/charge/ground-ahead machinery already
+            // built for checkpoint4->5's own ramp-departure jump, rather than inventing a second
+            // mechanism for what turned out to be the same kind of edge.
+            neighbors.push({ x: nx, y: climbBaseY + 1, z: nz, type: climbAxisTurn ? EDGE_TYPE.JUMP : EDGE_TYPE.RAMP, cost: climbAxisTurn ? 8 : 1.1 });
         } else if (!rampClimbBlocked && !viaRamp) {
             for (let levels = 1; levels <= effectiveMaxJumpLevels(player); levels++) {
                 const targetY = climbBaseY + levels;
@@ -535,7 +722,7 @@ function getNeighbors(map, x, y, z, player) {
         if (!isStandable(map, nx, y, nz, player)) {
             const landing = findLandingBelow(map, nx, y, nz, player);
             if (landing && hasHeadroom(map, x, y, z, nx, y, nz, player)) {
-                neighbors.push({ x: nx, y: landing.y, z: nz, type: EDGE_TYPE.FALL, cost: 1 + landing.drop * 0.3 });
+                neighbors.push({ x: nx, y: landing.y, z: nz, type: EDGE_TYPE.FALL, cost: 1 + landing.drop * 0.3, standX: landing.standX, standZ: landing.standZ });
             };
         };
     };
@@ -622,7 +809,20 @@ function getNeighbors(map, x, y, z, player) {
             } else {
                 const landing = findLandingBelow(map, jx, Math.floor(y) + 1, jz, player);
                 if (landing && landing.drop <= MOVEMENT_PROFILE.maxFallLevels && hasHeadroom(map, x, y, z, jx, landing.y, jz, player)) {
-                    neighbors.push({ x: jx, y: landing.y, z: jz, type: EDGE_TYPE.JUMP, cost: dist + 1 + landing.drop * 0.3 });
+                    // A gap-jump that comes down onto a fractional aabb/obb top (a crate, a narrow
+                    // ledge) is landing on a much smaller, more precisely-placed target than the
+                    // open floor this branch was originally built for - real physics testing on
+                    // "PathEasyParkourTestA" showed exactly this kind of jump chosen by the planner
+                    // (a single, longer risky landing) actually failing/getting stuck live, while a
+                    // real player's own recorded route instead crossed the same gap via several
+                    // short, reliable diagonal hops between the SAME crates (see the half-step
+                    // generator's own HORIZONTAL_8 comment). Same reasoning and same shape as the
+                    // level-up branch's own +20 premium two lines up - scaled a little lighter here
+                    // since landing DOWN onto a step is inherently more forgiving than climbing UP
+                    // onto one, and still scoped only to the fractional-landing case so an ordinary
+                    // fall onto open floor keeps its original, already-reliable cost.
+                    const aabbLandingPremium = landing.standX !== undefined ? 10 + (dist - 2) * 5 : 0;
+                    neighbors.push({ x: jx, y: landing.y, z: jz, type: EDGE_TYPE.JUMP, cost: dist + 1 + landing.drop * 0.3 + aabbLandingPremium, standX: landing.standX, standZ: landing.standZ });
                 };
             };
         };
@@ -637,7 +837,25 @@ function getNeighbors(map, x, y, z, player) {
     // can't reliably clear, the WHOLE pair looked unreachable even though the actual intended jump
     // was trivial. Confirmed on "JumpTestMap": two adjacent same-height pedestals offset by
     // exactly (2, -1) had no valid direct candidate at all before this.
-    for (const [jdx, jdz] of [[2, 1], [1, 2], [2, -1], [-1, 2], [-2, 1], [1, -2], [-2, -1], [-1, -2]]) {
+    //
+    // Every non-cardinal, non-45-degree integer offset within maxGapCells, not a fixed list of the
+    // 8 "true knight's move" (2,1)-style ratios specifically - a real landing spot can sit at ANY
+    // integer ratio relative to the takeoff cell, and there's nothing special about 2:1 over, say,
+    // 1:3. Confirmed live on "PathJumpHardTest" checkpoint5->goal: the actual intended jump off the
+    // second wedge's peak is a (dx=1, dz=3) offset - not a knight's move, not a cardinal/diagonal
+    // line, and genuinely unreachable by ANY fixed short list, only by covering every ratio in
+    // range. Bounded to maxGapCells per axis (the same bound the cardinal/diagonal generator above
+    // already uses) rather than inflated further for this - the extra reach an elevated takeoff
+    // (like a ramp's peak) provides is exactly what simulateEdgeCached's real-physics check is for,
+    // not something this candidate list needs to guess at by widening its own search radius.
+    const unevenOffsets = [];
+    for (let jdx = -maxGapCells; jdx <= maxGapCells; jdx++) {
+        for (let jdz = -maxGapCells; jdz <= maxGapCells; jdz++) {
+            if (jdx === 0 || jdz === 0 || Math.abs(jdx) === Math.abs(jdz)) continue;
+            unevenOffsets.push([jdx, jdz]);
+        };
+    };
+    for (const [jdx, jdz] of unevenOffsets) {
         const jx = x + jdx, jz = z + jdz;
         if (!inBounds(map, jx, y, jz)) continue;
         const dist = Math.sqrt(jdx * jdx + jdz * jdz);
@@ -696,8 +914,19 @@ function getNeighbors(map, x, y, z, player) {
         // height relaxation, so a takeoff-height obstruction still correctly rules it out here.
         } else if (!isBlockedAlongLineAt(y)) {
             const landing = findLandingBelow(map, jx, Math.floor(y) + 1, jz, player);
+            // standX/standZ (see findLandingBelow's own comment) - without this, a knight's-move
+            // landing on an off-center aabb/obb (like this branch's own "PathJumpHardTest" crate,
+            // referenced two branches up) fell back to plain cell-center for every LATER edge
+            // launched from here, since cameFrom never got a real stand position to hand back.
+            // Confirmed live: cell-center is close enough to this specific crate's actual (off-
+            // center, see findAabbStandY's own header) footprint that the takeoff itself looked
+            // fine, but the subsequent jump off of it consistently failed real-physics
+            // verification anyway - a silent, easy-to-miss omission, not a wrong value.
             if (landing && landing.drop <= MOVEMENT_PROFILE.maxFallLevels && hasHeadroom(map, x, y, z, jx, landing.y, jz, player)) {
-                neighbors.push({ x: jx, y: landing.y, z: jz, type: EDGE_TYPE.JUMP, cost: dist + 1 + landing.drop * 0.3 });
+                // Same fractional-landing premium as the cardinal/45° gap-jump's own fall branch
+                // above - see that one's comment for the full reasoning ("PathEasyParkourTestA").
+                const aabbLandingPremium = landing.standX !== undefined ? 10 + (dist - 2) * 5 : 0;
+                neighbors.push({ x: jx, y: landing.y, z: jz, type: EDGE_TYPE.JUMP, cost: dist + 1 + landing.drop * 0.3 + aabbLandingPremium, standX: landing.standX, standZ: landing.standZ });
             };
         };
     };
@@ -715,8 +944,34 @@ function getNeighbors(map, x, y, z, player) {
     // with, and there's no static colliderType-based guess for an author-arbitrary aabb/obb shape
     // the way there is for a full block or a ramp.
     if (player) {
-        const nearbyIntegerYs = [Math.floor(y), Math.floor(y) + 1, Math.ceil(y)];
-        for (const [dx, dz] of HORIZONTAL_4) {
+        // Math.floor(y) - 1, not just floor(y)/floor(y)+1/ceil(y) - without the level below, this
+        // loop could only ever find a fractional aabb/obb target at or above the current height,
+        // so a DIAGONAL step down onto one (dist=1, not a straight orthogonal drop - see the
+        // dedicated "down" FALL case a few lines above - and not far enough to be a gap-jump
+        // either) had no candidate-generation path anywhere in this file at all. Confirmed on
+        // "PathEasyParkourTestA": the crate stepping-stone chain this block's own HORIZONTAL_8
+        // comment describes is only reachable by stepping DOWN onto the first crate diagonally
+        // from a raised walkway one level up - every other crate-to-crate hop in that same chain
+        // is itself a same-level (or near-same-level) diagonal step this loop already covered, but
+        // that very first entry step was still invisible, silently forcing the planner to route
+        // around the whole chain via one long, marginal gap-jump instead (verified live: not a
+        // single one of the chain's short hops was ever even attempted).
+        const nearbyIntegerYs = [Math.floor(y) - 1, Math.floor(y), Math.floor(y) + 1, Math.ceil(y)];
+        // HORIZONTAL_8, not HORIZONTAL_4 - unlike the ordinary standing-jump climb loop above
+        // (deliberately cardinal-only, see its own comment: a diagonal STANDING jump clearing a
+        // full level is a much less reliable input to execute), a hop between two adjacent
+        // half-height aabb/obb steps is a much smaller, flatter motion - closer to a diagonal WALK
+        // (already offered in all 8 directions, see the corner-cut-guarded loop above) than to a
+        // full standing jump - and real physics verification (simulateEdgeCached, in findPath)
+        // still decides whether any specific diagonal candidate this offers actually works, same
+        // as every other candidate in this file. Confirmed necessary on "PathEasyParkourTestA": a
+        // chain of small crates used as stepping stones is laid out diagonally (no orthogonal path
+        // between consecutive crates exists at all, only empty air), and a manual recording of a
+        // real player crossing it shows exactly this - short, repeated, diagonal hop-to-hop
+        // traversal between crate tops - confirming it's a genuine, reliable, intended technique on
+        // this map rather than a marginal edge case worth excluding the way the full-level
+        // standing-jump diagonal is.
+        for (const [dx, dz] of HORIZONTAL_8) {
             const nx = x + dx, nz = z + dz;
             const candidates = new Map(); // targetY -> {cx,cz} (aabb-probed real stand position) | null (plain cell-center)
             const fractionalTargets = new Set();
@@ -749,7 +1004,23 @@ function getNeighbors(map, x, y, z, player) {
             };
             for (const [targetY, standPos] of candidates) {
                 const rise = targetY - y;
-                if (Math.abs(rise) < 0.05) continue; // not a real step
+                // Skipped as "not a real step" ONLY for the plain full-height duplicate (standPos
+                // null, see that loop's own comment) - there, a near-zero rise really is redundant
+                // with the ordinary same-level WALK loop above, which already covers it whenever
+                // the CURRENT y is an integer (the only case that duplicate loop exists for in the
+                // first place). That redundancy assumption doesn't hold for a genuine aabb/obb
+                // candidate (standPos set): two ADJACENT half-height steps at nearly the same real
+                // height are extremely common (two crates of the same size, same collision
+                // profile), and a horizontal-only hop between them has NO other way to be
+                // generated at all - the ordinary WALK loop can't resolve anything from a
+                // fractional current y (see this whole block's own header comment), so skipping a
+                // near-zero rise here doesn't defer to some other edge that covers the same move,
+                // it just deletes the move outright. Confirmed live on "PathEasyParkourTestA": a
+                // crate-to-crate chain's own middle links (each hop landing within a few hundredths
+                // of a unit of the previous crate's height) were silently absent from every
+                // candidate list, forcing the planner into far less reliable long-range jumps
+                // around the gap instead - the crates were reachable, just never to EACH OTHER.
+                if (!standPos && Math.abs(rise) < 0.05) continue;
                 // Headroom at the landing spot - a standing player is ~0.6 tall, well under one
                 // cell, so a hair above the resting height is enough to sample real clearance.
                 // Uses the refined stand position when one exists (see findAabbStandY) rather
@@ -899,6 +1170,15 @@ export function findPath(room, start, goal, opts = {}) {
 
     const visited = new Set();
     let expansions = 0;
+    // Tracked purely for diagnosing a "no path found" result - a plain null return gives no clue
+    // WHERE the reachable region actually stops, forcing a slow manual reconstruction of the map's
+    // geometry by hand every time (confirmed painful on "PathShipyardTest": several minutes spent
+    // hand-parsing the raw per-mesh-type map JSON before realizing this was even needed). The
+    // closest-by-heuristic node ever popped off the open set, updated as a side effect of the
+    // search's own normal expansion loop, is exactly "how far did the search actually get" -
+    // reported on every failure path below, at effectively zero cost since heuristic() is already
+    // computed for every node either way.
+    let closestNode = { x: sx, y: sy, z: sz }, closestDist = heuristic(sx, sy, sz, gx, gy, gz);
 
     while (open.size) {
         const current = open.pop();
@@ -908,7 +1188,13 @@ export function findPath(room, start, goal, opts = {}) {
 
         if (currentKey === goalKey) return reconstructPath(cameFrom, currentKey, map, player);
 
-        if (++expansions > maxExpansions) return null;
+        const currentDist = heuristic(current.x, current.y, current.z, gx, gy, gz);
+        if (currentDist < closestDist) { closestDist = currentDist; closestNode = current; };
+
+        if (++expansions > maxExpansions) {
+            console.log(`[deadinternet findPath] no path found (expansion limit) - closest reached: ${closestNode.x},${closestNode.y},${closestNode.z} (${closestDist.toFixed(1)} from goal ${gx},${gy},${gz})`);
+            return null;
+        };
 
         // What edge type actually got us TO `current` - used below to penalize chaining a jump
         // directly off another jump/fall with no flat run-up in between (see cost comment), and
@@ -929,6 +1215,10 @@ export function findPath(room, start, goal, opts = {}) {
             // only offer it if the player genuinely arrives. LADDER stays on the static path -
             // it's a simple, deterministic mechanic (matching consecutive ry values) that hasn't
             // shown any of the real-geometry mismatches WALK/RAMP/JUMP/FALL have.
+            // Declared here, outside the verification block below, so cameFrom.set() further down
+            // (which needs it to give the live bot's waypoint the same corrected position the
+            // verifier just checked) can still see it - see findAabbStandY's WALK-support case.
+            let toSupportStandY = null;
             if (player && neighbor.type !== EDGE_TYPE.LADDER) {
                 // A ramp cell's real collision mesh is a diagonal incline, not a flat floor at the
                 // cell's nominal integer y - placing the simulated player exactly at that y, at the
@@ -946,8 +1236,120 @@ export function findPath(room, start, goal, opts = {}) {
                 const rampExit = (isRampCell(fromCell) && neighbor.type === EDGE_TYPE.JUMP)
                     ? findRampExitXZ(map, current.x, current.y, current.z, neighbor.x - current.x, neighbor.z - current.z, player)
                     : null;
-                const fromY = rampExit ? rampExit.y : isRampCell(fromCell) ? findRampRestY(map, current.x, current.y, current.z, player) : current.y;
-                const toY = isRampCell(toCell) ? findRampRestY(map, neighbor.x, neighbor.y, neighbor.z, player) : neighbor.y;
+                // The landing-side mirror of rampExit above: a jump ONTO a ramp was, until now,
+                // still verified/aimed at plain cell-center + findRampRestY's height-only sweep -
+                // fine for a flat cell, but for a diagonal wedge that combination can land the
+                // target well up the slope's HIGH side (findRampRestY's sweep order [0.5,0.75,...]
+                // has no notion of "which side is the approaching player coming from", it just
+                // returns the first clear height at dead-center). Confirmed live on
+                // "PathJumpHardTest": the replanned checkpoint3->wedge fallback jump aimed at
+                // (7.5, 2.9, ~5.5) - near the wedge's PEAK - which is a far longer, barely-
+                // reachable leap than the wedge actually requires; real physics traced this exact
+                // jump: apex only reached y=2.77 (short of 2.9), horizontal velocity got killed
+                // dead mid-arc at x=6.74 (0.76 short of the wedge), and the bot fell straight into
+                // the gap it was trying to cross. findRampExitXZ already solves the identical
+                // problem the other direction (sweeping from a ramp's own center toward a
+                // departure direction to find the true far edge) - reusing it here with the
+                // direction reversed (from the ramp's center back toward the APPROACHING cell)
+                // finds the near/low edge instead, which is what a jump landing on a ramp should
+                // actually aim for: the closest valid point on the slope, not its summit.
+                // Reported live by the map author, from actually playing this jump by hand: a
+                // dead-on square approach doesn't work here - the fix is to angle slightly LEFT
+                // (relative to the direction of travel) going into the jump, which lets the
+                // player's collision box glance/slide onto the slope instead of catching its edge
+                // square-on the way a perfectly centered approach does. Blended into the entry
+                // sweep direction below, not just the final landing point - findRampExitXZ sweeps
+                // outward from the ramp's own center, and every phase of the run-up/flight re-aims
+                // at that same waypoint every tick (see physicsSimulation.js/index.js), so biasing
+                // the target here carries the same left angle through the whole approach, not only
+                // the touchdown spot. "Left" is CONTROL.left's own convention (player.js: ddx -=
+                // cos(yaw), ddz += sin(yaw)), which for a direction vector (dx,dz) works out to the
+                // perpendicular (-dz,dx) - rotate the approach direction 90 degrees the same way a
+                // player strafing left while facing it would.
+                // A "landing a level higher than takeoff" JUMP (see the dedicated diagonal/
+                // knight's-move jump generator further up this file) can ALSO be resting on a
+                // ramp without the target cell itself being classified as one - isStandable's
+                // hasRealSupport treats "a ramp directly below" as automatic support, so a jump
+                // targeting the empty cell one level above a wedge (e.g. (7,3,5) above the wedge
+                // at (7,2,5)) is real and valid, but toCell here is that empty cell, not the ramp
+                // itself - isRampCell(toCell) alone misses it entirely. Checking the cell directly
+                // below the target catches this second ramp-adjacent case too, using the RAMP's
+                // own (x, y-1, z) as the anchor for the same entry-point/left-bias correction
+                // above, since that's where the real sloped geometry actually lives.
+                const belowToCell = cellAt(map, neighbor.x, neighbor.y - 1, neighbor.z);
+                const rampBelowTarget = !isRampCell(toCell) && isRampCell(belowToCell);
+                let rampEntry = null;
+                // Also applies to a plain RAMP-type edge (walking up the slope from an adjacent
+                // cell, not jumping onto it) - confirmed live this same left/near-edge correction
+                // was needed there too: the cheapest (cost 1.1) route onto this exact wedge from
+                // checkpoint4 is a RAMP edge, not a JUMP, and it was landing at dead cell-center +
+                // raw uncorrected y (no findRampRestY, no entry-point sweep at all - toSupportY
+                // only ever covered WALK) purely because the isRampCell(toCell)/rampBelowTarget
+                // checks above were gated to JUMP only, so this cheaper, more-often-chosen edge
+                // silently bypassed the whole fix.
+                //
+                // NOTE: this verification-time value only feeds simulateEdgeCached below - it is
+                // NOT what the live bot ends up aiming at for a waypoint that also has an outgoing
+                // jump, since reconstructPath's departure-correction pass (see its own comment)
+                // runs afterward and recomputes x/y/z from the OUTGOING direction, which the
+                // search loop can't know yet at this point (the next edge isn't chosen until
+                // after the whole path is found). That pass runs the same slope-axis projection
+                // with the incoming direction available there - the two independently reach
+                // compatible (not necessarily identical) answers by design, the same way a
+                // verified edge and its live execution are never pixel-identical elsewhere in
+                // this file either.
+                // Also applies to a plain WALK-classified edge landing on a ramp - a same-level
+                // move onto/between ramp cells (e.g. two adjacent wedges near the same nominal Y,
+                // like "PathJumpHardTest" checkpoint5->goal's ramp-to-ramp step) is generated by
+                // the ordinary same-level WALK loop, not the up-one-level RAMP-climb generator,
+                // since it isn't gaining a whole level by the graph's own integer-Y bookkeeping.
+                // Confirmed live: this exact transition was still landing at the ramp's raw,
+                // uncorrected findRampRestY height (no correction, no near-edge sweep) purely
+                // because WALK wasn't in this type gate - same silent-bypass shape as the RAMP
+                // case above, just one more edge type wide.
+                if ((isRampCell(toCell) || rampBelowTarget) && (neighbor.type === EDGE_TYPE.JUMP || neighbor.type === EDGE_TYPE.RAMP || neighbor.type === EDGE_TYPE.WALK)) {
+                    const rampAnchorY = rampBelowTarget ? neighbor.y - 1 : neighbor.y;
+                    // Sweep along the ramp's OWN exact slope axis (see rampSlopeAxis), not the
+                    // raw cardinal travel direction and not an empirically-tuned lateral bias -
+                    // but WHICH of the two directions along that axis (uphill or downhill) is the
+                    // near/entry side can't always be picked by dot-producting against the travel
+                    // vector: when the approach is exactly perpendicular to the slope axis (a real
+                    // case, not a corner case - confirmed live on "PathJumpHardTest" checkpoint3-
+                    // >wedge1, a pure-X approach onto a pure-Z-axis ramp), that dot product is
+                    // exactly zero and carries no information at all, silently defaulting to
+                    // whichever sign the tie-break happens to favor regardless of which is
+                    // actually right. Trying BOTH real candidate points and keeping whichever
+                    // lands closer to where the player is ACTUALLY coming from sidesteps the
+                    // degenerate case entirely - it's a real distance comparison, not a direction
+                    // heuristic that can cancel to nothing.
+                    const anchorCell = cellAt(map, neighbor.x, rampAnchorY, neighbor.z);
+                    const slopeAxis = rampSlopeAxis(isRampCell(anchorCell) ? anchorCell : toCell);
+                    const candidatePos = findRampExitXZ(map, neighbor.x, rampAnchorY, neighbor.z, slopeAxis.x, slopeAxis.z, player);
+                    const candidateNeg = findRampExitXZ(map, neighbor.x, rampAnchorY, neighbor.z, -slopeAxis.x, -slopeAxis.z, player);
+                    const distToCurrentPos = Math.length2(candidatePos.x - current.x, candidatePos.z - current.z);
+                    const distToCurrentNeg = Math.length2(candidateNeg.x - current.x, candidateNeg.z - current.z);
+                    rampEntry = distToCurrentPos <= distToCurrentNeg ? candidatePos : candidateNeg;
+                };
+                // A cell resting on a half-height (or otherwise non-cell-filling) aabb/obb support
+                // - e.g. a "gray-brick-half" step - has no mesh of its own at its nominal integer y
+                // at all; it's genuinely empty air there, held up only by whatever's in the cell
+                // BELOW it. isStandable's hasRealSupport (see its own comment) correctly detects
+                // that support is present using the real collider, but a presence check isn't a
+                // height check: the player's collision BOX can register solid contact near the
+                // probe point even when the actual resting surface sits well below the assumed
+                // integer y, exactly like the crate takeoff bug findAabbStandY was built for -
+                // just triggered through the support check instead of the standing cell itself.
+                // Scoped to a genuinely same-level WALK, the only edge type this file has ever
+                // found it on: confirmed on "Castle", the long-standing `18,3,6->19,3,6` failure -
+                // (18,2,6) is a half-height aabb, (19,2,6) is a full block, and the plain WALK
+                // classification silently assumed both sides rest at the same flat y=3 when the
+                // real height gap between them is roughly half a unit.
+                const fromSupportY = (!isRampCell(fromCell) && neighbor.type === EDGE_TYPE.WALK)
+                    ? findAabbStandY(map, current.x, current.y - 1, current.z, player) : null;
+                const toSupportY = (!isRampCell(toCell) && neighbor.type === EDGE_TYPE.WALK)
+                    ? findAabbStandY(map, neighbor.x, neighbor.y - 1, neighbor.z, player) : null;
+                const fromY = rampExit ? rampExit.y : isRampCell(fromCell) ? findRampRestY(map, current.x, current.y, current.z, player) : fromSupportY ? fromSupportY.y : current.y;
+                const toY = rampEntry ? rampEntry.y : isRampCell(toCell) ? findRampRestY(map, neighbor.x, neighbor.y, neighbor.z, player) : toSupportY ? toSupportY.y : neighbor.y;
                 // Verify from where the bot would REALLY be standing, not the cell's nominal
                 // center - for an off-center AABB stand (e.g. a crate whose solid mass isn't
                 // centered in its cell, see findAabbStandY), cell-center can be several tenths of
@@ -956,12 +1358,44 @@ export function findPath(room, start, goal, opts = {}) {
                 // actually attempts. incomingEntry is undefined for the search's start node, which
                 // falls back to plain cell-center same as before.
                 const fromCenter = {
-                    x: rampExit ? rampExit.x : incomingEntry?.standX ?? (current.x + 0.5), y: fromY,
-                    z: rampExit ? rampExit.z : incomingEntry?.standZ ?? (current.z + 0.5),
+                    x: rampExit ? rampExit.x : incomingEntry?.standX ?? fromSupportY?.cx ?? (current.x + 0.5), y: fromY,
+                    z: rampExit ? rampExit.z : incomingEntry?.standZ ?? fromSupportY?.cz ?? (current.z + 0.5),
                 };
-                const toCenter = { x: neighbor.x + 0.5, y: toY, z: neighbor.z + 0.5 };
-                const simResult = simulateEdgeCached(room, player, currentKey, nKey, fromCenter, toCenter, { jump: neighbor.type === EDGE_TYPE.JUMP });
+                const toCenter = {
+                    x: rampEntry ? rampEntry.x : toSupportY?.cx ?? (neighbor.x + 0.5), y: toY,
+                    z: rampEntry ? rampEntry.z : toSupportY?.cz ?? (neighbor.z + 0.5),
+                };
+                // A straight-line WALK crossing two ramps whose slope axes are genuinely
+                // perpendicular (see reconstructPath's peak-insertion pass for the full
+                // reasoning) is structurally NOT something this offline verifier can model
+                // correctly - simulateEdge only ever re-aims at ONE fixed target the whole
+                // simulated approach, tracing a straight line, while the real crossing needs two
+                // straight segments joined by an actual turn at the first ramp's peak. Confirmed
+                // live on "PathJumpHardTest" checkpoint5->goal: the single-target simulation
+                // genuinely can't reach the far side, bailing every time, which starves the
+                // search of the only edge that bridges the two ramps and leaves no path at all -
+                // not because the live bot can't make the crossing (reconstructPath's peak
+                // insertion lets it do exactly the two-segment walk this verifier can't
+                // simulate), only because this check has no way to model it. Trusted structurally
+                // instead, the same way LADDER already is above (a simple, deterministic
+                // geometric relationship, not the kind of real-geometry mismatch this
+                // verification exists to catch).
+                const rampAxisTurn = isRampCell(fromCell) && isRampCell(toCell)
+                    && (neighbor.type === EDGE_TYPE.WALK || neighbor.type === EDGE_TYPE.RAMP)
+                    && Math.abs(rampSlopeAxis(fromCell).x * rampSlopeAxis(toCell).x + rampSlopeAxis(fromCell).z * rampSlopeAxis(toCell).z) <= 0.3;
+                const simResult = rampAxisTurn ? { success: true } : simulateEdgeCached(room, player, currentKey, nKey, fromCenter, toCenter, { jump: neighbor.type === EDGE_TYPE.JUMP });
                 if (!simResult.success) continue;
+                // toSupportY carries into cameFrom.set() below (via toSupportStandY, hoisted above
+                // this if-block) - NOT by overwriting neighbor.y itself, which is already baked into
+                // nKey and the open-heap push above this block; changing it here would desync the
+                // search graph's own node identity from what's actually on the heap. standX/standZ
+                // (see findAabbStandY) are the established channel for "the real position differs
+                // from cell-center" without touching graph identity - toSupportStandY reuses it.
+                // rampEntry reuses the same channel (reshaped to findAabbStandY's {cx,cz,y} shape)
+                // so the live bot's waypoint gets the exact same corrected near-edge landing point
+                // the verifier above just checked, not the plain cell-center the graph node itself
+                // still carries.
+                toSupportStandY = rampEntry ? { cx: rampEntry.x, cz: rampEntry.z, y: rampEntry.y } : toSupportY;
             };
 
             let edgeCost = neighbor.cost;
@@ -994,12 +1428,18 @@ export function findPath(room, start, goal, opts = {}) {
             const tentativeG = gScore.get(currentKey) + edgeCost;
             if (tentativeG < (gScore.get(nKey) ?? Infinity)) {
                 gScore.set(nKey, tentativeG);
-                cameFrom.set(nKey, { from: currentKey, type: neighbor.type, x: neighbor.x, y: neighbor.y, z: neighbor.z, smallHop: neighbor.smallHop, standX: neighbor.standX, standZ: neighbor.standZ });
+                cameFrom.set(nKey, {
+                    from: currentKey, type: neighbor.type, x: neighbor.x,
+                    y: toSupportStandY ? toSupportStandY.y : neighbor.y, z: neighbor.z,
+                    smallHop: neighbor.smallHop,
+                    standX: neighbor.standX ?? toSupportStandY?.cx, standZ: neighbor.standZ ?? toSupportStandY?.cz,
+                });
                 open.push({ x: neighbor.x, y: neighbor.y, z: neighbor.z, f: tentativeG + heuristic(neighbor.x, neighbor.y, neighbor.z, gx, gy, gz) });
             };
         };
     };
 
+    console.log(`[deadinternet findPath] no path found (open set exhausted) - closest reached: ${closestNode.x},${closestNode.y},${closestNode.z} (${closestDist.toFixed(1)} from goal ${gx},${gy},${gz})`);
     return null;
 };
 
@@ -1012,14 +1452,60 @@ function reconstructPath(cameFrom, goalKey, map, player) {
         // off-center AABB stand position - undefined for every other edge type, which keeps the
         // original x+0.5/z+0.5 exactly as before this existed. gridX/Y/Z (raw, non-centered) are
         // kept alongside for the ramp-exit pass below and stripped before returning.
+        // onRamp - whether THIS waypoint's own cell is a ramp/wedge, independent of edge type -
+        // lets followPath() (index.js) know its takeoff cell for an outgoing jump is a ramp
+        // without re-deriving map/collider state live; see its own use for why that matters
+        // (jumpRunupTargetDist's fixed 0.5-unit "near edge of THIS cell" assumption doesn't hold
+        // for a ramp, which can offer real, valid ground well past half a cell along the slope).
         waypoints.push({
             x: step.standX ?? (step.x + 0.5), y: step.y, z: step.standZ ?? (step.z + 0.5),
-            type: step.type, smallHop: step.smallHop,
+            type: step.type, smallHop: step.smallHop, onRamp: isRampCell(cellAt(map, step.x, step.y, step.z)),
             gridX: step.x, gridY: step.y, gridZ: step.z,
         });
         currentKey = step.from;
     };
     waypoints.reverse();
+
+    // Two adjacent ramps whose slope axes are NOT roughly parallel can't be crossed by aiming at
+    // a single target the whole way - every other movement mechanic in this file (WALK, JUMP,
+    // reconstructPath's own departure correction below) continuously re-aims at ONE fixed point,
+    // which traces a straight line, not the two-segment "walk to the peak, turn, walk onto the
+    // next slope" a real perpendicular ramp junction actually needs. Reported live and confirmed
+    // as intentional, fully-traversable map design on "PathJumpHardTest" checkpoint5->goal (one
+    // ramp climbing along Z meeting a second climbing along X): the live bot stalled right at the
+    // seam between them, short of a single combined target, because a straight line from its
+    // start to that target doesn't correspond to any real walkable path across two differently-
+    // oriented slopes. Splitting this into a genuine intermediate stop at the FIRST ramp's own
+    // true peak (rampSlopeAxis's uphill direction specifically, not the distance-based pick used
+    // elsewhere in this file for entry/exit ambiguity - a peak junction is a real, singular point,
+    // not a choice between two candidates) turns the crossing into two straight segments joined by
+    // an actual turn, which is exactly the shape of the map author's own description of the route.
+    // Scoped to a real axis mismatch (dot product near zero) so two ramps that already share an
+    // axis - the ordinary single-ramp case, or two ramps climbing the same direction - are left as
+    // the single-target straight walk they always were, unaffected.
+    if (player) {
+        const expanded = [];
+        for (let i = 0; i < waypoints.length; i++) {
+            const w = waypoints[i];
+            expanded.push(w);
+            const next = waypoints[i + 1];
+            if (!next) continue;
+            const wCell = cellAt(map, w.gridX, w.gridY, w.gridZ);
+            const nextCell = cellAt(map, next.gridX, next.gridY, next.gridZ);
+            if (!isRampCell(wCell) || !isRampCell(nextCell)) continue;
+            const wAxis = rampSlopeAxis(wCell);
+            const nextAxis = rampSlopeAxis(nextCell);
+            const axisDot = wAxis.x * nextAxis.x + wAxis.z * nextAxis.z;
+            if (Math.abs(axisDot) > 0.3) continue;
+            const peak = findRampExitXZ(map, w.gridX, w.gridY, w.gridZ, wAxis.x, wAxis.z, player);
+            expanded.push({
+                x: peak.x, y: peak.y, z: peak.z, type: EDGE_TYPE.WALK, smallHop: false, onRamp: true,
+                gridX: w.gridX, gridY: peak.y, gridZ: w.gridZ,
+            });
+        };
+        waypoints.length = 0;
+        waypoints.push(...expanded);
+    };
 
     // A JUMP departing a ramp needs to start from the ramp's real edge, not its geometric center
     // (see findRampExitXZ) - but which edge that is depends on which DIRECTION the bot leaves in,
@@ -1031,16 +1517,59 @@ function reconstructPath(cameFrom, goalKey, map, player) {
     // of real travel to reach the landing platform against a measured ~2.2-2.3 unit reach - a
     // consistent ~0.75 unit shortfall, not borderline jitter.
     if (player) {
-        for (let i = 0; i < waypoints.length - 1; i++) {
-            const w = waypoints[i], next = waypoints[i + 1];
-            if (next.type !== EDGE_TYPE.JUMP) continue;
+        const expanded = [];
+        for (let i = 0; i < waypoints.length; i++) {
+            const w = waypoints[i];
+            expanded.push(w);
+            const next = waypoints[i + 1];
+            if (!next || next.type !== EDGE_TYPE.JUMP) continue;
             const cell = cellAt(map, w.gridX, w.gridY, w.gridZ);
             if (!isRampCell(cell)) continue;
-            const dx = next.gridX - w.gridX, dz = next.gridZ - w.gridZ;
-            const len = Math.sqrt(dx * dx + dz * dz) || 1;
-            const exit = findRampExitXZ(map, w.gridX, w.gridY, w.gridZ, dx / len, dz / len, player);
-            w.x = exit.x; w.y = exit.y; w.z = exit.z;
+            // Sweeping along the ramp's own exact slope axis (see rampSlopeAxis) here too - not
+            // the raw outgoing direction - keeps this pass and getNeighbors' verification-time
+            // computation geometrically consistent by construction, since both derive the same
+            // axis from the same cell instead of independently approximating it.
+            //
+            // Which of the two directions along that axis is the departure side gets picked by
+            // trying both real candidates and keeping whichever lands closer to the NEXT
+            // waypoint, not a dot product against the raw outgoing vector - the same degenerate-
+            // when-perpendicular problem as the entry side above applies here too (a departure
+            // exactly perpendicular to the slope axis would zero the dot product out), so this
+            // uses the same real-distance comparison instead.
+            const slopeAxis = rampSlopeAxis(cell);
+            const candidatePos = findRampExitXZ(map, w.gridX, w.gridY, w.gridZ, slopeAxis.x, slopeAxis.z, player);
+            const candidateNeg = findRampExitXZ(map, w.gridX, w.gridY, w.gridZ, -slopeAxis.x, -slopeAxis.z, player);
+            const distToNextPos = Math.length2(candidatePos.x - next.gridX - 0.5, candidatePos.z - next.gridZ - 0.5);
+            const distToNextNeg = Math.length2(candidateNeg.x - next.gridX - 0.5, candidateNeg.z - next.gridZ - 0.5);
+            const exit = distToNextPos <= distToNextNeg ? candidatePos : candidateNeg;
+            // This pass used to overwrite w.x/y/z unconditionally - correct for a waypoint that's
+            // ONLY a takeoff point (checkpoint3->wedge: the bot arrives near the ramp's center and
+            // only the departure edge matters), but wrong whenever w is ALSO a genuine ARRIVAL
+            // target for a preceding WALK/RAMP-climb edge from a different ramp (confirmed live on
+            // "PathJumpHardTest" checkpoint5->goal: w here is the corrected NEAR/entry edge coming
+            // off ramp1's perpendicular turn - see the peak-insertion pass above - and overwriting
+            // it in place with the FAR/exit edge silently discarded the entry point the incoming
+            // walk needs, sending the live bot on a straight line from ramp1's peak toward the
+            // exit edge instead, which walks it straight into the ramp's own solid geometry short
+            // of ever reaching a climbable surface - stuck at the seam, never able to progress).
+            // Inserting the corrected exit as its own extra waypoint instead of mutating w keeps
+            // both real positions intact: walk to the entry edge, THEN walk the short remaining
+            // distance to the takeoff edge, THEN jump - exactly what a real player does, and
+            // strictly more correct even for the single-ramp case this pass originally targeted
+            // (entry and exit collapse to (near-)identical points there, so the extra waypoint is
+            // a negligible no-op hop rather than a behavior change).
+            const exitDist = Math.length2(exit.x - w.x, exit.z - w.z);
+            if (exitDist > 0.15) {
+                expanded.push({
+                    x: exit.x, y: exit.y, z: exit.z, type: EDGE_TYPE.WALK, smallHop: false, onRamp: true,
+                    gridX: w.gridX, gridY: w.gridY, gridZ: w.gridZ,
+                });
+            } else {
+                w.x = exit.x; w.y = exit.y; w.z = exit.z;
+            };
         };
+        waypoints.length = 0;
+        waypoints.push(...expanded);
     };
 
     for (const w of waypoints) { delete w.gridX; delete w.gridY; delete w.gridZ; };
