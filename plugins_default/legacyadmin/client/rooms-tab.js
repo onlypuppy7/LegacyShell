@@ -39,7 +39,7 @@ AdminApp.on('adminGetServicesInfo', (result) => {
         const routeId = routeIdForServerIndex(index);
         const section = document.createElement('section');
         section.className = 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden';
-        section.innerHTML = `<div class="bg-slate-50 dark:bg-slate-900/40 px-3 py-2 text-sm font-semibold">Game server #${index}</div>`;
+        section.innerHTML = `<div class="bg-slate-50 dark:bg-slate-900/40 px-3 py-2 text-sm font-semibold">Game server #${escapeHtml(index)}</div>`;
         if (rooms.length === 0) {
             section.innerHTML += '<div class="p-3 text-sm text-slate-400 dark:text-slate-500">No open rooms.</div>';
         } else {
@@ -51,7 +51,8 @@ AdminApp.on('adminGetServicesInfo', (result) => {
                 const tr = document.createElement('tr');
                 tr.className = 'border-t border-slate-100 dark:border-slate-700';
                 const btn = routeId ? `<button class="text-xs text-indigo-600 hover:underline">Manage</button>` : '';
-                tr.innerHTML = `<td class="p-2 font-mono">${room.gameId}</td><td class="p-2">${room.mapId}</td><td class="p-2">${room.gameType}</td><td class="p-2">${room.playerCount}/${room.playerLimit}</td><td class="p-2 truncate max-w-xs">${(room.playerNames || []).filter(Boolean).join(', ')}</td><td class="p-2">${btn}</td>`;
+                const names = (room.playerNames || []).filter(Boolean).map(escapeHtml).join(', ');
+                tr.innerHTML = `<td class="p-2 font-mono">${escapeHtml(room.gameId)}</td><td class="p-2">${escapeHtml(room.mapId)}</td><td class="p-2">${escapeHtml(room.gameType)}</td><td class="p-2">${escapeHtml(room.playerCount)}/${escapeHtml(room.playerLimit)}</td><td class="p-2 truncate max-w-xs">${names}</td><td class="p-2">${btn}</td>`;
                 const manageBtn = tr.querySelector('button');
                 if (manageBtn) manageBtn.onclick = () => {
                     AdminApp.setTarget(routeId);
@@ -72,7 +73,7 @@ function loadDrilldown(gameId, container) {
     const drilldown = container.querySelector('#rooms-drilldown');
     if (!drilldown) return;
     drilldown.innerHTML = `<div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4">
-        <h3 class="text-sm font-semibold mb-2">Room ${gameId}</h3>
+        <h3 class="text-sm font-semibold mb-2">Room ${escapeHtml(gameId)}</h3>
         <div id="room-players">Loading...</div>
         <div id="room-chat"></div>
     </div>`;
@@ -95,7 +96,7 @@ AdminApp.on('adminListRooms', (result) => {
         const playerId = room.playerIds?.[i];
         const tr = document.createElement('tr');
         tr.className = 'border-t border-slate-100 dark:border-slate-700';
-        tr.innerHTML = `<td class="p-1">${name}</td><td class="p-1"><button class="text-xs text-rose-600">Kick</button></td>`;
+        tr.innerHTML = `<td class="p-1">${escapeHtml(name)}</td><td class="p-1"><button class="text-xs text-rose-600">Kick</button></td>`;
         tr.querySelector('button').onclick = () => {
             if (!confirm(`Kick ${name}?`)) return;
             AdminApp.send('adminKickPlayer', { gameId: drilldownGameId, playerId, reason: 'Kicked via admin panel' });

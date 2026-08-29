@@ -85,11 +85,32 @@ export function readFile(absPath) {
     return { raw, parsed: parseByExt(ext, raw) };
 };
 
+// Configs are small hand-tuned files; a multi-MB payload here is a mistake or an attempt to make
+// the parser chew (js-yaml has quadratic-blowup advisories). Cap well above any real config.
+const MAX_CONFIG_BYTES = 2 * 1024 * 1024;
+
 // Writes `raw` text as-is (the admin UI edits the raw file text directly, not a parsed form,
 // comments included for .jsonc) but still round-trips it through the right parser first, purely
-// to reject a malformed save before it overwrites a working config file.
+// to reject a malformed save before it overwrites a working config file. The write itself is
+// staged to a sibling temp file and renamed into place (atomic on the same filesystem), with the
+// previous contents kept as `<file>.bak`, so a crash or full disk mid-save can't leave a
+// truncated config behind.
 export function writeFile(absPath, raw) {
+    if (typeof raw !== 'string') throw new Error('File contents must be a string');
+    if (Buffer.byteLength(raw, 'utf8') > MAX_CONFIG_BYTES) throw new Error('File is too large to save (limit 2 MiB)');
     const ext = path.extname(absPath).toLowerCase();
     parseByExt(ext, raw);
-    fs.writeFileSync(absPath, raw, 'utf8');
+
+    if (fs.existsSync(absPath)) {
+        try { fs.copyFileSync(absPath, absPath + '.bak'); } catch { /* best-effort backup */ };
+    };
+
+    const tmp = `${absPath}.${process.pid}.${Date.now()}.tmp`;
+    try {
+        fs.writeFileSync(tmp, raw, 'utf8');
+        fs.renameSync(tmp, absPath);
+    } catch (error) {
+        try { fs.unlinkSync(tmp); } catch { /* nothing to clean up */ };
+        throw error;
+    };
 };

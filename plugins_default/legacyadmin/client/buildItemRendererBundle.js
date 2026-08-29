@@ -77,5 +77,19 @@ export function buildItemRendererBundle(rootDir) {
         fs.copyFileSync(babylonSrc, path.join(outDir, 'babylon.js'));
     };
 
+    // Tabulator (the SQL tab's table-editor grid), served locally from /admin/vendor rather than
+    // cdnjs - keeps a third-party script out of the credential-bearing admin origin and works
+    // offline. Resolved from the npm dependency declared in this plugin's dependencies.js; if it
+    // somehow isn't installed yet the copy is skipped and sql-tab.js surfaces a clear error.
+    for (const [src, dest] of [
+        ['tabulator-tables/dist/js/tabulator.min.js', 'tabulator.min.js'],
+        ['tabulator-tables/dist/css/tabulator.min.css', 'tabulator.min.css'],
+    ]) {
+        try {
+            const resolved = path.join(rootDir, 'node_modules', src);
+            if (fs.existsSync(resolved)) fs.copyFileSync(resolved, path.join(outDir, dest));
+        } catch {};
+    };
+
     return outDir;
 };

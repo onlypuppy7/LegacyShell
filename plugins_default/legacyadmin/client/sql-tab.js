@@ -115,15 +115,18 @@ let tabulatorLoadPromise = null;
 function ensureTabulator() {
     if (window.Tabulator) return Promise.resolve();
     if (!tabulatorLoadPromise) {
+        // Served locally from /admin/vendor (buildItemRendererBundle.js copies it out of the
+        // tabulator-tables npm dependency) - no cdnjs, so the strict CSP on this page can forbid
+        // third-party scripts entirely.
         tabulatorLoadPromise = new Promise((resolve, reject) => {
             const link = document.createElement('link');
             link.rel = 'stylesheet';
-            link.href = 'https://cdnjs.cloudflare.com/ajax/libs/tabulator/5.5.2/css/tabulator.min.css';
+            link.href = '/admin/vendor/tabulator.min.css';
             document.head.appendChild(link);
             const script = document.createElement('script');
-            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/tabulator/5.5.2/js/tabulator.min.js';
+            script.src = '/admin/vendor/tabulator.min.js';
             script.onload = resolve;
-            script.onerror = () => reject(new Error('Failed to load Tabulator'));
+            script.onerror = () => reject(new Error('Table editor library (Tabulator) is not available - reinstall the plugin so its tabulator-tables dependency is present.'));
             document.head.appendChild(script);
         });
     };
@@ -172,7 +175,8 @@ AdminApp.on('result', async (result) => {
     const grid = document.getElementById('table-grid');
     if (!grid || !Array.isArray(result) || !currentTable) return;
 
-    await ensureTabulator();
+    try { await ensureTabulator(); }
+    catch (e) { grid.innerHTML = `<div class="p-4 text-rose-600 text-sm">${String(e?.message || e).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}</div>`; return; };
     const pk = EDITABLE_TABLES[currentTable];
     if (result.length === 0) { grid.innerHTML = '<div class="p-4 text-slate-400 dark:text-slate-500 text-sm">No rows.</div>'; tabulatorInstance = null; return; };
 

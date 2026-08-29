@@ -58,6 +58,14 @@ const exported = {
             return null;
         };
     },
+    deleteSession: async (session_id) => {
+        try {
+            ss.config.verbose && log.bgPurple(`services: Deleting from DB: single session ${session_id}`);
+            await ss.runQuery(`DELETE FROM sessions WHERE session_id = ?`, [session_id]);
+        } catch (error) {
+            console.error('Error deleting session:', error);
+        };
+    },
     deleteAllSessionsForUser: async (user_id) => {
         try {
             ss.config.verbose && log.bgPurple(`services: Deleting from DB: all sessions for user_id: ${user_id}`);

@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>LegacyAnalytics | Bar & Cumulative</title>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <style>
+        :root { --bg: #0d1117; --card: #161b22; --border: #30363d; --text: #c9d1d9; --accent: #58a6ff; --green: #3fb950; --red: #f85149; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
+        .nav { display: flex; justify-content: space-between; margin-bottom: 25px; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 15px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(480px, 1fr)); gap: 20px; }
+        .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        .mini-stats { display: flex; gap: 15px; margin-bottom: 25px; }
+        .mini-box { flex: 1; background: var(--card); border: 1px solid var(--border); padding: 15px; border-radius: 8px; text-align: center; }
+        .mini-box h3 { margin: 5px 0; color: var(--accent); font-size: 1.8em; }
+        select { background: #21262d; color: white; border: 1px solid var(--border); padding: 10px; border-radius: 6px; cursor: pointer; }
+        table { width: 100%; border-collapse: collapse; margin-top: 25px; font-size: 12px; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid var(--border); }
+        th { background: #21262d; color: var(--accent); }
+    </style>
+</head>
+<body>
+
+<div class="nav">
+    <h1>LegacyShell Core Analytics</h1>
+    <select id="range" onchange="load()">
+        <option value="24h">Last 24h</option>
+        <option value="7d">Last 7 Days</option>
+        <option value="30d">Last 30 Days</option>
+        <option value="all" selected>All Time</option>
+    </select>
+</div>
+
+<div class="mini-stats">
+    <div class="mini-box"><span>Peak CCU</span><h3 id="stat-peak">0</h3></div>
+    <div class="mini-box"><span>Total Kills</span><h3 id="stat-kills">0</h3></div>
+    <div class="mini-box"><span>Registrations</span><h3 id="stat-regs">0</h3></div>
+    <div class="mini-box"><span>Items Sold</span><h3 id="stat-sales" style="color:var(--green)">0</h3></div>
+</div>
+
+<div class="grid">
+    <div class="card"><div id="chart-room-vol"></div></div>
+    <div class="card"><div id="chart-room-peak"></div></div>
+    <div class="card"><div id="chart-combat"></div></div>
+    <div class="card"><div id="chart-auth"></div></div>
+    <div class="card"><div id="chart-econ"></div></div>
+    <div class="card" style="grid-column: 1 / -1;">
+        <h3>Feedback Feed</h3>
+        <table id="fb-table">
+            <thead><tr><th>Time</th><th>User</th><th>Message</th><th>Hardware</th><th>Version</th></tr></thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+let charts = {};
+
+// Helper to calculate cumulative sum of an array of {x, y}
+function getCumulative(data) {
+    let sum = 0;
+    return data.map(item => {
+        sum += item.y || 0;
+        return { x: item.x, y: sum };
+    });
+}
+
+const chartOpt = (title, colors, isStacked = false) => ({
+    chart: { height: 320, toolbar: { show: true }, background: 'transparent' },
+    theme: { mode: 'dark' },
+    colors,
+    stroke: { 
+        width: [0, 3], // 0 for bar, 3 for line
+        dashArray: [0, 8], // solid for bar, 8px dots for line
+        curve: 'smooth'
+    },
+    plotOptions: { bar: { columnWidth: '60%', borderRadius: 4 } },
+    xaxis: { type: 'datetime' },
+    yaxis: [
+        { title: { text: 'Current Period' } },
+        { opposite: true, title: { text: 'Cumulative Total' } }
+    ],
+    title: { text: title, style: { fontSize: '16px', fontWeight: 600 } },
+    grid: { borderColor: '#30363d', strokeDashArray: 4 },
+    dataLabels: { enabled: false },
+    tooltip: { theme: 'dark', x: { format: 'dd MMM HH:mm' } }
+});
+
+async function load() {
+    const range = document.getElementById('range').value;
+    const res = await fetch(`/api/stats?range=${range}`);
+    const d = await res.json();
+
+    document.getElementById('stat-peak').innerText = d.totals.maxPeak;
+    document.getElementById('stat-kills').innerText = d.totals.kills;
+    document.getElementById('stat-regs').innerText = d.totals.regSuccess;
+    document.getElementById('stat-sales').innerText = d.totals.sales;
+
+    // 1. Room Activity + Cumulative Volume
+    const volData = d.series.rooms.map(i=>({x:i.x, y:i.total_volume}));
+    render('chart-room-vol', 'Total Room Activity Volume', [
+        { name: 'Bucket Volume', type: 'bar', data: volData },
+        { name: 'Cumulative Total', type: 'line', data: getCumulative(volData) }
+    ], ['#d2a8ff', '#ffffff']);
+
+    // 2. CCU (NO CUMULATIVE LINE)
+    render('chart-room-peak', 'Peak Concurrent (CCU)', [
+        { name: 'Public Peak', type: 'bar', data: d.series.rooms.map(i=>({x:i.x, y:i.pub_peak})) },
+        { name: 'Private Peak', type: 'bar', data: d.series.rooms.map(i=>({x:i.x, y:i.priv_peak})) }
+    ], ['#58a6ff', '#8b949e'], true);
+
+    // 3. Combat + Cumulative Kills
+    render('chart-combat', 'Combat: Kills vs Deaths', [
+        { name: 'Kills', type: 'bar', data: d.series.kills },
+        { name: 'Cumulative Kills', type: 'line', data: getCumulative(d.series.kills) }
+    ], ['#3fb950', '#ffffff']);
+
+    // 4. Auth + Cumulative Regs
+    render('chart-auth', 'Growth (Registrations)', [
+        { name: 'New Registers', type: 'bar', data: d.series.registers },
+        { name: 'Cumulative Regs', type: 'line', data: getCumulative(d.series.registers) }
+    ], ['#58a6ff', '#ffffff']);
+
+    // 5. Economy + Cumulative Sales
+    render('chart-econ', 'Economy Performance', [
+        { name: 'Sales', type: 'bar', data: d.series.purchases },
+        { name: 'Cumulative Sales', type: 'line', data: getCumulative(d.series.purchases) }
+    ], ['#bc8cff', '#ffffff']);
+
+    // Feedback Table
+    document.querySelector('#fb-table tbody').innerHTML = d.feedback.map(f => {
+        let p = {}; try { p = JSON.parse(f.feedback); } catch(e) {}
+        return `<tr>
+            <td>${new Date(f.t).toLocaleString()}</td>
+            <td>${p.email || 'Anon'}</td>
+            <td style="color:#ffa657">${p.comments || ''}</td>
+            <td><small>${p.renderer?.split('(')[1]?.split(',')[0] || 'Unknown'}</small></td>
+            <td>${p.gameVersion}</td>
+        </tr>`;
+    }).join('');
+}
+
+function render(id, title, series, colors, isStacked = false) {
+    if(charts[id]) charts[id].destroy();
+    let options = chartOpt(title, colors, isStacked);
+    
+    // If it's the CCU chart, remove the second Y axis and line stroke settings
+    if (id === 'chart-room-peak') {
+        options.stroke = { curve: 'smooth', width: 2 };
+        options.yaxis = { title: { text: 'CCU' } };
+    }
+
+    charts[id] = new ApexCharts(document.querySelector("#"+id), {...options, series});
+    charts[id].render();
+}
+
+load();
+</script>
+</body>
+</html>

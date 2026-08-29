@@ -6,13 +6,13 @@
 // gate on adminRoles at all.
 //
 // Tier B (sqlPassword + auth_key, full power) stays exactly as it already worked before this
-// plugin existed - see index.js's servicesVerify/remoteVerify. requireModeratorOrAbove below
-// accepts EITHER tier, so a full Tier-B admin never needs a separate account just to use the
-// moderator-only tools.
+// plugin existed - see index.js's servicesVerify. requireModeratorOrAbove below accepts EITHER
+// tier, so a full Tier-B admin never needs a separate account just to use the moderator-only tools.
 
 import accs from '#accountManagement';
 import sess from '#sessionManagement';
 import { ss } from '#misc';
+import { recordAudit } from './auditLog.js';
 
 // Mirrors src/defaultconfig/distributed_permissions.yaml's `ranks` block - keep the numbers in
 // sync if that file's thresholds ever change. Only the numeric values matter here.
@@ -33,11 +33,9 @@ async function verifySqlPassword(msg) {
     return (await accs.comparePassword({ password: ss.sqlPassword }, msg.sqlPassword)) === true;
 };
 
-// Pure check, no side effects - used both directly (services handling its own commands) and via
-// the adminVerifyModerator relay below (for game/client, which can't check either credential
-// itself - only services holds the real password hash and the users/sessions tables). Accepts
-// either a valid moderator+ session (msg.session) or the full sqlPassword (msg.sqlPassword).
-// Returns `{ tier: 'account', ...userData }` or `{ tier: 'sqlPassword' }` on success, else null.
+// Pure check, no side effects. Accepts either a valid moderator+ session (msg.session) or the
+// full sqlPassword (msg.sqlPassword). Returns `{ tier: 'account', ...userData }` or
+// `{ tier: 'sqlPassword' }` on success, else null.
 export async function checkModeratorOrAbove(msg, ip) {
     if (msg.session) {
         const session = await sess.retrieveSession(msg.session, ip, true); // readOnly - a stale admin tab shouldn't wipe the account's real game sessions
@@ -72,15 +70,18 @@ export function registerAuthListeners(plugins) {
                 // fail the same generic way as a bad username/password so this doesn't leak which
                 // usernames happen to carry elevated access.
                 if (!userData || adminRoles < ranksEnum.ContentCreator) {
+                    recordAudit({ action: 'adminAccountLogin', actor: String(msg.username || '').slice(0, 64) || 'unknown', tier: 'account', ip, result: 'denied', detail: { reason: 'no such user or rank too low' } });
                     ws.send(JSON.stringify({ error: 'Username or password is incorrect.' }));
                     return;
                 };
                 const isCorrect = await accs.comparePassword(userData, msg.password);
                 if (isCorrect !== true) {
+                    recordAudit({ action: 'adminAccountLogin', actor: userData.username, tier: 'account', ip, result: 'denied', detail: { reason: 'bad password' } });
                     ws.send(JSON.stringify({ error: 'Username or password is incorrect.' }));
                     return;
                 };
                 const session = await sess.createSession(userData.account_id, ip);
+                recordAudit({ action: 'adminAccountLogin', actor: userData.username, tier: 'account', ip, result: 'ok', detail: { adminRoles } });
                 ws.send(JSON.stringify({
                     adminAccountLogin: { session, account_id: userData.account_id, username: userData.username, adminRoles },
                 }));
@@ -90,14 +91,21 @@ export function registerAuthListeners(plugins) {
             return;
         };
 
-        // Lets game/client relay a moderator-tier auth check to services, the same way
-        // remoteVerify already relays sqlPassword checks (see index.js) - neither role can check
-        // a session or sqlPassword itself, only services holds the users/sessions tables and the
-        // real password hash.
-        if (msg.cmd === 'adminVerifyModerator') {
+        // M1: real server-side logout - revoke the session row so a copied token stops working,
+        // instead of the UI just clearing its own localStorage.
+        if (msg.cmd === 'adminAccountLogout') {
             plugins.cancel = true;
-            const result = await checkModeratorOrAbove(msg, ip);
-            ws.send(JSON.stringify({ adminVerifyModerator: { valid: !!result } }));
+            let actor = 'unknown';
+            if (msg.session) {
+                const session = await sess.retrieveSession(msg.session, ip, true);
+                if (session) {
+                    const u = await accs.getUserData(session.user_id, false, false);
+                    actor = u?.username || String(session.user_id);
+                };
+                await sess.deleteSession(msg.session);
+            };
+            recordAudit({ action: 'adminAccountLogout', actor, tier: 'account', ip, result: 'ok' });
+            ws.send(JSON.stringify({ adminAccountLogout: { success: true } }));
             return;
         };
 

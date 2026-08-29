@@ -11,6 +11,7 @@
 
 import { ss } from '#misc';
 import { requireModeratorOrAbove } from './auth.js';
+import { recordAudit, actorFromAuth } from './auditLog.js';
 
 export function registerModerationListeners(plugins) {
     plugins.on('services:initTables', async () => {
@@ -38,7 +39,10 @@ export function registerModerationListeners(plugins) {
             plugins.cancel = true;
             const type = msg.cmd === 'adminGetBanList' ? 'ban' : 'mute';
             const rows = await ss.getAll(`SELECT target_type, target_value FROM moderation WHERE type = ?`, [type]);
-            ws.send(JSON.stringify({ [msg.cmd]: { targets: (rows || []).map(r => r.target_value) } }));
+            // Include target_type so the game-side caches match each entry against the right
+            // identity (ip vs uuid vs account_id) instead of comparing one undifferentiated
+            // value against all three - see game/banCache.js and game/muteCache.js.
+            ws.send(JSON.stringify({ [msg.cmd]: { targets: (rows || []).map(r => ({ type: r.target_type, value: r.target_value })) } }));
             return;
         };
 
@@ -47,6 +51,7 @@ export function registerModerationListeners(plugins) {
 
         const userData = await requireModeratorOrAbove(msg, ws, ip);
         if (!userData) return; // requireModeratorOrAbove already sent the error response
+        const who = actorFromAuth(userData, msg);
 
         try {
             if (msg.cmd === 'adminListModeration') {
@@ -64,12 +69,14 @@ export function registerModerationListeners(plugins) {
                     INSERT INTO moderation (type, target_type, target_value, reason)
                     VALUES (?, ?, ?, ?)
                 `, [msg.type, msg.targetType, String(msg.targetValue), msg.reason || '']);
+                recordAudit({ action: 'adminAddModeration', ...who, ip, target: `${msg.type}:${msg.targetType}:${msg.targetValue}`, result: 'ok', detail: { reason: msg.reason || '' } });
                 ws.send(JSON.stringify({ adminAddModeration: { success: true } }));
                 return;
             };
 
             if (msg.cmd === 'adminRemoveModeration') {
                 await ss.runQuery(`DELETE FROM moderation WHERE id = ?`, [msg.id]);
+                recordAudit({ action: 'adminRemoveModeration', ...who, ip, target: `id ${msg.id}`, result: 'ok' });
                 ws.send(JSON.stringify({ adminRemoveModeration: { success: true } }));
                 return;
             };

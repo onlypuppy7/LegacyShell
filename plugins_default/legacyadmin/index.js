@@ -5,6 +5,7 @@ import wsrequest from '#wsrequest';
 import { handleAdminMessage } from './adminProtocol.js';
 import { registerRoutingListeners } from './services/registry.js';
 import { registerAuthListeners } from './services/auth.js';
+import { registerAuditLog, recordAudit, actorFromAuth } from './services/auditLog.js';
 import { registerModerationListeners } from './services/moderation.js';
 import { registerCatalogBridge } from './services/catalogBridge.js';
 import { registerRoomOverview } from './services/roomOverview.js';
@@ -39,31 +40,6 @@ async function servicesVerify(msg, accs) {
     return (await accs.comparePassword({ password: ss.sqlPassword }, msg.sqlPassword)) === true;
 };
 
-// game/client can't check a submitted password themselves - only services holds the real bcrypt
-// hash (ss.sqlPassword only ever gets populated on the services role). So instead of trusting
-// whatever's typed in locally, ask services over one quick #wsrequest round trip. Failing closed
-// (any error/unreachable services = not verified) rather than open.
-async function remoteVerify(msg, servicesAddress, authKey) {
-    try {
-        const response = await wsrequest({ cmd: 'adminVerifyPassword', sqlPassword: msg.sqlPassword }, servicesAddress, authKey);
-        return !!response?.adminVerifyPassword?.valid;
-    } catch {
-        return false;
-    };
-};
-
-// Same idea, for the moderator-tier account/session check (see services/auth.js's
-// checkModeratorOrAbove) - game/client can't check a session or adminRoles rank themselves either,
-// only services holds the users/sessions tables.
-async function remoteVerifyModerator(msg, servicesAddress, authKey) {
-    try {
-        const response = await wsrequest({ cmd: 'adminVerifyModerator', session: msg.session, sqlPassword: msg.sqlPassword }, servicesAddress, authKey);
-        return !!response?.adminVerifyModerator?.valid;
-    } catch {
-        return false;
-    };
-};
-
 const FILE_EDITOR_COMMANDS = ['adminListFiles', 'adminReadFile', 'adminWriteFile', 'adminRestartThis'];
 const ROOM_ADMIN_COMMANDS = ['adminListRooms', 'adminGetRoomChat', 'adminKickPlayer'];
 
@@ -87,6 +63,7 @@ export class Plugin {
         // pillar (moderation CRUD, catalog browser, multi-server room overview). Harmless to
         // register on game/client too (their `services:` prefixed emits simply never fire there),
         // matching how every other plugin in this repo registers listeners unconditionally.
+        registerAuditLog(this.plugins);
         registerAuthListeners(this.plugins);
         registerModerationListeners(this.plugins);
         registerCatalogBridge(this.plugins);
@@ -109,8 +86,8 @@ export class Plugin {
 
     // --- services: it holds the real password hash, so local admin commands (targeting services
     // itself) are handled directly here, same as before - no routing needed to reach itself.
-    async onServicesUnhandledCommand({ msg, ws, accs }) {
-        const ADMIN_COMMANDS = ['adminListFiles', 'adminReadFile', 'adminWriteFile', 'adminRestartThis', 'adminRestartServices', 'adminVerifyPassword'];
+    async onServicesUnhandledCommand({ msg, ws, accs, ip }) {
+        const ADMIN_COMMANDS = ['adminListFiles', 'adminReadFile', 'adminWriteFile', 'adminRestartThis', 'adminRestartServices'];
         if (!ADMIN_COMMANDS.includes(msg.cmd)) return;
         this.plugins.cancel = true;
 
@@ -119,6 +96,10 @@ export class Plugin {
             verify: (m) => servicesVerify(m, accs),
             rootDir: ss.rootDir,
             roleLabel: 'services',
+            audit: ({ action, target, result, detail }) => recordAudit({
+                action, target, result, detail, ip,
+                ...actorFromAuth(result === 'denied' ? null : { tier: 'sqlPassword' }, msg),
+            }),
         });
     };
 
@@ -128,19 +109,28 @@ export class Plugin {
     // small file reads/string concat, not a real build step) so it always reflects the current
     // #itemRenderer/#loading/#plugins/#isClientServer source, same as the main client bundle does.
     onClientStartServer(data) {
+        // H4: defence-in-depth security headers on the whole /admin surface (the CSP meta tag in
+        // index.html covers the document; these cover every asset response and add the headers a
+        // meta tag can't set, e.g. frame-ancestors / X-Frame-Options).
+        data.app.use('/admin', (req, res, next) => {
+            res.setHeader('X-Frame-Options', 'DENY');
+            res.setHeader('X-Content-Type-Options', 'nosniff');
+            res.setHeader('Referrer-Policy', 'no-referrer');
+            res.setHeader('Content-Security-Policy', "frame-ancestors 'none'");
+            next();
+        });
         data.app.use('/admin', express.static(path.join(this.thisDir, 'client')));
         const vendorDir = buildItemRendererBundle(ss.rootDir);
         data.app.use('/admin/vendor', express.static(vendorDir));
     };
 
     // --- client & game: services routed an admin command to THIS instance specifically (see
-    // services/registry.js's adminRouteToServer, which targets us by our own per-connection
-    // registry ID, assigned on connect - not by auth_key, which game/client may or may not even
-    // have). Dispatches
-    // by payload.cmd across pillars and delivers the response back via a fresh one-off #wsrequest
-    // call to services (wrapped as adminRouteToServerResponse so services' registry knows which
-    // waiting browser connection to forward it to) - NOT back down our own persistent connection,
-    // which is a pure outbound poller/listener and isn't set up to correlate ad-hoc replies.
+    // services/registry.js's adminRouteToServer). The command arrived on the persistent connection
+    // this process opened to its own configured services address, and services already authorized
+    // the operator at the routing gate - so there is NO credential in the payload and nothing to
+    // re-check here; we just run it. The response goes back via a fresh one-off #wsrequest call
+    // (wrapped as adminRouteToServerResponse) since our persistent connection is an outbound
+    // poller not set up to correlate ad-hoc replies.
     async onServicesCommand(roleLabel, servicesAddress, authKey, { msg }) {
         const requestId = msg.requestId;
         const payload = msg.payload || {};
@@ -157,7 +147,7 @@ export class Plugin {
         if (FILE_EDITOR_COMMANDS.includes(payload.cmd)) {
             await handleAdminMessage({
                 msg: payload, ws: { send: (json) => { let r; try { r = JSON.parse(json); } catch { r = { error: 'Malformed local admin response' }; }; respond(r); } },
-                verify: (m) => remoteVerify(m, servicesAddress, authKey),
+                verify: () => true,
                 rootDir: ss.rootDir,
                 roleLabel,
             });
@@ -166,8 +156,6 @@ export class Plugin {
 
         if (ROOM_ADMIN_COMMANDS.includes(payload.cmd)) {
             if (roleLabel !== 'game') { await respond({ error: 'Room actions are only supported on a game instance' }); return; };
-            const authorized = await remoteVerifyModerator(payload, servicesAddress, authKey);
-            if (!authorized) { await respond({ error: 'Not authorized - log in with a Moderator+ account or the SQL password.' }); return; };
             await handleRoomAdminCommand(payload, respond);
             return;
         };

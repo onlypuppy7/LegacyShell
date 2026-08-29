@@ -2,20 +2,14 @@ import path from 'node:path';
 import { scanEditableFiles, readFile, writeFile } from './fileScanner.js';
 
 // One handler shared by all three roles - only `verify` and `rootDir` differ per role (see
-// index.js). Services can check a submitted sqlPassword itself (it holds the real hash); client
-// and game can't, so their `verify` relays the check to services over #wsrequest instead (see
-// index.js's remoteVerify) - this is exactly why adminVerifyPassword exists as its own command,
-// separate from every other action, so a client/game instance never needs the real password
-// locally to gate access to ITS OWN files.
-export async function handleAdminMessage({ msg, ws, verify, rootDir, roleLabel }) {
-    if (msg.cmd === 'adminVerifyPassword') {
-        // Only meaningful on services (the only role that can answer this for real) - client/game
-        // never receive this cmd themselves, they ask services via remoteVerify instead.
-        ws.send(JSON.stringify({ adminVerifyPassword: { valid: await verify(msg) } }));
-        return;
-    };
+// index.js). On services `verify` checks the submitted sqlPassword against the real hash; on a
+// routed game/client instance it's `() => true`, because the command already passed services'
+// routing-gate authorization and arrived on the trusted persistent connection.
+export async function handleAdminMessage({ msg, ws, verify, rootDir, roleLabel, audit }) {
+    const record = typeof audit === 'function' ? audit : () => {};
 
     if (!(await verify(msg))) {
+        record({ action: msg.cmd, target: msg.file || null, result: 'denied' });
         ws.send(JSON.stringify({ error: 'Invalid SQL password' }));
         return;
     };
@@ -38,15 +32,17 @@ export async function handleAdminMessage({ msg, ws, verify, rootDir, roleLabel }
             };
             case 'adminReadFile': {
                 const absPath = resolveAllowedFile(msg.file);
-                if (!absPath) { ws.send(JSON.stringify({ error: 'Unknown or disallowed file' })); break; };
+                if (!absPath) { record({ action: 'adminReadFile', target: msg.file, result: 'denied' }); ws.send(JSON.stringify({ error: 'Unknown or disallowed file' })); break; };
                 const { raw } = readFile(absPath);
+                record({ action: 'adminReadFile', target: msg.file, result: 'ok' });
                 ws.send(JSON.stringify({ adminReadFile: { file: msg.file, raw } }));
                 break;
             };
             case 'adminWriteFile': {
                 const absPath = resolveAllowedFile(msg.file);
-                if (!absPath) { ws.send(JSON.stringify({ error: 'Unknown or disallowed file' })); break; };
+                if (!absPath) { record({ action: 'adminWriteFile', target: msg.file, result: 'denied' }); ws.send(JSON.stringify({ error: 'Unknown or disallowed file' })); break; };
                 writeFile(absPath, msg.raw);
+                record({ action: 'adminWriteFile', target: msg.file, result: 'ok', detail: { bytes: typeof msg.raw === 'string' ? msg.raw.length : null } });
                 ws.send(JSON.stringify({ adminWriteFile: { file: msg.file, success: true } }));
                 break;
             };
@@ -55,6 +51,7 @@ export async function handleAdminMessage({ msg, ws, verify, rootDir, roleLabel }
             // rather than calling this locally.
             case 'adminRestartThis':
             case 'adminRestartServices': {
+                record({ action: msg.cmd, target: roleLabel, result: 'ok' });
                 ws.send(JSON.stringify({ [msg.cmd]: { success: true } }));
                 // 1337 is the established "intended restart" exit code puppyperpetual watches
                 // for (see start-client.js/start-game.js's own self-restart calls) - delayed one
@@ -64,6 +61,7 @@ export async function handleAdminMessage({ msg, ws, verify, rootDir, roleLabel }
             };
         };
     } catch (error) {
+        record({ action: msg.cmd, target: msg.file || null, result: 'error', detail: { error: String(error?.message || error) } });
         ws.send(JSON.stringify({ error: String(error?.message || error) }));
     };
 };

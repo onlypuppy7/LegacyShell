@@ -173,16 +173,16 @@ export default async function run (runStart) {
     
         const port = ss.config.services.port || 13371;
         const wss = new WebSocketServer({ port: port });
-        
+
         const standardError = async (ws) => { ws.send(JSON.stringify({ error: 'Internal server error' })); };
         
         wss.on('connection', (ws, req) => { //this here is basically our main loop
-    
+
             // Apparently, WS ips die after disconnect?
             // https://stackoverflow.com/questions/12444598/why-is-socket-remoteaddress-undefined-on-end-event
-        
+
             let ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || req.connection.remoteAddress;
-        
+
             ws.on('message', async (message) => {
                 try {
                     const jsonString = message.toString('utf8');
@@ -352,7 +352,7 @@ export default async function run (runStart) {
                         switch (msg.cmd) {
                             // Admin commands
                             case 'sqlRequest':
-                                if (msg.sql && await accs.comparePassword({password: ss.sqlPassword}, msg.sqlPassword)) {
+                                if (msg.sql && typeof msg.sqlPassword === 'string' && await accs.comparePassword({password: ss.sqlPassword}, msg.sqlPassword) === true) {
                                     try {
                                         let result;
                                         switch (msg.sqlType) {
@@ -373,12 +373,15 @@ export default async function run (runStart) {
                                                 break;
                                         };
                                         ws.send(JSON.stringify({ result }));
+                                        await plugins.emit('adminSqlAudit', { sql: msg.sql, sqlType: msg.sqlType, ip, authed: true, ok: true });
                                     } catch (error) {
                                         log.error('Error in SQL request:', error);
                                         ws.send(JSON.stringify({ error }));
+                                        await plugins.emit('adminSqlAudit', { sql: msg.sql, sqlType: msg.sqlType, ip, authed: true, ok: false, error: String(error?.message || error) });
                                     };
                                 } else {
                                     ws.send(JSON.stringify({ error: 'Invalid SQL password' }));
+                                    await plugins.emit('adminSqlAudit', { sql: msg.sql, sqlType: msg.sqlType, ip, authed: false, ok: false, error: 'invalid sql password' });
                                 };
                                 break;
                             // Game server commands

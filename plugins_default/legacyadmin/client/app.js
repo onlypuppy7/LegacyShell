@@ -9,6 +9,11 @@ const $ = (id) => document.getElementById(id);
 // always sent directly, regardless of what's selected in the target picker.
 const ROUTABLE_COMMANDS = new Set(['adminListFiles', 'adminReadFile', 'adminWriteFile', 'adminRestartThis', 'adminListRooms', 'adminGetRoomChat', 'adminKickPlayer']);
 
+// Commands that genuinely need SQL-password / file / restart power. The SQL password and auth key
+// are only attached to these (or to the adminRouteToServer wrapper, or when there's no moderator
+// session to authenticate with) - not stapled onto every list refresh the way they used to be.
+const SQL_TIER_COMMANDS = new Set(['sqlRequest', 'adminListFiles', 'adminReadFile', 'adminWriteFile', 'adminRestartThis', 'adminRestartServices']);
+
 const listeners = new Map(); // response key -> Set<fn>
 
 export const AdminApp = {
@@ -24,20 +29,34 @@ export const AdminApp = {
 
     send(cmd, extra) {
         if (!this.ws || this.ws.readyState !== WebSocket.OPEN) { setStatus('Not connected', true); return; };
-        const payload = { cmd, ...(extra || {}) };
-        if ($('sqlPassword').value) payload.sqlPassword = $('sqlPassword').value;
-        if ($('gameServerAuthKey').value) payload.auth_key = $('gameServerAuthKey').value;
-        if (localStorage.getItem('adminSession')) payload.session = localStorage.getItem('adminSession');
 
+        const sqlPw = $('sqlPassword').value;
+        const authKey = $('gameServerAuthKey').value;
+        const session = localStorage.getItem('adminSession');
         const targetId = $('targetServer')?.value;
-        if (targetId && ROUTABLE_COMMANDS.has(cmd)) {
-            this.ws.send(JSON.stringify({ cmd: 'adminRouteToServer', targetId, payload }));
+        const routing = !!(targetId && ROUTABLE_COMMANDS.has(cmd));
+        const needsSql = SQL_TIER_COMMANDS.has(cmd);
+
+        const creds = {};
+        if (session) creds.session = session;
+        if (sqlPw && (needsSql || routing || !session)) creds.sqlPassword = sqlPw;
+        if (authKey && (needsSql || routing)) creds.auth_key = authKey;
+
+        if (routing) {
+            // Credentials go ONLY on the wrapper - services authorizes the operator here. The
+            // routed payload reaches the target instance, which trusts it came from services and
+            // never sees a secret.
+            this.ws.send(JSON.stringify({ cmd: 'adminRouteToServer', targetId, payload: { cmd, ...(extra || {}) }, ...creds }));
         } else {
-            this.ws.send(JSON.stringify(payload));
+            this.ws.send(JSON.stringify({ cmd, ...(extra || {}), ...creds }));
         };
     },
 
     connect() {
+        const addr = $('servicesServer').value;
+        if (/^ws:\/\/(?!localhost|127\.|\[::1\])/i.test(addr)) {
+            console.warn('LegacyAdmin: connecting over plaintext ws:// to a non-local host - the SQL password, session and auth key travel unencrypted. Use wss:// behind TLS.');
+        };
         localStorage.setItem('servicesServer', $('servicesServer').value);
         localStorage.setItem('sqlPassword', $('sqlPassword').value);
         localStorage.setItem('gameServerAuthKey', $('gameServerAuthKey').value);
@@ -72,9 +91,12 @@ export const AdminApp = {
         // out of the account tier specifically. The "instafills and relogs in" symptom wasn't
         // this localStorage at all - it was the browser's OWN native form autofill re-populating
         // the username/password fields on reload; autocomplete="off" below stops that instead.
+        // M1: actually revoke the session server-side, not just locally. Small delay so the frame
+        // flushes before reload tears the socket down.
+        try { this.send('adminAccountLogout'); } catch (e) {};
         localStorage.removeItem('adminSession');
         localStorage.removeItem('adminUsername');
-        location.reload();
+        setTimeout(() => location.reload(), 150);
     },
 
     setTarget(id) {
@@ -156,6 +178,7 @@ function renderTabNav() {
     const activeId = currentTabId();
     for (const tab of tabs) {
         if (tab.moderatorOnly && !(AdminApp.adminRoles >= 10 || $('sqlPassword').value)) continue;
+        if (tab.adminOnly && !(AdminApp.adminRoles >= 20 || $('sqlPassword').value)) continue;
         const btn = document.createElement('button');
         btn.textContent = tab.label;
         btn.className = 'text-sm px-3 py-1.5 rounded-md font-medium transition-colors ' +
@@ -217,6 +240,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         import('./inventory-tab.js'),
         import('./moderation-tab.js'),
         import('./rooms-tab.js'),
+        import('./logs-tab.js'),
     ]);
 
     updateAuthUI();

@@ -35,15 +35,44 @@ on demand via a `servicesCommand` push (`services/registry.js`). This replaced t
 ## What's here
 
 ```
-services/   registry.js (routing), auth.js (login/session), moderation.js (ban/mute CRUD),
-            catalogBridge.js (item data), roomOverview.js (multi-server room/player overview)
+services/   registry.js (routing), auth.js (login/session/logout), moderation.js (ban/mute CRUD),
+            catalogBridge.js (item data), roomOverview.js (multi-server room/player overview),
+            auditLog.js (append-only security log in its own SQLite file)
 game/       roomBridge.js (main thread: list rooms, get chat, kick), moderationWorker.js (per-room
             kick handler), banCache.js / muteCache.js (periodic enforcement-list polls),
             chatRelay.js (worker -> main thread chat relay)
 client/     the admin-app SPA (app.js + one file per tab: files, sql, items, codes, moderation,
-            rooms) - hand-rolled, no framework, #hash selects the tab and ?query carries per-tab
-            state so a refresh/share-link keeps your place
+            rooms, logs) - hand-rolled, no framework, #hash selects the tab and ?query carries
+            per-tab state so a refresh/share-link keeps your place
 ```
+
+## Security model notes
+
+- **Audit log.** Every privileged action (SQL exec, config read/write, restart, moderation
+  change, routed command, login success/failure, logout) is written to
+  `server-services/store/LegacyShellAdminLog.db` - a *separate* SQLite file so it survives a
+  main-DB restore and isn't reachable from the SQL/table-editor tab. Read-only view in the **Logs**
+  tab, which is **Admin (rank 20) or SQL password only** - not plain Moderators, since the log
+  records what they do. `auditLog.js`'s `recordAudit()` is the single entry point.
+- **Routing is authenticated at services, and only there.** `adminRouteToServer` requires a
+  Moderator+ session (room actions) or the SQL password (file/restart actions); services then
+  **strips every credential from the payload** before forwarding. The target game/client instance
+  trusts that the command arrived on its persistent services connection and runs it without
+  re-checking - so a forged target instance selected by a tricked admin receives no secrets.
+  `adminListServers` is Moderator+ too. Routed responses are correlated by an unguessable 128-bit
+  `requestId` and time out after 30s (bounded map, no leak). Instance *registration*
+  (`requestConfig`) is still unauthenticated - a fake can appear in the list, but can no longer
+  harvest credentials from being picked.
+- **Credential scope.** The client attaches the SQL password / `auth_key` only to commands that
+  actually need SQL/file/restart power (or to a routed command, or when there's no session to
+  authenticate with) - not to every list refresh. `localStorage` is still used for persistence.
+- **Logout revokes the session server-side** (`sess.deleteSession`), not just the local storage.
+- **Static surface.** `/admin` sends a strict CSP + `X-Frame-Options: DENY` etc. Tabulator is
+  served locally from `/admin/vendor` (npm dependency `tabulator-tables`, copied out at client
+  boot). Tailwind is still loaded from its Play CDN - removing that needs a real Tailwind build
+  step and is the one remaining third-party script.
+- **Verbose services logging** runs inbound messages through a secret-redaction pass before
+  `console.log` (core `start-services.js`).
 
 ## Known follow-ups (not done in this pass)
 

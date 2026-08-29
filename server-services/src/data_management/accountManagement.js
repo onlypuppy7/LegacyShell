@@ -19,11 +19,12 @@ const exported = {
         return bcrypt.hashSync(data, ss.config.services.password_cost_factor || 10);
     },
     comparePassword: async (userData, receivedPassword) => {
+        if (typeof receivedPassword !== 'string' || typeof userData?.password !== 'string') return false;
         try {
             // console.log(receivedPassword, userData.password);
             return bcrypt.compareSync(receivedPassword, userData.password);
         } catch (error) {
-            console.error(error); return "Database error.";
+            console.error(error); return false;
         };
     },
     compareAuthToken: async (userData, receivedAuthToken) => {

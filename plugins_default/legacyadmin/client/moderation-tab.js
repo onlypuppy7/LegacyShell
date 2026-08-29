@@ -5,6 +5,9 @@ import { AdminApp, registerTab, $ } from './app.js';
 
 const inputClass = 'border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-md px-3 py-1.5 text-sm';
 
+// target_value / reason are operator-supplied free text - escape before they hit innerHTML.
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
 function render(container) {
     container.innerHTML = `
         <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4 mb-4">
@@ -53,7 +56,7 @@ AdminApp.on('adminListModeration', (result) => {
     rows.forEach(row => {
         const tr = document.createElement('tr');
         tr.className = 'border-t border-slate-100 dark:border-slate-700';
-        tr.innerHTML = `<td class="p-2">${row.type}</td><td class="p-2">${row.target_type}</td><td class="p-2 font-mono">${row.target_value}</td><td class="p-2">${row.reason || ''}</td><td class="p-2 text-xs text-slate-400 dark:text-slate-500">${new Date(row.dateCreated * 1000).toLocaleString()}</td><td class="p-2"><button class="text-rose-600 text-xs">Remove</button></td>`;
+        tr.innerHTML = `<td class="p-2">${esc(row.type)}</td><td class="p-2">${esc(row.target_type)}</td><td class="p-2 font-mono">${esc(row.target_value)}</td><td class="p-2">${esc(row.reason || '')}</td><td class="p-2 text-xs text-slate-400 dark:text-slate-500">${esc(new Date(row.dateCreated * 1000).toLocaleString())}</td><td class="p-2"><button class="text-rose-600 text-xs">Remove</button></td>`;
         tr.querySelector('button').onclick = () => AdminApp.send('adminRemoveModeration', { id: row.id });
         tbody.appendChild(tr);
     });

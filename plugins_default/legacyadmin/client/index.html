@@ -7,6 +7,12 @@
 <base href="/">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- H4: lock the credential-bearing admin origin down. Everything is same-origin except the
+     Tailwind Play CDN (removing that needs a real Tailwind build step - tracked separately);
+     Tabulator is now served locally, so cdnjs is not allowed here at all. 'unsafe-eval' is only
+     present because the Tailwind Play runtime compiler needs it. connect-src keeps ws:/wss: open
+     because the operator types an arbitrary services address to connect to. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' ws: wss:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'">
 <title>LegacyAdmin</title>
 <script>
     // Applied before Tailwind/paint so there's no light-mode flash - checks a saved preference
