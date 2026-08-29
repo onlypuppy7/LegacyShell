@@ -5,8 +5,8 @@ import yaml from 'js-yaml';
 //legacyshell: basic
 import extendMath from '#math';
 //legacyshell: database
-import sqlite3 from 'sqlite3'; //db
-import util from 'node:util';
+import Database from 'better-sqlite3'; //db
+import { wrapDatabase } from '#sqliteWrap';
 import crypto from 'node:crypto'; //passwds
 //legacyshell: services
 import WebSocket, { WebSocketServer } from 'ws';
@@ -36,8 +36,8 @@ export default async function run (runStart) {
     var backupPath = path.join(ss.rootDir, 'server-services', 'store', 'backups');
     
     //init db (ooooh! sql! fancy! a REAL database! not a slow json!)
-    const db = new sqlite3.Database(dbPath);
-    
+    const db = new Database(dbPath);
+
     Object.assign(ss, {
         requests_cache: {},
         db,
@@ -45,9 +45,7 @@ export default async function run (runStart) {
         sess,
         recs,
         //db stuff
-        runQuery:   util.promisify(db.run.bind(db)),
-        getOne:     util.promisify(db.get.bind(db)),
-        getAll:     util.promisify(db.all.bind(db)),
+        ...wrapDatabase(db),
         //other paths
         dbPath,
         backupPath
@@ -93,7 +91,11 @@ export default async function run (runStart) {
         },
         gameInfo: {},
     };
-    
+    // Exposed for plugins that want read access to the same live per-game-server info this role
+    // already collects (see legacyadmin's services/roomOverview.js) - same "attach onto ss"
+    // convention as everything else in the boot sequence.
+    ss.servicesInfo = servicesInfo;
+
     async function initTables () {
         try {
             let initTablesStarted = Date.now();
@@ -311,6 +313,20 @@ export default async function run (runStart) {
                                     break;
                                 };
                             };
+                        };
+
+                        // Lets a plugin build its own registry of which currently-open sockets
+                        // belong to which connected game/client instance, so admin-style actions
+                        // can be routed to a specific one on demand instead of that instance
+                        // needing its own dedicated listening port (see legacyadmin's
+                        // services/registry.js). Fires once per connection, for every game/client
+                        // instance regardless of whether it presented an auth_key - requestConfig
+                        // (and so msg.serverType) only ever comes from a real game/client role
+                        // process, never a browser, so there's nothing to gate here on auth_key;
+                        // that stays purely the "full access" credential (see index.js), unrelated
+                        // to which instance a plugin should be able to target.
+                        if (msg.serverType === 'game' || msg.serverType === 'client') {
+                            await plugins.emit('serverConnected', { msg, ws, yourServer: response.yourServer, yourServerName: response.yourServerName, serverType: msg.serverType });
                         };
 
                         async function sendServicesInfo() {
@@ -785,7 +801,14 @@ export default async function run (runStart) {
                                 break;
             
                             default:
-                                console.log('user sent', msg.cmd || '(unknown cmd)', 'to services, not running function')
+                                // Lets a plugin handle a command type core doesn't know about,
+                                // instead of every new privileged command needing its own PR into
+                                // this switch statement - core cmds above still take priority
+                                // (this only ever fires for something that matched none of them).
+                                // A listener that handles `msg.cmd` should set
+                                // `plugins.cancel = true` so this doesn't ALSO log it as dropped.
+                                await plugins.emit('unhandledCommand', { msg, ws, accs, ip });
+                                if (!plugins.cancel) console.log('user sent', msg.cmd || '(unknown cmd)', 'to services, not running function');
                                 break;
                         };
                     }
@@ -795,7 +818,12 @@ export default async function run (runStart) {
                 };
             });
         
-            ws.on('close', () => log.dim('Client disconnected'));
+            ws.on('close', async () => {
+                log.dim('Client disconnected');
+                // Counterpart to the `serverConnected` emit above - lets a plugin's registry
+                // clean up whatever it stored keyed by this socket.
+                await plugins.emit('wsDisconnected', { ws });
+            });
             ws.on('error', (error) => console.error(`WebSocket error: ${error}`));
         });
     

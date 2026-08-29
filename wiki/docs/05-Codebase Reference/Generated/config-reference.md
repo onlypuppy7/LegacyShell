@@ -19,6 +19,7 @@ Every key in every `src/defaultconfig/*.yaml` template, with its default value a
 |---|---|---|
 | `port` | `13370` | - |
 | `sync_server` | `"ws://localhost:13371"` | this is basically the services server. but its not! this is what the client server will internally use to retrieve its configs and shit. in theory the sync server could put in a different services URL entirely! anyway, if the client and services servers are both running on the same machine, you can keep this as localhost. |
+| `auth_key` | `""` | optional. giving this client instance an auth_key (create one via the admin panel's SQL/table editor against the game_servers table, same table game servers already register in) lets services target it directly for admin actions (config editor, restart) instead of it only being reachable indirectly. leave blank if you don't need that - everything else works the same either way, this instance just won't show up as a routable target in the admin panel. |
 | `this_url` | `"legacyshell.com"` | used in some find and replaces. input the url you want people to access your site via. primarily used for the seo embed things. not critical to the site's function. |
 | `login.enabled` | `false` | - |
 | `login.username` | `"legacy"` | - |

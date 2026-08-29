@@ -184,10 +184,11 @@ Defined at `src/shell/comm.js:346`.
 | `boot` | `3` |
 | `closeAllWs` | `4` |
 | `terminate` | `5` |
+| `chat` | `6` |
 
 ## `Comm.Chat`
 
-Defined at `src/shell/comm.js:355`.
+Defined at `src/shell/comm.js:356`.
 
 | Key | Value |
 |---|---|

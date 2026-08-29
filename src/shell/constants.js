@@ -322,6 +322,12 @@ export var weaponStats = {
 
 export const stampSize = 128;
 
+// Base weapon/hat mesh packs ItemRenderer (#itemRenderer) preloads - also pushed onto directly by
+// other early-boot registration code (shellshock.min.js's "afterBullshit" plugin event) well
+// before ItemRenderer itself ever runs, so this needs to exist early regardless of whether item
+// tile rendering ends up used at all in a given boot.
+export const itemRendererBabylons = ["egg", "gun_cluck9mm", "gun_eggk47", "gun_csg1", "gun_dozenGauge", "gun_rpegg"];
+
 export const maxChatWidth = 280;
 export var maxChatCount = 6; //max amount of messages to be displayed at once (default 6)
 

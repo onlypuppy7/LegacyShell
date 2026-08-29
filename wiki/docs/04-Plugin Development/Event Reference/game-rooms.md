@@ -21,19 +21,19 @@ Every `plugins.emit(...)` call site found in the files below, extracted directly
 | `packRoundUpdateEnd` | `server-game/src/rooms.js:267` | `{this: this, output}` | Building the "round update" (timer) network packet — fires after the packet body is assembled. |
 | `resetGamePlayer` | `server-game/src/rooms.js:284` | `{this: this, player}` | A player's round-scoped state (score, etc.) is being reset. |
 | `roomDetailsUpdated` | `server-game/src/rooms.js:294` | `{this: this, details: this.details}` | Room metadata (name, options, etc.) is changing — fires before the change is applied. |
-| `roomDetailsUpdatedEnd` | `server-game/src/rooms.js:320` | `{this: this, details: this.details}` | Room metadata (name, options, etc.) has changed — fires after the change is applied. |
-| `packUpdateRoomParams` | `server-game/src/rooms.js:330` | `{this: this, output}` | Building the room-params sync packet sent to clients — fires before the packet body is assembled. |
-| `packUpdateRoomParamsEnd` | `server-game/src/rooms.js:340` | `{this: this, output}` | Building the room-params sync packet sent to clients — fires after the packet body is assembled. |
-| `roomUpdate` | `server-game/src/rooms.js:351` | `{this: this, delta, currentTimeStamp}` | Top of the 60Hz simulation tick, before per-player updates run. |
-| `playerUpdate` | `server-game/src/rooms.js:360` | `{this: this, player, delta, currentTimeStamp}` | Per-player, per-tick update within the main tick loop. |
-| `playerStateUpdate` | `server-game/src/rooms.js:366` | `{this: this, player, delta, currentTimeStamp}` | Per-player state-buffer replay/prediction step within the main tick loop. |
-| `roomStateUpdate` | `server-game/src/rooms.js:376` | `{this: this, delta, currentTimeStamp}` | End of the per-tick player loop. |
-| `roomSync` | `server-game/src/rooms.js:383` | `{this: this}` | The ~10Hz full-state sync is about to run (every `FramesBetweenSyncs` ticks). |
-| `dataSyncLoop` | `server-game/src/rooms.js:392` | `{this: this, delta, output}` | The ~1000ms "data sync" loop (less time-critical per-client data) is running. |
-| `clientDataSync` | `server-game/src/rooms.js:395` | `{this: this, client, delta, output}` | Per-client step within the data-sync loop. |
-| `roomDataSync` | `server-game/src/rooms.js:399` | `{this: this, delta, output}` | End of the data-sync loop. |
-| `metaLoop` | `server-game/src/rooms.js:405` | `{this: this, fromDisconnect}` | The ~2000ms "meta" loop (idle-kick, weather triggers, empty-room destroy) is running. |
-| `metaLoopClients` | `server-game/src/rooms.js:411` | `{this: this, client, fromDisconnect}` | Per-client step within the meta loop. |
+| `roomDetailsUpdatedEnd` | `server-game/src/rooms.js:322` | `{this: this, details: this.details}` | Room metadata (name, options, etc.) has changed — fires after the change is applied. |
+| `packUpdateRoomParams` | `server-game/src/rooms.js:332` | `{this: this, output}` | Building the room-params sync packet sent to clients — fires before the packet body is assembled. |
+| `packUpdateRoomParamsEnd` | `server-game/src/rooms.js:342` | `{this: this, output}` | Building the room-params sync packet sent to clients — fires after the packet body is assembled. |
+| `roomUpdate` | `server-game/src/rooms.js:353` | `{this: this, delta, currentTimeStamp}` | Top of the 60Hz simulation tick, before per-player updates run. |
+| `playerUpdate` | `server-game/src/rooms.js:362` | `{this: this, player, delta, currentTimeStamp}` | Per-player, per-tick update within the main tick loop. |
+| `playerStateUpdate` | `server-game/src/rooms.js:368` | `{this: this, player, delta, currentTimeStamp}` | Per-player state-buffer replay/prediction step within the main tick loop. |
+| `roomStateUpdate` | `server-game/src/rooms.js:378` | `{this: this, delta, currentTimeStamp}` | End of the per-tick player loop. |
+| `roomSync` | `server-game/src/rooms.js:385` | `{this: this}` | The ~10Hz full-state sync is about to run (every `FramesBetweenSyncs` ticks). |
+| `dataSyncLoop` | `server-game/src/rooms.js:394` | `{this: this, delta, output}` | The ~1000ms "data sync" loop (less time-critical per-client data) is running. |
+| `clientDataSync` | `server-game/src/rooms.js:397` | `{this: this, client, delta, output}` | Per-client step within the data-sync loop. |
+| `roomDataSync` | `server-game/src/rooms.js:401` | `{this: this, delta, output}` | End of the data-sync loop. |
+| `metaLoop` | `server-game/src/rooms.js:407` | `{this: this, fromDisconnect}` | The ~2000ms "meta" loop (idle-kick, weather triggers, empty-room destroy) is running. |
+| `metaLoopClients` | `server-game/src/rooms.js:413` | `{this: this, client, fromDisconnect}` | Per-client step within the meta loop. |
 | `roomDestroy` | `server-game/src/rooms.js:437` | `{this: this}` | The room is being torn down. |
 | `clientSync` | `server-game/src/rooms.js:462` | `{this: this, output}` | Building the full-state sync packet — fires once, before the per-client loop below. |
 | `clientSyncLoop` | `server-game/src/rooms.js:465` | `{ this: this, client, output }` | Building the full-state sync packet — fires once per client; a plugin can set `plugins.cancel` here to replace the default position data with its own (e.g. occlusion-based visibility filtering). |
@@ -89,6 +89,7 @@ Every `plugins.emit(...)` call site found in the files below, extracted directly
 | `sendToAllLoop` | `server-game/src/rooms.js:867` | `{this: this, client, output, fromId, debug}` | Broadcast to every client — fires once per client being considered. |
 | `sendToAllLoopFound` | `server-game/src/rooms.js:869` | `{this: this, client, output, fromId, debug}` | Broadcast to every client — fires once for each client that actually receives the packet. |
 | `roomLoaded` | `server-game/src/rooms.js:876` | `{RoomConstructor}` | Module load, once — hands out the room class itself. |
+| `adminCommand` | `server-game/src/worker.js:51` | `{ payload: message }` | Main thread relayed an admin action into THIS specific room worker (e.g. a kick - see `roomManager.js`'s admin dispatch and legacyadmin's `game/moderationWorker.js`/`game/roomBridge.js`). Only meaningful once `ss.room` exists. |
 
 ---
 *This page was drafted with AI assistance and reviewed for accuracy. If something looks wrong, please [open a PR](https://github.com/onlypuppy7/LegacyShell) or flag it.*

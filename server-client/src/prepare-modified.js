@@ -176,6 +176,7 @@ async function modifyFiles() {
             { pattern: /LEGACYSHELLPOOL/g, file: "#pool" },
             { pattern: /LEGACYSHELLMUNITIONSMANAGER/g, file: "#munitionsManager" },
             { pattern: /LEGACYSHELLITEMMANAGER/g, file: "#itemManager" },
+            { pattern: /LEGACYSHELLITEMRENDERER/g, file: "#itemRenderer" },
             { pattern: /LEGACYSHELLPERMISSIONS/g, file: "#permissions" },
             { pattern: /LEGACYSHELLAPOLLO/g, file: "#apollo" },
             { pattern: /LEGACYSHELLPICKUPS/g, file: "#items" },

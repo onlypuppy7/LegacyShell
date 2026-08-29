@@ -338,7 +338,15 @@ class ClientConstructor {
                         text = text.replaceAll("<", "(");
                         console.log(this.player.name, "chatted:", text);
 
-                        if (this.player.chatLineCap <= 0 && this.player.chatLineCap >= -1) {
+                        // Lets a plugin silently drop a message before it's processed at all
+                        // (e.g. legacyadmin's mute enforcement, game/muteCache.js) - set
+                        // plugins.cancel = true to drop, same convention as everywhere else.
+                        plugins.cancel = false;
+                        await plugins.emit('beforeChat', { this: this, text });
+
+                        if (plugins.cancel) {
+                            // dropped by a plugin - nothing more to do
+                        } else if (this.player.chatLineCap <= 0 && this.player.chatLineCap >= -1) {
                             this.notify("You are sending messages too quickly. Please wait a moment.");
                         } else if ("" != text) {
                             if (text.startsWith("/")) {

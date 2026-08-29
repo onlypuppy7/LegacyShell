@@ -44,6 +44,12 @@ export var room;
                     console.log('Worker is exiting...', room.id);
                     room.destroy();
                     break;
+                // Main thread relaying an admin action (e.g. a kick) into THIS specific room - see
+                // legacyadmin's game/moderationWorker.js, and roomManager.js's admin dispatch that
+                // posts these.
+                case "adminCommand":
+                    plugins.emit('adminCommand', { payload: message });
+                    break;
                 default:
                     break;
             };

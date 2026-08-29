@@ -1,4 +1,7 @@
 {
+  "server-services/start-services.js#serverConnected": "A connecting game/client socket's `auth_key` resolved to a `game_servers` row during its `requestConfig` handshake — fires once per connection, right after the existing `yourServer` lookup. Lets a plugin build its own registry of which live sockets belong to which identified instance (see legacyadmin's `services/registry.js`), so admin-style commands can be routed to a specific instance on demand.",
+  "server-services/start-services.js#wsDisconnected": "A previously connected socket closed — counterpart to `serverConnected`, for cleaning up whatever a plugin's registry stored keyed by that socket.",
+  "server-services/start-services.js#unhandledCommand": "A `cmd` arrived that none of services' own core cases matched — the general escape hatch for plugin-defined commands (set `plugins.cancel = true` so this doesn't also log it as dropped). Most of legacyadmin's services-side commands (file editor, SQL/table editor relay, moderation CRUD, catalog browser, room overview, account login) are handled here.",
   "server-services/start-services.js#servicesOnLoad": "Services process finished its own setup (DB, math, events), before `initTables()` runs.",
   "server-services/start-services.js#initTablesStart": "Start of the DB-seeding pipeline — hook here to force-reinit `items` before defaults are inserted.",
   "server-services/start-services.js#initTablesBefore": "Just before default items are inserted from `server-services/src/items/*.js` — only fires when the `items` table is currently empty (a genuinely fresh database), so it fires at most once, ever. For a plugin's own item pack, hook `initTables` instead (see below) — that one fires on every boot.",
@@ -53,8 +56,11 @@
   "server-game/start-game.js#onLoad": "Game process finished its own init, before connecting the outbound socket to services.",
   "server-game/start-game.js#connectWebSocketMessage": "Any message received on the outbound services websocket.",
   "server-game/start-game.js#requestConfigReceived": "Specifically a `requestConfig` response (maps/items/servers/config sync) was received from services.",
+  "server-game/start-game.js#servicesCommand": "Services routed an admin-style command to THIS specific instance (see `services/registry.js`'s `adminRouteToServer`, which targets by our own `auth_key`) down our existing persistent connection. `msg.payload` carries the actual command; a listener replies via a fresh one-off `#wsrequest` call wrapped as `adminRouteToServerResponse`, not back down this connection.",
   "server-game/src/roomManager.js#sendGameInfo": "Before the aggregated per-room player/room-count snapshot is pushed to services.",
+  "server-game/src/roomManager.js#beforeJoinRoom": "Right before a join is accepted, before the existing bootedIps/uuid/session/locked checks — set `plugins.cancel = true` to reject it (closes with `Comm.Close.booted`), e.g. legacyadmin's global ban-list check (`game/banCache.js`).",
 
+  "server-game/src/client.js#beforeChat": "Right before a sent chat message is processed at all (before the chatLineCap/censor/mention handling) - set `plugins.cancel = true` to silently drop it, e.g. legacyadmin's mute enforcement (`game/muteCache.js`).",
   "server-game/src/client.js#clientStartUp": "Module load, once, in the game server's main thread.",
   "server-game/src/client.js#clientInit": "A `ClientConstructor` is being built for a newly joining player or bot.",
   "server-game/src/client.js#clientGameJoinedExtraInfos": "Extra join-time params (e.g. a custom join payload) are being processed for this client.",
@@ -150,6 +156,7 @@
   "server-game/src/rooms.js#sendToAllLoop": "Broadcast to every client — fires once per client being considered.",
   "server-game/src/rooms.js#sendToAllLoopFound": "Broadcast to every client — fires once for each client that actually receives the packet.",
   "server-game/src/rooms.js#roomLoaded": "Module load, once — hands out the room class itself.",
+  "server-game/src/worker.js#adminCommand": "Main thread relayed an admin action into THIS specific room worker (e.g. a kick - see `roomManager.js`'s admin dispatch and legacyadmin's `game/moderationWorker.js`/`game/roomBridge.js`). Only meaningful once `ss.room` exists.",
 
   "server-client/src/client-static/src/shellshock.min.js#startUp": "The in-browser game client script finished its own top-level setup.",
   "server-client/src/client-static/src/shellshock.min.js#afterBullshit": "Fires after an early setup block (the name is kept verbatim from the original game source).",
@@ -210,6 +217,7 @@
   "server-client/start-client.js#loadingThings": "The batch load of cached config things is running.",
   "server-client/start-client.js#onConfigInfoLoaded": "Config load fully processed and applied to `ss`.",
   "server-client/start-client.js#onServicesRestart": "Services reported a newer `startTime` — the client is about to self-restart via `process.exit(1337)`.",
+  "server-client/start-client.js#servicesCommand": "Services routed an admin-style command to THIS specific instance (see `services/registry.js`'s `adminRouteToServer`, which targets by our own `auth_key`) down our existing persistent connection. `msg.payload` carries the actual command; a listener replies via a fresh one-off `#wsrequest` call wrapped as `adminRouteToServerResponse`, not back down this connection.",
 
   "server-client/src/prepare-modified.js#serversJs": "The `servers.js` template (server list + ports) has been generated.",
   "server-client/src/prepare-modified.js#hashes": "Cache-busting file hashes computed — this fires twice per build (once early, once again after the final build pass), both sharing the same event name.",

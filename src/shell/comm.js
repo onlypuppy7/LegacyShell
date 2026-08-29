@@ -350,6 +350,7 @@ const Comm = {
         boot: 3,
         closeAllWs: 4,
         terminate: 5,
+        chat: 6, // a worker relaying one sent chat message up to the main thread - see legacyadmin's game/chatRelay.js
     },
 
     Chat: {

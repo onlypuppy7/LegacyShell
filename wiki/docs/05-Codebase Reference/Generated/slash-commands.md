@@ -28,24 +28,19 @@ Every built-in `this.newCommand({...})` call in `src/shell/permissions.js`, extr
 | `/mod boot` | "mod" | Boot problematic players. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["string"]` | No | `src/shell/permissions.js:380` |
 | `/player kill` | "player" | Instantly kills a player. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["string"]` | Yes | `src/shell/permissions.js:400` |
 | `/player explode` | "player" | Instantly kills a player and spawns a cosmetic explosion effect at their position. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["string"]` | Yes | `src/shell/permissions.js:418` |
-| `/player hp` | "player" | Sets a players HP directly. Unlike healing, this can push HP beyond the usual 100 cap. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["number", 0, 109, 1]` | Yes | `src/shell/permissions.js:441` |
-| `/room notify` | "room" | Announces a message to all players. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["string"]` | No | `src/shell/permissions.js:467` |
-| `/room enableCheats` | "room" | Enable/disable cheats. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["bool"]` | No | `src/shell/permissions.js:483` |
-| `/room limit` | "room" | Set the max player limit. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["number", 1, maxServerSlots, 1]` | No | `src/shell/permissions.js:503` |
-| `/room warp` | "room" | Change to another room. | `[this.ranksEnum.Guest, this.ranksEnum.Guest, false]` | `["string"]` | No | `src/shell/permissions.js:520` |
-| `/room warpall` | "room" | Transfer all players to another room. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["string"]` | No | `src/shell/permissions.js:533` |
-| `/room gameoptions` | "room" | View current game options. | `[this.ranksEnum.Guest, this.ranksEnum.Guest, false]` | `["bool"]` | No | `src/shell/permissions.js:551` |
-| `/room info` | "room" | View current rooms info. | `[this.ranksEnum.Guest, this.ranksEnum.Guest, false]` | `["bool"]` | No | `src/shell/permissions.js:564` |
-| `/room lock` | "room" | Prevent any new players from joining your room. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["bool"]` | No | `src/shell/permissions.js:588` |
-| `/room isPublic` | "room" | Change this rooms visibility. | `[this.ranksEnum.Moderator, this.ranksEnum.Moderator, false]` | `["bool"]` | No | `src/shell/permissions.js:609` |
-| `/rounds enable` | "rounds" | Enable/disable rounds. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["bool"]` | No | `src/shell/permissions.js:635` |
-| `/rounds length` | "rounds" | Set the length of rounds in seconds. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["number", 1, 60 * 60, 1]` | No | `src/shell/permissions.js:663` |
-| `/rounds skip` | "rounds" | Skip to the end of this round. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["string"]` | No | `src/shell/permissions.js:687` |
-| `/time day` | "time" | Set time to day (default). | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["string"]` | No | `src/shell/permissions.js:707` |
-| `/time night` | "time" | Set time to night. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["string"]` | No | `src/shell/permissions.js:726` |
-| `/weather rain` | "weather" | Enable/disable rainy weather. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["bool"]` | No | `src/shell/permissions.js:747` |
-| `/weather storm` | "weather" | Enable/disable stormy weather. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["bool"]` | No | `src/shell/permissions.js:766` |
-| `/weather snowstorm` | "weather" | Enable/disable the snowstorm. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["bool"]` | No | `src/shell/permissions.js:785` |
+| `/player hp` | "player" | Sets a players HP directly. Unlike healing, this can push HP beyond the usual 100 cap. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["number", 0, 100, 1]` | Yes | `src/shell/permissions.js:441` |
+| `/room notify` | "room" | Announces a message to all players. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["string"]` | No | `src/shell/permissions.js:465` |
+| `/room enableCheats` | "room" | Enable/disable cheats. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["bool"]` | No | `src/shell/permissions.js:481` |
+| `/room limit` | "room" | Set the max player limit. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["number", 1, maxServerSlots, 1]` | No | `src/shell/permissions.js:501` |
+| `/room warp` | "room" | Change to another room. | `[this.ranksEnum.Guest, this.ranksEnum.Guest, false]` | `["string"]` | No | `src/shell/permissions.js:518` |
+| `/room warpall` | "room" | Transfer all players to another room. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["string"]` | No | `src/shell/permissions.js:531` |
+| `/room gameoptions` | "room" | View current game options. | `[this.ranksEnum.Guest, this.ranksEnum.Guest, false]` | `["bool"]` | No | `src/shell/permissions.js:549` |
+| `/room info` | "room" | View current rooms info. | `[this.ranksEnum.Guest, this.ranksEnum.Guest, false]` | `["bool"]` | No | `src/shell/permissions.js:562` |
+| `/room lock` | "room" | Prevent any new players from joining your room. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["bool"]` | No | `src/shell/permissions.js:586` |
+| `/room isPublic` | "room" | Change this rooms visibility. | `[this.ranksEnum.Moderator, this.ranksEnum.Moderator, false]` | `["bool"]` | No | `src/shell/permissions.js:607` |
+| `/rounds enable` | "rounds" | Enable/disable rounds. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["bool"]` | No | `src/shell/permissions.js:633` |
+| `/rounds length` | "rounds" | Set the length of rounds in seconds. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["number", 1, 60 * 60, 1]` | No | `src/shell/permissions.js:661` |
+| `/rounds skip` | "rounds" | Skip to the end of this round. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["string"]` | No | `src/shell/permissions.js:685` |
 
 ---
 *This page was drafted with AI assistance and reviewed for accuracy. If something looks wrong, please [open a PR](https://github.com/onlypuppy7/LegacyShell) or flag it.*

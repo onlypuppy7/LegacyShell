@@ -218,6 +218,10 @@ class newRoomManager {
                 };
             },
             bootedIps: [],
+            // Rolling buffer of recently sent chat messages, fed by legacyadmin's game/chatRelay.js
+            // (worker-side) via the Comm.Worker.chat case below - for the admin panel's live chat
+            // monitor. Bounded so a busy room can't grow this unbounded.
+            chatBuffer: [],
         };
 
         worker.on('message', (msg) => {
@@ -250,6 +254,10 @@ class newRoomManager {
                         break;
                     case Comm.Worker.terminate:
                         room.terminate();
+                        break;
+                    case Comm.Worker.chat: // one chat message relayed from the worker - see legacyadmin's game/chatRelay.js
+                        room.chatBuffer.push(content);
+                        if (room.chatBuffer.length > 100) room.chatBuffer.shift();
                         break;
                     default:
                         break;
@@ -288,9 +296,18 @@ class newRoomManager {
         return createdRoom;
     };
 
-    joinRoom(room, msg, ws, ip) {
+    async joinRoom(room, msg, ws, ip) {
         console.log("uuids", room.uuids, msg.uuid)
-        if (room.bootedIps.includes(ip)) {
+
+        // Lets a plugin reject a join before it happens at all (e.g. legacyadmin's global ban
+        // list, game/banCache.js) - set plugins.cancel = true to reject, same convention as
+        // everywhere else.
+        plugins.cancel = false;
+        await plugins.emit('beforeJoinRoom', { room, msg, ws, ip });
+
+        if (plugins.cancel) {
+            ws.close(Comm.Close.booted);
+        } else if (room.bootedIps.includes(ip)) {
             ws.close(Comm.Close.booted);
         } else if (room.uuids && room.uuids.includes(msg.uuid)) {
             ws.close(Comm.Close.masterServerBusy);

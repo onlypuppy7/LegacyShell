@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- Needed even with tilePicker.js's XHR/fetch patch below: Babylon uses plain Image.src for
+     texture loading (the stamps sprite sheet), which respects <base> correctly - only its
+     SceneLoader (mesh/manifest loading) bypasses it, which is what the JS patch is for instead. -->
+<base href="/">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LegacyAdmin</title>
+<script>
+    // Applied before Tailwind/paint so there's no light-mode flash - checks a saved preference
+    // first, falls back to the OS setting. app.js owns the actual toggle button.
+    if (localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+    };
+</script>
+<!-- The CDN script must load BEFORE tailwind.config is set - its runtime watches for that
+     property being assigned to (re)generate styles; setting it earlier just gets discarded when
+     the script initializes its own `window.tailwind`, which is why dark mode silently stayed
+     media-query-based (ignoring the .dark class entirely) until this was reordered. -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+    tailwind.config = { darkMode: 'class' };
+</script>
+<style>
+    /* Tells the browser to render its OWN native UI (scrollbars, select dropdown chrome, etc -
+       none of which Tailwind's dark: classes can reach at all) in the matching theme instead of
+       always defaulting to light. */
+    html { color-scheme: light; }
+    html.dark { color-scheme: dark; }
+
+    /* Tailwind covers layout/spacing; these are the handful of things utility classes don't
+       cleanly express (contenteditable focus ring, Tabulator theme tweaks, tile canvases). */
+    [contenteditable="true"]:focus { outline: 2px solid #6366f1; outline-offset: -2px; }
+    .tile-canvas { width: 100%; aspect-ratio: 1; background: #e5e7eb; border-radius: 0.375rem; }
+    .dark .tile-canvas { background: #334155; }
+    .tabulator { font-size: 0.85rem; }
+    /* Tabulator ships its own light theme CSS (loaded from its CDN, see sql-tab.js) with no
+       awareness of Tailwind's dark: classes at all - overriding its own class names directly here
+       instead of trying to swap its stylesheet on theme toggle. */
+    .dark .tabulator { background: #1e293b; border-color: #334155; color: #e2e8f0; }
+    .dark .tabulator-header { background: #0f172a; border-color: #334155; }
+    .dark .tabulator-col { background: #0f172a; border-color: #334155; color: #cbd5e1; }
+    .dark .tabulator-row { background: #1e293b; border-color: #334155; color: #e2e8f0; }
+    .dark .tabulator-row.tabulator-row-even { background: #172032; }
+    .dark .tabulator-row:hover { background: #334155; }
+    .dark .tabulator-cell { border-color: #334155; }
+    .dark .tabulator-cell.tabulator-editing input { background: #0f172a; color: #e2e8f0; }
+</style>
+</head>
+<body class="bg-slate-100 text-slate-800 dark:bg-slate-900 dark:text-slate-100 min-h-screen">
+
+<!-- Gate: shown until Connect succeeds, then hidden for the rest of the session. -->
+<div id="login-screen" class="min-h-screen flex items-center justify-center p-6">
+    <div class="w-full max-w-md bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 space-y-5">
+        <div class="flex items-start justify-between">
+            <div>
+                <h1 class="text-xl font-semibold">LegacyAdmin</h1>
+                <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Connect to a services server to continue.</p>
+            </div>
+            <button id="themeToggleLogin" title="Toggle theme" class="text-sm px-2 py-1 rounded-md border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700">🌓</button>
+        </div>
+
+        <div class="space-y-1">
+            <label class="text-sm font-medium text-slate-700 dark:text-slate-300">Services address</label>
+            <input type="text" id="servicesServer" placeholder="ws://localhost:13371" class="w-full rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+
+        <div class="border-t border-slate-200 dark:border-slate-700 pt-4 space-y-1">
+            <p class="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Account login (Moderator+)</p>
+            <input type="text" id="loginUsername" placeholder="Username" autocomplete="off" class="w-full rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-sm mt-1 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <input type="password" id="loginPassword" placeholder="Password" autocomplete="off" class="w-full rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-sm mt-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+
+        <div class="border-t border-slate-200 dark:border-slate-700 pt-4 space-y-1">
+            <p class="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Full access</p>
+            <input type="password" id="sqlPassword" placeholder="SQL password" class="w-full rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-sm mt-1 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <input type="password" id="gameServerAuthKey" placeholder="Auth key (optional - bypasses rate limiting)" class="w-full rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-sm mt-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+
+        <button id="connectBtn" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium rounded-md py-2 text-sm transition-colors">Connect</button>
+        <div id="login-status" class="text-sm text-center min-h-[1.25em]"></div>
+    </div>
+</div>
+
+<!-- Main app: hidden until a successful Connect. -->
+<div id="app-screen" class="hidden min-h-screen flex flex-col">
+    <nav class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-4 py-2 flex flex-wrap items-center gap-3">
+        <span class="font-semibold text-slate-700 dark:text-slate-200 mr-2">LegacyAdmin</span>
+        <div id="tabNav" class="flex flex-wrap gap-1"></div>
+        <div class="flex-1"></div>
+        <span id="accountStatus" class="text-xs text-slate-400 dark:text-slate-500"></span>
+        <select id="targetServer" class="text-sm border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-md px-2 py-1"><option value="">This services instance</option></select>
+        <button id="refreshServersBtn" title="Refresh instance list" class="text-sm px-2 py-1 rounded-md border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700">&#8635;</button>
+        <button id="restartInstanceBtn" title="Restart the managed instance" class="text-sm px-2 py-1 rounded-md border border-rose-300 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950">Restart</button>
+        <button id="themeToggle" title="Toggle theme" class="text-sm px-2 py-1 rounded-md border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700">🌓</button>
+        <button id="logoutBtn" class="text-sm px-2 py-1 rounded-md border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700">Log out</button>
+    </nav>
+    <div id="status" class="px-4 py-1 text-xs text-slate-500 dark:text-slate-400 min-h-[1.5em]"></div>
+    <main id="tabContent" class="flex-1 p-4"></main>
+</div>
+
+<script type="module" src="/admin/app.js"></script>
+</body>
+</html>

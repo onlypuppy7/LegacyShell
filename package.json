@@ -62,6 +62,7 @@
         "#guns": "./src/shell/guns.js",
         "#isClientServer": "./src/shell/isClientServer.js",
         "#itemManager": "./src/shell/itemManager.js",
+        "#itemRenderer": "./src/shell/itemRenderer.js",
         "#items": "./src/shell/items.js",
         "#loading": "./src/shell/loading.js",
         "#math": "./src/shell/math.js",

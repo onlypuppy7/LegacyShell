@@ -296,7 +296,8 @@ export class RoomConstructor {
         // devlog(details);
 
         var playerNames = [];
-        iteratePlayers((player)=>playerNames.push(player?.name));
+        var playerIds = []; // same order as playerNames/uuids/usernames - the numeric id sendable back via a "kick" adminCommand (see legacyadmin's game/moderationWorker.js)
+        iteratePlayers((player, i)=>{ playerNames.push(player?.name); playerIds.push(i); });
 
         parentPort.postMessage([Comm.Worker.updateRoom, {
             ready: true,
@@ -307,6 +308,7 @@ export class RoomConstructor {
             sessions: this.details.sessions,
 
             playerNames,
+            playerIds,
 
             joinType: this.joinType,
             gameType: this.gameType,

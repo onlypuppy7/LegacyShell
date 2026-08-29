@@ -102,6 +102,7 @@ const EVENT_SOURCE_GROUPS = [
         prefix: 'game',
         files: [
             'server-game/src/rooms.js',
+            'server-game/src/worker.js',
         ],
     },
     {

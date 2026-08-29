@@ -103,7 +103,7 @@ export default async function run () {
                                             console.log("Comm.Close.gameFull");
                                             ws.close(Comm.Close.gameFull);
                                         } else {
-                                            RoomManager.joinRoom(roomFound, msg, ws, ip);
+                                            await RoomManager.joinRoom(roomFound, msg, ws, ip);
                                         };
                                     } else {
                                         console.log("Comm.Close.gameNotFound");
@@ -238,6 +238,15 @@ export default async function run () {
                         break;
                     case "servicesInfo":
 
+                        break;
+                    // Services routed an admin-style command to THIS instance specifically (see
+                    // legacyadmin's services/registry.js - it targets us by our auth_key, since we
+                    // no longer run a dedicated admin WS port of our own). A plugin listener
+                    // handles `msg.payload` and replies directly to services (a fresh one-off
+                    // #wsrequest call, same pattern as any other services round trip), not back
+                    // down this connection.
+                    case "servicesCommand":
+                        await plugins.emit('servicesCommand', { msg });
                         break;
                     default:
                         log.error(`Unknown command received: ${msg.cmd}`);

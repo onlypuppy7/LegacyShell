@@ -2706,18 +2706,19 @@ Every `plugins.emit(...)` call site found in the files below, extracted directly
 | `loadingThings` | `server-client/start-client.js:296` | `{ ss, load, filepaths }` | The batch load of cached config things is running. |
 | `onConfigInfoLoaded` | `server-client/start-client.js:328` | `{ ss, configInfo: msg }` | Config load fully processed and applied to `ss`. |
 | `onServicesRestart` | `server-client/start-client.js:341` | `{ ss, configInfo: msg }` | Services reported a newer `startTime` — the client is about to self-restart via `process.exit(1337)`. |
+| `servicesCommand` | `server-client/start-client.js:364` | `{ msg }` | Services routed an admin-style command to THIS specific instance (see `services/registry.js`'s `adminRouteToServer`, which targets by our own `auth_key`) down our existing persistent connection. `msg.payload` carries the actual command; a listener replies via a fresh one-off `#wsrequest` call wrapped as `adminRouteToServerResponse`, not back down this connection. |
 | `serversJs` | `server-client/src/prepare-modified.js:75` | `{ ss, code }` | The `servers.js` template (server list + ports) has been generated. |
 | `hashes` | `server-client/src/prepare-modified.js:85` | `{ ss, hashes }` | Cache-busting file hashes computed — this fires twice per build (once early, once again after the final build pass), both sharing the same event name. |
 | `pluginSourceInsertion` | `server-client/src/prepare-modified.js:95` | `{ this: this, ss, pluginInsertion }` | The main hook for shipping plugin JS into the browser bundle — push `{filepath, insertBefore, insertAfter, position}` onto `pluginInsertion.files`. |
 | `doReplacements` | `server-client/src/prepare-modified.js:118` | `{ this: this, ss, replacements, code }` | The token-replacement pass that inlines `#hashtag` shared-source files into the bundle — fires once overall, before the per-entry loop below. |
 | `doReplacementsLoop` | `server-client/src/prepare-modified.js:124` | `{ this: this, ss, replacement, code, insertion, name }` | The token-replacement pass — fires once per replacement entry being applied. |
-| `replacementsBefore` | `server-client/src/prepare-modified.js:207` | `{ this: this, ss, code, replacementsBefore }` | Before the `LEGACYSHELLXXX` → `#hashtag` replacement table is applied — plugins can add their own entries here. |
-| `minificationBefore` | `server-client/src/prepare-modified.js:221` | `{ this: this, ss, code, UglifyJS }` | Before the UglifyJS minification step; set `plugins.cancel` here to fully replace minification with a different tool/pipeline entirely. |
-| `minificationAfter` | `server-client/src/prepare-modified.js:228` | `{ this: this, ss, code, result }` | After the UglifyJS minification step has run. |
-| `minificationSkipped` | `server-client/src/prepare-modified.js:243` | `{ this: this, ss, code }` | Minification was skipped (`config.client.minify` is falsy). |
-| `replacementsAfter` | `server-client/src/prepare-modified.js:263` | `{ ss, replacementAfter, code }` | The second replacement pass that inlines final `items`/`maps` JSON and the Babylon.js library source. |
-| `hashes` | `server-client/src/prepare-modified.js:281` | `{ ss, hashes }` | Cache-busting file hashes computed — this fires twice per build (once early, once again after the final build pass), both sharing the same event name. |
-| `htmlContent` | `server-client/src/prepare-modified.js:283` | `{ ss, code }` | The generated `index.html` content, just before it's written to disk. |
+| `replacementsBefore` | `server-client/src/prepare-modified.js:208` | `{ this: this, ss, code, replacementsBefore }` | Before the `LEGACYSHELLXXX` → `#hashtag` replacement table is applied — plugins can add their own entries here. |
+| `minificationBefore` | `server-client/src/prepare-modified.js:222` | `{ this: this, ss, code, UglifyJS }` | Before the UglifyJS minification step; set `plugins.cancel` here to fully replace minification with a different tool/pipeline entirely. |
+| `minificationAfter` | `server-client/src/prepare-modified.js:229` | `{ this: this, ss, code, result }` | After the UglifyJS minification step has run. |
+| `minificationSkipped` | `server-client/src/prepare-modified.js:244` | `{ this: this, ss, code }` | Minification was skipped (`config.client.minify` is falsy). |
+| `replacementsAfter` | `server-client/src/prepare-modified.js:264` | `{ ss, replacementAfter, code }` | The second replacement pass that inlines final `items`/`maps` JSON and the Babylon.js library source. |
+| `hashes` | `server-client/src/prepare-modified.js:282` | `{ ss, hashes }` | Cache-busting file hashes computed — this fires twice per build (once early, once again after the final build pass), both sharing the same event name. |
+| `htmlContent` | `server-client/src/prepare-modified.js:284` | `{ ss, code }` | The generated `index.html` content, just before it's written to disk. |
 | `stampImageDirs` | `server-client/src/stampsGenerator.js:56` | `{this: this, stampImageDirs, stampImages}` | Before scanning for stamp source images — plugins push their own image directories here. |
 | `stampsPreparedSkip` | `server-client/src/stampsGenerator.js:241` | `{this: this, items, composites, image, output: outputImagePath}` | The stamp spritesheet was already up to date and regeneration was skipped (hash match). |
 | `stampsPrepared` | `server-client/src/stampsGenerator.js:264` | `{this: this, items, composites, image, output: outputImagePath}` | The stamp spritesheet was (re)generated. |
@@ -2735,43 +2736,45 @@ Every `plugins.emit(...)` call site found in the files below, extracted directly
 | Event | Location | Payload | Fires when |
 |---|---|---|---|
 | `startUp` | `server-client/src/client-static/src/shellshock.min.js:99` | `{ }` | The in-browser game client script finished its own top-level setup. |
-| `afterBullshit` | `server-client/src/client-static/src/shellshock.min.js:405` | `{}` | Fires after an early setup block (the name is kept verbatim from the original game source). |
-| `LegacyShellOnMessage` | `server-client/src/client-static/src/shellshock.min.js:499` | `{cmd, cmdName, input}` | Every incoming server packet, after opcode decoding, before dispatch — a general-purpose network message hook; `data.input` is a still-positioned `Comm.In` reader, so a plugin can read a custom opcode's payload here. |
-| `roundEndSFX` | `server-client/src/client-static/src/shellshock.min.js:629` | `{roundLength, roundEndTime, betweenRounds}` | Round-end sound/UI cue. |
-| `playerDeathAnimation` | `server-client/src/client-static/src/shellshock.min.js:813` | `{killedPlayer}` | A player's death animation is playing. |
-| `inGameSync1` | `server-client/src/client-static/src/shellshock.min.js:920` | `{ id, stateIdx, x, y, z, dx, dy, dz, climbing, pingLevelInt }` | First stage of processing an incoming per-player sync entry. |
-| `inGameSync2` | `server-client/src/client-static/src/shellshock.min.js:1016` | `{ id, stateIdx, x, y, z, dx, dy, dz, climbing, pingLevelInt, dist, player }` | Second stage of processing an incoming per-player sync entry (remote players, distance-based detail). |
-| `inGameSync3` | `server-client/src/client-static/src/shellshock.min.js:1050` | `{ id, stateIdx, x, y, z, dx, dy, dz, climbing, pingLevelInt, player }` | Third stage of processing an incoming per-player sync entry. |
-| `clearItemButtons` | `server-client/src/client-static/src/shellshock.min.js:1459` | `{ i, canvas }` | Shop/loadout UI item-button reset. |
-| `encloseRenderPageFunc` | `server-client/src/client-static/src/shellshock.min.js:1609` | `{ i, b, canvas, renderingItem, locked, requiresPhysicalUnlock }` | Rendering one catalog item tile in the shop UI. |
-| `playerActorBodyMeshCreated` | `server-client/src/client-static/src/shellshock.min.js:1940` | `{ playerActor: this, bodyMesh: this.bodyMesh, player }` | A player's visual body mesh finished loading. |
-| `playerActorShadowRenderList` | `server-client/src/client-static/src/shellshock.min.js:1969` | `{ playerActor: this, shadowGen: shadowGen }` | The player mesh was registered with the shadow generator. |
-| `playerActorRemoveFromPlay` | `server-client/src/client-static/src/shellshock.min.js:2152` | `{ playerActor: this }` | A player's visual actor is being hidden (died or left). |
-| `playerActorRestoreToPlay` | `server-client/src/client-static/src/shellshock.min.js:2161` | `{ playerActor: this }` | A player's visual actor is being restored (respawned). |
-| `bulletActorFired` | `server-client/src/client-static/src/shellshock.min.js:2321` | `{ bulletActor: this }` | A visual bullet actor was fired client-side. |
-| `gunActorSetup` | `server-client/src/client-static/src/shellshock.min.js:2392` | `{ gunActor: this, shadowGen }` | A weapon's visual model finished setup. |
-| `onPageLoadedEnd` | `server-client/src/client-static/src/shellshock.min.js:3190` | `{}` | The game's HTML page finished loading. |
-| `joinGame` | `server-client/src/client-static/src/shellshock.min.js:3223` | `{ joinGameIdPassed }` | The client is about to send its join request. |
-| `onExtraParams` | `server-client/src/client-static/src/shellshock.min.js:3314` | `{ extraParams }` | Extra join params (session, custom map, etc.) are being assembled. |
-| `clientOnExtraGameInfo` | `server-client/src/client-static/src/shellshock.min.js:3422` | `{ extraInfo }` | Extra per-game info received from the server after joining. |
-| `onShadowGeneratorCreated` | `server-client/src/client-static/src/shellshock.min.js:3578` | `{ shadowGen }` | The Babylon shadow generator was created for the scene. |
-| `loadSounds` | `server-client/src/client-static/src/shellshock.min.js:3923` | `{ soundsList }` | Before the Apollo/Howler sound list is loaded. |
-| `createMapCellsMapLoaded` | `server-client/src/client-static/src/shellshock.min.js:3997` | `{ minMap, SPS, gameScene, shadowGen, shadowLight }` | The raw map JSON has been fetched and is about to be turned into cells. |
-| `modifyMinMap` | `server-client/src/client-static/src/shellshock.min.js:4028` | `event` | A direct hook to rewrite the map data itself before cell generation. |
-| `createMapCells` | `server-client/src/client-static/src/shellshock.min.js:4055` | `{ minMap, SPS, gameScene, shadowGen, shadowLight }` | Map cells are being generated from `minMap`. |
-| `onMapCompleteBeforeSetup` | `server-client/src/client-static/src/shellshock.min.js:4312` | `{ gameScene, minMap }` | Before final map setup finishes. |
-| `onMapComplete` | `server-client/src/client-static/src/shellshock.min.js:4325` | `{ gameScene }` | After final map setup finishes. |
-| `resetGamePlayer` | `server-client/src/client-static/src/shellshock.min.js:4671` | `{player}` | Client-local counterpart to the server's `resetGamePlayer` — round-scoped UI/state reset. |
-| `addKillTextBefore` | `server-client/src/client-static/src/shellshock.min.js:5036` | `{msgs}` | Before the kill-feed text is rendered. |
-| `onBalanceUpdated` | `server-client/src/client-static/src/shellshock.min.js:5058` | `{balance: playerAccount.currentBalance}` | The player's currency balance display changed. |
-| `onResourcesLoadedEnd` | `server-client/src/client-static/src/shellshock.min.js:5103` | `{}` | All game resources (models/sounds/textures) finished loading. |
-| `shellFragBurstBefore` | `server-client/src/client-static/src/shellshock.min.js:6197` | `{ player, count, theSize, theAnimLength }` | Before a shell-casing particle burst effect plays. |
-| `syncToServer` | `server-client/src/client-static/src/shellshock.min.js:6760` | `{loadout}` | The client is about to push a loadout change to the server. |
-| `waitForSetupAndAuthComplete` | `server-client/src/client-static/src/shellshock.min.js:6997` | `{waitIteration}` | The startup poll loop, waiting for auth and page setup to both finish, has started. |
-| `waitForSetupAndAuthCompleteCheck` | `server-client/src/client-static/src/shellshock.min.js:7010` | `{waitIteration, customizer, authAttemptComplete, houseAdsLoaded}` | The startup poll loop is checking whether auth and page setup have both finished yet. |
-| `waitForSetupAndAuthCompleteReady` | `server-client/src/client-static/src/shellshock.min.js:7013` | `{waitIteration}` | The startup poll loop has confirmed both auth and page setup are ready. |
-| `setupComplete` | `server-client/src/client-static/src/shellshock.min.js:7028` | `{}` | The startup poll loop concluded successfully. |
-| `reachedEnd` | `server-client/src/client-static/src/shellshock.min.js:7862` | `{}` | End of the whole client script file, once. |
+| `afterBullshit` | `server-client/src/client-static/src/shellshock.min.js:402` | `{}` | Fires after an early setup block (the name is kept verbatim from the original game source). |
+| `LegacyShellOnMessage` | `server-client/src/client-static/src/shellshock.min.js:442` | `{cmd, cmdName, input}` | Every incoming server packet, after opcode decoding, before dispatch — a general-purpose network message hook; `data.input` is a still-positioned `Comm.In` reader, so a plugin can read a custom opcode's payload here. |
+| `roomParamsUpdated` | `server-client/src/client-static/src/shellshock.min.js:459` | `{ roomParamsObj }` | A Comm.Code.updateRoomParams payload was just parsed (cheatsEnabled/Object.assign already handled by core) - lets a plugin render its own gameOptions.plugins-owned fields (e.g. legacyweather's weather/time rendering). |
+| `roundEndSFX` | `server-client/src/client-static/src/shellshock.min.js:507` | `{roundLength, roundEndTime, betweenRounds}` | Round-end sound/UI cue. |
+| `playerDeathAnimation` | `server-client/src/client-static/src/shellshock.min.js:690` | `{killedPlayer}` | A player's death animation is playing. |
+| `inGameSync1` | `server-client/src/client-static/src/shellshock.min.js:797` | `{ id, stateIdx, x, y, z, dx, dy, dz, climbing, pingLevelInt }` | First stage of processing an incoming per-player sync entry. |
+| `inGameSync2` | `server-client/src/client-static/src/shellshock.min.js:893` | `{ id, stateIdx, x, y, z, dx, dy, dz, climbing, pingLevelInt, dist, player }` | Second stage of processing an incoming per-player sync entry (remote players, distance-based detail). |
+| `inGameSync3` | `server-client/src/client-static/src/shellshock.min.js:927` | `{ id, stateIdx, x, y, z, dx, dy, dz, climbing, pingLevelInt, player }` | Third stage of processing an incoming per-player sync entry. |
+| `clearItemButtons` | `server-client/src/client-static/src/shellshock.min.js:1336` | `{ i, canvas }` | Shop/loadout UI item-button reset. |
+| `encloseRenderPageFunc` | `server-client/src/client-static/src/shellshock.min.js:1486` | `{ i, b, canvas, renderingItem, locked, requiresPhysicalUnlock }` | Rendering one catalog item tile in the shop UI. |
+| `playerActorBodyMeshCreated` | `server-client/src/client-static/src/shellshock.min.js:1746` | `{ playerActor: this, bodyMesh: this.bodyMesh, player }` | A player's visual body mesh finished loading. |
+| `playerActorShadowRenderList` | `server-client/src/client-static/src/shellshock.min.js:1775` | `{ playerActor: this, shadowGen: shadowGen }` | The player mesh was registered with the shadow generator. |
+| `playerActorRemoveFromPlay` | `server-client/src/client-static/src/shellshock.min.js:1958` | `{ playerActor: this }` | A player's visual actor is being hidden (died or left). |
+| `playerActorRestoreToPlay` | `server-client/src/client-static/src/shellshock.min.js:1967` | `{ playerActor: this }` | A player's visual actor is being restored (respawned). |
+| `bulletActorFired` | `server-client/src/client-static/src/shellshock.min.js:2127` | `{ bulletActor: this }` | A visual bullet actor was fired client-side. |
+| `gunActorSetup` | `server-client/src/client-static/src/shellshock.min.js:2198` | `{ gunActor: this, shadowGen }` | A weapon's visual model finished setup. |
+| `onPageLoadedEnd` | `server-client/src/client-static/src/shellshock.min.js:2996` | `{}` | The game's HTML page finished loading. |
+| `joinGame` | `server-client/src/client-static/src/shellshock.min.js:3029` | `{ joinGameIdPassed }` | The client is about to send its join request. |
+| `onExtraParams` | `server-client/src/client-static/src/shellshock.min.js:3119` | `{ extraParams }` | Extra join params (session, custom map, etc.) are being assembled. |
+| `clientOnExtraGameInfo` | `server-client/src/client-static/src/shellshock.min.js:3227` | `{ extraInfo }` | Extra per-game info received from the server after joining. |
+| `onShadowGeneratorCreated` | `server-client/src/client-static/src/shellshock.min.js:3383` | `{ shadowGen }` | The Babylon shadow generator was created for the scene. |
+| `loadMaterials` | `server-client/src/client-static/src/shellshock.min.js:3675` | `{ scene }` | Core's built-in materials have just been defined - lets a plugin define its own right after (e.g. legacyweather's wetMaterial). |
+| `loadSounds` | `server-client/src/client-static/src/shellshock.min.js:3729` | `{ soundsList }` | Before the Apollo/Howler sound list is loaded. |
+| `createMapCellsMapLoaded` | `server-client/src/client-static/src/shellshock.min.js:3797` | `{ minMap, SPS, gameScene, shadowGen, shadowLight }` | The raw map JSON has been fetched and is about to be turned into cells. |
+| `modifyMinMap` | `server-client/src/client-static/src/shellshock.min.js:3828` | `event` | A direct hook to rewrite the map data itself before cell generation. |
+| `createMapCells` | `server-client/src/client-static/src/shellshock.min.js:3855` | `{ minMap, SPS, gameScene, shadowGen, shadowLight }` | Map cells are being generated from `minMap`. |
+| `onMapCompleteBeforeSetup` | `server-client/src/client-static/src/shellshock.min.js:4112` | `{ gameScene, minMap }` | Before final map setup finishes. |
+| `onMapComplete` | `server-client/src/client-static/src/shellshock.min.js:4125` | `{ gameScene }` | After final map setup finishes. |
+| `resetGamePlayer` | `server-client/src/client-static/src/shellshock.min.js:4396` | `{player}` | Client-local counterpart to the server's `resetGamePlayer` — round-scoped UI/state reset. |
+| `addKillTextBefore` | `server-client/src/client-static/src/shellshock.min.js:4761` | `{msgs}` | Before the kill-feed text is rendered. |
+| `onBalanceUpdated` | `server-client/src/client-static/src/shellshock.min.js:4783` | `{balance: playerAccount.currentBalance}` | The player's currency balance display changed. |
+| `onResourcesLoadedEnd` | `server-client/src/client-static/src/shellshock.min.js:4828` | `{}` | All game resources (models/sounds/textures) finished loading. |
+| `shellFragBurstBefore` | `server-client/src/client-static/src/shellshock.min.js:5922` | `{ player, count, theSize, theAnimLength }` | Before a shell-casing particle burst effect plays. |
+| `syncToServer` | `server-client/src/client-static/src/shellshock.min.js:6485` | `{loadout}` | The client is about to push a loadout change to the server. |
+| `waitForSetupAndAuthComplete` | `server-client/src/client-static/src/shellshock.min.js:6722` | `{waitIteration}` | The startup poll loop, waiting for auth and page setup to both finish, has started. |
+| `waitForSetupAndAuthCompleteCheck` | `server-client/src/client-static/src/shellshock.min.js:6735` | `{waitIteration, customizer, authAttemptComplete, houseAdsLoaded}` | The startup poll loop is checking whether auth and page setup have both finished yet. |
+| `waitForSetupAndAuthCompleteReady` | `server-client/src/client-static/src/shellshock.min.js:6738` | `{waitIteration}` | The startup poll loop has confirmed both auth and page setup are ready. |
+| `setupComplete` | `server-client/src/client-static/src/shellshock.min.js:6753` | `{}` | The startup poll loop concluded successfully. |
+| `reachedEnd` | `server-client/src/client-static/src/shellshock.min.js:7587` | `{}` | End of the whole client script file, once. |
 | `loadMeshesBeforeMaterial` | `server-client/src/client-static/editor/js/mapEdit.js:88278` | `{mesh}` | Same hook as the shared `loading.js` version, duplicated for the standalone map-editor page. |
 
 ---
@@ -2797,8 +2800,9 @@ Every `plugins.emit(...)` call site found in the files below, extracted directly
 | `clientInstantiatePlayerEnd` | `server-game/src/client.js:196` | `{ this: this }` | After the `Player` object has been constructed for this client. |
 | `requestRespawn` | `server-game/src/client.js:262` | `{this: this, player: this.player, spawnPoint}` | A respawn request from this client is being processed. |
 | `CommCodeSyncEnd` | `server-game/src/client.js:327` | `{this: this, player: this.player, adjustment: this.adjustment, stateIdx, startIdx, i}` | End of processing an incoming input-sync packet from this client — a natural hook for anti-cheat heuristics that inspect aim-angle jitter between synced states. |
-| `clientPackSync` | `server-game/src/client.js:580` | `{ this: this, output }` | Building this client's outbound sync packet — fires once per sync, before the per-state loop below. |
-| `clientPackSyncLoop` | `server-game/src/client.js:599` | `{ this: this, output, state }` | Building this client's outbound sync packet — fires once per buffered state entry being packed. |
+| `beforeChat` | `server-game/src/client.js:345` | `{ this: this, text }` | Right before a sent chat message is processed at all (before the chatLineCap/censor/mention handling) - set `plugins.cancel = true` to silently drop it, e.g. legacyadmin's mute enforcement (`game/muteCache.js`). |
+| `clientPackSync` | `server-game/src/client.js:588` | `{ this: this, output }` | Building this client's outbound sync packet — fires once per sync, before the per-state loop below. |
+| `clientPackSyncLoop` | `server-game/src/client.js:607` | `{ this: this, output, state }` | Building this client's outbound sync packet — fires once per buffered state entry being packed. |
 
 ---
 
@@ -2813,9 +2817,11 @@ Every `plugins.emit(...)` call site found in the files below, extracted directly
 | Event | Location | Payload | Fires when |
 |---|---|---|---|
 | `onLoad` | `server-game/start-game.js:39` | `{ ss }` | Game process finished its own init, before connecting the outbound socket to services. |
-| `connectWebSocketMessage` | `server-game/start-game.js:169` | `{ this: this, ss, msg }` | Any message received on the outbound services websocket. |
-| `requestConfigReceived` | `server-game/start-game.js:177` | `{msg}` | Specifically a `requestConfig` response (maps/items/servers/config sync) was received from services. |
-| `sendGameInfo` | `server-game/src/roomManager.js:406` | `{gameInfo}` | Before the aggregated per-room player/room-count snapshot is pushed to services. |
+| `connectWebSocketMessage` | `server-game/start-game.js:170` | `{ this: this, ss, msg }` | Any message received on the outbound services websocket. |
+| `requestConfigReceived` | `server-game/start-game.js:178` | `{msg}` | Specifically a `requestConfig` response (maps/items/servers/config sync) was received from services. |
+| `servicesCommand` | `server-game/start-game.js:249` | `{ msg }` | Services routed an admin-style command to THIS specific instance (see `services/registry.js`'s `adminRouteToServer`, which targets by our own `auth_key`) down our existing persistent connection. `msg.payload` carries the actual command; a listener replies via a fresh one-off `#wsrequest` call wrapped as `adminRouteToServerResponse`, not back down this connection. |
+| `beforeJoinRoom` | `server-game/src/roomManager.js:306` | `{ room, msg, ws, ip }` | Right before a join is accepted, before the existing bootedIps/uuid/session/locked checks — set `plugins.cancel = true` to reject it (closes with `Comm.Close.booted`), e.g. legacyadmin's global ban-list check (`game/banCache.js`). |
+| `sendGameInfo` | `server-game/src/roomManager.js:423` | `{gameInfo}` | Before the aggregated per-room player/room-count snapshot is pushed to services. |
 
 ---
 
@@ -2842,19 +2848,19 @@ Every `plugins.emit(...)` call site found in the files below, extracted directly
 | `packRoundUpdateEnd` | `server-game/src/rooms.js:267` | `{this: this, output}` | Building the "round update" (timer) network packet — fires after the packet body is assembled. |
 | `resetGamePlayer` | `server-game/src/rooms.js:284` | `{this: this, player}` | A player's round-scoped state (score, etc.) is being reset. |
 | `roomDetailsUpdated` | `server-game/src/rooms.js:294` | `{this: this, details: this.details}` | Room metadata (name, options, etc.) is changing — fires before the change is applied. |
-| `roomDetailsUpdatedEnd` | `server-game/src/rooms.js:320` | `{this: this, details: this.details}` | Room metadata (name, options, etc.) has changed — fires after the change is applied. |
-| `packUpdateRoomParams` | `server-game/src/rooms.js:330` | `{this: this, output}` | Building the room-params sync packet sent to clients — fires before the packet body is assembled. |
-| `packUpdateRoomParamsEnd` | `server-game/src/rooms.js:340` | `{this: this, output}` | Building the room-params sync packet sent to clients — fires after the packet body is assembled. |
-| `roomUpdate` | `server-game/src/rooms.js:351` | `{this: this, delta, currentTimeStamp}` | Top of the 60Hz simulation tick, before per-player updates run. |
-| `playerUpdate` | `server-game/src/rooms.js:360` | `{this: this, player, delta, currentTimeStamp}` | Per-player, per-tick update within the main tick loop. |
-| `playerStateUpdate` | `server-game/src/rooms.js:366` | `{this: this, player, delta, currentTimeStamp}` | Per-player state-buffer replay/prediction step within the main tick loop. |
-| `roomStateUpdate` | `server-game/src/rooms.js:376` | `{this: this, delta, currentTimeStamp}` | End of the per-tick player loop. |
-| `roomSync` | `server-game/src/rooms.js:383` | `{this: this}` | The ~10Hz full-state sync is about to run (every `FramesBetweenSyncs` ticks). |
-| `dataSyncLoop` | `server-game/src/rooms.js:392` | `{this: this, delta, output}` | The ~1000ms "data sync" loop (less time-critical per-client data) is running. |
-| `clientDataSync` | `server-game/src/rooms.js:395` | `{this: this, client, delta, output}` | Per-client step within the data-sync loop. |
-| `roomDataSync` | `server-game/src/rooms.js:399` | `{this: this, delta, output}` | End of the data-sync loop. |
-| `metaLoop` | `server-game/src/rooms.js:405` | `{this: this, fromDisconnect}` | The ~2000ms "meta" loop (idle-kick, weather triggers, empty-room destroy) is running. |
-| `metaLoopClients` | `server-game/src/rooms.js:411` | `{this: this, client, fromDisconnect}` | Per-client step within the meta loop. |
+| `roomDetailsUpdatedEnd` | `server-game/src/rooms.js:322` | `{this: this, details: this.details}` | Room metadata (name, options, etc.) has changed — fires after the change is applied. |
+| `packUpdateRoomParams` | `server-game/src/rooms.js:332` | `{this: this, output}` | Building the room-params sync packet sent to clients — fires before the packet body is assembled. |
+| `packUpdateRoomParamsEnd` | `server-game/src/rooms.js:342` | `{this: this, output}` | Building the room-params sync packet sent to clients — fires after the packet body is assembled. |
+| `roomUpdate` | `server-game/src/rooms.js:353` | `{this: this, delta, currentTimeStamp}` | Top of the 60Hz simulation tick, before per-player updates run. |
+| `playerUpdate` | `server-game/src/rooms.js:362` | `{this: this, player, delta, currentTimeStamp}` | Per-player, per-tick update within the main tick loop. |
+| `playerStateUpdate` | `server-game/src/rooms.js:368` | `{this: this, player, delta, currentTimeStamp}` | Per-player state-buffer replay/prediction step within the main tick loop. |
+| `roomStateUpdate` | `server-game/src/rooms.js:378` | `{this: this, delta, currentTimeStamp}` | End of the per-tick player loop. |
+| `roomSync` | `server-game/src/rooms.js:385` | `{this: this}` | The ~10Hz full-state sync is about to run (every `FramesBetweenSyncs` ticks). |
+| `dataSyncLoop` | `server-game/src/rooms.js:394` | `{this: this, delta, output}` | The ~1000ms "data sync" loop (less time-critical per-client data) is running. |
+| `clientDataSync` | `server-game/src/rooms.js:397` | `{this: this, client, delta, output}` | Per-client step within the data-sync loop. |
+| `roomDataSync` | `server-game/src/rooms.js:401` | `{this: this, delta, output}` | End of the data-sync loop. |
+| `metaLoop` | `server-game/src/rooms.js:407` | `{this: this, fromDisconnect}` | The ~2000ms "meta" loop (idle-kick, weather triggers, empty-room destroy) is running. |
+| `metaLoopClients` | `server-game/src/rooms.js:413` | `{this: this, client, fromDisconnect}` | Per-client step within the meta loop. |
 | `roomDestroy` | `server-game/src/rooms.js:437` | `{this: this}` | The room is being torn down. |
 | `clientSync` | `server-game/src/rooms.js:462` | `{this: this, output}` | Building the full-state sync packet — fires once, before the per-client loop below. |
 | `clientSyncLoop` | `server-game/src/rooms.js:465` | `{ this: this, client, output }` | Building the full-state sync packet — fires once per client; a plugin can set `plugins.cancel` here to replace the default position data with its own (e.g. occlusion-based visibility filtering). |
@@ -2910,6 +2916,7 @@ Every `plugins.emit(...)` call site found in the files below, extracted directly
 | `sendToAllLoop` | `server-game/src/rooms.js:867` | `{this: this, client, output, fromId, debug}` | Broadcast to every client — fires once per client being considered. |
 | `sendToAllLoopFound` | `server-game/src/rooms.js:869` | `{this: this, client, output, fromId, debug}` | Broadcast to every client — fires once for each client that actually receives the packet. |
 | `roomLoaded` | `server-game/src/rooms.js:876` | `{RoomConstructor}` | Module load, once — hands out the room class itself. |
+| `adminCommand` | `server-game/src/worker.js:51` | `{ payload: message }` | Main thread relayed an admin action into THIS specific room worker (e.g. a kick - see `roomManager.js`'s admin dispatch and legacyadmin's `game/moderationWorker.js`/`game/roomBridge.js`). Only meaningful once `ss.room` exists. |
 
 ---
 
@@ -2929,7 +2936,7 @@ Every `plugins.emit(...)` call site found in the files below, extracted directly
 | `setUpShopAvailableBeforeApply` | `src/shell/catalog.js:309` | `{ shop, Math, items, mondayStart, eventsMonday }` | Inside the weekly shop-rotation algorithm, before the final tier selection is written to the database. |
 | `constantsFinished` | `src/shell/constants.js:538` | `{}` | All shared constants/enums have been computed at module load — signals other shared modules that it's now safe to reference them. |
 | `eventsInit` | `src/shell/events.js:256` | `{ events: this.events, this: this }` | The seasonal `EventManager` finished loading `defaultEvents`. This same call site fires under either `services:` or `game:` depending on which process is running it. |
-| `GameTypesInit` | `src/shell/gametypes.js:135` | `{ GameTypes, ItemTypes, defaultOptions }` | Before `GameTypes` is deep-merged against `defaultOptions` — the extension point for registering an entirely new gamemode. |
+| `GameTypesInit` | `src/shell/gametypes.js:132` | `{ GameTypes, ItemTypes, defaultOptions }` | Before `GameTypes` is deep-merged against `defaultOptions` — the extension point for registering an entirely new gamemode. |
 | `fireEggk47` | `src/shell/guns.js:117` | `{this: this, pos, dir, Eggk47}` | The Eggk47 fired — immediately followed by `if (!plugins.cancel) Bullet.fire(...)`, so a listener can fully replace this weapon's projectile behavior by setting `plugins.cancel`. |
 | `fireDozenGauge` | `src/shell/guns.js:147` | `{this: this, pos, dir, DozenGauge}` | The Dozen Gauge fired — same `plugins.cancel` override pattern as `fireEggk47`. |
 | `fireDozenGaugeBullet` | `src/shell/guns.js:154` | `{this: this, pos, v1: this.v1, DozenGauge}` | One pellet of the Dozen Gauge's shotgun spread is about to fire — fires once per pellet, distinct from the single `fireDozenGauge` event for the overall trigger pull. |
@@ -2939,7 +2946,7 @@ Every `plugins.emit(...)` call site found in the files below, extracted directly
 | `AllItems` | `src/shell/items.js:100` | `{ AllItems, ItemActor, dummyItem }` | Before the flat pickup-item array (`AMMO`, `GRENADE`, …) is indexed into `ItemTypes` — push a new pickup item type onto `data.AllItems` here. Fired from inside the exported `initItems()` function, called explicitly once `plugins.loadPlugins('game')` resolves (see `server-game/run-game.js` and `server-game/src/worker.js`) rather than automatically at module load — module-load-time firing was unreliable server-side. Still fires immediately at module load on the client, where no such ordering issue exists. |
 | `itemsLoaded` | `src/shell/items.js:109` | `{ AllItems, ItemTypes, ItemActor, dummyItem }` | After pickup items are indexed — `ItemTypes` and each item's `id` are now final. Same `initItems()` timing as `AllItems` above. |
 | `loadMeshesBeforeMaterial` | `src/shell/loading.js:79` | `{mesh}` | During mesh loading, before a material is assigned — lets a plugin swap in a different material/texture. |
-| `permissionsAfterSetup` | `src/shell/permissions.js:806` | `{ this: this }` | End of `PermissionsConstructor`'s constructor, after every built-in command is registered — the extension point for registering new slash commands via `data.this.newCommand(...)`. |
+| `permissionsAfterSetup` | `src/shell/permissions.js:707` | `{ this: this }` | End of `PermissionsConstructor`'s constructor, after every built-in command is registered — the extension point for registering new slash commands via `data.this.newCommand(...)`. |
 | `updateBefore` | `src/shell/player.js:241` | `{ player: this, delta, resim }` | Start of `Player.update()`, before movement/physics for that tick — the main per-player-per-tick hook. |
 | `onStandOnBlock` | `src/shell/player.js:746` | `{mesh, this: this, out}` | Per-tick, when a player's feet resolve against a block mesh — used for special surface behavior (e.g. a parkour gamemode). |
 | `onStandOnTile` | `src/shell/player.js:749` | `{mesh, this: this}` | Per-tick, when a player's feet resolve against a tile mesh — same use case as `onStandOnBlock` for a different mesh category. |
@@ -2961,33 +2968,35 @@ Every `plugins.emit(...)` call site found in the files below, extracted directly
 
 | Event | Location | Payload | Fires when |
 |---|---|---|---|
-| `servicesOnLoad` | `server-services/start-services.js:67` | `{ ss }` | Services process finished its own setup (DB, math, events), before `initTables()` runs. |
-| `initTablesStart` | `server-services/start-services.js:111` | `{ ss }` | Start of the DB-seeding pipeline — hook here to force-reinit `items` before defaults are inserted. |
-| `initTablesBefore` | `server-services/start-services.js:119` | `{ ss }` | Just before default items are inserted from `server-services/src/items/*.js` — only fires when the `items` table is currently empty (a genuinely fresh database), so it fires at most once, ever. For a plugin's own item pack, hook `initTables` instead (see below) — that one fires on every boot. |
-| `initTables` | `server-services/start-services.js:124` | `{ ss }` | Fires once per boot, after the empty-table check either ran or didn't — the reliable hook for a plugin to insert its own items via `ss.recs.insertItems(...)` every time services starts, regardless of whether the table was already seeded. |
-| `initTablesMaps` | `server-services/start-services.js:142` | `{ ss }` | After the `maps` table is unconditionally wiped and reseeded from `server-services/src/maps/*.json` (this happens on every boot, no empty-table gate) — plugins call `ss.recs.insertMaps(...)` here for custom map packs. |
-| `initTablesFinish` | `server-services/start-services.js:161` | `{ ss }` | End of the whole DB-seeding pipeline (items + maps both done). |
-| `sendServicesInfo` | `server-services/start-services.js:317` | `{servicesInfo}` | The periodic `servicesInfo` push (started by a `requestConfig` handshake) is about to be sent to a polling client/game server. |
-| `addEggs` | `server-services/start-services.js:387` | `{ userData }` | A player's egg (currency) balance was incremented via the `addEggs` command. |
-| `addKill` | `server-services/start-services.js:407` | `{ userData }` | A kill was recorded for a player via the `addKill` command. |
-| `addDeath` | `server-services/start-services.js:424` | `{ userData }` | A death was recorded for a player via the `addDeath` command. |
-| `setAnnouncement` | `server-services/start-services.js:439` | `{ msg }` | The global `game_announcement` flag was updated. |
-| `servicesInfoGame` | `server-services/start-services.js:454` | `{ gameInfo, gameInfoForClient, msg, thisServer: msg.thisServer }` | A game server pushed its `servicesInfo` (room/player-count snapshot) to services. |
-| `validateLoginSuccess` | `server-services/start-services.js:468` | `{ userData }` | Password-based login succeeded. |
-| `validateLoginFail` | `server-services/start-services.js:471` | `{ userData, msg, error: "Password is incorrect" }` | Login failed — three separate call sites share this event name, covering wrong password, nonexistent user, and a database error respectively; check the payload's `error` field for which one. |
-| `validateLoginFail` | `server-services/start-services.js:480` | `{ userData, msg, error: "User doesn't exist" }` | Login failed — three separate call sites share this event name, covering wrong password, nonexistent user, and a database error respectively; check the payload's `error` field for which one. |
-| `validateLoginFail` | `server-services/start-services.js:485` | `{ userData, msg, error: "Database error" }` | Login failed — three separate call sites share this event name, covering wrong password, nonexistent user, and a database error respectively; check the payload's `error` field for which one. |
-| `validateLoginViaAuthTokenSuccess` | `server-services/start-services.js:498` | `{ userData }` | "Remember me" token-based silent login succeeded. |
-| `validateRegisterSuccess` | `server-services/start-services.js:550` | `{ userData }` | New account registration succeeded. |
-| `validateRegisterFail` | `server-services/start-services.js:556` | `{ username: msg.username, error: accountCreationResult }` | New account registration failed (username taken, validation error, etc — see `error`). |
-| `feedback` | `server-services/start-services.js:587` | `{ msg }` | A player submitted in-game feedback (also posted to a Discord webhook if `config.services.feedback` is set). |
-| `saveEquipBeforeWrite` | `server-services/start-services.js:629` | `{msg, userData, accs}` | Just before a player's equipped loadout is written to the DB. |
-| `buyingResult` | `server-services/start-services.js:653` | `{buyingResult, userData, msg}` | A shop purchase attempt resolved. |
-| `redeemResult` | `server-services/start-services.js:673` | `{redeemResult, userData, msg}` | An item/egg code redemption attempt resolved. |
-| `previewResult` | `server-services/start-services.js:704` | `{canBeUsed, previewResult, userData, msg}` | A code "preview" (check without redeeming) resolved. |
-| `tokenSuccess` | `server-services/start-services.js:769` | `{ userData }` | The VIP/"nugget" token unlock flow succeeded. |
-| `unhandledCommand` | `server-services/start-services.js:794` | `{ msg, ws, accs }` | *(undocumented — add an entry to `src/scripts/event-descriptions.json`)* |
-| `insertMaps` | `server-services/src/data_management/recordsManagement.js:411` | `{this: this, jsonDir, map}` | Fired once per map JSON file as `insertMaps()` writes a `maps` row — the low-level counterpart to `initTablesMaps`. |
+| `servicesOnLoad` | `server-services/start-services.js:65` | `{ ss }` | Services process finished its own setup (DB, math, events), before `initTables()` runs. |
+| `initTablesStart` | `server-services/start-services.js:113` | `{ ss }` | Start of the DB-seeding pipeline — hook here to force-reinit `items` before defaults are inserted. |
+| `initTablesBefore` | `server-services/start-services.js:121` | `{ ss }` | Just before default items are inserted from `server-services/src/items/*.js` — only fires when the `items` table is currently empty (a genuinely fresh database), so it fires at most once, ever. For a plugin's own item pack, hook `initTables` instead (see below) — that one fires on every boot. |
+| `initTables` | `server-services/start-services.js:126` | `{ ss }` | Fires once per boot, after the empty-table check either ran or didn't — the reliable hook for a plugin to insert its own items via `ss.recs.insertItems(...)` every time services starts, regardless of whether the table was already seeded. |
+| `initTablesMaps` | `server-services/start-services.js:144` | `{ ss }` | After the `maps` table is unconditionally wiped and reseeded from `server-services/src/maps/*.json` (this happens on every boot, no empty-table gate) — plugins call `ss.recs.insertMaps(...)` here for custom map packs. |
+| `initTablesFinish` | `server-services/start-services.js:163` | `{ ss }` | End of the whole DB-seeding pipeline (items + maps both done). |
+| `serverConnected` | `server-services/start-services.js:325` | `{ msg, ws, yourServer: response.yourServer, yourServerName: response.yourServerName, serverType: msg.serverType }` | A connecting game/client socket's `auth_key` resolved to a `game_servers` row during its `requestConfig` handshake — fires once per connection, right after the existing `yourServer` lookup. Lets a plugin build its own registry of which live sockets belong to which identified instance (see legacyadmin's `services/registry.js`), so admin-style commands can be routed to a specific instance on demand. |
+| `sendServicesInfo` | `server-services/start-services.js:329` | `{servicesInfo}` | The periodic `servicesInfo` push (started by a `requestConfig` handshake) is about to be sent to a polling client/game server. |
+| `addEggs` | `server-services/start-services.js:399` | `{ userData }` | A player's egg (currency) balance was incremented via the `addEggs` command. |
+| `addKill` | `server-services/start-services.js:419` | `{ userData }` | A kill was recorded for a player via the `addKill` command. |
+| `addDeath` | `server-services/start-services.js:436` | `{ userData }` | A death was recorded for a player via the `addDeath` command. |
+| `setAnnouncement` | `server-services/start-services.js:451` | `{ msg }` | The global `game_announcement` flag was updated. |
+| `servicesInfoGame` | `server-services/start-services.js:466` | `{ gameInfo, gameInfoForClient, msg, thisServer: msg.thisServer }` | A game server pushed its `servicesInfo` (room/player-count snapshot) to services. |
+| `validateLoginSuccess` | `server-services/start-services.js:480` | `{ userData }` | Password-based login succeeded. |
+| `validateLoginFail` | `server-services/start-services.js:483` | `{ userData, msg, error: "Password is incorrect" }` | Login failed — three separate call sites share this event name, covering wrong password, nonexistent user, and a database error respectively; check the payload's `error` field for which one. |
+| `validateLoginFail` | `server-services/start-services.js:492` | `{ userData, msg, error: "User doesn't exist" }` | Login failed — three separate call sites share this event name, covering wrong password, nonexistent user, and a database error respectively; check the payload's `error` field for which one. |
+| `validateLoginFail` | `server-services/start-services.js:497` | `{ userData, msg, error: "Database error" }` | Login failed — three separate call sites share this event name, covering wrong password, nonexistent user, and a database error respectively; check the payload's `error` field for which one. |
+| `validateLoginViaAuthTokenSuccess` | `server-services/start-services.js:510` | `{ userData }` | "Remember me" token-based silent login succeeded. |
+| `validateRegisterSuccess` | `server-services/start-services.js:562` | `{ userData }` | New account registration succeeded. |
+| `validateRegisterFail` | `server-services/start-services.js:568` | `{ username: msg.username, error: accountCreationResult }` | New account registration failed (username taken, validation error, etc — see `error`). |
+| `feedback` | `server-services/start-services.js:599` | `{ msg }` | A player submitted in-game feedback (also posted to a Discord webhook if `config.services.feedback` is set). |
+| `saveEquipBeforeWrite` | `server-services/start-services.js:641` | `{msg, userData, accs}` | Just before a player's equipped loadout is written to the DB. |
+| `buyingResult` | `server-services/start-services.js:665` | `{buyingResult, userData, msg}` | A shop purchase attempt resolved. |
+| `redeemResult` | `server-services/start-services.js:685` | `{redeemResult, userData, msg}` | An item/egg code redemption attempt resolved. |
+| `previewResult` | `server-services/start-services.js:716` | `{canBeUsed, previewResult, userData, msg}` | A code "preview" (check without redeeming) resolved. |
+| `tokenSuccess` | `server-services/start-services.js:781` | `{ userData }` | The VIP/"nugget" token unlock flow succeeded. |
+| `unhandledCommand` | `server-services/start-services.js:806` | `{ msg, ws, accs, ip }` | A `cmd` arrived that none of services' own core cases matched — the general escape hatch for plugin-defined commands (set `plugins.cancel = true` so this doesn't also log it as dropped). Most of legacyadmin's services-side commands (file editor, SQL/table editor relay, moderation CRUD, catalog browser, room overview, account login) are handled here. |
+| `wsDisconnected` | `server-services/start-services.js:821` | `{ ws }` | A previously connected socket closed — counterpart to `serverConnected`, for cleaning up whatever a plugin's registry stored keyed by that socket. |
+| `insertMaps` | `server-services/src/data_management/recordsManagement.js:405` | `{this: this, jsonDir, map}` | Fired once per map JSON file as `insertMaps()` writes a `maps` row — the low-level counterpart to `initTablesMaps`. |
 
 ---
 
@@ -5857,7 +5866,6 @@ Every entry in `Comm.Code` (`src/shell/comm.js`), extracted directly from source
 | `setModifiers` | `52` | LEGACYSHELL ADDED SERVER: set scale of a player |
 | `roundUpdate` | `53` | LEGACYSHELL ADDED SERVER: update the round stuff |
 | `updateRoomParams` | `54` | LEGACYSHELL ADDED SERVER: update the room's params such as cheats, etc |
-| `doThunderStrike` | `55` | LEGACYSHELL ADDED SERVER: inits a thunderstrike |
 | `heal` | `56` | LEGACYSHELL ADDED SERVER: heals a player |
 | `syncData` | `57` | LEGACYSHELL ADDED SERVER: syncs the data of the player, with less pertinent data |
 | `explosionEffect` | `58` | LEGACYSHELL ADDED SERVER: spawns a cosmetic (non-damaging) explosion effect at a player's position, used by /player explode |
@@ -5886,6 +5894,7 @@ Every key in every `src/defaultconfig/*.yaml` template, with its default value a
 |---|---|---|
 | `port` | `13370` | - |
 | `sync_server` | `"ws://localhost:13371"` | this is basically the services server. but its not! this is what the client server will internally use to retrieve its configs and shit. in theory the sync server could put in a different services URL entirely! anyway, if the client and services servers are both running on the same machine, you can keep this as localhost. |
+| `auth_key` | `""` | optional. giving this client instance an auth_key (create one via the admin panel's SQL/table editor against the game_servers table, same table game servers already register in) lets services target it directly for admin actions (config editor, restart) instead of it only being reachable indirectly. leave blank if you don't need that - everything else works the same either way, this instance just won't show up as a routable target in the admin panel. |
 | `this_url` | `"legacyshell.com"` | used in some find and replaces. input the url you want people to access your site via. primarily used for the seo embed things. not critical to the site's function. |
 | `login.enabled` | `false` | - |
 | `login.username` | `"legacy"` | - |
@@ -6304,10 +6313,11 @@ Defined at `src/shell/comm.js:346`.
 | `boot` | `3` |
 | `closeAllWs` | `4` |
 | `terminate` | `5` |
+| `chat` | `6` |
 
 ## `Comm.Chat`
 
-Defined at `src/shell/comm.js:355`.
+Defined at `src/shell/comm.js:356`.
 
 | Key | Value |
 |---|---|
@@ -6348,24 +6358,19 @@ Every built-in `this.newCommand({...})` call in `src/shell/permissions.js`, extr
 | `/mod boot` | "mod" | Boot problematic players. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["string"]` | No | `src/shell/permissions.js:380` |
 | `/player kill` | "player" | Instantly kills a player. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["string"]` | Yes | `src/shell/permissions.js:400` |
 | `/player explode` | "player" | Instantly kills a player and spawns a cosmetic explosion effect at their position. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["string"]` | Yes | `src/shell/permissions.js:418` |
-| `/player hp` | "player" | Sets a players HP directly. Unlike healing, this can push HP beyond the usual 100 cap. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["number", 0, 109, 1]` | Yes | `src/shell/permissions.js:441` |
-| `/room notify` | "room" | Announces a message to all players. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["string"]` | No | `src/shell/permissions.js:467` |
-| `/room enableCheats` | "room" | Enable/disable cheats. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["bool"]` | No | `src/shell/permissions.js:483` |
-| `/room limit` | "room" | Set the max player limit. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["number", 1, maxServerSlots, 1]` | No | `src/shell/permissions.js:503` |
-| `/room warp` | "room" | Change to another room. | `[this.ranksEnum.Guest, this.ranksEnum.Guest, false]` | `["string"]` | No | `src/shell/permissions.js:520` |
-| `/room warpall` | "room" | Transfer all players to another room. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["string"]` | No | `src/shell/permissions.js:533` |
-| `/room gameoptions` | "room" | View current game options. | `[this.ranksEnum.Guest, this.ranksEnum.Guest, false]` | `["bool"]` | No | `src/shell/permissions.js:551` |
-| `/room info` | "room" | View current rooms info. | `[this.ranksEnum.Guest, this.ranksEnum.Guest, false]` | `["bool"]` | No | `src/shell/permissions.js:564` |
-| `/room lock` | "room" | Prevent any new players from joining your room. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["bool"]` | No | `src/shell/permissions.js:588` |
-| `/room isPublic` | "room" | Change this rooms visibility. | `[this.ranksEnum.Moderator, this.ranksEnum.Moderator, false]` | `["bool"]` | No | `src/shell/permissions.js:609` |
-| `/rounds enable` | "rounds" | Enable/disable rounds. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["bool"]` | No | `src/shell/permissions.js:635` |
-| `/rounds length` | "rounds" | Set the length of rounds in seconds. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["number", 1, 60 * 60, 1]` | No | `src/shell/permissions.js:663` |
-| `/rounds skip` | "rounds" | Skip to the end of this round. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["string"]` | No | `src/shell/permissions.js:687` |
-| `/time day` | "time" | Set time to day (default). | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["string"]` | No | `src/shell/permissions.js:707` |
-| `/time night` | "time" | Set time to night. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["string"]` | No | `src/shell/permissions.js:726` |
-| `/weather rain` | "weather" | Enable/disable rainy weather. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["bool"]` | No | `src/shell/permissions.js:747` |
-| `/weather storm` | "weather" | Enable/disable stormy weather. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["bool"]` | No | `src/shell/permissions.js:766` |
-| `/weather snowstorm` | "weather" | Enable/disable the snowstorm. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["bool"]` | No | `src/shell/permissions.js:785` |
+| `/player hp` | "player" | Sets a players HP directly. Unlike healing, this can push HP beyond the usual 100 cap. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["number", 0, 100, 1]` | Yes | `src/shell/permissions.js:441` |
+| `/room notify` | "room" | Announces a message to all players. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["string"]` | No | `src/shell/permissions.js:465` |
+| `/room enableCheats` | "room" | Enable/disable cheats. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["bool"]` | No | `src/shell/permissions.js:481` |
+| `/room limit` | "room" | Set the max player limit. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["number", 1, maxServerSlots, 1]` | No | `src/shell/permissions.js:501` |
+| `/room warp` | "room" | Change to another room. | `[this.ranksEnum.Guest, this.ranksEnum.Guest, false]` | `["string"]` | No | `src/shell/permissions.js:518` |
+| `/room warpall` | "room" | Transfer all players to another room. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["string"]` | No | `src/shell/permissions.js:531` |
+| `/room gameoptions` | "room" | View current game options. | `[this.ranksEnum.Guest, this.ranksEnum.Guest, false]` | `["bool"]` | No | `src/shell/permissions.js:549` |
+| `/room info` | "room" | View current rooms info. | `[this.ranksEnum.Guest, this.ranksEnum.Guest, false]` | `["bool"]` | No | `src/shell/permissions.js:562` |
+| `/room lock` | "room" | Prevent any new players from joining your room. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["bool"]` | No | `src/shell/permissions.js:586` |
+| `/room isPublic` | "room" | Change this rooms visibility. | `[this.ranksEnum.Moderator, this.ranksEnum.Moderator, false]` | `["bool"]` | No | `src/shell/permissions.js:607` |
+| `/rounds enable` | "rounds" | Enable/disable rounds. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["bool"]` | No | `src/shell/permissions.js:633` |
+| `/rounds length` | "rounds" | Set the length of rounds in seconds. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["number", 1, 60 * 60, 1]` | No | `src/shell/permissions.js:661` |
+| `/rounds skip` | "rounds" | Skip to the end of this round. | `[this.ranksEnum.Moderator, this.ranksEnum.Guest, true]` | `["string"]` | No | `src/shell/permissions.js:685` |
 
 ---
 
@@ -7717,7 +7722,7 @@ Depends on `modernmapblocks` (`dependencies.js`: `{ modernmapblocks: "plugin" }`
 
 ## What it actually does
 
-- **Server-side**: on `game:roomInitEnd`, if the "christmas" event is currently active (via `#events`' `getEventsAtTime()`) and the map doesn't opt out (`minMap.extents.seasonalEffectsDisabled`), sets `gameOptions.weather.snowStormEnabled = true` for that room.
+- **Server-side**: on `game:roomInitEnd`, if the "christmas" event is currently active (via `#events`' `getEventsAtTime()`) and the map doesn't opt out (`minMap.extents.seasonalEffectsDisabled`), sets `gameOptions.plugins.weather.snowStormEnabled = true` for that room (weather state lives under the `legacyweather` plugin's own `gameOptions.plugins.weather`, not a top-level `gameOptions.weather`).
 - **Client-side** (spliced into the browser bundle via `pluginSourceInsertion`, gated once at bundle-build time by `events.currentArray.includes("christmas")` - not re-checked live): renames specific tree meshes on `game:createMapCells` (e.g. `nature.tree-01.aabb` becomes `christmas.tree-large.aabb`) to swap in snowy variants on *any* map, without that map needing to be authored with Christmas content itself. Then, on `game:createMapCellsMapLoaded`, procedurally scans every cell for likely-flat-surface blocks (roughly: `full`-collider blocks, arches, and specific "half"/"round-out" shapes, while excluding barriers, trees, and cap pieces) and scatters snow, then randomly places gifts/mistletoe/baubles/stockings/wreaths/gingerbread/candy canes based on adjacency checks (is there a wall here, a ceiling there, is the spot actually open) with a per-decoration-type placement chance.
 - The tree-renaming step is a concrete, real example of the `modifyMinMap`/`createMapCells` map-loading hooks (see the [browser event reference](../../../../docs/04-Plugin%20Development/Event%20Reference/game-browser.md)) being used to alter a map's block layout at load time, generically, without editing the map file itself.
 
@@ -7997,6 +8002,73 @@ Purely client-side UI, no server-side behavior at all (only registers `client:pl
 
 ---
 
+## wiki/plugins/Plugin Docs/Default/legacyadmin/info.md
+
+> **Canonical source:** [`plugins_default/legacyadmin/README.md`](https://github.com/onlypuppy7/LegacyShell/blob/main/plugins_default/legacyadmin/README.md) - edit that file, not this page (this page is built live from it, nothing here is a tracked copy).
+
+# LegacyAdmin
+
+A single unified admin panel, served at `/admin` (client role): config-file editing + instance
+restart (the original scope of this plugin, formerly `plugins_default/admin`), the SQL
+statement/template tool absorbed from `/sql` plus a graphical table editor, an item-catalog
+browser, code creation, moderation tools (kick/ban/mute), and live room/player/chat monitoring.
+See the root [CLAUDE.md](../../../../../CLAUDE.md) / [AGENTS.md](../../../../../AGENTS.md) for the general "could this be a
+plugin?" philosophy this follows.
+
+## Two auth tiers
+
+- **Account login (Moderator+)** - a real per-account login (bcrypt password, reusing
+  `#accountManagement`/`#sessionManagement` directly) gated on `adminRoles >= 10` (Moderator, per
+  `distributed_permissions.yaml`'s ranks). Unlocks the moderator-relevant slice: item browser,
+  moderation, room/chat monitoring.
+- **Full access** - the existing `sqlPassword` (bcrypt-compared against services' `flags` table)
+  plus an `auth_key` from the `game_servers` table. Unlocks everything, including the config-file
+  editor, SQL writes, and instance restarts. Reuses the exact same credential /sql already used.
+
+Either tier alone can use the moderator-relevant features; only full access can touch files/SQL
+writes/restarts. A bare `auth_key` with no `sqlPassword` stays low-privilege (rate-limit bypass and
+a handful of narrow game-server commands only) - it does **not** grant admin access on its own.
+
+## Connection model
+
+No dedicated port. Everything rides the same persistent WebSocket connections game/client
+instances already hold open to services (`#wsrequest`'s `onmessage`-returns-truthy pattern - see
+`server-game/start-game.js`/`server-client/start-client.js`). Services keeps a small registry of
+which connected sockets have identified themselves via `auth_key` (`services/registry.js`), and
+routes admin commands to a specific instance on demand via a new `servicesCommand` push - this
+replaced the plugin's old `mainPort+111` dedicated WS server, which no longer exists.
+
+## What's here
+
+```
+services/   registry.js (routing), auth.js (login/session), moderation.js (ban/mute CRUD),
+            catalogBridge.js (item data), roomOverview.js (multi-server room/player overview)
+game/       roomBridge.js (main thread: list rooms, get chat, kick), moderationWorker.js (per-room
+            kick handler), banCache.js / muteCache.js (periodic enforcement-list polls),
+            chatRelay.js (worker -> main thread chat relay)
+client/     the admin-app SPA (app.js + one file per tab: files, sql, items, codes, moderation,
+            rooms) - hand-rolled, no framework, #hash selects the tab and ?query carries per-tab
+            state so a refresh/share-link keeps your place
+```
+
+## Known follow-ups (not done in this pass)
+
+- **Item tiles render as a metadata table, not the game's actual 3D/sprite tile graphics.** Doing
+  that properly means extracting `ItemRenderer` out of `shellshock.min.js` (~line 1665) into a
+  shared, headless-Babylon-renderable module - real standalone work with its own risk (a
+  `loadMaterials` dependency that may not belong in a headless context) and its own verification
+  need (a live browser, to actually see the canvas output). Editing item rows already works today
+  via the SQL tab's table editor against the `items` table.
+- **Recently-closed-room history was explicitly dropped from scope** - not built, not stubbed.
+- **Mute/ban enforcement polls services every ~20s** (`game/banCache.js`/`muteCache.js`) rather
+  than being pushed live - simplest correct option; each active room worker polls independently
+  (workers share no state), a little redundant across many concurrent rooms but not incorrect.
+- The standalone `/sql` page still exists in parallel for now (its templates were ported into this
+  plugin's SQL tab by hand, not derived, so the two can drift - `/sql` itself is intended to be
+  formally deprecated once this panel replaces it in practice).
+
+---
+
 ## wiki/plugins/Plugin Docs/Default/legacyanalytics/info.md
 
 > **Canonical source:** [`plugins_default/legacyanalytics/README.md`](https://github.com/onlypuppy7/LegacyShell/blob/main/plugins_default/legacyanalytics/README.md) - edit that file, not this page (this page is built live from it, nothing here is a tracked copy).
@@ -8106,6 +8178,70 @@ Selected packs' CSS is fetched and cached once (`cacheAllStyles`), then applied 
 ## Notes
 
 `--replaceImgSrc-<elementId>` is a second, more specific CSS-variable convention this plugin looks for: any custom property named that way gets used to swap the `src` of the DOM element with that id - a way for a theme's CSS file to replace specific images (e.g. the logo) without any JS of its own.
+
+---
+
+## wiki/plugins/Plugin Docs/Default/legacyweather/info.md
+
+> **Canonical source:** [`plugins_default/legacyweather/README.md`](https://github.com/onlypuppy7/LegacyShell/blob/main/plugins_default/legacyweather/README.md) - edit that file, not this page (this page is built live from it, nothing here is a tracked copy).
+
+# LegacyWeather
+
+The day/night time-of-day system and the rain/storm/snowstorm weather effects, plus the
+`/time day|night` and `/weather rain|storm|snowstorm` admin commands - moved out of core into
+this plugin. Pure relocation for now: nothing about what any of this does has changed, only where
+it lives. See the root [CLAUDE.md](../../../../../CLAUDE.md) / [AGENTS.md](../../../../../AGENTS.md) for the general "could
+this be a plugin?" philosophy this follows.
+
+## What moved here
+
+- **Commands**: `day`, `night`, `rain`, `storm`, `snowstorm` (registered via `permissionsAfterSetup`,
+  same identifiers/categories/permission levels as before).
+- **gameOptions**: what used to be top-level `gameOptions.weather`/`gameOptions.time` now lives at
+  `gameOptions.plugins.weather`/`gameOptions.plugins.time` - the same "arbitrary flags for plugins"
+  bucket every room's `gameOptions` already carries and that `packUpdateRoomParams` already syncs,
+  so no new sync-payload plumbing was needed for this, just relocating within it. Defaults are
+  injected via `GameTypesInit` rather than hardcoded in `gametypes.js`'s `defaultOptions`.
+- **Protocol**: the `doThunderStrike` opcode used to be a core-reserved `Comm.Code` entry; it's now
+  registered via `Comm.Add("doThunderStrike")` from `permissionsAfterSetup`, same pattern
+  `parkourmode` uses for `parkourScore`.
+- **Sound**: `sound/ambiance/rain.mp3` (+ `.ogg`) and the `thunder1-4.mp3`/`.ogg` cue, previously
+  loaded by core's `loadSounds`, now pushed/registered from this plugin's own `loadSounds` listener.
+- **Assets**: `img/rain.png`, `img/flare.png` (snow particle texture), and the `thunderstorm`
+  skybox texture set - physically moved into `client/`, re-served at the exact same URLs
+  (`/img/rain.png`, `/img/flare.png`, `/img/skyboxes/thunderstorm/*`) via this plugin's own
+  `client:onStartServer` static mount, so `setSkybox("thunderstorm")` and the particle texture
+  paths needed no changes.
+- **Client rendering**: `doThunderStrike()` (the lightning flash/fog/skybox interval sequence),
+  `setParticleSystems()`, the rain/snow `BABYLON.ParticleSystem` setup (now created from this
+  plugin's `onMapComplete` listener instead of inline in core's), and `wetMaterial` (now created
+  from a new `loadMaterials` hook - core's `loadMaterials` didn't emit anything before this).
+- **Server logic**: the 1-in-4-chance-every-~2s thunder strike broadcast, moved out of
+  `rooms.js`'s `metaLoop` into this plugin's own `metaLoop` listener (that function already
+  emitted unconditionally, so no core change was needed there).
+
+## What's still shared (deliberately not moved)
+
+`setFog()` and `setSkybox()` are generic map-rendering primitives used by ordinary (non-weather)
+map loading too - this plugin just calls them, same as core did before.
+
+## Known coupling worth cleaning up later
+
+The per-tick camera-follow code that re-centers `rainParticleSystem.emitter`/
+`snowParticleSystem.emitter` on the player's position each frame is still in core
+(`shellshock.min.js`'s main render loop) and references these two plugin-owned globals by bare
+name. It still works correctly (both remain real globals once this plugin's `shared.js` is
+spliced into the bundle, same as any other plugin global), but it's a hidden coupling rather than
+a proper hook - a good candidate for a future `weatherParticlesTick`-style event if this plugin's
+functionality gets touched again.
+
+## Dependency note
+
+`christmasevent` (server-side, on `game:roomInitEnd`) sets
+`gameOptions.plugins.weather.snowStormEnabled = true` to turn on seasonal snow - it relies on this
+plugin's `GameTypesInit` listener having already populated `gameOptions.plugins.weather` by the
+time any room is created, which holds regardless of plugin load order since `GameTypesInit` fires
+once at module-load time, long before the first room exists.
 
 ---
 
