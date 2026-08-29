@@ -68,7 +68,7 @@ export class Plugin {
                 return;
             };
     
-            ctx.gameOptions.weather.snowStormEnabled = true;
+            ctx.gameOptions.plugins.weather.snowStormEnabled = true; //legacyweather plugin's gameOptions.plugins.weather, moved from gameOptions.weather
         };
     };
 };

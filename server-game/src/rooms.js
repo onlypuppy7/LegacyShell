@@ -332,8 +332,8 @@ export class RoomConstructor {
         var gameOptions = {
             cheatsEnabled: this.gameOptions.cheatsEnabled,
             timedGame: this.gameOptions.timedGame,
-            weather: this.gameOptions.weather,
-            time: this.gameOptions.time,
+            // weather/time now live under gameOptions.plugins (legacyweather plugin), already
+            // carried by the line below - no longer named here individually.
             plugins: this.gameOptions.plugins,
         };
         output.packLongString(JSON.stringify(gameOptions)); //is this technically bloated? yes, but its the only way i can do this such that adding new options is easy
@@ -425,11 +425,9 @@ export class RoomConstructor {
                 client.sendCloseToWs();
             };
         });
-        if (Math.getRandomChance(1 / 4) && this.gameOptions.weather.stormEnabled) { //1 in 4 chance of storm every 2 seconds
-            var output = new Comm.Out();
-            output.packInt8U(Comm.Code.doThunderStrike);
-            this.sendToAll(output, null, "doThunderStrike");
-        };
+        // Thunder-strike scheduling (1-in-4 chance of a synced lightning strike while storm is
+        // enabled, every ~2s via this same metaLoop cadence) moved to the legacyweather plugin's
+        // own metaLoop listener - the emit above already covers it, no new hook needed.
     };
 
     destroy() {

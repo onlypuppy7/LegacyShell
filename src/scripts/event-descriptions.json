@@ -178,6 +178,8 @@
   "server-client/src/client-static/src/shellshock.min.js#createMapCells": "Map cells are being generated from `minMap`.",
   "server-client/src/client-static/src/shellshock.min.js#onMapCompleteBeforeSetup": "Before final map setup finishes.",
   "server-client/src/client-static/src/shellshock.min.js#onMapComplete": "After final map setup finishes.",
+  "server-client/src/client-static/src/shellshock.min.js#loadMaterials": "Core's built-in materials have just been defined - lets a plugin define its own right after (e.g. legacyweather's wetMaterial).",
+  "server-client/src/client-static/src/shellshock.min.js#roomParamsUpdated": "A Comm.Code.updateRoomParams payload was just parsed (cheatsEnabled/Object.assign already handled by core) - lets a plugin render its own gameOptions.plugins-owned fields (e.g. legacyweather's weather/time rendering).",
   "server-client/src/client-static/src/shellshock.min.js#resetGamePlayer": "Client-local counterpart to the server's `resetGamePlayer` — round-scoped UI/state reset.",
   "server-client/src/client-static/src/shellshock.min.js#addKillTextBefore": "Before the kill-feed text is rendered.",
   "server-client/src/client-static/src/shellshock.min.js#onBalanceUpdated": "The player's currency balance display changed.",

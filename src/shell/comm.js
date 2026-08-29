@@ -603,12 +603,10 @@ const Comm = {
          */
         updateRoomParams: 54,
 
-        /** LEGACYSHELL ADDED
-         *
-         * SERVER: inits a thunderstrike
-         * @constant {number}
-         */
-        doThunderStrike: 55,
+        // doThunderStrike used to be here (55) - moved to the legacyweather plugin, added back
+        // via Comm.Add("doThunderStrike") in its shared.js. That leaves a gap at 55, which
+        // Comm.Add's own "first free integer" search (see its own comment) will find and reuse,
+        // so the actual wire value doesn't change.
 
         /** LEGACYSHELL ADDED
          *

@@ -93,12 +93,9 @@ export var defaultOptions = {
         spawnDuringInterval: false, //allows people to sit and wait
     },
     cheatsEnabled: false,
-    weather: {
-        rainEnabled: false,
-        stormEnabled: false,
-        snowStormEnabled: false,
-    },
-    time: "day",
+    // weather/time defaults (gameOptions.plugins.weather / gameOptions.plugins.time) are injected
+    // by the legacyweather plugin's own GameTypesInit listener, not hardcoded here - see its
+    // shared.js.
     lifesteal: [
         0, //ffa
         0, //team1
