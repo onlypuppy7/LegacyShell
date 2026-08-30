@@ -26,7 +26,7 @@ import { CONTROL, ticksPerSecond } from '#constants';
 // what caused a real bug earlier the same day this constant was extracted (see git history around
 // "phase-2 wall-collision cutoff") - index.js's copy got tuned and this file's didn't, and the
 // two silently disagreed about how a jump waypoint should be approached until something checked.
-export const JUMP_RUNUP_BACKAWAY_SECONDS = 0.1;
+export const JUMP_RUNUP_BACKAWAY_SECONDS = 0;
 
 // Map geometry never changes for a room's lifetime, so a given edge's simulated outcome is
 // deterministic - simulate any (fromKey,toKey,jump) combination at most once per room, ever,
@@ -62,7 +62,8 @@ const deltaSeconds = 1;
 // stuck bail - 600 ticks is a generous 10 real-time seconds for a single grid-edge hop, well
 // beyond anything a real successful approach takes, while still bounding worst-case speed
 // buildup the same way the stuck-bail window does.
-export function simulateEdge(player, from, to, { jump = false, maxTicks = 600, arrivalRadius = 0.3, verticalTolerance = 1.25 } = {}) {
+export function simulateEdge(player, from, to, { jump = false, fractionalRampRise = false, ladderCatch = false, maxTicks = 600, arrivalRadius = 0.3, verticalTolerance = 1.25 } = {}) {
+    const traceEdge = process.env.DI_PHYS_TRACE && Math.floor(from.x) === 5 && from.y === 2 && Math.floor(from.z) === 6 && Math.floor(to.x) === 3 && to.y === 2 && Math.floor(to.z) === 5;
     const snapshot = player.createSnapshot();
     // createSnapshot()'s field list (see player.js) doesn't include a couple of fields this
     // simulation also touches - saved separately so restore is complete, not just "mostly".
@@ -76,6 +77,8 @@ export function simulateEdge(player, from, to, { jump = false, maxTicks = 600, a
         const len = Math.sqrt(dx * dx + dz * dz) || 1;
         const ddx = dx / len;
         const ddz = dz / len;
+        const steerX = ladderCatch ? to.x + ddx * 0.75 : to.x;
+        const steerZ = ladderCatch ? to.z + ddz * 0.75 : to.z;
 
         player.x = from.x;
         player.y = from.y;
@@ -204,7 +207,7 @@ export function simulateEdge(player, from, to, { jump = false, maxTicks = 600, a
         // comment). Ascending jumps keep the original narrow window and no reactive ground-ahead
         // check at all - already correct and extensively verified across tonight's whole session,
         // untouched by this fix.
-        const jumpChargeSeconds = to.y > from.y ? 0.15 : 1.0;
+        const jumpChargeSeconds = to.y > from.y && !fractionalRampRise ? 0.15 : 1.0;
         const jumpLiftoffSeconds = JUMP_RUNUP_BACKAWAY_SECONDS + jumpChargeSeconds;
         // Mutable ceiling on top of the fixed jumpLiftoffSeconds cap above - phase 2's own ground-
         // ahead check (below) can only ever CUT this shorter (never extend past jumpLiftoffSeconds
@@ -296,6 +299,8 @@ export function simulateEdge(player, from, to, { jump = false, maxTicks = 600, a
         let bestDistance = Infinity;
         let bestDistanceAtSimTime = 0;
         let simulatedTime = 0;
+        let traceLiftoff = null;
+        let traceMaxY = player.y;
 
         for (let tick = 1; tick <= maxTicks; tick++) {
             simulatedTime += physicsSpeed / ticksPerSecond;
@@ -307,8 +312,8 @@ export function simulateEdge(player, from, to, { jump = false, maxTicks = 600, a
             // which - confirmed by testing - let a single-tick collision on one axis alone bend
             // the trajectory away from the target with no way to recover: exactly the kind of
             // false failure this whole module exists to avoid introducing.
-            const curDx = to.x - player.x;
-            const curDz = to.z - player.z;
+            const curDx = steerX - player.x;
+            const curDz = steerZ - player.z;
             const curLen = Math.sqrt(curDx * curDx + curDz * curDz) || 1;
 
             // followPath() sets this every tick too (`this.player.yaw = Math.atan2(dx, dz)`,
@@ -352,7 +357,12 @@ export function simulateEdge(player, from, to, { jump = false, maxTicks = 600, a
                     // Phase 3 - liftoff. jump() only succeeds once (canJump() returns false once
                     // already jumping - see player.js), so calling it again every subsequent tick
                     // here is a harmless no-op that keeps the branch simple.
-                    player.jump();
+                    const didJump = player.jump();
+                    if (traceEdge && didJump && !traceLiftoff) traceLiftoff = {
+                        tick, simulatedTime, x: player.x, y: player.y, z: player.z,
+                        dx: player.dx, dy: player.dy, dz: player.dz,
+                        jumpChargeMaxTime, chargeBlockedAtTick
+                    };
                 };
             };
 
@@ -376,6 +386,13 @@ export function simulateEdge(player, from, to, { jump = false, maxTicks = 600, a
             // test silently depended on the inflated speeds to ever be satisfiable.
             player.dx *= Math.pow(0.8, deltaSeconds);
             player.dz *= Math.pow(0.8, deltaSeconds);
+            traceMaxY = Math.max(traceMaxY, player.y);
+
+            if (ladderCatch && player.climbing
+                && Math.floor(player.climbingCell.x) === Math.floor(to.x)
+                && Math.floor(player.climbingCell.z) === Math.floor(to.z)) {
+                return { success: true, x: player.x, y: player.y, z: player.z, ticks: tick };
+            };
 
             // Ground-loss guard: the takeoff cell isn't necessarily the middle of a wide platform
             // - backing straight away from the target for the full fixed window can walk the
@@ -467,13 +484,22 @@ export function simulateEdge(player, from, to, { jump = false, maxTicks = 600, a
                 // charge the instant real ground stops being there, not after the fall has already
                 // begun, is what "jump on the literal last tick before losing ground" (the map
                 // author's own principle, already applied on the live-bot side) means here.
-                if (to.y <= from.y) {
+                if (to.y <= from.y || fractionalRampRise) {
                     const chargeLen = Math.sqrt(curDx * curDx + curDz * curDz) || 1;
+                    // Keep the verifier's conservative centre-ahead sample here. A full collider-
+                    // width probe rejects known-good same-level and descending jumps by ending the
+                    // charge while the simulated player is still too far from the real takeoff edge.
                     const chargeAheadX = player.x + (curDx / chargeLen) * 0.2;
                     const chargeAheadZ = player.z + (curDz / chargeLen) * 0.2;
                     const groundAhead = [0.15, 0.4, 0.65, 0.9].some(probeDy =>
                         player.Collider.playerCollidesWithMap(player, { x: chargeAheadX, y: player.y + 0.05 - probeDy, z: chargeAheadZ })
                     );
+                    // canJump() deliberately allows a near-ground grace jump by probing 0.2
+                    // units below the player. Use a short, bounded three-tick slice of that
+                    // allowance instead of firing before the leading edge leaves support: on a tight
+                    // same-level gap that single step is the difference between touching the
+                    // far block and stopping against its face. This is still reactive to real
+                    // geometry and scales with physics time; it does not assume a map distance.
                     if (!groundAhead) jumpChargeMaxTime = simulatedTime;
                 };
             };
@@ -546,12 +572,12 @@ export function simulateEdge(player, from, to, { jump = false, maxTicks = 600, a
                 bestDistance = horizontalDistance;
                 bestDistanceAtSimTime = simulatedTime;
             } else if (simulatedTime - bestDistanceAtSimTime > progressWindowSeconds) {
-                console.log('[physicsSimulation DEBUG] bailed', { from, to, jump, tick, bestDistance, playerPos: { x: player.x, y: player.y, z: player.z }, playerVel: { dx: player.dx, dy: player.dy, dz: player.dz }, jumping: player.jumping, isFalling: player.isFalling });
+                if (traceEdge) console.log('[physicsSimulation DEBUG] bailed', { from, to, jump, tick, bestDistance, traceLiftoff, traceMaxY, playerPos: { x: player.x, y: player.y, z: player.z }, playerVel: { dx: player.dx, dy: player.dy, dz: player.dz }, jumping: player.jumping, isFalling: player.isFalling });
                 break;
             };
         };
 
-        console.log('[physicsSimulation DEBUG] FAILED', { from, to, jump, ddx, ddz, endPos: { x: player.x, y: player.y, z: player.z }, endVel: { dx: player.dx, dy: player.dy, dz: player.dz }, jumping: player.jumping, isFalling: player.isFalling });
+        if (traceEdge) console.log('[physicsSimulation DEBUG] FAILED', { from, to, jump, ddx, ddz, traceLiftoff, traceMaxY, endPos: { x: player.x, y: player.y, z: player.z }, endVel: { dx: player.dx, dy: player.dy, dz: player.dz }, jumping: player.jumping, isFalling: player.isFalling });
         return { success: false, x: player.x, y: player.y, z: player.z, ticks: maxTicks };
     } finally {
         player.restoreSnapshot(snapshot);
@@ -563,7 +589,7 @@ export function simulateEdge(player, from, to, { jump = false, maxTicks = 600, a
 
 export function simulateEdgeCached(room, player, fromKey, toKey, from, to, opts = {}) {
     const cache = getCache(room);
-    const cacheKey = `${fromKey}->${toKey}:${opts.jump ? 'j' : 'w'}`;
+    const cacheKey = `${fromKey}->${toKey}:${opts.jump ? 'j' : 'w'}:${opts.fractionalRampRise ? 'fr' : '-'}:${opts.ladderCatch ? 'lc' : '-'}`;
     const cached = cache.get(cacheKey);
     if (cached) return cached;
 

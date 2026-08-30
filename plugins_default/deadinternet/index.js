@@ -18,7 +18,7 @@ export const PluginMeta = {
     identifier: "deadinternet",
     name: 'DeadInternet',
     author: 'onlypuppy7',
-    version: '0.1.0',
+    version: '1.0.0',
     descriptionShort: 'Adds bot players to your game', //displayed when loading
     descriptionLong: 'Adds bot players to your game',
     legacyShellVersion: 459, //legacy shell version, can be found in /versionEnum.txt, or just on the homescreen
@@ -318,7 +318,6 @@ export class DeadInternetBot {
         };
 
         const path = findPath(this.room, this.player, target, { avoidEdges: this.pathAvoidedEdges, ...opts });
-        devlog('TEMP-DIAG pathTo findPath result', path ? `path len ${path.length}` : 'NULL', 'from', this.player.x.toFixed(2), this.player.y.toFixed(2), this.player.z.toFixed(2), 'to', target.x, target.y, target.z, this.player.name);
 
         if (!path) {
             // Track whether findPath() is failing repeatedly from the SAME spot, regardless of
@@ -350,6 +349,7 @@ export class DeadInternetBot {
 
         this.currentPath = path;
         this.pathIndex = 0;
+        this.ladderCatchSteeringWaypointIndex = null;
         // Every fresh path is computed from wherever the player happens to BE right now - which,
         // if this pathTo() call is a checkStuck()-forced replan (or any caller chaining straight
         // off a just-arrived "arrived" result), can be mid-flight from an abandoned/incomplete
@@ -389,12 +389,14 @@ export class DeadInternetBot {
         this.jumpRunupUntilTime = null;
         this.jumpLiftoffFired = false;
         this.jumpNeedsRunup = false;
+        this.jumpGainsLevel = false;
         this.jumpChargeMaxTime = null;
         this.jumpRunupTargetDist = 0;
         this.jumpRunupStartX = 0;
         this.jumpRunupStartZ = 0;
         this.jumpRunupSpeed = 0;
         this.jumpRunupStartY = 0;
+        this.ladderCatchSteeringWaypointIndex = null;
 
         // control() only ever ORs bits into controlKeys (see above) - nothing ever clears them on
         // its own, and this is the only place in this file that stops actively steering the bot.
@@ -550,8 +552,29 @@ export class DeadInternetBot {
             };
         };
 
-        const dx = waypoint.x - this.player.x;
-        const dz = waypoint.z - this.player.z;
+        // A mid-air ladder catch needs to keep steering through the ladder plane until its thin
+        // collider is touched. Steering at the ladder cell centre itself makes the direction flip
+        // as soon as the player crosses that centre, often one tick before lookForLadder() sees
+        // the collision. Use the same fixed point 0.75 cells beyond the rung that simulateEdge()
+        // verified. Derive it from the planned departure waypoint, so normal full blocks and
+        // ordinary ladder climbs remain completely unchanged.
+        let steeringX = waypoint.x;
+        let steeringZ = waypoint.z;
+        if (waypoint.ladderCatch) {
+            if (this.ladderCatchSteeringWaypointIndex !== this.pathIndex) {
+                this.ladderCatchSteeringWaypointIndex = this.pathIndex;
+                const departure = this.currentPath[this.pathIndex - 1] || this.player;
+                const catchDx = waypoint.x - departure.x;
+                const catchDz = waypoint.z - departure.z;
+                const catchLen = Math.sqrt(catchDx * catchDx + catchDz * catchDz) || 1;
+                this.ladderCatchSteeringX = waypoint.x + (catchDx / catchLen) * 0.75;
+                this.ladderCatchSteeringZ = waypoint.z + (catchDz / catchLen) * 0.75;
+            };
+            steeringX = this.ladderCatchSteeringX;
+            steeringZ = this.ladderCatchSteeringZ;
+        };
+        const dx = steeringX - this.player.x;
+        const dz = steeringZ - this.player.z;
         const horizontalDistance = Math.sqrt(dx * dx + dz * dz);
 
         // Skip while climbing, and skip once close enough to the target that dx/dz themselves
@@ -727,6 +750,12 @@ export class DeadInternetBot {
             if (this.jumpRunupWaypointIndex !== this.pathIndex) {
                 this.jumpRunupWaypointIndex = this.pathIndex;
                 this.jumpRunupStartY = this.player.y;
+                // Collision settling on a ramp/full-block seam can leave the live player a few
+                // hundredths below the waypoint's nominal Y. That is still a same-level jump,
+                // not an ascent: classifying it as height-gaining cuts the charge cap from 1.0s
+                // to 0.2s and makes long jumps launch a full cell too early. Require a meaningful
+                // rise, matching the grid edge the verifier actually evaluated.
+                this.jumpGainsLevel = waypoint.y > this.jumpRunupStartY + 0.25;
                 this.jumpLiftoffFired = false;
                 // Run-up only matters for a jump that has to GAIN height - it exists specifically
                 // to build enough approach speed for the marginal step-up-on-collision mantle a
@@ -903,7 +932,7 @@ export class DeadInternetBot {
                 // charge cycle run long enough to disrupt the mantle sequence's own repeated-attempt
                 // rhythm. Scoping the wider cap to non-ascending jumps only keeps the crate's
                 // existing, already-correct behavior completely untouched.
-                this.jumpChargeMaxTime = this.jumpRunupUntilTime + (waypoint.y > this.jumpRunupStartY ? 0.2 : 1.0);
+                this.jumpChargeMaxTime = this.jumpRunupUntilTime + (this.jumpGainsLevel && !waypoint.fractionalRampRise ? 0.2 : 1.0);
             };
 
             if (this.simulatedTime < this.jumpRunupUntilTime) {
@@ -955,14 +984,19 @@ export class DeadInternetBot {
                 // more per tick), so this still catches a genuine fall well before it matters.
                 if (this.player.y < this.jumpRunupStartY - 0.05) this.jumpRunupUntilTime = this.simulatedTime;
             } else if (
-                this.jumpNeedsRunup &&
                 this.simulatedTime < this.jumpChargeMaxTime &&
                 Math.length2(this.player.x - this.jumpRunupStartX, this.player.z - this.jumpRunupStartZ) < this.jumpRunupTargetDist
             ) {
-                // Phase 2 - charge forward, STILL grounded (no jump() yet), until the player
-                // reaches the edge of its takeoff cell - jumping right at that edge is what
-                // actually matters (see comment above). The tick cap is just a safety net for the
-                // rare case the edge is never reached (e.g. a corner-clipped approach).
+                // Phase 2 - approach the takeoff edge, STILL grounded (no jump() yet), until the
+                // player reaches the edge of its takeoff cell. This phase applies to EVERY jump,
+                // not only jumps that need the optional phase-1 backward run-up: smallHop means
+                // "do not back away on this cramped half-step", not "jump immediately from
+                // wherever the previous waypoint's arrival radius happened to advance". The
+                // latter conflation left short crate-to-platform hops launching roughly 0.3 units
+                // before the usable edge. A manual trace confirms the reliable input is a plain
+                // forward approach to the near edge followed by jump, with no backward movement.
+                // The time/distance caps remain safety nets for the rare case the edge is never
+                // reached (e.g. a corner-clipped approach).
                 this.control(CONTROL.up);
                 // Phase 2's own wall-collision cutoff - physicsSimulation.js's offline verifier
                 // already has the exact equivalent of this (see its chargeBlockedAtTick), and
@@ -1010,11 +1044,17 @@ export class DeadInternetBot {
                 // trusted here either) answers that directly instead of waiting to react to a fall
                 // that's already begun.
                 const chargeLen = Math.sqrt(dx * dx + dz * dz) || 1;
+                // Keep this conservative centre-ahead sample aligned with the verifier. A full
+                // collider-width probe ends the charge too early on known-good ramp departures.
                 const chargeAheadX = this.player.x + (dx / chargeLen) * 0.2;
                 const chargeAheadZ = this.player.z + (dz / chargeLen) * 0.2;
                 const groundAhead = [0.15, 0.4, 0.65, 0.9].some(dy =>
                     this.player.Collider.playerCollidesWithMap(this.player, { x: chargeAheadX, y: this.player.y + 0.05 - dy, z: chargeAheadZ })
                 );
+                // player.canJump() has a built-in 0.2-unit near-ground grace probe. Use a short,
+                // bounded three-tick slice of that intentional allowance so a tight ledge jump
+                // takes off at the real edge, rather than conservatively before it. The
+                // verifier mirrors this exactly in physicsSimulation.js.
                 if (!groundAhead) this.jumpChargeMaxTime = this.simulatedTime;
             } else {
                 // Phase 3 - liftoff. Calling jump() again every subsequent tick here was assumed
@@ -1040,7 +1080,7 @@ export class DeadInternetBot {
                 // descending jumps only, where a repeat was never doing anything useful in the first
                 // place, keeps the ascending case's real behavior completely untouched.
                 this.control(CONTROL.up);
-                if (!this.jumpLiftoffFired || waypoint.y > this.jumpRunupStartY) {
+                if (!this.jumpLiftoffFired || this.jumpGainsLevel) {
                     this.player.jump();
                     this.jumpLiftoffFired = true;
                 };
@@ -1051,6 +1091,24 @@ export class DeadInternetBot {
         };
 
         const verticalDistance = Math.abs(this.player.y - waypoint.y);
+
+        // Unlike an ordinary JUMP landing, proximity to a ladder-catch waypoint is not success:
+        // the required outcome is the collision system actually attaching to that rung. The jump
+        // itself deliberately goes through the ordinary run-up/charge/liftoff state machine above
+        // so live execution matches the verifier instead of using a second, weaker jump model.
+        if (waypoint.ladderCatch) {
+            if (this.player.climbing
+                && Math.floor(this.player.climbingCell.x) === Math.floor(waypoint.x)
+                && Math.floor(this.player.climbingCell.z) === Math.floor(waypoint.z)) {
+                this.pathIndex++;
+                this.pathStuckSinceTime = null;
+                this.pathBestDistance = Infinity;
+                this.stuckEventCount = 0;
+            } else {
+                this.checkStuck(horizontalDistance, verticalDistance, true);
+            };
+            return 'following';
+        };
 
         // A same-level (WALK/RAMP) edge ending up with the bot far BELOW where it should be
         // means it didn't walk there - it fell off an edge the grid model didn't know was there.

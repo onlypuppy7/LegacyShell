@@ -456,6 +456,18 @@ function findLandingBelow(map, x, y, z, player) {
 // right up to the ladder's own entrance cell, then almost never take the one further step onto
 // the ladder itself, making the whole tower above it statically unreachable.
 function hasHeadroom(map, fromX, fromY, fromZ, toX, toY, toZ, player) {
+    // Descending moves start and finish at different standing heights. Checking both endpoint
+    // columns at the higher takeoff slice incorrectly rejects a real landing beneath an
+    // overhang. Check each endpoint at its own standing slice; the edge physics simulation still
+    // decides whether the airborne path between them clips anything.
+    if (toY < fromY) {
+        const fromCell = cellAt(map, fromX, fromY, fromZ);
+        const toCell = cellAt(map, toX, toY, toZ);
+        const fromClear = isRampCell(fromCell) || isLadderCell(fromCell) || !isBlockedAt(map, fromX, fromY, fromZ, player);
+        const toClear = isRampCell(toCell) || isLadderCell(toCell) || !isBlockedAt(map, toX, toY, toZ, player);
+        return fromClear && toClear;
+    };
+
     // A multi-level jump (effectiveMaxJumpLevels > 1 under a boosted gamemode) passes through
     // every intermediate height on its way up, not just the final landing level - checking only
     // the top slice would miss a ceiling one level below the target blocking the jump partway
@@ -740,6 +752,38 @@ function getNeighbors(map, x, y, z, player) {
     // verification (see findPath's simulateEdgeCached call) is still what actually decides whether
     // a specific candidate is reachable; this only needs to offer it as a candidate.
     const maxGapCells = effectiveMaxJumpGapCells(player);
+
+    // A wall-mounted ladder can be the landing target of a jump even when there is no floor at
+    // the destination: the player enters the ladder cell while airborne and lookForLadder()
+    // catches the rung. Ordinary gap-jump generation only targets isStandable landing surfaces,
+    // so without an explicit airborne-entry edge the graph skips these catches and may instead
+    // attempt a much longer jump past the ladder to the platform it serves. Offer nearby ladder
+    // cells at the takeoff height or one level below; real-physics verification remains the final
+    // authority on whether the approach actually reaches and attaches to the rung.
+    for (let jdx = -maxGapCells; jdx <= maxGapCells; jdx++) {
+        for (let jdz = -maxGapCells; jdz <= maxGapCells; jdz++) {
+            if (jdx === 0 && jdz === 0) continue;
+            const dist = Math.sqrt(jdx * jdx + jdz * jdz);
+            if (dist <= 1 || dist > maxGapCells) continue;
+            const jx = x + jdx, jz = z + jdz;
+            for (const ladderY of [Math.floor(y), Math.floor(y) - 1]) {
+                if (!inBounds(map, jx, ladderY, jz)) continue;
+                const ladderCell = cellAt(map, jx, ladderY, jz);
+                if (!isLadderCell(ladderCell) || !hasHeadroom(map, x, y, z, jx, ladderY, jz, player)) continue;
+                let blocked = false;
+                for (let t = 0.25; t < 1; t += 0.25) {
+                    const sx = Math.round(x + jdx * t), sz = Math.round(z + jdz * t);
+                    if ((sx === x && sz === z) || (sx === jx && sz === jz)) continue;
+                    if (isBlockedAt(map, sx, y, sz, player) && !isLadderCell(cellAt(map, sx, y, sz))) {
+                        blocked = true;
+                        break;
+                    };
+                };
+                if (!blocked) neighbors.push({ x: jx, y: ladderY, z: jz, type: EDGE_TYPE.JUMP, cost: dist + 0.5, ladderCatch: true });
+            };
+        };
+    };
+
     for (const [jdx, jdz] of HORIZONTAL_8) {
         for (let dist = 2; dist <= maxGapCells; dist++) {
             const jx = x + jdx * dist, jz = z + jdz * dist;
@@ -822,7 +866,15 @@ function getNeighbors(map, x, y, z, player) {
                     // onto one, and still scoped only to the fractional-landing case so an ordinary
                     // fall onto open floor keeps its original, already-reliable cost.
                     const aabbLandingPremium = landing.standX !== undefined ? 10 + (dist - 2) * 5 : 0;
-                    neighbors.push({ x: jx, y: landing.y, z: jz, type: EDGE_TYPE.JUMP, cost: dist + 1 + landing.drop * 0.3 + aabbLandingPremium, standX: landing.standX, standZ: landing.standZ });
+                    // A falling result above the takeoff height is actually a height-gaining jump,
+                    // not a cheap descent. Keep that risk visible to A* while leaving true
+                    // same-level/downward fractional landings unchanged.
+                    const fractionalRisePremium = landing.y > y + 0.05 ? 10 : 0;
+                    // Diagonal approaches to narrow fractional supports are less tolerant than
+                    // face-aligned ones. Prefer a short alignment walk when available, but retain
+                    // the jump as a fallback for layouts where it is the only route.
+                    const narrowDiagonalPremium = landing.standX !== undefined && Number.isInteger(y) && jdx !== 0 && jdz !== 0 ? 4 : 0;
+                    neighbors.push({ x: jx, y: landing.y, z: jz, type: EDGE_TYPE.JUMP, cost: dist + 1 + landing.drop * 0.3 + aabbLandingPremium + fractionalRisePremium + narrowDiagonalPremium, standX: landing.standX, standZ: landing.standZ });
                 };
             };
         };
@@ -893,7 +945,11 @@ function getNeighbors(map, x, y, z, player) {
         // check - confirmed live: exactly this happened on "PathJumpHardTest" until this was
         // split apart. Each branch below checks the height that's actually relevant to it.
         if (!isBlockedAlongLineAt(y) && isStandable(map, jx, y, jz, player) && hasHeadroom(map, x, y, z, jx, y, jz, player)) {
-            neighbors.push({ x: jx, y, z: jz, type: EDGE_TYPE.JUMP, cost: dist + 1 });
+            // Past the first two world units, extra jump distance reduces landing margin. Price
+            // that risk gradually so a short alignment walk can beat a longer diagonal shortcut
+            // when both are available, while leaving ordinary short hops unchanged.
+            const distanceReliabilityPremium = Math.max(0, dist - 2);
+            neighbors.push({ x: jx, y, z: jz, type: EDGE_TYPE.JUMP, cost: dist + 1 + distanceReliabilityPremium });
         // Math.floor(y), not y - see the identical fractional-current-y fix and its own comment
         // on the cardinal/45°-diagonal gap-jump above (same underlying cause, confirmed on the
         // same live case: "PathJumpHardTest"'s checkpoint1->2 crate-to-platform jump is itself a
@@ -901,7 +957,8 @@ function getNeighbors(map, x, y, z, player) {
         // needed the fix for that specific edge to be found at all). This branch specifically
         // checks blocked-along-line at the landing height, independent of whatever the takeoff
         // height's own check found - see the header comment on this whole block for why.
-        } else if (!isBlockedAlongLineAt(Math.floor(y) + 1) && isStandable(map, jx, Math.floor(y) + 1, jz, player) && hasHeadroom(map, x, y, z, jx, Math.floor(y) + 1, jz, player)) {
+        };
+        if (!isBlockedAlongLineAt(Math.floor(y) + 1) && isStandable(map, jx, Math.floor(y) + 1, jz, player) && hasHeadroom(map, x, y, z, jx, Math.floor(y) + 1, jz, player)) {
             // Same marginal step-up-on-collision quirk as every other level-up jump, PLUS a
             // non-cardinal knight's-move approach angle on top - see the identical reasoning on
             // the cardinal/45°-diagonal gap-jump's own "+1 level" cost a bit above (same fix,
@@ -912,7 +969,8 @@ function getNeighbors(map, x, y, z, player) {
         // Falling keeps the ORIGINAL takeoff-height-only check (see the header comment above) -
         // its real trajectory stays close to takeoff height, not the level-up branch's landing-
         // height relaxation, so a takeoff-height obstruction still correctly rules it out here.
-        } else if (!isBlockedAlongLineAt(y)) {
+        };
+        if (!isBlockedAlongLineAt(y)) {
             const landing = findLandingBelow(map, jx, Math.floor(y) + 1, jz, player);
             // standX/standZ (see findLandingBelow's own comment) - without this, a knight's-move
             // landing on an off-center aabb/obb (like this branch's own "PathJumpHardTest" crate,
@@ -926,7 +984,9 @@ function getNeighbors(map, x, y, z, player) {
                 // Same fractional-landing premium as the cardinal/45° gap-jump's own fall branch
                 // above - see that one's comment for the full reasoning ("PathEasyParkourTestA").
                 const aabbLandingPremium = landing.standX !== undefined ? 10 + (dist - 2) * 5 : 0;
-                neighbors.push({ x: jx, y: landing.y, z: jz, type: EDGE_TYPE.JUMP, cost: dist + 1 + landing.drop * 0.3 + aabbLandingPremium, standX: landing.standX, standZ: landing.standZ });
+                const fractionalRisePremium = landing.y > y + 0.05 ? 10 : 0;
+                const narrowUnevenPremium = landing.standX !== undefined && Number.isInteger(y) ? 4 : 0;
+                neighbors.push({ x: jx, y: landing.y, z: jz, type: EDGE_TYPE.JUMP, cost: dist + 1 + landing.drop * 0.3 + aabbLandingPremium + fractionalRisePremium + narrowUnevenPremium, standX: landing.standX, standZ: landing.standZ });
             };
         };
     };
@@ -1028,6 +1088,21 @@ function getNeighbors(map, x, y, z, player) {
                 const headroomX = standPos ? standPos.cx : nx + 0.5, headroomZ = standPos ? standPos.cz : nz + 0.5;
                 if (player.Collider.playerCollidesWithMap(player, { x: headroomX, y: targetY + 0.3, z: headroomZ })) continue;
                 const isSmallHop = fractionalTargets.has(targetY);
+                // Adjacent fractional-height supports may be separated by open air even when
+                // their grid cells touch. Sample the real player-sized footing along the segment;
+                // unsupported samples require a hop instead of a false WALK edge.
+                const departureStand = [Math.floor(y), Math.floor(y) - 1]
+                    .map(checkY => findAabbStandY(map, x, checkY, z, player))
+                    .find(stand => stand !== null && Math.abs(stand.y - y) < 0.05);
+                const departureX = departureStand?.cx ?? x + 0.5;
+                const departureZ = departureStand?.cz ?? z + 0.5;
+                const hasContinuousSupport = [0.25, 0.5, 0.75].every(t =>
+                    player.Collider.playerCollidesWithMap(player, {
+                        x: departureX + (headroomX - departureX) * t,
+                        y: y + rise * t - 0.05,
+                        z: departureZ + (headroomZ - departureZ) * t,
+                    })
+                );
                 // Climbing onto a half-height ledge is just a smaller version of the ordinary
                 // "up one level" case a few lines above - the player's box hits the ledge's
                 // vertical face and stops dead, same as it would at a full block, so this can't
@@ -1042,13 +1117,16 @@ function getNeighbors(map, x, y, z, player) {
                 // below a full-level jump (a 0.5-unit hop is far more reliable than clearing a
                 // whole level), but an ordinary full climb reuses the main loop's own cost (8) so
                 // it doesn't out-compete the correctly-typed edge on price.
-                const type = rise > 0 ? EDGE_TYPE.JUMP : EDGE_TYPE.WALK;
-                const cost = rise <= 0 ? 1 + Math.abs(rise) * 0.3 : isSmallHop ? 3 + rise * 2 : 8;
+                const type = rise > 0 || !hasContinuousSupport ? EDGE_TYPE.JUMP : EDGE_TYPE.WALK;
+                const departsFromHalfStep = isSmallHop || !Number.isInteger(y);
+                const cost = type === EDGE_TYPE.WALK
+                    ? 1 + Math.abs(rise) * 0.3
+                    : departsFromHalfStep ? 3 + Math.abs(rise) * 2 : 8;
                 // standX/standZ carry the real off-center stand position through to
                 // reconstructPath()'s waypoint building (see findAabbStandY's own comment) -
                 // undefined for every other edge type, which just falls back to cell-center there
                 // exactly as before this existed.
-                neighbors.push({ x: nx, y: targetY, z: nz, type, cost, smallHop: isSmallHop && rise > 0, standX: standPos?.cx, standZ: standPos?.cz });
+                neighbors.push({ x: nx, y: targetY, z: nz, type, cost, smallHop: departsFromHalfStep && type === EDGE_TYPE.JUMP, standX: standPos?.cx, standZ: standPos?.cz });
             };
         };
     };
@@ -1219,6 +1297,7 @@ export function findPath(room, start, goal, opts = {}) {
             // (which needs it to give the live bot's waypoint the same corrected position the
             // verifier just checked) can still see it - see findAabbStandY's WALK-support case.
             let toSupportStandY = null;
+            let fractionalRampRise = false;
             if (player && neighbor.type !== EDGE_TYPE.LADDER) {
                 // A ramp cell's real collision mesh is a diagonal incline, not a flat floor at the
                 // cell's nominal integer y - placing the simulated player exactly at that y, at the
@@ -1365,6 +1444,8 @@ export function findPath(room, start, goal, opts = {}) {
                     x: rampEntry ? rampEntry.x : toSupportY?.cx ?? (neighbor.x + 0.5), y: toY,
                     z: rampEntry ? rampEntry.z : toSupportY?.cz ?? (neighbor.z + 0.5),
                 };
+                fractionalRampRise = neighbor.type === EDGE_TYPE.JUMP && !!rampEntry
+                    && toCenter.y > fromCenter.y && toCenter.y - fromCenter.y < 0.75;
                 // A straight-line WALK crossing two ramps whose slope axes are genuinely
                 // perpendicular (see reconstructPath's peak-insertion pass for the full
                 // reasoning) is structurally NOT something this offline verifier can model
@@ -1383,7 +1464,9 @@ export function findPath(room, start, goal, opts = {}) {
                 const rampAxisTurn = isRampCell(fromCell) && isRampCell(toCell)
                     && (neighbor.type === EDGE_TYPE.WALK || neighbor.type === EDGE_TYPE.RAMP)
                     && Math.abs(rampSlopeAxis(fromCell).x * rampSlopeAxis(toCell).x + rampSlopeAxis(fromCell).z * rampSlopeAxis(toCell).z) <= 0.3;
-                const simResult = rampAxisTurn ? { success: true } : simulateEdgeCached(room, player, currentKey, nKey, fromCenter, toCenter, { jump: neighbor.type === EDGE_TYPE.JUMP });
+                const simResult = rampAxisTurn ? { success: true } : simulateEdgeCached(room, player, currentKey, nKey, fromCenter, toCenter, {
+                    jump: neighbor.type === EDGE_TYPE.JUMP, fractionalRampRise, ladderCatch: neighbor.ladderCatch,
+                });
                 if (!simResult.success) continue;
                 // toSupportY carries into cameFrom.set() below (via toSupportStandY, hoisted above
                 // this if-block) - NOT by overwriting neighbor.y itself, which is already baked into
@@ -1432,6 +1515,8 @@ export function findPath(room, start, goal, opts = {}) {
                     from: currentKey, type: neighbor.type, x: neighbor.x,
                     y: toSupportStandY ? toSupportStandY.y : neighbor.y, z: neighbor.z,
                     smallHop: neighbor.smallHop,
+                    fractionalRampRise,
+                    ladderCatch: neighbor.ladderCatch,
                     standX: neighbor.standX ?? toSupportStandY?.cx, standZ: neighbor.standZ ?? toSupportStandY?.cz,
                 });
                 open.push({ x: neighbor.x, y: neighbor.y, z: neighbor.z, f: tentativeG + heuristic(neighbor.x, neighbor.y, neighbor.z, gx, gy, gz) });
@@ -1459,7 +1544,9 @@ function reconstructPath(cameFrom, goalKey, map, player) {
         // for a ramp, which can offer real, valid ground well past half a cell along the slope).
         waypoints.push({
             x: step.standX ?? (step.x + 0.5), y: step.y, z: step.standZ ?? (step.z + 0.5),
-            type: step.type, smallHop: step.smallHop, onRamp: isRampCell(cellAt(map, step.x, step.y, step.z)),
+            type: step.type, smallHop: step.smallHop, fractionalRampRise: step.fractionalRampRise,
+            ladderCatch: step.ladderCatch,
+            onRamp: isRampCell(cellAt(map, step.x, step.y, step.z)),
             gridX: step.x, gridY: step.y, gridZ: step.z,
         });
         currentKey = step.from;
