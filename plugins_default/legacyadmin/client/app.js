@@ -7,12 +7,12 @@ const $ = (id) => document.getElementById(id);
 // Commands that get wrapped in adminRouteToServer when a target instance is selected. Everything
 // else (login, SQL, catalog, codes, moderation CRUD, servicesInfo) is inherently services-local and
 // always sent directly, regardless of what's selected in the target picker.
-const ROUTABLE_COMMANDS = new Set(['adminListFiles', 'adminReadFile', 'adminWriteFile', 'adminRestartThis', 'adminListRooms', 'adminGetRoomChat', 'adminKickPlayer', 'adminGetPerf']);
+const ROUTABLE_COMMANDS = new Set(['adminListFiles', 'adminReadFile', 'adminWriteFile', 'adminRestartThis', 'adminListRooms', 'adminGetRoomChat', 'adminKickPlayer', 'adminGetPerf', 'adminUpdatePull']);
 
 // Commands that genuinely need SQL-password / file / restart power. The SQL password and auth key
 // are only attached to these (or to the adminRouteToServer wrapper, or when there's no moderator
 // session to authenticate with) - not stapled onto every list refresh the way they used to be.
-const SQL_TIER_COMMANDS = new Set(['sqlRequest', 'adminListFiles', 'adminReadFile', 'adminWriteFile', 'adminRestartThis', 'adminRestartServices']);
+const SQL_TIER_COMMANDS = new Set(['sqlRequest', 'adminListFiles', 'adminReadFile', 'adminWriteFile', 'adminRestartThis', 'adminRestartServices', 'adminUpdatePull']);
 
 const listeners = new Map(); // response key -> Set<fn>
 

@@ -1,5 +1,15 @@
 import path from 'node:path';
+import { execFile } from 'node:child_process';
 import { scanEditableFiles, readFile, writeFile } from './fileScanner.js';
+
+// Run a command, capture combined stdout+stderr, never reject.
+function run(cmd, args, cwd) {
+    return new Promise((resolve) => {
+        execFile(cmd, args, { cwd, timeout: 300e3, maxBuffer: 8 * 1024 * 1024, windowsHide: true }, (err, stdout, stderr) => {
+            resolve({ ok: !err, code: err?.code ?? 0, out: `$ ${cmd} ${args.join(' ')}\n${stdout || ''}${stderr || ''}`.trim() });
+        });
+    });
+};
 
 // One handler shared by all three roles - only `verify` and `rootDir` differ per role (see
 // index.js). On services `verify` checks the submitted sqlPassword against the real hash; on a
@@ -57,6 +67,16 @@ export async function handleAdminMessage({ msg, ws, verify, rootDir, roleLabel, 
                 // for (see start-client.js/start-game.js's own self-restart calls) - delayed one
                 // tick so the success response above actually reaches the client first.
                 setImmediate(() => process.exit(1337));
+                break;
+            };
+            // git pull --ff-only + npm install in the repo root. Does NOT restart - the caller
+            // hits Restart afterwards. tag echoes back so a bulk "update all" can correlate.
+            case 'adminUpdatePull': {
+                const pull = await run('git', ['pull', '--ff-only'], rootDir);
+                const npm = pull.ok ? await run(process.platform === 'win32' ? 'npm.cmd' : 'npm', ['install', '--no-audit', '--no-fund'], rootDir) : { ok: false, out: '(skipped - git pull failed)' };
+                const ok = pull.ok && npm.ok;
+                record({ action: 'adminUpdatePull', target: roleLabel, result: ok ? 'ok' : 'error' });
+                ws.send(JSON.stringify({ adminUpdatePull: { role: roleLabel, ok, tag: msg.tag, output: [pull.out, npm.out].join('\n\n') } }));
                 break;
             };
         };

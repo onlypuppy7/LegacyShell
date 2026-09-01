@@ -32,7 +32,7 @@ const MAX_PENDING_ADMIN_REQUESTS = 200;
 const PENDING_ADMIN_REQUEST_TTL_MS = 30e3;
 
 // Routed commands that require the full-access (SQL password) tier, not just Moderator+.
-const ROUTED_FULL_ACCESS = new Set(['adminListFiles', 'adminReadFile', 'adminWriteFile', 'adminRestartThis']);
+const ROUTED_FULL_ACCESS = new Set(['adminListFiles', 'adminReadFile', 'adminWriteFile', 'adminRestartThis', 'adminUpdatePull']);
 
 let idCounter = 0;
 function nextId(serverType) {
@@ -114,11 +114,13 @@ export function registerRoutingListeners(plugins) {
             // never receive the SQL password / session / auth_key even if the client sent them.
             const { sqlPassword, session, auth_key, ...cleanPayload } = msg.payload || {};
             const requestId = nextRequestId();
+            // adminUpdatePull shells out to git + npm install - give it a much longer leash.
+            const ttl = innerCmd === 'adminUpdatePull' ? 360e3 : PENDING_ADMIN_REQUEST_TTL_MS;
             const timer = setTimeout(() => {
                 if (clearPending(requestId) && ws.readyState === ws.OPEN) {
                     ws.send(JSON.stringify({ error: 'Routed request timed out - the target instance did not respond' }));
                 };
-            }, PENDING_ADMIN_REQUEST_TTL_MS);
+            }, ttl);
             if (timer.unref) timer.unref();
             pendingAdminRequests.set(requestId, { callerWs: ws, targetId: msg.targetId, timer });
             target.ws.send(JSON.stringify({ cmd: 'servicesCommand', requestId, payload: cleanPayload }));

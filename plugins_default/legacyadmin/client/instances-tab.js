@@ -6,6 +6,20 @@ import { AdminApp, registerTab, $, setStatus, serverLabel } from './app.js';
 let currentFile = null;
 let perfTimer = null;
 const PERF_TAG = 'instances-tab';
+const pullExpect = new Set(); // tags we're still waiting on for a pull run
+
+function showPullOut(text) {
+    const el = $('inst-pull-out');
+    if (!el) return;
+    el.classList.remove('hidden');
+    el.textContent = text;
+};
+function appendPullOut(text) {
+    const el = $('inst-pull-out');
+    if (!el) return;
+    el.textContent += text;
+    el.scrollTop = el.scrollHeight;
+};
 
 const fileBtnClass = (active) => 'text-xs px-2 py-1 rounded border ' +
     (active ? 'bg-indigo-50 dark:bg-indigo-950 border-indigo-300 dark:border-indigo-700 text-indigo-700' : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700');
@@ -20,8 +34,11 @@ function render(container) {
                 <select id="inst-select" class="text-sm border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-md px-2 py-1"></select>
                 <button id="inst-refresh" class="${btn}" title="Refresh instance list">&#8635; Refresh</button>
                 <button id="inst-restart" class="${dangerBtn}">Restart</button>
+                <button id="inst-pull" class="${btn}" title="git pull --ff-only + npm install on the selected instance">Pull + npm&nbsp;i</button>
+                <button id="inst-pull-all" class="${btn}" title="Pull + npm install on services and every connected instance">Pull + npm&nbsp;i &mdash; all</button>
                 <span id="inst-perf" class="text-xs text-slate-400 dark:text-slate-500 ml-2"></span>
             </div>
+            <pre id="inst-pull-out" class="hidden mt-3 text-xs font-mono bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 rounded p-2 max-h-72 overflow-auto whitespace-pre-wrap"></pre>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -57,6 +74,21 @@ function render(container) {
         if (!confirm(`Restart ${label} now? Whatever it's currently doing will drop briefly.`)) return;
         AdminApp.send(AdminApp.targetId ? 'adminRestartThis' : 'adminRestartServices');
     };
+    container.querySelector('#inst-pull').onclick = () => {
+        const label = AdminApp.targetId ? 'the SELECTED instance' : 'this services instance';
+        if (!confirm(`Run "git pull --ff-only" + "npm install" on ${label}? It does not restart - hit Restart after it finishes.`)) return;
+        pullExpect.clear();
+        pullExpect.add(AdminApp.targetId || 'services');
+        showPullOut('Running on ' + label + '…\n');
+        AdminApp.send('adminUpdatePull', { tag: AdminApp.targetId || 'services' });
+    };
+    container.querySelector('#inst-pull-all').onclick = () => {
+        const targets = ['', ...AdminApp.servers.map(s => s.id)];
+        if (!confirm(`Run "git pull --ff-only" + "npm install" on services and all ${AdminApp.servers.length} connected instance(s)? None will restart automatically.`)) return;
+        pullExpect.clear();
+        showPullOut('Running on ' + targets.length + ' target(s)…\n');
+        for (const id of targets) { const tag = id || 'services'; pullExpect.add(tag); AdminApp.sendTo(id, 'adminUpdatePull', { tag }); };
+    };
 
     container.querySelector('#fa-save').onclick = () => {
         if (!currentFile) return;
@@ -81,6 +113,13 @@ function populateSelect(container) {
 };
 
 AdminApp.on('adminListServers', () => { const c = $('tabContent'); if (c?.querySelector('#inst-select')) populateSelect(c); });
+
+AdminApp.on('adminUpdatePull', (r) => {
+    const label = (r.tag === 'services' || !r.tag) ? 'services' : (AdminApp.servers.find(s => s.id === r.tag)?.name || r.tag);
+    pullExpect.delete(r.tag || 'services');
+    appendPullOut(`\n\n========== ${label} — ${r.ok ? 'OK' : 'FAILED'} ==========\n${r.output || ''}`);
+    if (pullExpect.size === 0) appendPullOut('\n\n(all done — restart the updated instances to apply)');
+});
 
 AdminApp.on('adminGetPerf', (p) => {
     if (p.tag !== PERF_TAG) return;

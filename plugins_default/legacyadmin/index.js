@@ -45,7 +45,7 @@ async function servicesVerify(msg, accs) {
     return (await accs.comparePassword({ password: ss.sqlPassword }, msg.sqlPassword)) === true;
 };
 
-const FILE_EDITOR_COMMANDS = ['adminListFiles', 'adminReadFile', 'adminWriteFile', 'adminRestartThis'];
+const FILE_EDITOR_COMMANDS = ['adminListFiles', 'adminReadFile', 'adminWriteFile', 'adminRestartThis', 'adminUpdatePull'];
 const ROOM_ADMIN_COMMANDS = ['adminListRooms', 'adminGetRoomChat', 'adminKickPlayer'];
 
 export class Plugin {
@@ -103,7 +103,7 @@ export class Plugin {
     // --- services: it holds the real password hash, so local admin commands (targeting services
     // itself) are handled directly here, same as before - no routing needed to reach itself.
     async onServicesUnhandledCommand({ msg, ws, accs, ip, rawIp }) {
-        const ADMIN_COMMANDS = ['adminListFiles', 'adminReadFile', 'adminWriteFile', 'adminRestartThis', 'adminRestartServices'];
+        const ADMIN_COMMANDS = ['adminListFiles', 'adminReadFile', 'adminWriteFile', 'adminRestartThis', 'adminRestartServices', 'adminUpdatePull'];
         if (!ADMIN_COMMANDS.includes(msg.cmd)) return;
         this.plugins.cancel = true;
 

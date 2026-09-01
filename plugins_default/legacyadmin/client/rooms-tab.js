@@ -14,18 +14,30 @@ function render(container, params) {
         <div id="rooms-overview" class="space-y-4"></div>
         <div id="rooms-drilldown" class="mt-4"></div>
     `;
-    container.querySelector('#rooms-refresh').onclick = () => AdminApp.send('adminGetServicesInfo');
+    container.querySelector('#rooms-refresh').onclick = () => { AdminApp.send('adminListServers'); AdminApp.send('adminGetServicesInfo'); };
+    AdminApp.send('adminListServers'); // so server names are available for the section headings
     AdminApp.send('adminGetServicesInfo');
     if (drilldownGameId) loadDrilldown(drilldownGameId, container);
 };
 
-function routeIdForServerIndex(index) {
-    const server = AdminApp.servers.find(s => String(s.yourServer) === String(index) && s.serverType === 'game');
-    return server?.id || null;
+function serverForIndex(index) {
+    return AdminApp.servers.find(s => String(s.yourServer) === String(index) && s.serverType === 'game') || null;
 };
+function routeIdForServerIndex(index) {
+    return serverForIndex(index)?.id || null;
+};
+
+// Server names can arrive after the room overview - re-render it when the registry updates.
+AdminApp.on('adminListServers', () => {
+    if ($('rooms-overview') && Object.keys(lastGameInfo).length) renderOverview();
+});
 
 AdminApp.on('adminGetServicesInfo', (result) => {
     lastGameInfo = result.gameInfo || {};
+    renderOverview();
+});
+
+function renderOverview() {
     const overview = $('rooms-overview');
     if (!overview) return;
 
@@ -37,9 +49,11 @@ AdminApp.on('adminGetServicesInfo', (result) => {
         const info = lastGameInfo[index];
         const rooms = info.rooms || [];
         const routeId = routeIdForServerIndex(index);
+        const entry = serverForIndex(index);
+        const heading = entry?.name ? `${entry.name} · game #${index}` : `Game server #${index}`;
         const section = document.createElement('section');
         section.className = 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden';
-        section.innerHTML = `<div class="bg-slate-50 dark:bg-slate-900/40 px-3 py-2 text-sm font-semibold">Game server #${escapeHtml(index)}</div>`;
+        section.innerHTML = `<div class="bg-slate-50 dark:bg-slate-900/40 px-3 py-2 text-sm font-semibold">${escapeHtml(heading)}</div>`;
         if (rooms.length === 0) {
             section.innerHTML += '<div class="p-3 text-sm text-slate-400 dark:text-slate-500">No open rooms.</div>';
         } else {
@@ -66,7 +80,7 @@ AdminApp.on('adminGetServicesInfo', (result) => {
         };
         overview.appendChild(section);
     };
-});
+};
 
 function loadDrilldown(gameId, container) {
     drilldownGameId = gameId;
