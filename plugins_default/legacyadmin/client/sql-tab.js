@@ -56,18 +56,22 @@ const primaryBtn = btnClass + ' bg-indigo-600 hover:bg-indigo-500 text-white';
 const plainBtn = btnClass + ' border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700';
 
 function render(container, params) {
-    const mode = params.get('mode') === 'table' ? 'table' : 'statement';
+    const mode = ['table', 'backups'].includes(params.get('mode')) ? params.get('mode') : 'statement';
+    const modeBtn = (m, label) => `<button id="sql-mode-${m}" class="${mode === m ? primaryBtn : plainBtn}">${label}</button>`;
     container.innerHTML = `
         <div class="flex gap-2 mb-4">
-            <button id="sql-mode-statement" class="${mode === 'statement' ? primaryBtn : plainBtn}">Statement / Templates</button>
-            <button id="sql-mode-table" class="${mode === 'table' ? primaryBtn : plainBtn}">Table Editor</button>
+            ${modeBtn('statement', 'Statement / Templates')}
+            ${modeBtn('table', 'Table Editor')}
+            ${modeBtn('backups', 'Backups')}
         </div>
         <div id="sql-body"></div>
     `;
-    container.querySelector('#sql-mode-statement').onclick = () => { setQueryParam('mode', 'statement'); render(container, new URLSearchParams(location.search)); };
-    container.querySelector('#sql-mode-table').onclick = () => { setQueryParam('mode', 'table'); render(container, new URLSearchParams(location.search)); };
+    for (const m of ['statement', 'table', 'backups']) {
+        container.querySelector('#sql-mode-' + m).onclick = () => { setQueryParam('mode', m); render(container, new URLSearchParams(location.search)); };
+    };
 
     if (mode === 'table') renderTableEditor(container.querySelector('#sql-body'), params);
+    else if (mode === 'backups') renderBackups(container.querySelector('#sql-body'));
     else renderStatementMode(container.querySelector('#sql-body'));
 };
 
@@ -221,5 +225,67 @@ AdminApp.on('result', async (result) => {
         });
     });
 });
+
+// --- Backups mode ------------------------------------------------------------------------------
+function fmtBytes(n) {
+    if (n == null) return '-';
+    if (n < 1024) return n + ' B';
+    const u = ['KB', 'MB', 'GB']; let i = -1;
+    do { n /= 1024; i++; } while (n >= 1024 && i < u.length - 1);
+    return n.toFixed(1) + ' ' + u[i];
+};
+const escB = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+function renderBackups(body) {
+    body.innerHTML = `
+        <div class="flex flex-wrap gap-2 items-center mb-3">
+            <button id="bk-create" class="${primaryBtn}">Create backup now</button>
+            <button id="bk-refresh" class="${plainBtn}">Refresh</button>
+            <button id="bk-prune" class="${plainBtn}">Prune to keep count</button>
+            <span id="bk-info" class="text-xs text-slate-400 dark:text-slate-500"></span>
+        </div>
+        <div id="bk-list" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md overflow-auto text-sm">Loading...</div>
+        <p class="text-xs text-slate-400 dark:text-slate-500 mt-2">Restore replaces the live database and restarts services. A safety copy of the current DB is made first.</p>
+    `;
+    body.querySelector('#bk-create').onclick = () => AdminApp.send('adminCreateBackup');
+    body.querySelector('#bk-refresh').onclick = () => AdminApp.send('adminListBackups');
+    body.querySelector('#bk-prune').onclick = () => {
+        const n = parseInt(prompt('Keep how many of the newest backups?', '20'), 10);
+        if (Number.isInteger(n) && n >= 0 && confirm(`Delete all but the ${n} newest backups?`)) AdminApp.send('adminDeleteBackup', { keep: n });
+    };
+    AdminApp.send('adminListBackups');
+};
+
+function renderBackupList(payload) {
+    const list = document.getElementById('bk-list');
+    if (!list) return;
+    const entries = payload.entries || [];
+    const info = document.getElementById('bk-info');
+    if (info) info.textContent = `${entries.length} backup(s)${payload.keep != null ? ` · auto-keep ${payload.keep}` : ''} · ${escB(payload.dir || '')}`;
+    if (!entries.length) { list.innerHTML = '<div class="p-4 text-sm text-slate-400 dark:text-slate-500">No backups.</div>'; return; };
+    list.innerHTML = `<table class="w-full">
+        <thead class="bg-slate-50 dark:bg-slate-900/40 text-slate-500 dark:text-slate-400 text-xs"><tr>
+            <th class="text-left p-2">File</th><th class="text-right p-2">Size</th><th class="text-left p-2">Created</th><th class="p-2"></th></tr></thead>
+        <tbody>${entries.map(e => `<tr class="border-t border-slate-100 dark:border-slate-700">
+            <td class="p-2 font-mono text-xs break-all">${escB(e.name)}</td>
+            <td class="p-2 text-right">${fmtBytes(e.bytes)}</td>
+            <td class="p-2 text-xs text-slate-400 dark:text-slate-500">${new Date(e.mtime * 1000).toLocaleString()}</td>
+            <td class="p-2 whitespace-nowrap text-right">
+                <button data-restore="${escB(e.name)}" class="text-xs text-amber-600 hover:underline mr-2">Restore</button>
+                <button data-del="${escB(e.name)}" class="text-xs text-rose-600 hover:underline">Delete</button>
+            </td></tr>`).join('')}</tbody>
+    </table>`;
+    list.querySelectorAll('[data-del]').forEach(b => b.onclick = () => {
+        if (confirm(`Delete backup ${b.dataset.del}?`)) AdminApp.send('adminDeleteBackup', { name: b.dataset.del });
+    });
+    list.querySelectorAll('[data-restore]').forEach(b => b.onclick = () => {
+        if (confirm(`RESTORE the database from ${b.dataset.restore}? This overwrites the live DB and restarts services. Everyone gets disconnected.`)) AdminApp.send('adminRestoreBackup', { name: b.dataset.restore });
+    });
+};
+
+AdminApp.on('adminListBackups', renderBackupList);
+AdminApp.on('adminCreateBackup', (r) => { AdminApp.send('adminListBackups'); });
+AdminApp.on('adminDeleteBackup', renderBackupList);
+AdminApp.on('adminRestoreBackup', () => { const i = document.getElementById('bk-info'); if (i) i.textContent = 'Restore requested - services is restarting, reconnect in a moment.'; });
 
 registerTab({ id: 'sql', label: 'SQL', render });

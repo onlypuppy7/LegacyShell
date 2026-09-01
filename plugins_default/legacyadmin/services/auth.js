@@ -59,8 +59,16 @@ export async function requireModeratorOrAbove(msg, ws, ip) {
     return result;
 };
 
+// Admin (rank 20) or the SQL password - required for the genuinely dangerous surface (account
+// rename/password/impersonation, reading the audit log). Plain Moderator is not enough.
+export async function checkAdminOrSql(msg, ip) {
+    const auth = await checkModeratorOrAbove(msg, ip);
+    if (auth && (auth.tier === 'sqlPassword' || (auth.adminRoles || 0) >= ranksEnum.Admin)) return auth;
+    return null;
+};
+
 export function registerAuthListeners(plugins) {
-    plugins.on('services:unhandledCommand', async ({ msg, ws, ip }) => {
+    plugins.on('services:unhandledCommand', async ({ msg, ws, ip, rawIp }) => {
         if (msg.cmd === 'adminAccountLogin') {
             plugins.cancel = true;
             try {
@@ -70,18 +78,18 @@ export function registerAuthListeners(plugins) {
                 // fail the same generic way as a bad username/password so this doesn't leak which
                 // usernames happen to carry elevated access.
                 if (!userData || adminRoles < ranksEnum.ContentCreator) {
-                    recordAudit({ action: 'adminAccountLogin', actor: String(msg.username || '').slice(0, 64) || 'unknown', tier: 'account', ip, result: 'denied', detail: { reason: 'no such user or rank too low' } });
+                    recordAudit({ action: 'adminAccountLogin', actor: String(msg.username || '').slice(0, 64) || 'unknown', tier: 'account', ip: rawIp, result: 'denied', detail: { reason: 'no such user or rank too low' } });
                     ws.send(JSON.stringify({ error: 'Username or password is incorrect.' }));
                     return;
                 };
                 const isCorrect = await accs.comparePassword(userData, msg.password);
                 if (isCorrect !== true) {
-                    recordAudit({ action: 'adminAccountLogin', actor: userData.username, tier: 'account', ip, result: 'denied', detail: { reason: 'bad password' } });
+                    recordAudit({ action: 'adminAccountLogin', actor: userData.username, tier: 'account', ip: rawIp, result: 'denied', detail: { reason: 'bad password' } });
                     ws.send(JSON.stringify({ error: 'Username or password is incorrect.' }));
                     return;
                 };
                 const session = await sess.createSession(userData.account_id, ip);
-                recordAudit({ action: 'adminAccountLogin', actor: userData.username, tier: 'account', ip, result: 'ok', detail: { adminRoles } });
+                recordAudit({ action: 'adminAccountLogin', actor: userData.username, tier: 'account', ip: rawIp, result: 'ok', detail: { adminRoles } });
                 ws.send(JSON.stringify({
                     adminAccountLogin: { session, account_id: userData.account_id, username: userData.username, adminRoles },
                 }));
@@ -104,7 +112,7 @@ export function registerAuthListeners(plugins) {
                 };
                 await sess.deleteSession(msg.session);
             };
-            recordAudit({ action: 'adminAccountLogout', actor, tier: 'account', ip, result: 'ok' });
+            recordAudit({ action: 'adminAccountLogout', actor, tier: 'account', ip: rawIp, result: 'ok' });
             ws.send(JSON.stringify({ adminAccountLogout: { success: true } }));
             return;
         };

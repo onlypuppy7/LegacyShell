@@ -7,7 +7,7 @@ const $ = (id) => document.getElementById(id);
 // Commands that get wrapped in adminRouteToServer when a target instance is selected. Everything
 // else (login, SQL, catalog, codes, moderation CRUD, servicesInfo) is inherently services-local and
 // always sent directly, regardless of what's selected in the target picker.
-const ROUTABLE_COMMANDS = new Set(['adminListFiles', 'adminReadFile', 'adminWriteFile', 'adminRestartThis', 'adminListRooms', 'adminGetRoomChat', 'adminKickPlayer']);
+const ROUTABLE_COMMANDS = new Set(['adminListFiles', 'adminReadFile', 'adminWriteFile', 'adminRestartThis', 'adminListRooms', 'adminGetRoomChat', 'adminKickPlayer', 'adminGetPerf']);
 
 // Commands that genuinely need SQL-password / file / restart power. The SQL password and auth key
 // are only attached to these (or to the adminRouteToServer wrapper, or when there's no moderator
@@ -21,6 +21,14 @@ export const AdminApp = {
     connected: false,
     adminRoles: 0,
     servers: [], // last adminListServers result
+    targetId: '', // '' = manage this services instance; otherwise a registry id (set from the Instances tab)
+
+    // auto-reconnect state
+    everConnected: false,   // don't retry a first connect that never succeeded (probably a bad address)
+    intentionalClose: false, // set by logout() so we don't fight it
+    _reconnectAttempts: 0,
+    _reconnectTimer: null,
+    _stableTimer: null,
 
     on(key, fn) {
         if (!listeners.has(key)) listeners.set(key, new Set());
@@ -33,7 +41,7 @@ export const AdminApp = {
         const sqlPw = $('sqlPassword').value;
         const authKey = $('gameServerAuthKey').value;
         const session = localStorage.getItem('adminSession');
-        const targetId = $('targetServer')?.value;
+        const targetId = this.targetId;
         const routing = !!(targetId && ROUTABLE_COMMANDS.has(cmd));
         const needsSql = SQL_TIER_COMMANDS.has(cmd);
 
@@ -52,7 +60,24 @@ export const AdminApp = {
         };
     },
 
-    connect() {
+    _clearReconnect() {
+        if (this._reconnectTimer) { clearTimeout(this._reconnectTimer); this._reconnectTimer = null; };
+    },
+
+    _scheduleReconnect() {
+        if (this._reconnectTimer || this.intentionalClose || !this.everConnected) return;
+        const delays = [1000, 2000, 5000, 10000];
+        const delay = delays[Math.min(this._reconnectAttempts, delays.length - 1)];
+        this._reconnectAttempts++;
+        setStatus(`Disconnected - reconnecting in ${delay / 1000}s (attempt ${this._reconnectAttempts})`, true);
+        this._reconnectTimer = setTimeout(() => { this._reconnectTimer = null; this.connect(true); }, delay);
+    },
+
+    connect(isRetry) {
+        this._clearReconnect();
+        this.intentionalClose = false;
+        if (!isRetry) this._reconnectAttempts = 0;
+
         const addr = $('servicesServer').value;
         if (/^ws:\/\/(?!localhost|127\.|\[::1\])/i.test(addr)) {
             console.warn('LegacyAdmin: connecting over plaintext ws:// to a non-local host - the SQL password, session and auth key travel unencrypted. Use wss:// behind TLS.');
@@ -61,23 +86,38 @@ export const AdminApp = {
         localStorage.setItem('sqlPassword', $('sqlPassword').value);
         localStorage.setItem('gameServerAuthKey', $('gameServerAuthKey').value);
 
-        setLoginStatus('Connecting...');
+        // Drop any previous socket without letting its onclose fire another reconnect.
+        if (this.ws) { try { this.ws.onclose = null; this.ws.onerror = null; this.ws.close(); } catch (e) {}; };
+
+        setLoginStatus(isRetry ? 'Reconnecting...' : 'Connecting...');
         this.ws = new WebSocket($('servicesServer').value);
         this.ws.onopen = () => {
             this.connected = true;
+            this.everConnected = true;
+            // Only clear the backoff once the connection has actually held for a bit - stops a
+            // server that accepts then instantly drops from being hammered every 1s.
+            clearTimeout(this._stableTimer);
+            this._stableTimer = setTimeout(() => { this._reconnectAttempts = 0; }, 5000);
             const username = $('loginUsername').value;
             const password = $('loginPassword').value;
             if (username && password) this.send('adminAccountLogin', { username, password });
             else if (localStorage.getItem('adminSession')) this.send('adminAccountSession');
             enterApp();
         };
-        this.ws.onclose = () => { this.connected = false; setStatus('Disconnected', true); };
-        this.ws.onerror = () => setLoginStatus('Connection error - check the address', true);
+        this.ws.onclose = () => {
+            this.connected = false;
+            clearTimeout(this._stableTimer);
+            if (this.everConnected && !this.intentionalClose) this._scheduleReconnect();
+            else setStatus('Disconnected', true);
+        };
+        this.ws.onerror = () => {
+            if (!this.everConnected) setLoginStatus('Connection error - check the address', true);
+        };
         this.ws.onmessage = (event) => {
             let data;
             try { data = JSON.parse(event.data); } catch { return; };
             if (data.error) { setStatus(data.error, true); return; };
-            if (data.adminListServers) renderServerList(data.adminListServers.servers);
+            if (data.adminListServers) { AdminApp.servers = data.adminListServers.servers; updateAuthUI(); }
             for (const key of Object.keys(data)) {
                 const set = listeners.get(key);
                 if (set) set.forEach(fn => fn(data[key]));
@@ -93,6 +133,8 @@ export const AdminApp = {
         // the username/password fields on reload; autocomplete="off" below stops that instead.
         // M1: actually revoke the session server-side, not just locally. Small delay so the frame
         // flushes before reload tears the socket down.
+        this.intentionalClose = true;
+        this._clearReconnect();
         try { this.send('adminAccountLogout'); } catch (e) {};
         localStorage.removeItem('adminSession');
         localStorage.removeItem('adminUsername');
@@ -100,7 +142,16 @@ export const AdminApp = {
     },
 
     setTarget(id) {
-        $('targetServer').value = id;
+        this.targetId = id || '';
+        updateAuthUI();
+        renderActiveTab();
+    },
+
+    // Route one command to a specific instance without disturbing the global selection.
+    sendTo(targetId, cmd, extra) {
+        const saved = this.targetId;
+        this.targetId = targetId || '';
+        try { this.send(cmd, extra); } finally { this.targetId = saved; };
     },
 };
 
@@ -126,27 +177,21 @@ function enterApp() {
     renderActiveTab();
 }
 
-function renderServerList(servers) {
-    AdminApp.servers = servers;
-    const select = $('targetServer');
-    const previous = select.value;
-    select.innerHTML = '<option value="">This services instance</option>';
-    for (const server of servers) {
-        const opt = document.createElement('option');
-        opt.value = server.id;
-        opt.textContent = server.name
-            ? `${server.name} - ${server.serverType} #${server.yourServer}`
-            : `${server.serverType} (unregistered)`;
-        select.appendChild(opt);
-    };
-    select.value = previous;
+// Human label for a registry entry - shared by the Instances tab and the nav status line.
+export function serverLabel(server) {
+    return server.name
+        ? `${server.name} - ${server.serverType} #${server.yourServer}`
+        : `${server.serverType} (unregistered)`;
 };
 
 function updateAuthUI() {
     const loggedIn = !!localStorage.getItem('adminSession');
-    $('accountStatus').textContent = loggedIn
+    const target = AdminApp.targetId
+        ? (AdminApp.servers.find(s => s.id === AdminApp.targetId) ? serverLabel(AdminApp.servers.find(s => s.id === AdminApp.targetId)) : AdminApp.targetId)
+        : 'this services instance';
+    $('accountStatus').textContent = (loggedIn
         ? `${localStorage.getItem('adminUsername') || '?'} (role ${AdminApp.adminRoles})`
-        : ($('sqlPassword').value ? 'Full access' : 'Browsing only');
+        : ($('sqlPassword').value ? 'Full access' : 'Browsing only')) + ` · managing: ${target}`;
     renderTabNav();
 };
 
@@ -177,6 +222,7 @@ function renderTabNav() {
     nav.innerHTML = '';
     const activeId = currentTabId();
     for (const tab of tabs) {
+        if (tab.hidden) continue;
         if (tab.moderatorOnly && !(AdminApp.adminRoles >= 10 || $('sqlPassword').value)) continue;
         if (tab.adminOnly && !(AdminApp.adminRoles >= 20 || $('sqlPassword').value)) continue;
         const btn = document.createElement('button');
@@ -214,32 +260,29 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     $('connectBtn').onclick = () => AdminApp.connect();
     $('logoutBtn').onclick = () => AdminApp.logout();
+    $('homeBtn')?.addEventListener('click', () => { location.hash = 'home'; });
     const toggleTheme = () => {
         const dark = document.documentElement.classList.toggle('dark');
         localStorage.setItem('theme', dark ? 'dark' : 'light');
     };
     $('themeToggle').onclick = toggleTheme;
     $('themeToggleLogin').onclick = toggleTheme;
-    $('refreshServersBtn').onclick = () => AdminApp.send('adminListServers');
-    $('restartInstanceBtn').onclick = () => {
-        const label = $('targetServer').value ? 'the selected target instance' : 'THIS services instance';
-        if (!confirm(`Restart ${label} now? Whatever it's currently doing will drop briefly.`)) return;
-        if ($('targetServer').value) AdminApp.send('adminRestartThis');
-        else AdminApp.send('adminRestartServices');
-    };
-    $('targetServer').onchange = renderActiveTab;
+    // Instance selection + restart now live in the Instances tab, not the navbar.
     $('servicesServer').addEventListener('keydown', (e) => { if (e.key === 'Enter') AdminApp.connect(); });
     $('sqlPassword').addEventListener('keydown', (e) => { if (e.key === 'Enter') AdminApp.connect(); });
     $('loginPassword').addEventListener('keydown', (e) => { if (e.key === 'Enter') AdminApp.connect(); });
 
+    // Import order sets the tab-bar order, and tabs[0] (dashboard) is the default when there's no #hash.
     await Promise.all([
-        import('./files-tab.js'),
+        import('./home-tab.js'),
+        import('./instances-tab.js'),
         import('./sql-tab.js'),
         import('./items-tab.js'),
         import('./codes-tab.js'),
         import('./inventory-tab.js'),
         import('./moderation-tab.js'),
         import('./rooms-tab.js'),
+        import('./storage-tab.js'),
         import('./logs-tab.js'),
     ]);
 

@@ -2,6 +2,8 @@
 // the Codes tab and the Inventory tab (a CSV id field + "select all" + searchable tile grid, kept
 // in sync both ways). Lazy-loads BabylonJS + the standalone item-renderer bundle (see
 // buildItemRendererBundle.js) only once, the first time a tile actually needs rendering.
+import { getTile, putTile, tileKey } from './tileCache.js';
+
 let loadPromise = null;
 let renderer = null;
 
@@ -162,7 +164,58 @@ function camForItem(item) {
     return { alpha: 0, radius: 1.3 }; // hatCam - also what Hat items use
 };
 
+// Sprite-sheet coords for stamps that adminGetCatalog returns without any (new plugin stamps -
+// see legacyadmin/index.js writeStampCoords). Fetched once.
+let stampCoords = null;
+let stampCoordsPromise = null;
+function ensureStampCoords() {
+    if (stampCoords) return Promise.resolve(stampCoords);
+    if (!stampCoordsPromise) {
+        stampCoordsPromise = fetch('/admin/vendor/stamp-coords.json')
+            .then(r => (r.ok ? r.json() : {}))
+            .catch(() => ({}))
+            .then(c => (stampCoords = c || {}));
+    };
+    return stampCoordsPromise;
+};
+
+// Cheap "did anything actually get drawn" check - a sparse alpha scan.
+function canvasHasContent(canvas) {
+    try {
+        const { data } = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+        for (let i = 3; i < data.length; i += 4 * 37) if (data[i] !== 0) return true;
+        return false;
+    } catch {
+        return true; // can't read it - assume it rendered rather than refuse to cache
+    };
+};
+
 async function renderOneTile(item, canvas) {
+    if (!canvas.isConnected) return;
+
+    // A stamp with no meshName and no x/y is a new plugin stamp missing its sheet coords - patch
+    // them in from the client snapshot (non-mutating) so it can actually render.
+    if (item.item_data && item.item_data.meshName === undefined && item.item_data.x === undefined) {
+        const c = (await ensureStampCoords())[item.id];
+        if (c) item = { ...item, item_data: { ...item.item_data, x: c.x, y: c.y } };
+    };
+
+    const key = tileKey(item);
+
+    // Cache hit: draw the stored PNG and skip Babylon entirely (ensureRenderer, and so babylon.js
+    // + the mesh fetches, are only ever touched on a miss below).
+    try {
+        const cached = await getTile(key);
+        if (cached && canvas.isConnected) {
+            const bmp = await createImageBitmap(cached);
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(bmp, 0, 0, canvas.width, canvas.height);
+            bmp.close?.();
+            return;
+        };
+    } catch { /* fall through to a real render */ };
+
     try {
         const itemRenderer = await ensureRenderer();
         if (!canvas.isConnected) return; // may have left the DOM while we were waiting on ensureRenderer()
@@ -170,7 +223,12 @@ async function renderOneTile(item, canvas) {
             itemRenderer.renderToCanvas(item.item_data.meshName, canvas, camForItem(item));
         } else if (item.item_data?.x !== undefined) {
             itemRenderer.renderStampToCanvas(item, canvas);
+        } else {
+            return;
         };
+        // Never cache a blank tile - a missing mesh or missing coords would otherwise get frozen
+        // in IndexedDB and keep serving blank even after the data is fixed.
+        if (canvasHasContent(canvas)) canvas.toBlob((b) => { if (b) putTile(key, b); }, 'image/png');
     } catch (error) {
         console.warn('Tile render failed for', item.name, error);
     };

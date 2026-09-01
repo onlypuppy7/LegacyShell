@@ -182,6 +182,8 @@ export default async function run (runStart) {
             // https://stackoverflow.com/questions/12444598/why-is-socket-remoteaddress-undefined-on-end-event
 
             let ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || req.connection.remoteAddress;
+            // Unhashed, for plugins that need the real client address (legacyadmin's audit log).
+            const rawIp = ip;
 
             ws.on('message', async (message) => {
                 try {
@@ -373,15 +375,15 @@ export default async function run (runStart) {
                                                 break;
                                         };
                                         ws.send(JSON.stringify({ result }));
-                                        await plugins.emit('adminSqlAudit', { sql: msg.sql, sqlType: msg.sqlType, ip, authed: true, ok: true });
+                                        await plugins.emit('adminSqlAudit', { sql: msg.sql, sqlType: msg.sqlType, ip: rawIp, authed: true, ok: true });
                                     } catch (error) {
                                         log.error('Error in SQL request:', error);
                                         ws.send(JSON.stringify({ error }));
-                                        await plugins.emit('adminSqlAudit', { sql: msg.sql, sqlType: msg.sqlType, ip, authed: true, ok: false, error: String(error?.message || error) });
+                                        await plugins.emit('adminSqlAudit', { sql: msg.sql, sqlType: msg.sqlType, ip: rawIp, authed: true, ok: false, error: String(error?.message || error) });
                                     };
                                 } else {
                                     ws.send(JSON.stringify({ error: 'Invalid SQL password' }));
-                                    await plugins.emit('adminSqlAudit', { sql: msg.sql, sqlType: msg.sqlType, ip, authed: false, ok: false, error: 'invalid sql password' });
+                                    await plugins.emit('adminSqlAudit', { sql: msg.sql, sqlType: msg.sqlType, ip: rawIp, authed: false, ok: false, error: 'invalid sql password' });
                                 };
                                 break;
                             // Game server commands
@@ -810,7 +812,7 @@ export default async function run (runStart) {
                                 // (this only ever fires for something that matched none of them).
                                 // A listener that handles `msg.cmd` should set
                                 // `plugins.cancel = true` so this doesn't ALSO log it as dropped.
-                                await plugins.emit('unhandledCommand', { msg, ws, accs, ip });
+                                await plugins.emit('unhandledCommand', { msg, ws, accs, ip, rawIp });
                                 if (!plugins.cancel) console.log('user sent', msg.cmd || '(unknown cmd)', 'to services, not running function');
                                 break;
                         };

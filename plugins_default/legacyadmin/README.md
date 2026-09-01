@@ -35,16 +35,56 @@ on demand via a `servicesCommand` push (`services/registry.js`). This replaced t
 ## What's here
 
 ```
-services/   registry.js (routing), auth.js (login/session/logout), moderation.js (ban/mute CRUD),
-            catalogBridge.js (item data), roomOverview.js (multi-server room/player overview),
-            auditLog.js (append-only security log in its own SQLite file)
+services/   registry.js (routing), auth.js (login/session/logout), accountManager.js (rename/
+            password/impersonate), moderation.js (ban/mute CRUD), catalogBridge.js (item data),
+            roomOverview.js (multi-server room/player overview), auditLog.js (append-only security
+            log in its own SQLite file), backups.js (DB backup list/create/delete/restore),
+            storage.js (adminGetStorage stats), perf.js (adminGetPerf CPU/mem sampler)
 game/       roomBridge.js (main thread: list rooms, get chat, kick), moderationWorker.js (per-room
-            kick handler), banCache.js / muteCache.js (periodic enforcement-list polls),
-            chatRelay.js (worker -> main thread chat relay)
-client/     the admin-app SPA (app.js + one file per tab: files, sql, items, codes, moderation,
-            rooms, logs) - hand-rolled, no framework, #hash selects the tab and ?query carries
-            per-tab state so a refresh/share-link keeps your place
+            kick handler), banCache.js / muteCache.js (periodic enforcement-list polls +
+            worker-side account-ban boot on clientInitEnd), chatRelay.js (worker -> main relay)
+client/     the admin-app SPA (app.js + one file per tab). Tabs: home (dashboard, hidden - the
+            "LegacyAdmin" nav button), instances (config editor + instance picker + restart +
+            perf; formerly "Files"), sql (statement / table editor / backups), items, codes,
+            accounts, moderation, rooms, storage, logs. #hash selects the tab, ?query carries
+            per-tab state (?account= on accounts, ?mode= on sql, ?room= on rooms).
+            tileCache.js caches rendered item tiles in IndexedDB; impersonate-inject.js is
+            spliced into the MAIN GAME bundle (not the panel).
 ```
+
+The **managed-instance selector** and **Restart** moved out of the navbar into the Instances tab.
+`AdminApp.targetId` holds the selection now (was a `<select>` in the DOM); `AdminApp.sendTo(id,
+cmd, extra)` routes one command to a specific instance without changing the selection.
+
+New routable command `adminGetPerf` (Moderator+) - services answers directly, game/client answer
+the routed form in index.js's onServicesCommand. The dashboard fans it out to every instance.
+`adminGetStorage` (Moderator+) and the `adminListBackups`/`adminCreateBackup`/`adminDeleteBackup`
+(`{name}` or `{keep:N}`)/`adminRestoreBackup` set (Admin/SQL, audit-logged; restore swaps the DB
+file and `process.exit(1337)`s) back the Storage tab and SQL > Backups.
+
+## Accounts tab (account manager)
+
+The old Inventory tab, generalised. Moderator+ to open. Keeps eggs / VIP / owned-item editing
+(still raw `sqlRequest`). Additional actions, all gated server-side to **Admin (rank 20) or the
+SQL password** (`services/accountManager.js`, `checkAdminOrSql`) and audit-logged:
+
+- **Rename** (`adminSetUsername`) - validates format + uniqueness. The target's saved "remember
+  me" login breaks until they sign in again (it's keyed by username).
+- **Set password** (`adminSetPassword`) - the panel SHA-256s the new password via WebCrypto
+  before sending, exactly like the game's login form; services only bcrypts that digest. Needs a
+  secure context (https / localhost) for `crypto.subtle`.
+- **Log in as -> (new tab)** (`adminImpersonate`) - returns the account's remember-me token; the
+  panel opens `/?adminImpersonate=1&impUser=&impToken=`. `client/impersonate-inject.js` (spliced
+  at the top of the game bundle) serves the two login localStorage keys *from memory for that tab
+  only* - the admin's own game login is untouched and nothing persists once the tab closes.
+  Caveat: the game rotates the auth token on use, so the target re-enters their password next
+  login on their own device; reloading the impersonation tab logs it out.
+- Per-account **ban / mute** toggles, reusing `adminAddModeration` / `adminRemoveModeration` with
+  `target_type: 'account_id'`.
+
+Audit-log IPs are the real client address (services passes `rawIp` alongside the hashed `ip` on
+the `unhandledCommand` / `adminSqlAudit` emits); the hashed `ip` is still what session checks
+use.
 
 ## Security model notes
 

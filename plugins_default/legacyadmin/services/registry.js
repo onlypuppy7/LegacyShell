@@ -70,7 +70,7 @@ export function registerRoutingListeners(plugins) {
         };
     });
 
-    plugins.on('services:unhandledCommand', async ({ msg, ws, ip }) => {
+    plugins.on("services:unhandledCommand", async ({ msg, ws, ip, rawIp }) => {
         if (msg.cmd === 'adminListServers') {
             plugins.cancel = true;
             // H1: topology disclosure. Unauthenticated callers just get an empty list (no error,
@@ -94,7 +94,7 @@ export function registerRoutingListeners(plugins) {
             const auth = await checkModeratorOrAbove(msg, ip);
             const allowed = auth && (!ROUTED_FULL_ACCESS.has(innerCmd) || auth.tier === 'sqlPassword');
             if (!allowed) {
-                recordAudit({ action: 'adminRouteToServer', ...actorFromAuth(auth, msg), ip, target: msg.targetId, result: 'denied', detail: { cmd: innerCmd } });
+                recordAudit({ action: 'adminRouteToServer', ...actorFromAuth(auth, msg), ip: rawIp, target: msg.targetId, result: 'denied', detail: { cmd: innerCmd } });
                 ws.send(JSON.stringify({ error: ROUTED_FULL_ACCESS.has(innerCmd)
                     ? 'Not authorized - file and restart actions require the SQL password.'
                     : 'Not authorized - log in with a Moderator+ account or the SQL password.' }));
@@ -109,7 +109,7 @@ export function registerRoutingListeners(plugins) {
                 ws.send(JSON.stringify({ error: 'Too many admin requests in flight - try again in a moment' }));
                 return;
             };
-            recordAudit({ action: 'adminRouteToServer', ...actorFromAuth(auth, msg), ip, target: `${target.serverType}#${target.yourServer ?? '?'}`, result: 'ok', detail: { cmd: innerCmd } });
+            recordAudit({ action: 'adminRouteToServer', ...actorFromAuth(auth, msg), ip: rawIp, target: `${target.serverType}#${target.yourServer ?? '?'}`, result: 'ok', detail: { cmd: innerCmd } });
             // Strip every credential before forwarding - the target executes on trust, it must
             // never receive the SQL password / session / auth_key even if the client sent them.
             const { sqlPassword, session, auth_key, ...cleanPayload } = msg.payload || {};

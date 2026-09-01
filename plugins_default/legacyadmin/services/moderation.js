@@ -27,7 +27,7 @@ export function registerModerationListeners(plugins) {
         `);
     });
 
-    plugins.on('services:unhandledCommand', async ({ msg, ws, accs, ip }) => {
+    plugins.on('services:unhandledCommand', async ({ msg, ws, accs, ip, rawIp }) => {
         if (msg.cmd === 'adminGetBanList' || msg.cmd === 'adminGetMuteList') {
             // Server-to-server poll from a game instance's own ban/mute cache - gated by auth_key
             // alone (same low-privilege tier every other game-server-facing read already uses),
@@ -69,14 +69,14 @@ export function registerModerationListeners(plugins) {
                     INSERT INTO moderation (type, target_type, target_value, reason)
                     VALUES (?, ?, ?, ?)
                 `, [msg.type, msg.targetType, String(msg.targetValue), msg.reason || '']);
-                recordAudit({ action: 'adminAddModeration', ...who, ip, target: `${msg.type}:${msg.targetType}:${msg.targetValue}`, result: 'ok', detail: { reason: msg.reason || '' } });
+                recordAudit({ action: 'adminAddModeration', ...who, ip: rawIp, target: `${msg.type}:${msg.targetType}:${msg.targetValue}`, result: 'ok', detail: { reason: msg.reason || '' } });
                 ws.send(JSON.stringify({ adminAddModeration: { success: true } }));
                 return;
             };
 
             if (msg.cmd === 'adminRemoveModeration') {
                 await ss.runQuery(`DELETE FROM moderation WHERE id = ?`, [msg.id]);
-                recordAudit({ action: 'adminRemoveModeration', ...who, ip, target: `id ${msg.id}`, result: 'ok' });
+                recordAudit({ action: 'adminRemoveModeration', ...who, ip: rawIp, target: `id ${msg.id}`, result: 'ok' });
                 ws.send(JSON.stringify({ adminRemoveModeration: { success: true } }));
                 return;
             };

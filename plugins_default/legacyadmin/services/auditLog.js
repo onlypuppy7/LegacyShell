@@ -13,7 +13,7 @@ import fs from 'node:fs';
 import Database from 'better-sqlite3';
 import { ss } from '#misc';
 import log from 'puppylog';
-import { checkModeratorOrAbove, ranksEnum } from './auth.js';
+import { checkAdminOrSql } from './auth.js';
 
 let db = null;
 let stmtInsert = null;
@@ -93,9 +93,7 @@ export function registerAuditLog(plugins) {
         plugins.cancel = true;
         // Admin (rank 20) or the SQL password - deliberately NOT plain Moderators: the log records
         // what moderators do, so they don't get to read (or quietly audit-check) it themselves.
-        const auth = await checkModeratorOrAbove(msg, ip);
-        const allowed = auth && (auth.tier === 'sqlPassword' || (auth.adminRoles || 0) >= ranksEnum.Admin);
-        if (!allowed) { ws.send(JSON.stringify({ error: 'Not authorized - the audit log requires an Admin account or the SQL password.' })); return; };
+        if (!(await checkAdminOrSql(msg, ip))) { ws.send(JSON.stringify({ error: 'Not authorized - the audit log requires an Admin account or the SQL password.' })); return; };
         if (!db) { ws.send(JSON.stringify({ adminGetAuditLog: { rows: [], note: 'Audit log DB is not available on this services instance.' } })); return; };
         try {
             const limit = Math.min(Math.max(parseInt(msg.limit, 10) || 200, 1), 1000);
