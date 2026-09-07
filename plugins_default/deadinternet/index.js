@@ -6,7 +6,7 @@ import { DeadInternetPlugin } from './shared.js';
 import Comm from '#comm';
 import { CONTROL, devlog, iteratePlayers, ticksPerSecond } from '#constants';
 import { findPath, isStandable, isLadderCell, EDGE_TYPE, MOVEMENT_PROFILE } from './pathfinding.js';
-import { simulateEdge, canSimulate, JUMP_RUNUP_BACKAWAY_SECONDS } from './physicsSimulation.js';
+import { simulateEdge, canSimulate, JUMP_RUNUP_BACKAWAY_SECONDS, ladderCatchTarget } from './physicsSimulation.js';
 //
 
 // Re-exported so a consuming plugin can `import { findPath, EDGE_TYPE, ... } from
@@ -35,7 +35,7 @@ export class Plugin {
 
         DeadInternetPlugin.registerListeners(this.plugins);
         this.plugins.on('client:pluginSourceInsertion', this.pluginSourceInsertion.bind(this));
-        
+
         this.plugins.on('game:metaLoop', this.metaLoopHook.bind(this));
         this.plugins.on('game:clientPackSyncLoop', this.clientPackSyncLoopHook.bind(this));
         this.plugins.on('game:clientInit', this.clientInit.bind(this));
@@ -101,7 +101,7 @@ export class Plugin {
             }
         }
     }
-    
+
         async initTablesMaps(data) {
             await data.ss.recs.insertMaps(path.join(this.thisDir, 'maps')); //hopefully avoid the annoying startup crash
         };
@@ -564,18 +564,39 @@ export class DeadInternetBot {
             if (this.ladderCatchSteeringWaypointIndex !== this.pathIndex) {
                 this.ladderCatchSteeringWaypointIndex = this.pathIndex;
                 const departure = this.currentPath[this.pathIndex - 1] || this.player;
-                const catchDx = waypoint.x - departure.x;
-                const catchDz = waypoint.z - departure.z;
-                const catchLen = Math.sqrt(catchDx * catchDx + catchDz * catchDz) || 1;
-                this.ladderCatchSteeringX = waypoint.x + (catchDx / catchLen) * 0.75;
-                this.ladderCatchSteeringZ = waypoint.z + (catchDz / catchLen) * 0.75;
+                const cell = this.room.map.data[Math.floor(waypoint.x)]?.[Math.floor(waypoint.y)]?.[Math.floor(waypoint.z)];
+                const target = ladderCatchTarget(departure, waypoint, cell?.mesh?.colliderType === 'ladder' ? cell.ry : undefined);
+                this.ladderCatchSteeringX = target.x;
+                this.ladderCatchSteeringZ = target.z;
             };
             steeringX = this.ladderCatchSteeringX;
             steeringZ = this.ladderCatchSteeringZ;
         };
+
+        if (waypoint.type === EDGE_TYPE.LADDER && !this.player.climbing && this.player.y < waypoint.y - 0.03) {
+            const x = Math.floor(waypoint.x), z = Math.floor(waypoint.z);
+            const cell = this.room.map.data[x]?.[Math.floor(waypoint.y) - 1]?.[z];
+            if (cell?.mesh?.colliderType === 'ladder') {
+                if (this.ladderApproachWaypoint !== waypoint) {
+                    this.ladderApproachWaypoint = waypoint;
+                    this.ladderApproachTarget = ladderCatchTarget(this.currentPath[this.pathIndex - 1] || this.player, {x:x+0.5,z:z+0.5}, cell.ry);
+                }
+                steeringX = this.ladderApproachTarget.x; steeringZ = this.ladderApproachTarget.z;
+            }
+        }
+        if (waypoint.via?.length) {
+            if (this.viaWaypoint !== waypoint) { this.viaWaypoint = waypoint; this.viaIndex = 0; }
+            while (this.viaIndex < waypoint.via.length
+                && Math.hypot(waypoint.via[this.viaIndex].x - this.player.x, waypoint.via[this.viaIndex].z - this.player.z) < 0.06) this.viaIndex++;
+            const turn = waypoint.via[this.viaIndex];
+            if (turn) { steeringX = turn.x; steeringZ = turn.z; }
+        }
         const dx = steeringX - this.player.x;
         const dz = steeringZ - this.player.z;
-        const horizontalDistance = Math.sqrt(dx * dx + dz * dz);
+        const horizontalDistance = waypoint.type === EDGE_TYPE.LADDER || waypoint.via?.length
+            ? Math.hypot(waypoint.x - this.player.x, waypoint.z - this.player.z)
+            : Math.sqrt(dx * dx + dz * dz);
+
 
         // Skip while climbing, and skip once close enough to the target that dx/dz themselves
         // become unreliable: a LADDER waypoint shares the exact same x,z as the cell it climbs
@@ -590,7 +611,7 @@ export class DeadInternetBot {
         // branch never reads it, and lookForLadder()'s own alignment check only needs it to be
         // roughly right, not still being freshly (and unstably) recomputed every tick - so keeping
         // the last stable value from further out is strictly better than trusting noise.
-        if (!this.player.climbing && horizontalDistance > MOVEMENT_PROFILE.arrivalRadius) this.player.yaw = Math.atan2(dx, dz);
+        if (!this.player.climbing && Math.hypot(dx,dz) > MOVEMENT_PROFILE.arrivalRadius) this.player.yaw = Math.atan2(dx, dz);
 
         // Same position-discontinuity case checkStuck() detects and reacts to below (see its own
         // header comment for the full story and how pathLastPos is maintained - this reads it,
@@ -637,7 +658,21 @@ export class DeadInternetBot {
         // measuring raw displacement instead - the first version of this - let the backup phase
         // fool the stuck-timer into resetting every cycle, since moving away is still "movement",
         // and the bot would time out forever without the stuck/replan safety net ever firing).
-        if (waypoint.type === EDGE_TYPE.JUMP) {
+        const previousWaypoint = this.currentPath[this.pathIndex - 1];
+        const previousSupport = previousWaypoint && this.room.map.data[Math.floor(previousWaypoint.x)]?.[Math.floor(previousWaypoint.y) - 1]?.[Math.floor(previousWaypoint.z)];
+        const departingJumpPad = previousSupport?.mesh?.name === 'jump-pad' && this.player.jumping;
+        if (waypoint.type === EDGE_TYPE.JUMP && departingJumpPad) {
+            // The pad supplied this launch; keep steering throughout the boost arc instead of
+            // replacing it with the ordinary grounded jump/run-up controller.
+            this.control(CONTROL.up);
+        } else if (waypoint.ladderTop && this.player.climbing
+            && Math.floor(this.player.climbingCell.x) === Math.floor(waypoint.x)
+            && Math.floor(this.player.climbingCell.z) === Math.floor(waypoint.z)) {
+            // A jump to a ladder top may catch its face first. The verifier
+            // continues climbing in this state; live execution must do so too,
+            // rather than stop supplying up or detach from the destination.
+            this.control(CONTROL.up);
+        } else if (waypoint.type === EDGE_TYPE.JUMP) {
             const prevWp = this.currentPath[this.pathIndex - 1];
             // Don't start a FRESH run-up/jump sequence while still airborne from whatever the
             // player was just doing (typically a big previous jump that overshot its own target
@@ -755,7 +790,7 @@ export class DeadInternetBot {
                 // not an ascent: classifying it as height-gaining cuts the charge cap from 1.0s
                 // to 0.2s and makes long jumps launch a full cell too early. Require a meaningful
                 // rise, matching the grid edge the verifier actually evaluated.
-                this.jumpGainsLevel = waypoint.y > this.jumpRunupStartY + 0.25;
+                this.jumpGainsLevel = !waypoint.fractionalRampRise && waypoint.y > this.jumpRunupStartY + 0.25;
                 this.jumpLiftoffFired = false;
                 // Run-up only matters for a jump that has to GAIN height - it exists specifically
                 // to build enough approach speed for the marginal step-up-on-collision mantle a
@@ -1046,8 +1081,11 @@ export class DeadInternetBot {
                 const chargeLen = Math.sqrt(dx * dx + dz * dz) || 1;
                 // Keep this conservative centre-ahead sample aligned with the verifier. A full
                 // collider-width probe ends the charge too early on known-good ramp departures.
-                const chargeAheadX = this.player.x + (dx / chargeLen) * 0.2;
-                const chargeAheadZ = this.player.z + (dz / chargeLen) * 0.2;
+                const takeoffSupport = prevWp && this.room.map.data[Math.floor(prevWp.x)]?.[Math.floor(prevWp.y - 0.05)]?.[Math.floor(prevWp.z)];
+                const partialSupport = ['aabb', 'obb'].includes(takeoffSupport?.mesh?.colliderType);
+                const nextStep = partialSupport ? Math.max(0.035, Math.length2(this.player.dx, this.player.dz) + 0.007) : 0.2;
+                const chargeAheadX = this.player.x + (dx / chargeLen) * nextStep;
+                const chargeAheadZ = this.player.z + (dz / chargeLen) * nextStep;
                 const groundAhead = [0.15, 0.4, 0.65, 0.9].some(dy =>
                     this.player.Collider.playerCollidesWithMap(this.player, { x: chargeAheadX, y: this.player.y + 0.05 - dy, z: chargeAheadZ })
                 );
@@ -1135,7 +1173,11 @@ export class DeadInternetBot {
             return 'following';
         };
 
-        if (horizontalDistance < MOVEMENT_PROFILE.arrivalRadius && verticalDistance < 1.25) {
+
+        const ladderTopSettled = !waypoint.ladderTop || (!this.player.climbing
+            && this.player.y >= waypoint.y - 0.03
+            && this.player.Collider.playerCollidesWithMap(this.player, { x: this.player.x, y: this.player.y - 0.03, z: this.player.z }));
+        if (horizontalDistance < MOVEMENT_PROFILE.arrivalRadius && verticalDistance < (waypoint.type === EDGE_TYPE.LADDER ? 0.1 : 1.25) && ladderTopSettled) {
             this.pathIndex++;
             this.pathStuckSinceTime = null;
             this.pathBestDistance = Infinity;

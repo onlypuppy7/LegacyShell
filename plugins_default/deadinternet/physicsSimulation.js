@@ -28,10 +28,9 @@ import { CONTROL, ticksPerSecond } from '#constants';
 // two silently disagreed about how a jump waypoint should be approached until something checked.
 export const JUMP_RUNUP_BACKAWAY_SECONDS = 0;
 
-// Map geometry never changes for a room's lifetime, so a given edge's simulated outcome is
-// deterministic - simulate any (fromKey,toKey,jump) combination at most once per room, ever,
-// and reuse the cached result for every future query (this search, and every future search -
-// pathfinding.js re-queries the same local edges constantly across different goals).
+// Grid keys alone do not identify a simulated edge: a ramp or partial block can
+// have different real takeoff/landing poses within the same graph cells. Cache
+// the actual poses and controller options, not just the nominal node pair.
 const roomCaches = new WeakMap(); // room -> Map<string, result>
 
 function getCache(room) {
@@ -62,7 +61,20 @@ const deltaSeconds = 1;
 // stuck bail - 600 ticks is a generous 10 real-time seconds for a single grid-edge hop, well
 // beyond anything a real successful approach takes, while still bounding worst-case speed
 // buildup the same way the stuck-bail window does.
-export function simulateEdge(player, from, to, { jump = false, fractionalRampRise = false, ladderCatch = false, maxTicks = 600, arrivalRadius = 0.3, verticalTolerance = 1.25 } = {}) {
+export function ladderCatchTarget(from, to, ladderYaw) {
+    const dx = to.x - from.x, dz = to.z - from.z;
+    if (Number.isFinite(ladderYaw)) {
+        const nx = Math.sin(ladderYaw), nz = Math.cos(ladderYaw);
+        const side = dx * nx + dz * nz < 0 ? -1 : 1;
+        // Approach through the face, keeping its narrow lateral catch band
+        // centred. Extending the incident diagonal also extends lateral error.
+        return { x: to.x + nx * side * 0.75, z: to.z + nz * side * 0.75 };
+    }
+    const length = Math.hypot(dx, dz) || 1;
+    return { x: to.x + dx / length * 0.75, z: to.z + dz / length * 0.75 };
+}
+
+export function simulateEdge(player, from, to, { climbingStart = null, jump = false, fromPartialSupport = false, fractionalRampRise = false, ladderCatch = false, ladderCatchYaw, requireSupport = false, via = [], maxTicks = 600, arrivalRadius = 0.3, verticalTolerance = 1.25 } = {}) {
     const traceEdge = process.env.DI_PHYS_TRACE && Math.floor(from.x) === 5 && from.y === 2 && Math.floor(from.z) === 6 && Math.floor(to.x) === 3 && to.y === 2 && Math.floor(to.z) === 5;
     const snapshot = player.createSnapshot();
     // createSnapshot()'s field list (see player.js) doesn't include a couple of fields this
@@ -77,8 +89,9 @@ export function simulateEdge(player, from, to, { jump = false, fractionalRampRis
         const len = Math.sqrt(dx * dx + dz * dz) || 1;
         const ddx = dx / len;
         const ddz = dz / len;
-        const steerX = ladderCatch ? to.x + ddx * 0.75 : to.x;
-        const steerZ = ladderCatch ? to.z + ddz * 0.75 : to.z;
+        const steering = ladderCatch ? ladderCatchTarget(from, to, ladderCatchYaw) : to;
+        const steerX = steering.x;
+        const steerZ = steering.z;
 
         player.x = from.x;
         player.y = from.y;
@@ -111,7 +124,8 @@ export function simulateEdge(player, from, to, { jump = false, fractionalRampRis
         player.jumping = false;
         player.jumps = 0;
         player.isFalling = false;
-        player.climbing = false;
+        player.climbing = !!climbingStart;
+        if (climbingStart) player.climbingCell = { ...climbingStart };
         player.corrected = { dx: 0, dy: 0, dz: 0 };
         player.corrections = 0;
         // lookForLadder() (called from inside moveX/moveZ) gates ladder-entry on
@@ -208,7 +222,7 @@ export function simulateEdge(player, from, to, { jump = false, fractionalRampRis
         // check at all - already correct and extensively verified across tonight's whole session,
         // untouched by this fix.
         const jumpChargeSeconds = to.y > from.y && !fractionalRampRise ? 0.15 : 1.0;
-        const jumpLiftoffSeconds = JUMP_RUNUP_BACKAWAY_SECONDS + jumpChargeSeconds;
+        const jumpLiftoffSeconds = (jumpNeedsRunup ? JUMP_RUNUP_BACKAWAY_SECONDS : 0) + jumpChargeSeconds;
         // Mutable ceiling on top of the fixed jumpLiftoffSeconds cap above - phase 2's own ground-
         // ahead check (below) can only ever CUT this shorter (never extend past jumpLiftoffSeconds
         // itself), the same relationship index.js's followPath() has between its safety-net TIME
@@ -222,6 +236,7 @@ export function simulateEdge(player, from, to, { jump = false, fractionalRampRis
         // few ticks, `jumping` staying false the entire time - not a slow charge, a genuine
         // uncontrolled fall the fixed time cap alone had no way to react to.
         let jumpChargeMaxTime = jumpLiftoffSeconds;
+        let jumpLiftoffFired = false;
         // followPath() holds "back away" for a fixed 0.35s regardless of what's actually behind
         // the takeoff point - on a tight/compact layout that's often a wall a few ticks in.
         // moveX/moveZ's collision response halves velocity on failure (`out.dx *= .5`), so a
@@ -302,6 +317,7 @@ export function simulateEdge(player, from, to, { jump = false, fractionalRampRis
         let traceLiftoff = null;
         let traceMaxY = player.y;
 
+        let viaIndex = 0;
         for (let tick = 1; tick <= maxTicks; tick++) {
             simulatedTime += physicsSpeed / ticksPerSecond;
             // followPath() re-aims at the (fixed) waypoint from the player's CURRENT position
@@ -312,8 +328,9 @@ export function simulateEdge(player, from, to, { jump = false, fractionalRampRis
             // which - confirmed by testing - let a single-tick collision on one axis alone bend
             // the trajectory away from the target with no way to recover: exactly the kind of
             // false failure this whole module exists to avoid introducing.
-            const curDx = steerX - player.x;
-            const curDz = steerZ - player.z;
+            while (viaIndex < via.length && Math.hypot(via[viaIndex].x - player.x, via[viaIndex].z - player.z) < 0.06) viaIndex++;
+            const curDx = (via[viaIndex]?.x ?? steerX) - player.x;
+            const curDz = (via[viaIndex]?.z ?? steerZ) - player.z;
             const curLen = Math.sqrt(curDx * curDx + curDz * curDz) || 1;
 
             // followPath() sets this every tick too (`this.player.yaw = Math.atan2(dx, dz)`,
@@ -349,15 +366,19 @@ export function simulateEdge(player, from, to, { jump = false, fractionalRampRis
                     // which negates the same yaw-facing direction used for "up").
                     ddx = -ddx;
                     ddz = -ddz;
-                } else if (jump && jumpNeedsRunup && chargeBlockedAtTick === null && simulatedTime <= jumpChargeMaxTime) {
+                } else if (jump && chargeBlockedAtTick === null && simulatedTime <= jumpChargeMaxTime) {
                     // Phase 2 - charge forward, STILL grounded (no jump() yet) - ddx/ddz already
                     // point toward the target from the assignment above, nothing to flip. This is
                     // what actually builds real ground speed before ever leaving the ground.
                 } else if (jump) {
-                    // Phase 3 - liftoff. jump() only succeeds once (canJump() returns false once
-                    // already jumping - see player.js), so calling it again every subsequent tick
-                    // here is a harmless no-op that keeps the branch simple.
-                    const didJump = player.jump();
+                    // Match followPath: flat/downward edges get one launch. Repeating
+                    // jump after landing on intermediate support incorrectly verifies
+                    // several hops as one edge that the live controller cannot execute.
+                    let didJump = false;
+                    if (!jumpLiftoffFired || (!fractionalRampRise && to.y > from.y + 0.25)) {
+                        didJump = player.jump();
+                        jumpLiftoffFired = true;
+                    }
                     if (traceEdge && didJump && !traceLiftoff) traceLiftoff = {
                         tick, simulatedTime, x: player.x, y: player.y, z: player.z,
                         dx: player.dx, dy: player.dy, dz: player.dz,
@@ -436,7 +457,7 @@ export function simulateEdge(player, from, to, { jump = false, fractionalRampRis
             // backing into one does; this just needs to stop charging and let the very next tick
             // fall through to liftoff instead of continuing to push into the wall for the rest of
             // the fixed window.
-            if (jump && jumpNeedsRunup && chargeBlockedAtTick === null && simulatedTime > JUMP_RUNUP_BACKAWAY_SECONDS && simulatedTime <= jumpChargeMaxTime) {
+            if (jump && chargeBlockedAtTick === null && simulatedTime > (jumpNeedsRunup ? JUMP_RUNUP_BACKAWAY_SECONDS : 0) && simulatedTime <= jumpChargeMaxTime) {
                 const speed = Math.sqrt(player.dx * player.dx + player.dz * player.dz);
                 // Skip the first few LOOP ITERATIONS of the charge phase before watching for a
                 // drop - the direction reversal from phase 1's back-away to phase 2's OPPOSITE-
@@ -489,8 +510,9 @@ export function simulateEdge(player, from, to, { jump = false, fractionalRampRis
                     // Keep the verifier's conservative centre-ahead sample here. A full collider-
                     // width probe rejects known-good same-level and descending jumps by ending the
                     // charge while the simulated player is still too far from the real takeoff edge.
-                    const chargeAheadX = player.x + (curDx / chargeLen) * 0.2;
-                    const chargeAheadZ = player.z + (curDz / chargeLen) * 0.2;
+                    const nextStep = fromPartialSupport ? Math.max(0.035, Math.sqrt(player.dx * player.dx + player.dz * player.dz) + 0.007) : 0.2;
+                    const chargeAheadX = player.x + (curDx / chargeLen) * nextStep;
+                    const chargeAheadZ = player.z + (curDz / chargeLen) * nextStep;
                     const groundAhead = [0.15, 0.4, 0.65, 0.9].some(probeDy =>
                         player.Collider.playerCollidesWithMap(player, { x: chargeAheadX, y: player.y + 0.05 - probeDy, z: chargeAheadZ })
                     );
@@ -561,10 +583,14 @@ export function simulateEdge(player, from, to, { jump = false, fractionalRampRis
             // accepting a still-rising pass over a lower surface. Scoped to jump edges - WALK/
             // RAMP/FALL don't arc through unrelated airspace the way a jump does.
             const notRising = player.dy <= 0;
-            const grounded = !jump || (notRising && [0.1, 0.3, 0.5].some(dy =>
+            const standing = !requireSupport || player.Collider.playerCollidesWithMap(player,
+                { x: player.x, y: player.y - 0.05, z: player.z });
+            const grounded = standing && (!jump || (notRising && [0.1, 0.3, 0.5].some(dy =>
                 player.Collider.playerCollidesWithMap(player, { x: player.x, y: player.y - dy, z: player.z })
-            ));
-            if ((horizontalDistance < arrivalRadius || inTargetCell) && verticalDistance < verticalTolerance && grounded) {
+            )));
+            // A catch must satisfy the actual ladder-attachment check above. Passing
+            // over the rung (or standing above it) is not interchangeable with catching it.
+            if (!ladderCatch && (horizontalDistance < arrivalRadius || (!requireSupport && inTargetCell)) && verticalDistance < verticalTolerance && grounded) {
                 return { success: true, x: player.x, y: player.y, z: player.z, ticks: tick };
             };
 
@@ -589,7 +615,15 @@ export function simulateEdge(player, from, to, { jump = false, fractionalRampRis
 
 export function simulateEdgeCached(room, player, fromKey, toKey, from, to, opts = {}) {
     const cache = getCache(room);
-    const cacheKey = `${fromKey}->${toKey}:${opts.jump ? 'j' : 'w'}:${opts.fractionalRampRise ? 'fr' : '-'}:${opts.ladderCatch ? 'lc' : '-'}`;
+    const cacheKey = JSON.stringify([
+        fromKey, toKey, from.x, from.y, from.z, to.x, to.y, to.z,
+        opts.jump ?? false, opts.fromPartialSupport ?? false,
+        opts.fractionalRampRise ?? false, opts.ladderCatch ?? false,
+        opts.ladderCatchYaw ?? null,
+        opts.requireSupport ?? false,
+        opts.via ?? [], opts.climbingStart ?? null,
+        opts.maxTicks ?? 600, opts.arrivalRadius ?? 0.3, opts.verticalTolerance ?? 1.25,
+    ]);
     const cached = cache.get(cacheKey);
     if (cached) return cached;
 
