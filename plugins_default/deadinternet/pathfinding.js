@@ -175,7 +175,7 @@ function rampBlocksDirection(cell, dx, dz) {
 // collider to find one that's actually clear sidesteps needing to decode the wedge's exact slope
 // direction from ry by hand. Falls back to the old +0.5 guess offline (no real player/Collider to
 // probe with - test-pathfinding.js's synthetic fixtures).
-export function findSupportedY(player, x, z, minY, maxY) {
+function findSupportedYUncached(player, x, z, minY, maxY) {
     const collides = y => player.Collider.playerCollidesWithMap(player, { x, y, z });
     let clearY = null;
     const steps = Math.ceil((maxY - minY) / 0.1);
@@ -201,7 +201,7 @@ function findRampRestY(map, x, y, z, player) {
     return findSupportedY(player, x + 0.5, z + 0.5, y - 0.02, y + 1.02) ?? y + 0.5;
 }
 
-function findLadderTopStand(player, cell, x, y, z) {
+function findLadderTopStandUncached(player, cell, x, y, z) {
     if (!player) return null;
     const nx = Math.sin(cell.ry), nz = Math.cos(cell.ry);
     // The ladder's top is narrow and offset from the grid centre. Probe with
@@ -367,7 +367,7 @@ export function isStandable(map, x, y, z, player) {
 // Returns { y, cx, cz } (the resting height and the real-world x/z the player would actually
 // stand at) or null. cx/cz usually equal the cell's own center (x+0.5, z+0.5) - only differ when
 // the coarse footprint scan below finds the object's solid volume isn't centered in its cell.
-function findAabbStandY(map, x, y, z, player) {
+function findAabbStandYUncached(map, x, y, z, player) {
     if (!player) return null;
     const cell = cellAt(map, x, y, z);
     if (!cell || !cell.mesh || (cell.mesh.colliderType !== 'aabb' && cell.mesh.colliderType !== 'obb')) return null;
@@ -1225,7 +1225,7 @@ function heuristic(x, y, z, gx, gy, gz) {
 // { x, y, z, type } - {x,z} are cell centers, `y` is the standing/feet height at that cell,
 // `type` is how to get FROM the previous waypoint TO this one (see EDGE_TYPE).
 // opts: { maxExpansions, avoidEdges: Set<"x,y,z->x,y,z"> }
-export function findPath(room, start, goal, opts = {}) {
+function findPathUncached(room, start, goal, opts = {}) {
     const map = room.map;
     if (!map || !map.data) return null;
 
@@ -1301,6 +1301,7 @@ export function findPath(room, start, goal, opts = {}) {
 
     while (open.size) {
         const current = open.pop();
+        if (current.verify) { current.verify(); continue; }
         const currentKey = key(current.x, current.y, current.z);
         if (visited.has(currentKey)) continue;
         visited.add(currentKey);
@@ -1362,258 +1363,272 @@ export function findPath(room, start, goal, opts = {}) {
             if (gScore.get(currentKey) + neighbor.cost >= (gScore.get(nKey) ?? Infinity)) continue;
             if (avoidEdges && avoidEdges.has(`${currentKey}->${nKey}`)) continue;
 
-            // Real-physics verification: don't just trust the static classification below - when
-            // a real player is available, actually run the edge through real game physics and
-            // only offer it if the player genuinely arrives. LADDER stays on the static path -
-            // it's a simple, deterministic mechanic (matching consecutive ry values) that hasn't
-            // shown any of the real-geometry mismatches WALK/RAMP/JUMP/FALL have.
-            // Declared here, outside the verification block below, so cameFrom.set() further down
-            // (which needs it to give the live bot's waypoint the same corrected position the
-            // verifier just checked) can still see it - see findAabbStandY's WALK-support case.
-            let toSupportStandY = null;
-            let fractionalRampRise = false;
-            if (player && (neighbor.type !== EDGE_TYPE.LADDER || neighbor.ladderTop)) {
-                // A ramp cell's real collision mesh is a diagonal incline, not a flat floor at the
-                // cell's nominal integer y - placing the simulated player exactly at that y, at the
-                // cell's horizontal center, can land them BELOW (or even inside the raised face of)
-                // the incline's actual surface at that xz point, embedding them in solid geometry
-                // and blocking every direction of movement. A single fixed offset isn't reliable
-                // across every ry/iwedge combination - see findRampRestY, which probes for an
-                // actually-clear height with the real collider instead of guessing one.
-                const fromCell = cellAt(map, current.x, current.y, current.z);
-                const toCell = cellAt(map, neighbor.x, neighbor.y, neighbor.z);
-                // A jump departing a ramp needs the real exit edge (see findRampExitXZ), not just
-                // the corrected rest height findRampRestY already gives every other ramp case
-                // (walking onto/off one, or landing on one) - only scoped to JUMP so an ordinary
-                // walk across a ramp still uses its own existing center-based handling untouched.
-                const fromRampY = isRampCell(fromCell) ? Math.floor(current.y)
-                    : isRampCell(cellAt(map, current.x, current.y - 1, current.z)) ? Math.floor(current.y) - 1 : null;
-                const rampExit = (fromRampY !== null && neighbor.type === EDGE_TYPE.JUMP)
-                    ? findRampExitXZ(map, current.x, fromRampY, current.z, neighbor.x - current.x, neighbor.z - current.z, player)
-                    : null;
-                // The landing-side mirror of rampExit above: a jump ONTO a ramp was, until now,
-                // still verified/aimed at plain cell-center + findRampRestY's height-only sweep -
-                // fine for a flat cell, but for a diagonal wedge that combination can land the
-                // target well up the slope's HIGH side (findRampRestY's sweep order [0.5,0.75,...]
-                // has no notion of "which side is the approaching player coming from", it just
-                // returns the first clear height at dead-center). Confirmed live on
-                // "PathJumpHardTest": the replanned checkpoint3->wedge fallback jump aimed at
-                // (7.5, 2.9, ~5.5) - near the wedge's PEAK - which is a far longer, barely-
-                // reachable leap than the wedge actually requires; real physics traced this exact
-                // jump: apex only reached y=2.77 (short of 2.9), horizontal velocity got killed
-                // dead mid-arc at x=6.74 (0.76 short of the wedge), and the bot fell straight into
-                // the gap it was trying to cross. findRampExitXZ already solves the identical
-                // problem the other direction (sweeping from a ramp's own center toward a
-                // departure direction to find the true far edge) - reusing it here with the
-                // direction reversed (from the ramp's center back toward the APPROACHING cell)
-                // finds the near/low edge instead, which is what a jump landing on a ramp should
-                // actually aim for: the closest valid point on the slope, not its summit.
-                // Reported live by the map author, from actually playing this jump by hand: a
-                // dead-on square approach doesn't work here - the fix is to angle slightly LEFT
-                // (relative to the direction of travel) going into the jump, which lets the
-                // player's collision box glance/slide onto the slope instead of catching its edge
-                // square-on the way a perfectly centered approach does. Blended into the entry
-                // sweep direction below, not just the final landing point - findRampExitXZ sweeps
-                // outward from the ramp's own center, and every phase of the run-up/flight re-aims
-                // at that same waypoint every tick (see physicsSimulation.js/index.js), so biasing
-                // the target here carries the same left angle through the whole approach, not only
-                // the touchdown spot. "Left" is CONTROL.left's own convention (player.js: ddx -=
-                // cos(yaw), ddz += sin(yaw)), which for a direction vector (dx,dz) works out to the
-                // perpendicular (-dz,dx) - rotate the approach direction 90 degrees the same way a
-                // player strafing left while facing it would.
-                // A "landing a level higher than takeoff" JUMP (see the dedicated diagonal/
-                // knight's-move jump generator further up this file) can ALSO be resting on a
-                // ramp without the target cell itself being classified as one - isStandable's
-                // hasRealSupport treats "a ramp directly below" as automatic support, so a jump
-                // targeting the empty cell one level above a wedge (e.g. (7,3,5) above the wedge
-                // at (7,2,5)) is real and valid, but toCell here is that empty cell, not the ramp
-                // itself - isRampCell(toCell) alone misses it entirely. Checking the cell directly
-                // below the target catches this second ramp-adjacent case too, using the RAMP's
-                // own (x, y-1, z) as the anchor for the same entry-point/left-bias correction
-                // above, since that's where the real sloped geometry actually lives.
-                const belowToCell = cellAt(map, neighbor.x, neighbor.y - 1, neighbor.z);
-                const rampBelowTarget = !isRampCell(toCell) && isRampCell(belowToCell);
-                let rampEntry = null;
-                // Also applies to a plain RAMP-type edge (walking up the slope from an adjacent
-                // cell, not jumping onto it) - confirmed live this same left/near-edge correction
-                // was needed there too: the cheapest (cost 1.1) route onto this exact wedge from
-                // checkpoint4 is a RAMP edge, not a JUMP, and it was landing at dead cell-center +
-                // raw uncorrected y (no findRampRestY, no entry-point sweep at all - toSupportY
-                // only ever covered WALK) purely because the isRampCell(toCell)/rampBelowTarget
-                // checks above were gated to JUMP only, so this cheaper, more-often-chosen edge
-                // silently bypassed the whole fix.
-                //
-                // NOTE: this verification-time value only feeds simulateEdgeCached below - it is
-                // NOT what the live bot ends up aiming at for a waypoint that also has an outgoing
-                // jump, since reconstructPath's departure-correction pass (see its own comment)
-                // runs afterward and recomputes x/y/z from the OUTGOING direction, which the
-                // search loop can't know yet at this point (the next edge isn't chosen until
-                // after the whole path is found). That pass runs the same slope-axis projection
-                // with the incoming direction available there - the two independently reach
-                // compatible (not necessarily identical) answers by design, the same way a
-                // verified edge and its live execution are never pixel-identical elsewhere in
-                // this file either.
-                // Also applies to a plain WALK-classified edge landing on a ramp - a same-level
-                // move onto/between ramp cells (e.g. two adjacent wedges near the same nominal Y,
-                // like "PathJumpHardTest" checkpoint5->goal's ramp-to-ramp step) is generated by
-                // the ordinary same-level WALK loop, not the up-one-level RAMP-climb generator,
-                // since it isn't gaining a whole level by the graph's own integer-Y bookkeeping.
-                // Confirmed live: this exact transition was still landing at the ramp's raw,
-                // uncorrected findRampRestY height (no correction, no near-edge sweep) purely
-                // because WALK wasn't in this type gate - same silent-bypass shape as the RAMP
-                // case above, just one more edge type wide.
-                if ((isRampCell(toCell) || rampBelowTarget) && (neighbor.type === EDGE_TYPE.JUMP || neighbor.type === EDGE_TYPE.RAMP || neighbor.type === EDGE_TYPE.WALK)) {
-                    const rampAnchorY = rampBelowTarget ? neighbor.y - 1 : neighbor.y;
-                    // Approach the supported edge facing the real source pose.
-                    // Restricting this to the slope axis misses accessible corners.
-                    rampEntry = findRampExitXZ(map, neighbor.x, rampAnchorY, neighbor.z,
-                        (incomingEntry?.standX ?? current.x + 0.5) - neighbor.x - 0.5,
-                        (incomingEntry?.standZ ?? current.z + 0.5) - neighbor.z - 0.5, player);
-                };
-                // A cell resting on a half-height (or otherwise non-cell-filling) aabb/obb support
-                // - e.g. a "gray-brick-half" step - has no mesh of its own at its nominal integer y
-                // at all; it's genuinely empty air there, held up only by whatever's in the cell
-                // BELOW it. isStandable's hasRealSupport (see its own comment) correctly detects
-                // that support is present using the real collider, but a presence check isn't a
-                // height check: the player's collision BOX can register solid contact near the
-                // probe point even when the actual resting surface sits well below the assumed
-                // integer y, exactly like the crate takeoff bug findAabbStandY was built for -
-                // just triggered through the support check instead of the standing cell itself.
-                // Scoped to a genuinely same-level WALK, the only edge type this file has ever
-                // found it on: confirmed on "Castle", the long-standing `18,3,6->19,3,6` failure -
-                // (18,2,6) is a half-height aabb, (19,2,6) is a full block, and the plain WALK
-                // classification silently assumed both sides rest at the same flat y=3 when the
-                // real height gap between them is roughly half a unit.
-                const fromSupportY = !isRampCell(fromCell)
-                    ? findAabbStandY(map, current.x, current.y - 1, current.z, player) : null;
-                let toSupportY = !isRampCell(toCell)
-                    ? findAabbStandY(map, neighbor.x, neighbor.y - 1, neighbor.z, player) : null;
-                if (!isLadderCell(toCell) && isLadderCell(belowToCell)) {
-                    const top = findLadderTopStand(player, belowToCell, neighbor.x, Math.floor(neighbor.y) - 1, neighbor.z);
-                    if (!top) continue;
-                    toSupportY = { cx: top.x, y: Math.floor(neighbor.y), cz: top.z };
-                    neighbor.ladderTop = true;
-                }
-                // Keep the incoming landing height with its standX/standZ. In
-                // particular, a node above a ramp can actually rest below its
-                // nominal grid Y; starting the next simulation at grid Y would
-                // give it height the live player never acquired.
 
-                if (neighbor.rampEntrySide && rampEntry) {
-                    const anchorY = rampBelowTarget ? neighbor.y-1 : neighbor.y;
-                    const axis = rampSlopeAxis(cellAt(map,neighbor.x,anchorY,neighbor.z));
-                    const x = neighbor.x+0.5+axis.x*neighbor.rampEntrySide*0.25;
-                    const z = neighbor.z+0.5+axis.z*neighbor.rampEntrySide*0.25;
-                    const y = findSupportedY(player,x,z,anchorY-0.02,anchorY+1.02);
-                    if (y === null) continue;
-                    rampEntry = {x,y,z};
-                }
-                const fromY = rampExit ? rampExit.y : incomingEntry?.y ?? (isRampCell(fromCell) ? findRampRestY(map, current.x, current.y, current.z, player) : fromSupportY ? fromSupportY.y : current.y);
-                const toY = rampEntry ? rampEntry.y : isRampCell(toCell) ? findRampRestY(map, neighbor.x, neighbor.y, neighbor.z, player) : toSupportY ? toSupportY.y : neighbor.y;
-                // Verify from where the bot would REALLY be standing, not the cell's nominal
-                // center - for an off-center AABB stand (e.g. a crate whose solid mass isn't
-                // centered in its cell, see findAabbStandY), cell-center can be several tenths of
-                // a unit away from the real takeoff point, silently verifying a different jump
-                // (different distance/angle to the target) than the one the live bot ever
-                // actually attempts. incomingEntry is undefined for the search's start node, which
-                // falls back to plain cell-center same as before.
-                const fromCenter = {
-                    x: rampExit ? rampExit.x : incomingEntry?.standX ?? fromSupportY?.cx ?? (current.x + 0.5), y: fromY,
-                    z: rampExit ? rampExit.z : incomingEntry?.standZ ?? fromSupportY?.cz ?? (current.z + 0.5),
-                };
-                const toCenter = {
-                    x: rampEntry ? rampEntry.x : toSupportY?.cx ?? (neighbor.x + 0.5), y: toY,
-                    z: rampEntry ? rampEntry.z : toSupportY?.cz ?? (neighbor.z + 0.5),
-                };
-                fractionalRampRise = neighbor.type === EDGE_TYPE.JUMP && !!rampEntry
-                    && toCenter.y > fromCenter.y && toCenter.y - fromCenter.y < 0.75;
-                if (neighbor.turnAxis) neighbor.via = [neighbor.turnAxis === 'x'
-                    ? { x: toCenter.x, z: fromCenter.z } : { x: fromCenter.x, z: toCenter.z }];
-                // A straight-line WALK crossing two ramps whose slope axes are genuinely
-                // perpendicular (see reconstructPath's peak-insertion pass for the full
-                // reasoning) is structurally NOT something this offline verifier can model
-                // correctly - simulateEdge only ever re-aims at ONE fixed target the whole
-                // simulated approach, tracing a straight line, while the real crossing needs two
-                // straight segments joined by an actual turn at the first ramp's peak. Confirmed
-                // live on "PathJumpHardTest" checkpoint5->goal: the single-target simulation
-                // genuinely can't reach the far side, bailing every time, which starves the
-                // search of the only edge that bridges the two ramps and leaves no path at all -
-                // not because the live bot can't make the crossing (reconstructPath's peak
-                // insertion lets it do exactly the two-segment walk this verifier can't
-                // simulate), only because this check has no way to model it. Trusted structurally
-                // instead, the same way LADDER already is above (a simple, deterministic
-                // geometric relationship, not the kind of real-geometry mismatch this
-                // verification exists to catch).
-                const rampAxisTurn = isRampCell(fromCell) && isRampCell(toCell)
-                    && (neighbor.type === EDGE_TYPE.WALK || neighbor.type === EDGE_TYPE.RAMP)
-                    && Math.abs(rampSlopeAxis(fromCell).x * rampSlopeAxis(toCell).x + rampSlopeAxis(fromCell).z * rampSlopeAxis(toCell).z) <= 0.3;
-                const simResult = rampAxisTurn ? { success: true } : simulateEdgeCached(room, player, currentKey, nKey, fromCenter, toCenter, {
-                    jump: neighbor.type === EDGE_TYPE.JUMP,
-                    fromPartialSupport: ['aabb', 'obb'].includes(cellAt(map, Math.floor(fromCenter.x), Math.floor(fromCenter.y - 0.05), Math.floor(fromCenter.z))?.mesh?.colliderType),
-                    fractionalRampRise,
-                    climbingStart: neighbor.type === EDGE_TYPE.LADDER ? { x: current.x, z: current.z, ry: fromCell.ry } : null,
-                    ladderCatch: neighbor.ladderCatch,
-                    ladderCatchYaw: isLadderCell(toCell) ? toCell.ry : undefined,
-                    requireSupport: neighbor.type === EDGE_TYPE.WALK || neighbor.type === EDGE_TYPE.RAMP || neighbor.ladderTop || isRampCell(toCell) || rampBelowTarget,
-                    verticalTolerance: neighbor.ladderTop ? 0.05 : (isRampCell(toCell) || rampBelowTarget ? 0.1 : 1.25),
-                    via: neighbor.via,
-                });
-                if (!simResult.success) continue;
-                // toSupportY carries into cameFrom.set() below (via toSupportStandY, hoisted above
-                // this if-block) - NOT by overwriting neighbor.y itself, which is already baked into
-                // nKey and the open-heap push above this block; changing it here would desync the
-                // search graph's own node identity from what's actually on the heap. standX/standZ
-                // (see findAabbStandY) are the established channel for "the real position differs
-                // from cell-center" without touching graph identity - toSupportStandY reuses it.
-                // rampEntry reuses the same channel (reshaped to findAabbStandY's {cx,cz,y} shape)
-                // so the live bot's waypoint gets the exact same corrected near-edge landing point
-                // the verifier above just checked, not the plain cell-center the graph node itself
-                // still carries.
-                toSupportStandY = rampEntry ? { cx: rampEntry.x, cz: rampEntry.z, y: rampEntry.y } : toSupportY;
-            };
-
-            let edgeCost = neighbor.cost;
-            if (
+            // Verification is itself a queue task. Its priority includes every
+            // known edge cost, so irrelevant alternatives need not be simulated.
+            // Candidates remain available; only verified edges update the path.
+            const pendingCost = neighbor.cost + (
                 neighbor.type === EDGE_TYPE.JUMP && !neighbor.smallHop &&
-                (incomingType === EDGE_TYPE.JUMP || incomingType === EDGE_TYPE.FALL) && !incomingWasSmallHop
-            ) {
-                // A standing jump barely clears one level on a good approach with a flat run-up
-                // (see MOVEMENT_PROFILE's header comment) - landing straight out of another jump
-                // or a fall leaves no room to build that approach, so back-to-back jumps are
-                // markedly less reliable in practice than the same jump preceded by a walk (live
-                // testing on the "Castle" map confirmed this: chained jumps were the dominant
-                // cause of stuck/replan events). Heavily discouraged, not forbidden - a route that
-                // genuinely has no flat cell to land on still needs to be reachable, and the
-                // self-correcting stuck/replan logic in DeadInternetBot covers the rest.
-                //
-                // Doesn't apply when either side of the chain is a smallHop (a half-height
-                // aabb/obb step) - a smallHop only ever needs a plain standing jump in the first
-                // place (see followPath's needsHeight/smallHop handling), not the elaborate
-                // run-up this penalty exists to protect. Without this exemption, an ordinary
-                // half-block STAIRCASE (necessarily two consecutive smallHop-ish JUMP edges in a
-                // row) priced out well above a single risky diagonal/knight's-move shortcut jump
-                // straight past it - confirmed on "PathHalfTest": the planner chose that one-shot
-                // knight's-move jump over the proven-reliable staircase specifically because the
-                // staircase's second jump was getting this +6 penalty and the shortcut wasn't,
-                // even though the shortcut is the one that actually struggles to execute live.
-                edgeCost += 6;
-            };
+                (incomingType === EDGE_TYPE.JUMP || incomingType === EDGE_TYPE.FALL) && !incomingWasSmallHop ? 6 : 0
+            );
+            const verify = () => {
+                if (visited.has(nKey) || gScore.get(currentKey) + pendingCost >= (gScore.get(nKey) ?? Infinity)) return;
+                // Real-physics verification: don't just trust the static classification below - when
+                // a real player is available, actually run the edge through real game physics and
+                // only offer it if the player genuinely arrives. LADDER stays on the static path -
+                // it's a simple, deterministic mechanic (matching consecutive ry values) that hasn't
+                // shown any of the real-geometry mismatches WALK/RAMP/JUMP/FALL have.
+                // Declared here, outside the verification block below, so cameFrom.set() further down
+                // (which needs it to give the live bot's waypoint the same corrected position the
+                // verifier just checked) can still see it - see findAabbStandY's WALK-support case.
+                let toSupportStandY = null;
+                let fractionalRampRise = false;
+                if (player && (neighbor.type !== EDGE_TYPE.LADDER || neighbor.ladderTop)) {
+                    // A ramp cell's real collision mesh is a diagonal incline, not a flat floor at the
+                    // cell's nominal integer y - placing the simulated player exactly at that y, at the
+                    // cell's horizontal center, can land them BELOW (or even inside the raised face of)
+                    // the incline's actual surface at that xz point, embedding them in solid geometry
+                    // and blocking every direction of movement. A single fixed offset isn't reliable
+                    // across every ry/iwedge combination - see findRampRestY, which probes for an
+                    // actually-clear height with the real collider instead of guessing one.
+                    const fromCell = cellAt(map, current.x, current.y, current.z);
+                    const toCell = cellAt(map, neighbor.x, neighbor.y, neighbor.z);
+                    // A jump departing a ramp needs the real exit edge (see findRampExitXZ), not just
+                    // the corrected rest height findRampRestY already gives every other ramp case
+                    // (walking onto/off one, or landing on one) - only scoped to JUMP so an ordinary
+                    // walk across a ramp still uses its own existing center-based handling untouched.
+                    const fromRampY = isRampCell(fromCell) ? Math.floor(current.y)
+                        : isRampCell(cellAt(map, current.x, current.y - 1, current.z)) ? Math.floor(current.y) - 1 : null;
+                    const rampExit = (fromRampY !== null && neighbor.type === EDGE_TYPE.JUMP)
+                        ? findRampExitXZ(map, current.x, fromRampY, current.z, neighbor.x - current.x, neighbor.z - current.z, player)
+                        : null;
+                    // The landing-side mirror of rampExit above: a jump ONTO a ramp was, until now,
+                    // still verified/aimed at plain cell-center + findRampRestY's height-only sweep -
+                    // fine for a flat cell, but for a diagonal wedge that combination can land the
+                    // target well up the slope's HIGH side (findRampRestY's sweep order [0.5,0.75,...]
+                    // has no notion of "which side is the approaching player coming from", it just
+                    // returns the first clear height at dead-center). Confirmed live on
+                    // "PathJumpHardTest": the replanned checkpoint3->wedge fallback jump aimed at
+                    // (7.5, 2.9, ~5.5) - near the wedge's PEAK - which is a far longer, barely-
+                    // reachable leap than the wedge actually requires; real physics traced this exact
+                    // jump: apex only reached y=2.77 (short of 2.9), horizontal velocity got killed
+                    // dead mid-arc at x=6.74 (0.76 short of the wedge), and the bot fell straight into
+                    // the gap it was trying to cross. findRampExitXZ already solves the identical
+                    // problem the other direction (sweeping from a ramp's own center toward a
+                    // departure direction to find the true far edge) - reusing it here with the
+                    // direction reversed (from the ramp's center back toward the APPROACHING cell)
+                    // finds the near/low edge instead, which is what a jump landing on a ramp should
+                    // actually aim for: the closest valid point on the slope, not its summit.
+                    // Reported live by the map author, from actually playing this jump by hand: a
+                    // dead-on square approach doesn't work here - the fix is to angle slightly LEFT
+                    // (relative to the direction of travel) going into the jump, which lets the
+                    // player's collision box glance/slide onto the slope instead of catching its edge
+                    // square-on the way a perfectly centered approach does. Blended into the entry
+                    // sweep direction below, not just the final landing point - findRampExitXZ sweeps
+                    // outward from the ramp's own center, and every phase of the run-up/flight re-aims
+                    // at that same waypoint every tick (see physicsSimulation.js/index.js), so biasing
+                    // the target here carries the same left angle through the whole approach, not only
+                    // the touchdown spot. "Left" is CONTROL.left's own convention (player.js: ddx -=
+                    // cos(yaw), ddz += sin(yaw)), which for a direction vector (dx,dz) works out to the
+                    // perpendicular (-dz,dx) - rotate the approach direction 90 degrees the same way a
+                    // player strafing left while facing it would.
+                    // A "landing a level higher than takeoff" JUMP (see the dedicated diagonal/
+                    // knight's-move jump generator further up this file) can ALSO be resting on a
+                    // ramp without the target cell itself being classified as one - isStandable's
+                    // hasRealSupport treats "a ramp directly below" as automatic support, so a jump
+                    // targeting the empty cell one level above a wedge (e.g. (7,3,5) above the wedge
+                    // at (7,2,5)) is real and valid, but toCell here is that empty cell, not the ramp
+                    // itself - isRampCell(toCell) alone misses it entirely. Checking the cell directly
+                    // below the target catches this second ramp-adjacent case too, using the RAMP's
+                    // own (x, y-1, z) as the anchor for the same entry-point/left-bias correction
+                    // above, since that's where the real sloped geometry actually lives.
+                    const belowToCell = cellAt(map, neighbor.x, neighbor.y - 1, neighbor.z);
+                    const rampBelowTarget = !isRampCell(toCell) && isRampCell(belowToCell);
+                    let rampEntry = null;
+                    // Also applies to a plain RAMP-type edge (walking up the slope from an adjacent
+                    // cell, not jumping onto it) - confirmed live this same left/near-edge correction
+                    // was needed there too: the cheapest (cost 1.1) route onto this exact wedge from
+                    // checkpoint4 is a RAMP edge, not a JUMP, and it was landing at dead cell-center +
+                    // raw uncorrected y (no findRampRestY, no entry-point sweep at all - toSupportY
+                    // only ever covered WALK) purely because the isRampCell(toCell)/rampBelowTarget
+                    // checks above were gated to JUMP only, so this cheaper, more-often-chosen edge
+                    // silently bypassed the whole fix.
+                    //
+                    // NOTE: this verification-time value only feeds simulateEdgeCached below - it is
+                    // NOT what the live bot ends up aiming at for a waypoint that also has an outgoing
+                    // jump, since reconstructPath's departure-correction pass (see its own comment)
+                    // runs afterward and recomputes x/y/z from the OUTGOING direction, which the
+                    // search loop can't know yet at this point (the next edge isn't chosen until
+                    // after the whole path is found). That pass runs the same slope-axis projection
+                    // with the incoming direction available there - the two independently reach
+                    // compatible (not necessarily identical) answers by design, the same way a
+                    // verified edge and its live execution are never pixel-identical elsewhere in
+                    // this file either.
+                    // Also applies to a plain WALK-classified edge landing on a ramp - a same-level
+                    // move onto/between ramp cells (e.g. two adjacent wedges near the same nominal Y,
+                    // like "PathJumpHardTest" checkpoint5->goal's ramp-to-ramp step) is generated by
+                    // the ordinary same-level WALK loop, not the up-one-level RAMP-climb generator,
+                    // since it isn't gaining a whole level by the graph's own integer-Y bookkeeping.
+                    // Confirmed live: this exact transition was still landing at the ramp's raw,
+                    // uncorrected findRampRestY height (no correction, no near-edge sweep) purely
+                    // because WALK wasn't in this type gate - same silent-bypass shape as the RAMP
+                    // case above, just one more edge type wide.
+                    if ((isRampCell(toCell) || rampBelowTarget) && (neighbor.type === EDGE_TYPE.JUMP || neighbor.type === EDGE_TYPE.RAMP || neighbor.type === EDGE_TYPE.WALK)) {
+                        const rampAnchorY = rampBelowTarget ? neighbor.y - 1 : neighbor.y;
+                        // Approach the supported edge facing the real source pose.
+                        // Restricting this to the slope axis misses accessible corners.
+                        rampEntry = findRampExitXZ(map, neighbor.x, rampAnchorY, neighbor.z,
+                            (incomingEntry?.standX ?? current.x + 0.5) - neighbor.x - 0.5,
+                            (incomingEntry?.standZ ?? current.z + 0.5) - neighbor.z - 0.5, player);
+                    };
+                    // A cell resting on a half-height (or otherwise non-cell-filling) aabb/obb support
+                    // - e.g. a "gray-brick-half" step - has no mesh of its own at its nominal integer y
+                    // at all; it's genuinely empty air there, held up only by whatever's in the cell
+                    // BELOW it. isStandable's hasRealSupport (see its own comment) correctly detects
+                    // that support is present using the real collider, but a presence check isn't a
+                    // height check: the player's collision BOX can register solid contact near the
+                    // probe point even when the actual resting surface sits well below the assumed
+                    // integer y, exactly like the crate takeoff bug findAabbStandY was built for -
+                    // just triggered through the support check instead of the standing cell itself.
+                    // Scoped to a genuinely same-level WALK, the only edge type this file has ever
+                    // found it on: confirmed on "Castle", the long-standing `18,3,6->19,3,6` failure -
+                    // (18,2,6) is a half-height aabb, (19,2,6) is a full block, and the plain WALK
+                    // classification silently assumed both sides rest at the same flat y=3 when the
+                    // real height gap between them is roughly half a unit.
+                    const fromSupportY = !isRampCell(fromCell)
+                        ? findAabbStandY(map, current.x, current.y - 1, current.z, player) : null;
+                    let toSupportY = !isRampCell(toCell)
+                        ? findAabbStandY(map, neighbor.x, neighbor.y - 1, neighbor.z, player) : null;
+                    if (!isLadderCell(toCell) && isLadderCell(belowToCell)) {
+                        const top = findLadderTopStand(player, belowToCell, neighbor.x, Math.floor(neighbor.y) - 1, neighbor.z);
+                        if (!top) return;
+                        toSupportY = { cx: top.x, y: Math.floor(neighbor.y), cz: top.z };
+                        neighbor.ladderTop = true;
+                    }
+                    // Keep the incoming landing height with its standX/standZ. In
+                    // particular, a node above a ramp can actually rest below its
+                    // nominal grid Y; starting the next simulation at grid Y would
+                    // give it height the live player never acquired.
 
-            const tentativeG = gScore.get(currentKey) + edgeCost;
-            if (tentativeG < (gScore.get(nKey) ?? Infinity)) {
-                gScore.set(nKey, tentativeG);
-                cameFrom.set(nKey, {
-                    from: currentKey, type: neighbor.type, x: neighbor.x,
-                    y: toSupportStandY ? toSupportStandY.y : neighbor.y, z: neighbor.z,
-                    smallHop: neighbor.smallHop,
-                    fractionalRampRise,
-                    ladderCatch: neighbor.ladderCatch,
-                    ladderTop: neighbor.ladderTop,
-                    via: neighbor.via,
-                    standX: neighbor.standX ?? toSupportStandY?.cx, standZ: neighbor.standZ ?? toSupportStandY?.cz,
-                });
-                open.push({ x: neighbor.x, y: neighbor.y, z: neighbor.z, f: tentativeG + heuristic(neighbor.x, neighbor.y, neighbor.z, gx, gy, gz) });
+                    if (neighbor.rampEntrySide && rampEntry) {
+                        const anchorY = rampBelowTarget ? neighbor.y-1 : neighbor.y;
+                        const axis = rampSlopeAxis(cellAt(map,neighbor.x,anchorY,neighbor.z));
+                        const x = neighbor.x+0.5+axis.x*neighbor.rampEntrySide*0.25;
+                        const z = neighbor.z+0.5+axis.z*neighbor.rampEntrySide*0.25;
+                        const y = findSupportedY(player,x,z,anchorY-0.02,anchorY+1.02);
+                        if (y === null) return;
+                        rampEntry = {x,y,z};
+                    }
+                    const fromY = rampExit ? rampExit.y : incomingEntry?.y ?? (isRampCell(fromCell) ? findRampRestY(map, current.x, current.y, current.z, player) : fromSupportY ? fromSupportY.y : current.y);
+                    const toY = rampEntry ? rampEntry.y : isRampCell(toCell) ? findRampRestY(map, neighbor.x, neighbor.y, neighbor.z, player) : toSupportY ? toSupportY.y : neighbor.y;
+                    // Verify from where the bot would REALLY be standing, not the cell's nominal
+                    // center - for an off-center AABB stand (e.g. a crate whose solid mass isn't
+                    // centered in its cell, see findAabbStandY), cell-center can be several tenths of
+                    // a unit away from the real takeoff point, silently verifying a different jump
+                    // (different distance/angle to the target) than the one the live bot ever
+                    // actually attempts. incomingEntry is undefined for the search's start node, which
+                    // falls back to plain cell-center same as before.
+                    const fromCenter = {
+                        x: rampExit ? rampExit.x : incomingEntry?.standX ?? fromSupportY?.cx ?? (current.x + 0.5), y: fromY,
+                        z: rampExit ? rampExit.z : incomingEntry?.standZ ?? fromSupportY?.cz ?? (current.z + 0.5),
+                    };
+                    const toCenter = {
+                        x: rampEntry ? rampEntry.x : toSupportY?.cx ?? (neighbor.x + 0.5), y: toY,
+                        z: rampEntry ? rampEntry.z : toSupportY?.cz ?? (neighbor.z + 0.5),
+                    };
+                    fractionalRampRise = neighbor.type === EDGE_TYPE.JUMP && !!rampEntry
+                        && toCenter.y > fromCenter.y && toCenter.y - fromCenter.y < 0.75;
+                    if (neighbor.turnAxis) neighbor.via = [neighbor.turnAxis === 'x'
+                        ? { x: toCenter.x, z: fromCenter.z } : { x: fromCenter.x, z: toCenter.z }];
+                    // A straight-line WALK crossing two ramps whose slope axes are genuinely
+                    // perpendicular (see reconstructPath's peak-insertion pass for the full
+                    // reasoning) is structurally NOT something this offline verifier can model
+                    // correctly - simulateEdge only ever re-aims at ONE fixed target the whole
+                    // simulated approach, tracing a straight line, while the real crossing needs two
+                    // straight segments joined by an actual turn at the first ramp's peak. Confirmed
+                    // live on "PathJumpHardTest" checkpoint5->goal: the single-target simulation
+                    // genuinely can't reach the far side, bailing every time, which starves the
+                    // search of the only edge that bridges the two ramps and leaves no path at all -
+                    // not because the live bot can't make the crossing (reconstructPath's peak
+                    // insertion lets it do exactly the two-segment walk this verifier can't
+                    // simulate), only because this check has no way to model it. Trusted structurally
+                    // instead, the same way LADDER already is above (a simple, deterministic
+                    // geometric relationship, not the kind of real-geometry mismatch this
+                    // verification exists to catch).
+                    const rampAxisTurn = isRampCell(fromCell) && isRampCell(toCell)
+                        && (neighbor.type === EDGE_TYPE.WALK || neighbor.type === EDGE_TYPE.RAMP)
+                        && Math.abs(rampSlopeAxis(fromCell).x * rampSlopeAxis(toCell).x + rampSlopeAxis(fromCell).z * rampSlopeAxis(toCell).z) <= 0.3;
+                    const simResult = rampAxisTurn ? { success: true } : simulateEdgeCached(room, player, currentKey, nKey, fromCenter, toCenter, {
+                        jump: neighbor.type === EDGE_TYPE.JUMP,
+                        fromPartialSupport: ['aabb', 'obb'].includes(cellAt(map, Math.floor(fromCenter.x), Math.floor(fromCenter.y - 0.05), Math.floor(fromCenter.z))?.mesh?.colliderType),
+                        fractionalRampRise,
+                        climbingStart: neighbor.type === EDGE_TYPE.LADDER ? { x: current.x, z: current.z, ry: fromCell.ry } : null,
+                        ladderCatch: neighbor.ladderCatch,
+                        ladderCatchYaw: isLadderCell(toCell) ? toCell.ry : undefined,
+                        requireSupport: neighbor.type === EDGE_TYPE.WALK || neighbor.type === EDGE_TYPE.RAMP || neighbor.ladderTop || isRampCell(toCell) || rampBelowTarget,
+                        verticalTolerance: neighbor.ladderTop ? 0.05 : (isRampCell(toCell) || rampBelowTarget ? 0.1 : 1.25),
+                        via: neighbor.via,
+                    });
+                    if (!simResult.success) return;
+                    // toSupportY carries into cameFrom.set() below (via toSupportStandY, hoisted above
+                    // this if-block) - NOT by overwriting neighbor.y itself, which is already baked into
+                    // nKey and the open-heap push above this block; changing it here would desync the
+                    // search graph's own node identity from what's actually on the heap. standX/standZ
+                    // (see findAabbStandY) are the established channel for "the real position differs
+                    // from cell-center" without touching graph identity - toSupportStandY reuses it.
+                    // rampEntry reuses the same channel (reshaped to findAabbStandY's {cx,cz,y} shape)
+                    // so the live bot's waypoint gets the exact same corrected near-edge landing point
+                    // the verifier above just checked, not the plain cell-center the graph node itself
+                    // still carries.
+                    toSupportStandY = rampEntry ? { cx: rampEntry.x, cz: rampEntry.z, y: rampEntry.y } : toSupportY;
+                };
+
+                let edgeCost = neighbor.cost;
+                if (
+                    neighbor.type === EDGE_TYPE.JUMP && !neighbor.smallHop &&
+                    (incomingType === EDGE_TYPE.JUMP || incomingType === EDGE_TYPE.FALL) && !incomingWasSmallHop
+                ) {
+                    // A standing jump barely clears one level on a good approach with a flat run-up
+                    // (see MOVEMENT_PROFILE's header comment) - landing straight out of another jump
+                    // or a fall leaves no room to build that approach, so back-to-back jumps are
+                    // markedly less reliable in practice than the same jump preceded by a walk (live
+                    // testing on the "Castle" map confirmed this: chained jumps were the dominant
+                    // cause of stuck/replan events). Heavily discouraged, not forbidden - a route that
+                    // genuinely has no flat cell to land on still needs to be reachable, and the
+                    // self-correcting stuck/replan logic in DeadInternetBot covers the rest.
+                    //
+                    // Doesn't apply when either side of the chain is a smallHop (a half-height
+                    // aabb/obb step) - a smallHop only ever needs a plain standing jump in the first
+                    // place (see followPath's needsHeight/smallHop handling), not the elaborate
+                    // run-up this penalty exists to protect. Without this exemption, an ordinary
+                    // half-block STAIRCASE (necessarily two consecutive smallHop-ish JUMP edges in a
+                    // row) priced out well above a single risky diagonal/knight's-move shortcut jump
+                    // straight past it - confirmed on "PathHalfTest": the planner chose that one-shot
+                    // knight's-move jump over the proven-reliable staircase specifically because the
+                    // staircase's second jump was getting this +6 penalty and the shortcut wasn't,
+                    // even though the shortcut is the one that actually struggles to execute live.
+                    edgeCost += 6;
+                };
+
+                const tentativeG = gScore.get(currentKey) + edgeCost;
+                if (tentativeG < (gScore.get(nKey) ?? Infinity)) {
+                    gScore.set(nKey, tentativeG);
+                    cameFrom.set(nKey, {
+                        from: currentKey, type: neighbor.type, x: neighbor.x,
+                        y: toSupportStandY ? toSupportStandY.y : neighbor.y, z: neighbor.z,
+                        smallHop: neighbor.smallHop,
+                        fractionalRampRise,
+                        ladderCatch: neighbor.ladderCatch,
+                        ladderTop: neighbor.ladderTop,
+                        via: neighbor.via,
+                        standX: neighbor.standX ?? toSupportStandY?.cx, standZ: neighbor.standZ ?? toSupportStandY?.cz,
+                    });
+                    open.push({ x: neighbor.x, y: neighbor.y, z: neighbor.z, f: tentativeG + heuristic(neighbor.x, neighbor.y, neighbor.z, gx, gy, gz) });
+                };
             };
+            if (player) open.push({ verify, f: gScore.get(currentKey) + pendingCost + heuristic(neighbor.x, neighbor.y, neighbor.z, gx, gy, gz) });
+            else verify();
+
         };
     };
 
@@ -1744,3 +1759,33 @@ function reconstructPath(cameFrom, goalKey, map, player) {
     for (const w of waypoints) { delete w.gridX; delete w.gridY; delete w.gridZ; };
     return waypoints;
 };
+
+// A search is synchronous. Nesting gets its own cache and restores the caller's
+// cache; nothing survives into a later search after map or player changes.
+let geometryQueries = null;
+export function findPath(room, start, goal, opts = {}) {
+    const previous = geometryQueries;
+    geometryQueries = canSimulate(start) ? new Map() : null;
+    try { return findPathUncached(room, start, goal, opts); }
+    finally { geometryQueries = previous; }
+}
+function geometryQuery(name, args, compute) {
+    if (!geometryQueries) return compute();
+    const key = JSON.stringify([name, ...args]);
+    if (geometryQueries.has(key)) return geometryQueries.get(key);
+    const value = compute();
+    geometryQueries.set(key, value);
+    return value;
+}
+
+function findAabbStandY(map, x, y, z, player) {
+    return geometryQuery("findAabbStandY", [x, y, z, !!player, player?.modifiers?.scale || 1], () => findAabbStandYUncached(map, x, y, z, player));
+}
+
+export function findSupportedY(player, x, z, minY, maxY) {
+    return geometryQuery("findSupportedY", [x, z, minY, maxY, player?.modifiers?.scale || 1], () => findSupportedYUncached(player, x, z, minY, maxY));
+}
+
+function findLadderTopStand(player, cell, x, y, z) {
+    return geometryQuery("findLadderTopStand", [x, y, z, cell.ry, player?.modifiers?.scale || 1], () => findLadderTopStandUncached(player, cell, x, y, z));
+}

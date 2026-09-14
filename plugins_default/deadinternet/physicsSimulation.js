@@ -582,18 +582,24 @@ export function simulateEdge(player, from, to, { climbingStart = null, jump = fa
             // together they accept a genuine landing (however gradually dy settles) without ever
             // accepting a still-rising pass over a lower surface. Scoped to jump edges - WALK/
             // RAMP/FALL don't arc through unrelated airspace the way a jump does.
-            const notRising = player.dy <= 0;
-            const standing = !requireSupport || player.Collider.playerCollidesWithMap(player,
-                { x: player.x, y: player.y - 0.05, z: player.z });
-            const grounded = standing && (!jump || (notRising && [0.1, 0.3, 0.5].some(dy =>
-                player.Collider.playerCollidesWithMap(player, { x: player.x, y: player.y - dy, z: player.z })
-            )));
-            // A catch must satisfy the actual ladder-attachment check above. Passing
-            // over the rung (or standing above it) is not interchangeable with catching it.
-            if (!ladderCatch && (horizontalDistance < arrivalRadius || (!requireSupport && inTargetCell)) && verticalDistance < verticalTolerance && grounded) {
-                return { success: true, x: player.x, y: player.y, z: player.z, ticks: tick };
-            };
 
+            // Footing cannot establish arrival before position and height match.
+            // Keep the original acceptance checks, but avoid premature probes.
+            if (!ladderCatch && (horizontalDistance < arrivalRadius || (!requireSupport && inTargetCell)) && verticalDistance < verticalTolerance) {
+                const notRising = player.dy <= 0;
+                const standing = !requireSupport || player.Collider.playerCollidesWithMap(player,
+                    { x: player.x, y: player.y - 0.05, z: player.z });
+                const grounded = standing && (!jump || (notRising && [0.1, 0.3, 0.5].some(dy =>
+                    player.Collider.playerCollidesWithMap(player, { x: player.x, y: player.y - dy, z: player.z })
+                )));
+                // A catch must satisfy the actual ladder-attachment check above. Passing
+                // over the rung (or standing above it) is not interchangeable with catching it.
+                if (!ladderCatch && (horizontalDistance < arrivalRadius || (!requireSupport && inTargetCell)) && verticalDistance < verticalTolerance && grounded) {
+                    return { success: true, x: player.x, y: player.y, z: player.z, ticks: tick };
+                };
+
+
+            }
             if (horizontalDistance < bestDistance - 0.05) {
                 bestDistance = horizontalDistance;
                 bestDistanceAtSimTime = simulatedTime;
