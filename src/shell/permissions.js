@@ -845,7 +845,16 @@ class Command {
 
         var thisCheatsEnabled = isClient ? (playOffline || gameOptions.cheatsEnabled) : this.ctx.room.gameOptions.cheatsEnabled;
 
-        if (this.isCheat && !thisCheatsEnabled) {
+        //admins skip the enableCheats step: if permitted, the server turns cheats on (client just lets it through)
+        var adminRank = this.ctx && this.ctx.ranksEnum && this.ctx.ranksEnum.Admin;
+        var adminAutoEnable = this.isCheat && !thisCheatsEnabled && permitted && adminRank !== undefined && (player.adminRoles || 0) >= adminRank;
+        if (adminAutoEnable && !isClient) {
+            this.ctx.room.enableCheats();
+            this.ctx.room.notify(`Notice: Cheats have been enabled by ${player.name}.`, 5);
+            thisCheatsEnabled = true;
+        };
+
+        if (this.isCheat && !thisCheatsEnabled && !adminAutoEnable) {
             permitted = false;
             var text = "Cheats are disabled. Enable them with /room enableCheats true.";
             if (isClient) {
