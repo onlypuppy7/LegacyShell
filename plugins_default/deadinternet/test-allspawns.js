@@ -2,7 +2,7 @@
 // (server-services/src/maps/<TEST_MAP>.json, "Castle" by default) via the same customMinMap
 // mechanism the in-game map editor's "Test ONLINE" button uses (see multiplayermaphost's
 // roomBeforeMapBuild, which sets ctx.acceptCustomMaps = true unconditionally), then triggers
-// `/bots pathtestall` - see shared.js for what that command actually does (algorithmic all-pairs
+// `/botsdebug pathtestall` - see shared.js for what that command actually does (algorithmic all-pairs
 // check + a live full-spawn tour).
 //
 // Like test-ingame.js, this only sends real protocol messages and doesn't attempt to parse
@@ -128,8 +128,8 @@ setTimeout(() => {
 }, 10000);
 
 setTimeout(() => {
-    const cmd = pairMode ? `/bots pathtestpair ${pairFrom} ${pairTo}`
-        : maxLegs > 0 ? `/bots pathtestall ${maxLegs}` : '/bots pathtestall';
+    const cmd = pairMode ? `/botsdebug pathtestpair ${pairFrom} ${pairTo}`
+        : maxLegs > 0 ? `/botsdebug pathtestall ${maxLegs}` : '/botsdebug pathtestall';
     console.log(`[test-allspawns] sending ${cmd}`);
     ws.send(packChat(cmd));
 }, 13000);

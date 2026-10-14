@@ -124,7 +124,7 @@ export const DeadInternetPlugin = {
             description: "Spawns some useless bots.",
             example: "1",
             warningText: "Add some test bots to the server.",
-            permissionLevel: [ctx.ranksEnum.Moderator, ctx.ranksEnum.Guest, true], //later change to Moderator
+            permissionLevel: [ctx.ranksEnum.Admin, ctx.ranksEnum.Admin, false],
             inputType: ["number", 1, 18, 1],
             executeClient: ({ player, opts, mentions }) => { },
             executeServer: async ({ player, opts, mentions }) => {
@@ -186,14 +186,14 @@ export const DeadInternetPlugin = {
         ctx.newCommand({
             identifier: "pathtestbot",
             name: "pathtest",
-            category: "bots",
+            category: "botsdebug",
             description: "Spawns a bot that wanders between random spawn points, announcing its route in chat.",
             warningText: "Debug tool for testing DeadInternet's pathfinding.",
             // Deliberately not isCheat/owner-gated like /bots add - this is a read-only debug
             // aid (spawns one bot that walks around and logs its route), not something that
             // needs the same gameplay-affecting-cheat ceremony. Guest/Guest/false means anyone
             // in the room can run it, no "must be game owner" requirement.
-            permissionLevel: [ctx.ranksEnum.Guest, ctx.ranksEnum.Guest, false],
+            permissionLevel: [ctx.ranksEnum.Admin, ctx.ranksEnum.Admin, false],
             inputType: [],
             executeClient: ({ player, opts, mentions }) => { },
             executeServer: async ({ player, opts, mentions }) => {
@@ -276,6 +276,210 @@ export const DeadInternetPlugin = {
             }
         });
 
+        // --- Debug tool: sends a bot to wherever the calling player is standing right now, no
+        // spawn-point indices needed - the fastest way to hand-test a specific spot in the map
+        // (like the one in a bug report screenshot) without hunting for its nearest spawn index.
+        // Snapshots the player's position once at the moment the command runs - it does not chase
+        // them if they keep moving afterward.
+        ctx.newCommand({
+            identifier: "pathtestme",
+            name: "pathtestme",
+            category: "botsdebug",
+            description: "Spawns a bot and paths it to your current position.",
+            warningText: "Debug tool: sends a bot walking to wherever you're currently standing.",
+            permissionLevel: [ctx.ranksEnum.Admin, ctx.ranksEnum.Admin, false],
+            inputType: [],
+            executeClient: ({ player, opts, mentions }) => { },
+            executeServer: async ({ player, opts, mentions }) => {
+                const target = { x: player.x, y: player.y, z: player.z };
+                const fmt = (p) => `${p.x.toFixed(1)}, ${p.y.toFixed(1)}, ${p.z.toFixed(1)}`;
+
+                const bot = new DeadInternetBot(ctx.room, {});
+                await bot.init();
+
+                roomChat(ctx.room, `[pathtestme] heading to ${player.name} at (${fmt(target)})`);
+                console.log(`[deadinternet pathtestme] heading to ${player.name} at (${fmt(target)})`);
+
+                const startedAt = Date.now();
+                const path = bot.pathTo(target, { force: true });
+                if (!path) {
+                    console.log(`[deadinternet pathtestme] no path found immediately`);
+                    roomChat(ctx.room, `[pathtestme] no path found immediately.`);
+                    return;
+                };
+
+                const legTimeoutMs = 90000;
+                let settled = false;
+                const timeout = setTimeout(() => {
+                    if (settled) return;
+                    settled = true;
+                    console.log(`[deadinternet pathtestme] TIMED OUT (bot at ${bot.player.x.toFixed(2)}, ${bot.player.y.toFixed(2)}, ${bot.player.z.toFixed(2)})`);
+                    roomChat(ctx.room, `[pathtestme] timed out.`);
+                    bot.onUpdate = async () => { };
+                }, legTimeoutMs);
+
+                bot.onUpdate = async (data) => {
+                    const status = bot.followPath(data?.delta);
+                    if (status === 'arrived' && !settled) {
+                        settled = true;
+                        clearTimeout(timeout);
+                        const elapsedSeconds = ((Date.now() - startedAt) / 1000).toFixed(1);
+                        console.log(`[deadinternet pathtestme] arrived in ${elapsedSeconds}s`);
+                        roomChat(ctx.room, `[pathtestme] arrived in ${elapsedSeconds}s.`);
+                        bot.onUpdate = async () => { };
+                    };
+                };
+            }
+        });
+
+        // --- Debug tool: reproduces one specific spawn-to-spawn leg on demand, rather than
+        // waiting for pathtestall's random tour order to happen to include it - lets a
+        // known-bad pair (spotted in a pathtestall run's FAILED LEGS output, indices into that
+        // same run's "N spawn points" console log) get re-tested directly while iterating on a
+        // fix, without re-running the whole tour and hoping for the same shuffle.
+        ctx.newCommand({
+            identifier: "pathtestpair",
+            name: "pathtestpair",
+            category: "botsdebug",
+            description: "Tests live pathfinding between two specific spawn indices (see pathtestall's spawn point list in console).",
+            example: "28 10",
+            warningText: "Debug tool: reproduces one specific spawn-to-spawn leg on demand.",
+            permissionLevel: [ctx.ranksEnum.Admin, ctx.ranksEnum.Admin, false],
+            inputType: ["string"],
+            executeClient: ({ player, opts, mentions }) => { },
+            executeServer: async ({ player, opts, mentions }) => {
+                const [fromStr, toStr] = opts.trim().split(/\s+/);
+                const fromIdx = Number(fromStr), toIdx = Number(toStr);
+                const spawnList = ctx.room.spawnPoints[0] || [];
+                if (!Number.isInteger(fromIdx) || !Number.isInteger(toIdx) || !spawnList[fromIdx] || !spawnList[toIdx]) {
+                    roomChat(ctx.room, `[pathtestpair] usage: /botsdebug pathtestpair <fromIdx> <toIdx> (0-${spawnList.length - 1})`);
+                    return;
+                };
+
+                const spawns = spawnList.map(s => ({ x: s.x + 0.5, y: s.y, z: s.z + 0.5 }));
+                const fmt = (p) => `${p.x.toFixed(1)}, ${p.y.toFixed(1)}, ${p.z.toFixed(1)}`;
+
+                const bot = new DeadInternetBot(ctx.room, {});
+                await bot.init();
+                bot.player.respawn(spawns[fromIdx]);
+
+                roomChat(ctx.room, `[pathtestpair] testing ${fromIdx} (${fmt(spawns[fromIdx])}) -> ${toIdx} (${fmt(spawns[toIdx])})`);
+                console.log(`[deadinternet pathtestpair] testing ${fromIdx} (${fmt(spawns[fromIdx])}) -> ${toIdx} (${fmt(spawns[toIdx])})`);
+
+                const startedAt = Date.now();
+                // See pathtestall's identical comment - "arrived" alone doesn't mean the route
+                // worked, only that the bot's self-correction eventually got it there.
+                const stuckEventsBefore = bot.totalStuckEvents;
+                const path = bot.pathTo(spawns[toIdx], { force: true });
+                if (!path) {
+                    console.log(`[deadinternet pathtestpair] no path found immediately`);
+                    roomChat(ctx.room, `[pathtestpair] no path found immediately.`);
+                    return;
+                };
+
+                const legTimeoutMs = 90000;
+                let settled = false;
+                const timeout = setTimeout(() => {
+                    if (settled) return;
+                    settled = true;
+                    console.log(`[deadinternet pathtestpair] TIMED OUT (bot at ${bot.player.x.toFixed(2)}, ${bot.player.y.toFixed(2)}, ${bot.player.z.toFixed(2)})`);
+                    roomChat(ctx.room, `[pathtestpair] timed out.`);
+                    bot.onUpdate = async () => { };
+                }, legTimeoutMs);
+
+                bot.onUpdate = async (data) => {
+                    const status = bot.followPath(data?.delta);
+                    if (status === 'arrived' && !settled) {
+                        settled = true;
+                        clearTimeout(timeout);
+                        const elapsedSeconds = ((Date.now() - startedAt) / 1000).toFixed(1);
+                        const stuckEvents = bot.totalStuckEvents - stuckEventsBefore;
+                        if (stuckEvents > 0) {
+                            const edge = bot.lastStuckEdge;
+                            console.log(`[deadinternet pathtestpair] arrived in ${elapsedSeconds}s but NOT first-try - ${stuckEvents} stuck event(s), last around ${edge?.from} -> ${edge?.to} (${edge?.type})`);
+                            roomChat(ctx.room, `[pathtestpair] FAILED - arrived but needed ${stuckEvents} stuck-recovery cycle(s), not first try.`);
+                        } else {
+                            console.log(`[deadinternet pathtestpair] arrived in ${elapsedSeconds}s`);
+                            roomChat(ctx.room, `[pathtestpair] arrived in ${elapsedSeconds}s.`);
+                        };
+                        bot.onUpdate = async () => { };
+                    };
+                };
+            }
+        });
+
+        // --- Debug tool: like pathtestpair, but for two exact raw coordinates instead of spawn
+        // indices - useful for reproducing one specific edge from a bug report or a purpose-built
+        // diagnostic map without needing a spawn point placed exactly there.
+        ctx.newCommand({
+            identifier: "pathtestraw",
+            name: "pathtestraw",
+            category: "botsdebug",
+            description: "Tests live pathfinding between two exact raw coordinates (grid cell + 0.5 for center).",
+            example: "1.5 1 4.5 3.5 1 6.5",
+            warningText: "Debug tool: reproduces one specific arbitrary from/to pair on demand.",
+            permissionLevel: [ctx.ranksEnum.Admin, ctx.ranksEnum.Admin, false],
+            inputType: ["string"],
+            executeClient: ({ player, opts, mentions }) => { },
+            executeServer: async ({ player, opts, mentions }) => {
+                const parts = opts.trim().split(/\s+/).map(Number);
+                if (parts.length !== 6 || parts.some(Number.isNaN)) {
+                    roomChat(ctx.room, `[pathtestraw] usage: /botsdebug pathtestraw <fromX fromY fromZ toX toY toZ>`);
+                    return;
+                };
+                const [fx, fy, fz, tx, ty, tz] = parts;
+                const from = { x: fx, y: fy, z: fz };
+                const to = { x: tx, y: ty, z: tz };
+                const fmt = (p) => `${p.x.toFixed(1)}, ${p.y.toFixed(1)}, ${p.z.toFixed(1)}`;
+
+                const bot = new DeadInternetBot(ctx.room, {});
+                await bot.init();
+                bot.player.respawn(from);
+
+                roomChat(ctx.room, `[pathtestraw] testing ${fmt(from)} -> ${fmt(to)}`);
+                console.log(`[deadinternet pathtestraw] testing ${fmt(from)} -> ${fmt(to)}`);
+
+                const startedAt = Date.now();
+                const stuckEventsBefore = bot.totalStuckEvents;
+                const path = bot.pathTo(to, { force: true });
+                if (!path) {
+                    console.log(`[deadinternet pathtestraw] no path found immediately`);
+                    roomChat(ctx.room, `[pathtestraw] no path found immediately.`);
+                    return;
+                };
+                console.log(`[deadinternet pathtestraw] planned:`, path.map(w => `${w.type}(${w.x.toFixed(1)},${w.y.toFixed(1)},${w.z.toFixed(1)})`));
+
+                const legTimeoutMs = 90000;
+                let settled = false;
+                const timeout = setTimeout(() => {
+                    if (settled) return;
+                    settled = true;
+                    console.log(`[deadinternet pathtestraw] TIMED OUT (bot at ${bot.player.x.toFixed(2)}, ${bot.player.y.toFixed(2)}, ${bot.player.z.toFixed(2)})`);
+                    roomChat(ctx.room, `[pathtestraw] timed out.`);
+                    bot.onUpdate = async () => { };
+                }, legTimeoutMs);
+
+                bot.onUpdate = async (data) => {
+                    const status = bot.followPath(data?.delta);
+                    if (status === 'arrived' && !settled) {
+                        settled = true;
+                        clearTimeout(timeout);
+                        const elapsedSeconds = ((Date.now() - startedAt) / 1000).toFixed(1);
+                        const stuckEvents = bot.totalStuckEvents - stuckEventsBefore;
+                        if (stuckEvents > 0) {
+                            const edge = bot.lastStuckEdge;
+                            console.log(`[deadinternet pathtestraw] arrived in ${elapsedSeconds}s but NOT first-try - ${stuckEvents} stuck event(s), last around ${edge?.from} -> ${edge?.to} (${edge?.type})`);
+                            roomChat(ctx.room, `[pathtestraw] FAILED - arrived but needed ${stuckEvents} stuck-recovery cycle(s), not first try.`);
+                        } else {
+                            console.log(`[deadinternet pathtestraw] arrived in ${elapsedSeconds}s`);
+                            roomChat(ctx.room, `[pathtestraw] arrived in ${elapsedSeconds}s.`);
+                        };
+                        bot.onUpdate = async () => { };
+                    };
+                };
+            }
+        });
+
         // --- Test/demo command: the rigorous connectivity check. Not part of the reusable API -
         // this is how pathfinding.js itself gets validated against a real map's real spawn
         // points, rather than trusting the synthetic fixtures in test-pathfinding.js alone.
@@ -291,13 +495,13 @@ export const DeadInternetPlugin = {
         ctx.newCommand({
             identifier: "pathtestall",
             name: "pathtestall",
-            category: "bots",
+            category: "botsdebug",
             description: "Exhaustively tests pathfinding between every spawn point on the map.",
             example: "5",
             warningText: "Debug tool: validates pathfinding connectivity across every spawn point on the map, then runs a real bot through all of them.",
-            permissionLevel: [ctx.ranksEnum.Guest, ctx.ranksEnum.Guest, false],
+            permissionLevel: [ctx.ranksEnum.Admin, ctx.ranksEnum.Admin, false],
             // Optional leg cap (default 0 = every spawn point) - lets a debugging session iterate
-            // on a small slice of the live tour (`/bots pathtestall 5`) in a fraction of the time
+            // on a small slice of the live tour (`/botsdebug pathtestall 5`) in a fraction of the time
             // a full map tour takes, rather than waiting several minutes per iteration to see
             // whether a fix actually helped.
             inputType: ["number", 0, 999, 1],
@@ -490,11 +694,11 @@ export const DeadInternetPlugin = {
         ctx.newCommand({
             identifier: "pathtestcheckpoints",
             name: "pathtestcheckpoints",
-            category: "bots",
+            category: "botsdebug",
             description: "Runs the bot through the map's PARKOUR checkpoint route (checkpoint1 -> ... -> checkpoint5 -> goal) in the map author's intended order, starting FROM checkpoint1 rather than a random spawn. Optionally pass two checkpoint names to isolate just that one leg for debugging.",
             example: "checkpoint2 checkpoint3",
             warningText: "Debug tool: tests the designated parkour route via PARKOUR.checkpointN.none/PARKOUR.goal.none tiles, not random spawn points.",
-            permissionLevel: [ctx.ranksEnum.Guest, ctx.ranksEnum.Guest, false],
+            permissionLevel: [ctx.ranksEnum.Admin, ctx.ranksEnum.Admin, false],
             inputType: ["string"],
             executeClient: ({ player, opts, mentions }) => { },
             executeServer: async ({ player, opts, mentions }) => {
@@ -635,10 +839,10 @@ export const DeadInternetPlugin = {
         ctx.newCommand({
             identifier: "beginmanualrecording",
             name: "beginmanualrecording",
-            category: "bots",
+            category: "botsdebug",
             description: "Records your own movement (position/direction/velocity/held controls) through the map's PARKOUR checkpoint route as you walk it manually, printing each checkpoint as you reach it and saving the full trace to store/deadinternet/recordings/ once you reach the goal.",
-            warningText: "Debug tool: records your movement until you reach the goal tile (or /bots beginmanualrecording again to discard and restart).",
-            permissionLevel: [ctx.ranksEnum.Guest, ctx.ranksEnum.Guest, false],
+            warningText: "Debug tool: records your movement until you reach the goal tile (or /botsdebug beginmanualrecording again to discard and restart).",
+            permissionLevel: [ctx.ranksEnum.Admin, ctx.ranksEnum.Admin, false],
             inputType: [],
             executeClient: ({ player, opts, mentions }) => { },
             executeServer: async ({ player, opts, mentions }) => {
@@ -676,210 +880,6 @@ export const DeadInternetPlugin = {
 
                 roomChat(ctx.room, `[beginmanualrecording] recording started for ${player.name} - route: ${route.join(' -> ')}. Walk to ${route[0]} to begin.`);
                 console.log(`[deadinternet beginmanualrecording] started for`, player.name, 'route:', route);
-            }
-        });
-
-        // --- Debug tool: reproduces one specific spawn-to-spawn leg on demand, rather than
-        // waiting for pathtestall's random tour order to happen to include it - lets a
-        // known-bad pair (spotted in a pathtestall run's FAILED LEGS output, indices into that
-        // same run's "N spawn points" console log) get re-tested directly while iterating on a
-        // fix, without re-running the whole tour and hoping for the same shuffle.
-        ctx.newCommand({
-            identifier: "pathtestpair",
-            name: "pathtestpair",
-            category: "bots",
-            description: "Tests live pathfinding between two specific spawn indices (see pathtestall's spawn point list in console).",
-            example: "28 10",
-            warningText: "Debug tool: reproduces one specific spawn-to-spawn leg on demand.",
-            permissionLevel: [ctx.ranksEnum.Guest, ctx.ranksEnum.Guest, false],
-            inputType: ["string"],
-            executeClient: ({ player, opts, mentions }) => { },
-            executeServer: async ({ player, opts, mentions }) => {
-                const [fromStr, toStr] = opts.trim().split(/\s+/);
-                const fromIdx = Number(fromStr), toIdx = Number(toStr);
-                const spawnList = ctx.room.spawnPoints[0] || [];
-                if (!Number.isInteger(fromIdx) || !Number.isInteger(toIdx) || !spawnList[fromIdx] || !spawnList[toIdx]) {
-                    roomChat(ctx.room, `[pathtestpair] usage: /bots pathtestpair <fromIdx> <toIdx> (0-${spawnList.length - 1})`);
-                    return;
-                };
-
-                const spawns = spawnList.map(s => ({ x: s.x + 0.5, y: s.y, z: s.z + 0.5 }));
-                const fmt = (p) => `${p.x.toFixed(1)}, ${p.y.toFixed(1)}, ${p.z.toFixed(1)}`;
-
-                const bot = new DeadInternetBot(ctx.room, {});
-                await bot.init();
-                bot.player.respawn(spawns[fromIdx]);
-
-                roomChat(ctx.room, `[pathtestpair] testing ${fromIdx} (${fmt(spawns[fromIdx])}) -> ${toIdx} (${fmt(spawns[toIdx])})`);
-                console.log(`[deadinternet pathtestpair] testing ${fromIdx} (${fmt(spawns[fromIdx])}) -> ${toIdx} (${fmt(spawns[toIdx])})`);
-
-                const startedAt = Date.now();
-                // See pathtestall's identical comment - "arrived" alone doesn't mean the route
-                // worked, only that the bot's self-correction eventually got it there.
-                const stuckEventsBefore = bot.totalStuckEvents;
-                const path = bot.pathTo(spawns[toIdx], { force: true });
-                if (!path) {
-                    console.log(`[deadinternet pathtestpair] no path found immediately`);
-                    roomChat(ctx.room, `[pathtestpair] no path found immediately.`);
-                    return;
-                };
-
-                const legTimeoutMs = 90000;
-                let settled = false;
-                const timeout = setTimeout(() => {
-                    if (settled) return;
-                    settled = true;
-                    console.log(`[deadinternet pathtestpair] TIMED OUT (bot at ${bot.player.x.toFixed(2)}, ${bot.player.y.toFixed(2)}, ${bot.player.z.toFixed(2)})`);
-                    roomChat(ctx.room, `[pathtestpair] timed out.`);
-                    bot.onUpdate = async () => { };
-                }, legTimeoutMs);
-
-                bot.onUpdate = async (data) => {
-                    const status = bot.followPath(data?.delta);
-                    if (status === 'arrived' && !settled) {
-                        settled = true;
-                        clearTimeout(timeout);
-                        const elapsedSeconds = ((Date.now() - startedAt) / 1000).toFixed(1);
-                        const stuckEvents = bot.totalStuckEvents - stuckEventsBefore;
-                        if (stuckEvents > 0) {
-                            const edge = bot.lastStuckEdge;
-                            console.log(`[deadinternet pathtestpair] arrived in ${elapsedSeconds}s but NOT first-try - ${stuckEvents} stuck event(s), last around ${edge?.from} -> ${edge?.to} (${edge?.type})`);
-                            roomChat(ctx.room, `[pathtestpair] FAILED - arrived but needed ${stuckEvents} stuck-recovery cycle(s), not first try.`);
-                        } else {
-                            console.log(`[deadinternet pathtestpair] arrived in ${elapsedSeconds}s`);
-                            roomChat(ctx.room, `[pathtestpair] arrived in ${elapsedSeconds}s.`);
-                        };
-                        bot.onUpdate = async () => { };
-                    };
-                };
-            }
-        });
-
-        // --- Debug tool: like pathtestpair, but for two exact raw coordinates instead of spawn
-        // indices - useful for reproducing one specific edge from a bug report or a purpose-built
-        // diagnostic map without needing a spawn point placed exactly there.
-        ctx.newCommand({
-            identifier: "pathtestraw",
-            name: "pathtestraw",
-            category: "bots",
-            description: "Tests live pathfinding between two exact raw coordinates (grid cell + 0.5 for center).",
-            example: "1.5 1 4.5 3.5 1 6.5",
-            warningText: "Debug tool: reproduces one specific arbitrary from/to pair on demand.",
-            permissionLevel: [ctx.ranksEnum.Guest, ctx.ranksEnum.Guest, false],
-            inputType: ["string"],
-            executeClient: ({ player, opts, mentions }) => { },
-            executeServer: async ({ player, opts, mentions }) => {
-                const parts = opts.trim().split(/\s+/).map(Number);
-                if (parts.length !== 6 || parts.some(Number.isNaN)) {
-                    roomChat(ctx.room, `[pathtestraw] usage: /bots pathtestraw <fromX fromY fromZ toX toY toZ>`);
-                    return;
-                };
-                const [fx, fy, fz, tx, ty, tz] = parts;
-                const from = { x: fx, y: fy, z: fz };
-                const to = { x: tx, y: ty, z: tz };
-                const fmt = (p) => `${p.x.toFixed(1)}, ${p.y.toFixed(1)}, ${p.z.toFixed(1)}`;
-
-                const bot = new DeadInternetBot(ctx.room, {});
-                await bot.init();
-                bot.player.respawn(from);
-
-                roomChat(ctx.room, `[pathtestraw] testing ${fmt(from)} -> ${fmt(to)}`);
-                console.log(`[deadinternet pathtestraw] testing ${fmt(from)} -> ${fmt(to)}`);
-
-                const startedAt = Date.now();
-                const stuckEventsBefore = bot.totalStuckEvents;
-                const path = bot.pathTo(to, { force: true });
-                if (!path) {
-                    console.log(`[deadinternet pathtestraw] no path found immediately`);
-                    roomChat(ctx.room, `[pathtestraw] no path found immediately.`);
-                    return;
-                };
-                console.log(`[deadinternet pathtestraw] planned:`, path.map(w => `${w.type}(${w.x.toFixed(1)},${w.y.toFixed(1)},${w.z.toFixed(1)})`));
-
-                const legTimeoutMs = 90000;
-                let settled = false;
-                const timeout = setTimeout(() => {
-                    if (settled) return;
-                    settled = true;
-                    console.log(`[deadinternet pathtestraw] TIMED OUT (bot at ${bot.player.x.toFixed(2)}, ${bot.player.y.toFixed(2)}, ${bot.player.z.toFixed(2)})`);
-                    roomChat(ctx.room, `[pathtestraw] timed out.`);
-                    bot.onUpdate = async () => { };
-                }, legTimeoutMs);
-
-                bot.onUpdate = async (data) => {
-                    const status = bot.followPath(data?.delta);
-                    if (status === 'arrived' && !settled) {
-                        settled = true;
-                        clearTimeout(timeout);
-                        const elapsedSeconds = ((Date.now() - startedAt) / 1000).toFixed(1);
-                        const stuckEvents = bot.totalStuckEvents - stuckEventsBefore;
-                        if (stuckEvents > 0) {
-                            const edge = bot.lastStuckEdge;
-                            console.log(`[deadinternet pathtestraw] arrived in ${elapsedSeconds}s but NOT first-try - ${stuckEvents} stuck event(s), last around ${edge?.from} -> ${edge?.to} (${edge?.type})`);
-                            roomChat(ctx.room, `[pathtestraw] FAILED - arrived but needed ${stuckEvents} stuck-recovery cycle(s), not first try.`);
-                        } else {
-                            console.log(`[deadinternet pathtestraw] arrived in ${elapsedSeconds}s`);
-                            roomChat(ctx.room, `[pathtestraw] arrived in ${elapsedSeconds}s.`);
-                        };
-                        bot.onUpdate = async () => { };
-                    };
-                };
-            }
-        });
-
-        // --- Debug tool: sends a bot to wherever the calling player is standing right now, no
-        // spawn-point indices needed - the fastest way to hand-test a specific spot in the map
-        // (like the one in a bug report screenshot) without hunting for its nearest spawn index.
-        // Snapshots the player's position once at the moment the command runs - it does not chase
-        // them if they keep moving afterward.
-        ctx.newCommand({
-            identifier: "pathtestme",
-            name: "pathtestme",
-            category: "bots",
-            description: "Spawns a bot and paths it to your current position.",
-            warningText: "Debug tool: sends a bot walking to wherever you're currently standing.",
-            permissionLevel: [ctx.ranksEnum.Guest, ctx.ranksEnum.Guest, false],
-            inputType: [],
-            executeClient: ({ player, opts, mentions }) => { },
-            executeServer: async ({ player, opts, mentions }) => {
-                const target = { x: player.x, y: player.y, z: player.z };
-                const fmt = (p) => `${p.x.toFixed(1)}, ${p.y.toFixed(1)}, ${p.z.toFixed(1)}`;
-
-                const bot = new DeadInternetBot(ctx.room, {});
-                await bot.init();
-
-                roomChat(ctx.room, `[pathtestme] heading to ${player.name} at (${fmt(target)})`);
-                console.log(`[deadinternet pathtestme] heading to ${player.name} at (${fmt(target)})`);
-
-                const startedAt = Date.now();
-                const path = bot.pathTo(target, { force: true });
-                if (!path) {
-                    console.log(`[deadinternet pathtestme] no path found immediately`);
-                    roomChat(ctx.room, `[pathtestme] no path found immediately.`);
-                    return;
-                };
-
-                const legTimeoutMs = 90000;
-                let settled = false;
-                const timeout = setTimeout(() => {
-                    if (settled) return;
-                    settled = true;
-                    console.log(`[deadinternet pathtestme] TIMED OUT (bot at ${bot.player.x.toFixed(2)}, ${bot.player.y.toFixed(2)}, ${bot.player.z.toFixed(2)})`);
-                    roomChat(ctx.room, `[pathtestme] timed out.`);
-                    bot.onUpdate = async () => { };
-                }, legTimeoutMs);
-
-                bot.onUpdate = async (data) => {
-                    const status = bot.followPath(data?.delta);
-                    if (status === 'arrived' && !settled) {
-                        settled = true;
-                        clearTimeout(timeout);
-                        const elapsedSeconds = ((Date.now() - startedAt) / 1000).toFixed(1);
-                        console.log(`[deadinternet pathtestme] arrived in ${elapsedSeconds}s`);
-                        roomChat(ctx.room, `[pathtestme] arrived in ${elapsedSeconds}s.`);
-                        bot.onUpdate = async () => { };
-                    };
-                };
             }
         });
     },

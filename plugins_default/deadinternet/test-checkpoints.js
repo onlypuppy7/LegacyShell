@@ -1,4 +1,4 @@
-// Drives `/bots pathtestcheckpoints` against a real running game server — deterministic
+// Drives `/botsdebug pathtestcheckpoints` against a real running game server — deterministic
 // checkpoint-route testing (see shared.js). Usage:
 //   TEST_MAP=PathJumpTest node plugins_default/deadinternet/test-checkpoints.js [host] [port] [from to]
 // defaults to localhost:13372 and the full checkpoint route when no pair is given.
@@ -96,8 +96,8 @@ setTimeout(() => {
 
 setTimeout(() => {
     const cmd = pairFrom && pairTo
-        ? `/bots pathtestcheckpoints ${pairFrom} ${pairTo}`
-        : '/bots pathtestcheckpoints';
+        ? `/botsdebug pathtestcheckpoints ${pairFrom} ${pairTo}`
+        : '/botsdebug pathtestcheckpoints';
     console.log(`[test-checkpoints] sending ${cmd}`);
     ws.send(packChat(cmd));
 }, 13000);

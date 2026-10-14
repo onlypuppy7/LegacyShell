@@ -29,9 +29,9 @@ For the API surface (`findPath`, `EDGE_TYPE`, `DeadInternetBot` methods) see `RE
 | Script | What it does | Needs a server? |
 |---|---|---|
 | `test-pathfinding.js` | Offline unit suite (synthetic maps, no physics). 21 assertions. | No |
-| `test-checkpoints.js` | Drives `/bots pathtestcheckpoints` against a real map's checkpoint route. | Yes |
-| `test-allspawns.js` | Drives `/bots pathtestall` — algorithmic all-pairs connectivity + a live full-spawn tour. Defaults to the `Castle` map (via `server-services/src/maps/Castle.json`, not this plugin's own `maps/`). | Yes |
-| `test-ingame.js` | Drives `/bots pathtest` — one bot wandering forever between random spawn points. Good for a quick smoke test on any map. | Yes |
+| `test-checkpoints.js` | Drives `/botsdebug pathtestcheckpoints` against a real map's checkpoint route. | Yes |
+| `test-allspawns.js` | Drives `/botsdebug pathtestall` — algorithmic all-pairs connectivity + a live full-spawn tour. Defaults to the `Castle` map (via `server-services/src/maps/Castle.json`, not this plugin's own `maps/`). | Yes |
+| `test-ingame.js` | Drives `/botsdebug pathtest` — one bot wandering forever between random spawn points. Good for a quick smoke test on any map. | Yes |
 
 ```bash
 node plugins_default/deadinternet/test-pathfinding.js
@@ -46,8 +46,8 @@ node plugins_default/deadinternet/test-ingame.js [host] [port]
 ```
 
 The same things are also reachable directly in-game as slash commands (useful for one-off
-probes without a script): `/bots pathtestcheckpoints`, `/bots pathtestall`, `/bots pathtestpair <i> <j>`,
-`/bots pathtestraw <fromX fromY fromZ toX toY toZ>`, `/bots pathtestme`. All are Guest-permission,
+probes without a script): `/botsdebug pathtestcheckpoints`, `/botsdebug pathtestall`, `/botsdebug pathtestpair <i> <j>`,
+`/botsdebug pathtestraw <fromX fromY fromZ toX toY toZ>`, `/botsdebug pathtestme`. All are Admin-only,
 non-cheat debug tools — see `shared.js` for the full list.
 
 **Reading results**: these scripts don't parse server output themselves — the actual proof is
@@ -84,9 +84,9 @@ Watch that log while a script runs, not just the script's own stdout.
 
 ## Manual recordings (`store/deadinternet/recordings/`)
 
-`/bots beginmanualrecording` captures a real player's own walk through a map's checkpoint route
+`/botsdebug beginmanualrecording` captures a real player's own walk through a map's checkpoint route
 (position/yaw/velocity/held controls, full tick resolution) and saves it here once the goal is
-reached; `/bots beginmanualrecording` again discards and restarts. These are a ground-truth
+reached; `/botsdebug beginmanualrecording` again discards and restarts. These are a ground-truth
 reference for what a working traversal actually looks like on a map the bot can't yet clear on
 its own — decode `sampleColumns`/`samples` and cross-reference against the map's raw block data
 when a route needs reverse-engineering, rather than only inferring intent from failed live

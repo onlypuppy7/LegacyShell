@@ -1,7 +1,7 @@
 // Drives a real, running game server as a minimal WebSocket client - no browser, no rendering,
 // none of the client-side overhead that can make a real browser slow to join in a constrained
 // environment. Creates a private room, joins it as a real player, then issues DeadInternet's
-// `/bots pathtest` chat command and lets it run.
+// `/botsdebug pathtest` chat command and lets it run.
 //
 // This only sends real protocol messages (using the actual Comm.Out/Comm.In classes, so the
 // framing is guaranteed correct) - it deliberately does NOT attempt to fully parse every kind of
@@ -109,8 +109,8 @@ setTimeout(() => {
 }, 8000);
 
 setTimeout(() => {
-    console.log('[test-ingame] sending /bots pathtest');
-    ws.send(packChat('/bots pathtest'));
+    console.log('[test-ingame] sending /botsdebug pathtest');
+    ws.send(packChat('/botsdebug pathtest'));
 }, 10000);
 
 setTimeout(() => {

@@ -11,9 +11,9 @@ off ledges, and climbing ladders.
 |---|---|
 | `index.js` | The plugin's public API surface. Other plugins should import from here. |
 | `pathfinding.js` | The A\* engine itself. Pure/framework-agnostic — takes a `room`-shaped object and plain `{x,y,z}` positions, knows nothing about bots or players. |
-| `shared.js` | Demo/test commands only (`/bots add`, `/bots pathtest`) and the client-side plugin registration glue. Not the reusable API — see "Scope" below. |
+| `shared.js` | Demo/test commands only (`/bots add`, `/botsdebug pathtest`) and the client-side plugin registration glue. Not the reusable API — see "Scope" below. |
 | `test-pathfinding.js` | Standalone unit tests for `pathfinding.js`. No server needed. |
-| `test-ingame.js` | Live integration test — drives a real running game server as a raw WebSocket client and triggers `/bots pathtest`. |
+| `test-ingame.js` | Live integration test — drives a real running game server as a raw WebSocket client and triggers `/botsdebug pathtest`. |
 
 ## Scope: index.js is the API, shared.js is the demo
 
@@ -24,7 +24,7 @@ the thing other plugins import from:
 import { DeadInternetBot, findPath, isStandable, EDGE_TYPE, MOVEMENT_PROFILE } from '../deadinternet/index.js';
 ```
 
-`shared.js`'s two commands (`/bots add`, `/bots pathtest`) are real working examples of driving a
+`shared.js`'s two commands (`/bots add`, `/botsdebug pathtest`) are real working examples of driving a
 bot, kept there deliberately so the test/demo surface stays separate from the API other plugins
 build against. If you're looking for how to *use* `DeadInternetBot`, read `shared.js` for
 working examples — but depend on `index.js`, not `shared.js`.
@@ -130,11 +130,10 @@ detect when the bot hasn't actually made horizontal progress in a while and reac
 This is why `MOVEMENT_PROFILE` doesn't need to be physically exact: an imperfect estimate costs
 at most ~1.8s of stall before the bot routes around it.
 
-## `/bots pathtest` (shared.js, demo command)
+## `/botsdebug pathtest` (shared.js, demo command)
 
-`permissionLevel: [Guest, Guest, false]`, not `isCheat` — deliberately low-ceremony since it's a
-read-only debug aid rather than anything gameplay-affecting. Anyone in the room can run it, no
-game-owner requirement.
+`permissionLevel: [Admin, Admin, false]`, not `isCheat` — all `/bots` commands are admin-only; this one isn't a
+cheat since it only walks a bot around.
 
 Spawns one bot that **wanders forever between random spawn points** on the map (`room.spawnPoints`,
 the same list the real spawn-selection logic in `rooms.js` draws from) — not to wherever you're
@@ -175,7 +174,7 @@ node plugins_default/deadinternet/test-ingame.js [gameHost] [gamePort]
 Defaults to `localhost:13372`. Requires `services` + `game` already running. Connects as a raw
 WebSocket client (using the real `Comm` class for correct wire framing — no browser, no
 rendering), joins a fresh private room, sends `requestRespawn` to get a real position, then
-issues `/bots pathtest`. The actual proof of correctness is the **game server's own console
+issues `/botsdebug pathtest`. The actual proof of correctness is the **game server's own console
 output** (route summary, 1s position samples, arrival time) — this script deliberately doesn't
 fully parse incoming payloads itself; watch the server log while it runs.
 
