@@ -1,7 +1,6 @@
 //legacyshell: basic
 import { devlog, isClient, isServer } from "#constants";
 import Comm from "#comm";
-import { GameType } from "#gametypes";
 //legacyshell: plugins
 import { plugins } from '#plugins';
 import { setGameOptionInMentions } from "#permissions";
@@ -74,6 +73,7 @@ export const ParkourModePlugin = {
         // var ItemTypes = data.ItemTypes;
         var GameTypes = data.GameTypes;
 
+        this.parkourGameTypeIndex = GameTypes.length;
         GameTypes.push({
             shortName: "Parkour",
             longName: "Parkour",
@@ -246,7 +246,7 @@ export const ParkourModePlugin = {
         var player = data.this;
 
         var currentGameType = isServer ? player.room.gameType : gameType;
-        if (currentGameType !== GameType.parkour) return;
+        if (this.parkourGameTypeIndex !== undefined && currentGameType !== this.parkourGameTypeIndex) return;
 
         if (player.highestCheckpoint == undefined) player.highestCheckpoint = 0;
 
