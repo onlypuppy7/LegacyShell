@@ -139,6 +139,11 @@ export var GameType = {};
             gameType.options = {
                 ...defaultOptions,
                 ...gameType.options,
+                //one level deeper for plugins, so a gametype can set e.g. its own weather without wiping other plugins' defaults
+                plugins: {
+                    ...defaultOptions.plugins,
+                    ...(gameType.options.plugins || {}),
+                },
             };
             gameType.value = i++;
             gameType.shortNameDisplay = gameType.shortName;

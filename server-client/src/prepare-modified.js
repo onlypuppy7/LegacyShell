@@ -251,12 +251,20 @@ async function modifyFiles() {
             });
         };
 
+        //the shared map/player/item shader. Plugins edit these strings: each has //@anchor comments (//@vertexDeclarations,
+        //@vertexEnd, //@pixelDeclarations, //@pixelPreFog) to insert GLSL at - keep the anchor text if you add after it.
+        const shaders = {
+            vertex: fs.readFileSync(path.join(ss.rootDir, 'src', 'shaders', 'standardVertexShader.glsl'), 'utf8'),
+            pixel: fs.readFileSync(path.join(ss.rootDir, 'src', 'shaders', 'standardPixelShader.glsl'), 'utf8'),
+        };
+        await plugins.emit('shaderSources', { ss, shaders });
+
         const replacementAfter = [
             { pattern: /LEGACYSHELLITEMS/g, insertion: ss.cache.items },
             { pattern: /LEGACYSHELLMINMAPS/g, insertion: ss.cache.maps },
 
-            { pattern: /LEGACYSHELLSTANDARDVERTEXSHADER/g, insertion: `\n\`${fs.readFileSync(path.join(ss.rootDir, 'src', 'shaders', 'standardVertexShader.glsl'), 'utf8')}\n\`` },
-            { pattern: /LEGACYSHELLSTANDARDPIXELSHADER/g, insertion: `\n\`${fs.readFileSync(path.join(ss.rootDir, 'src', 'shaders', 'standardPixelShader.glsl'), 'utf8')}\n\`` },
+            { pattern: /LEGACYSHELLSTANDARDVERTEXSHADER/g, insertion: `\n\`${shaders.vertex}\n\`` },
+            { pattern: /LEGACYSHELLSTANDARDPIXELSHADER/g, insertion: `\n\`${shaders.pixel}\n\`` },
 
             { pattern: /LEGACYSHELLBABYLON/g, insertion: `\n${fs.readFileSync(path.join(ss.currentDir, 'src', 'data', 'babylon.js'))}\n` },
         ];

@@ -2,6 +2,7 @@
 import path from 'node:path';
 //plugin: legacyweather
 import { LegacyWeatherPlugin } from './shared.js';
+import { patchStandardShader } from './weatherShader.js';
 //legacyshell: web server
 import express from 'express';
 //
@@ -10,9 +11,9 @@ export const PluginMeta = {
     identifier: "legacyweather",
     name: 'LegacyWeather',
     author: 'onlypuppy7',
-    version: '1.0.0',
-    descriptionShort: 'The day/night and rain/storm/snowstorm weather system, plus the /time and weather admin commands.',
-    descriptionLong: 'The day/night and rain/storm/snowstorm weather system, plus the /time and weather admin commands. Moved out of core into a plugin - see README.md.',
+    version: '2.0.0',
+    descriptionShort: 'Layered rain/storm/snow weather and time of day, with smooth transitions and /weather and /time commands.',
+    descriptionLong: 'Independent rain, storm and snow layers (each a 0-1 intensity or an object of tunable parts), wind and time of day, blended smoothly on the client. See README.md.',
     legacyShellVersion: 609,
 };
 
@@ -28,6 +29,7 @@ export class Plugin {
         LegacyWeatherPlugin.registerListeners(this.plugins);
         this.plugins.on('client:pluginSourceInsertion', this.pluginSourceInsertion.bind(this));
         this.plugins.on('client:onStartServer', this.onStartServer.bind(this));
+        this.plugins.on('client:shaderSources', this.shaderSources.bind(this));
     };
 
     async onStartServer(data) {
@@ -36,12 +38,22 @@ export class Plugin {
         app.use(express.static(path.join(this.thisDir, 'client')));
     };
 
+    shaderSources(data) {
+        patchStandardShader(data.shaders); //wet surfaces, puddles and lightning flash in the shared map/player shader
+    };
+
     pluginSourceInsertion(data) {
-        data.pluginInsertion.files.push({
-            insertBefore: '\nconsole.log("inserting before... (LegacyWeather)");',
-            filepath: path.join(this.thisDir, 'shared.js'),
-            insertAfter: '\nconsole.log("inserting after... (LegacyWeather)!");',
-            position: 'before'
+        //order matters: state first (pure), then the client renderer, then the shared listeners/commands
+        var files = ['weatherState.js', 'render.js', 'shared.js'];
+        files.forEach((file, i) => {
+            data.pluginInsertion.files.push({
+                insertBefore: i === 0 ? `
+console.log("inserting before... (LegacyWeather)");` : '',
+                filepath: path.join(this.thisDir, file),
+                insertAfter: i === files.length - 1 ? `
+console.log("inserting after... (LegacyWeather)!");` : '',
+                position: 'before'
+            });
         });
     };
 };

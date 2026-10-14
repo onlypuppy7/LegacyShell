@@ -137,11 +137,13 @@ export const LegacyShellCorePlugin = {
                     [ItemTypes.GRENADE, 75, 5],
                     [ItemTypes.HEALTH, 75, 3], //make them rare
                 ],
-                weather: {
-                    rainEnabled: true,
-                    stormEnabled: true,
+                plugins: { //legacyweather's state - a thunderstorm at night
+                    weather: {
+                        rain: 0.8,
+                        storm: 0.8,
+                    },
+                    time: "night",
                 },
-                time: "night",
                 regenModifier: [
                     -.5, //ffa
                     -.5, //team1

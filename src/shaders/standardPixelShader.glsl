@@ -29,6 +29,7 @@ varying vec4 vColor;
 varying vec2 vUV;
 varying vec3 vNormal;
 varying float fFogDistance;
+//@pixelDeclarations (plugins insert GLSL here, see the shaderSources event)
 
 const float sOff = .001;
 
@@ -110,6 +111,8 @@ void main(void)
     #ifdef FLASH
         color.rgb += emissiveColor;
     #endif
+
+    //@pixelPreFog
 
     float fog = calcFogFactor();
     color.rgb = fog * color.rgb + (1.0 - fog) * vFogColor;

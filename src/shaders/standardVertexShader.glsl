@@ -23,6 +23,7 @@ varying vec3 vNormal;
 varying vec4 vColor;
 varying vec4 vEmissiveColor;
 varying float fFogDistance;
+//@vertexDeclarations (plugins insert GLSL here, see the shaderSources event)
 
 #ifdef EGGSHELL
     varying vec2 vUV;
@@ -57,6 +58,7 @@ void main(void) {
 
     fFogDistance = (view * worldPosition).z;
     gl_Position = viewProjection * worldPosition;
+    //@vertexEnd
 
     #ifdef EGGSHELL
         vUV = uv;

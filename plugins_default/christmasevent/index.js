@@ -68,7 +68,7 @@ export class Plugin {
                 return;
             };
     
-            ctx.gameOptions.plugins.weather.snowStormEnabled = true; //legacyweather plugin's gameOptions.plugins.weather, moved from gameOptions.weather
+            ctx.gameOptions.plugins.weather.snow = 0.6; //legacyweather's snow layer (a 0-1 intensity, or an object of parts - see its README)
         };
     };
 };
