@@ -307,6 +307,7 @@ export const LegacyWeatherPlugin = {
             output.packInt8U(Math.floor(Math.random() * 256)); //angle, 0-255 around the full circle
             output.packInt8U(Math.round(distance)); //blocks
             room.sendToAll(output, null, "doThunderStrike");
+            plugins.emit('thunderStrike', { room, distance }); //for other plugins to react to (the zombies surge on it)
         };
     },
 
