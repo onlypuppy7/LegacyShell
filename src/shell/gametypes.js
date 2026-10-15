@@ -52,6 +52,13 @@ export var defaultOptions = {
         0, //team1
         0, //team2
     ],
+    contactDamage: [ //hp dealt to an enemy this team's players touch (0 = off). server-side, see Room.contactDamageUpdate
+        0, //ffa
+        0, //team1
+        0, //team2
+    ],
+    contactCooldown: 500, //ms between contact hits on the same victim
+    contactReach: 0.1, //blocks of leniency beyond the two hitboxes just touching (bots that stop short of someone need more)
     physicsSpeedModifier: [
         1, //ffa
         1, //team1

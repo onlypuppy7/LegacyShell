@@ -347,6 +347,50 @@ export class RoomConstructor {
         this.updateRoomParamsForClients();
     };
 
+    //touching an enemy hurts them for the toucher's contactDamage modifier (hp per hit). Not scaled by damageModifier, so a team
+    //that can't shoot (damageModifier 0) can still bite.
+    //one hit per victim per gameOptions.contactCooldown ms, so a crowd can't drain someone at 60 hits a second.
+    contactDamageUpdate(now = Date.now()) {
+        const attackers = [];
+        const victims = [];
+
+        iteratePlayers(player => {
+            if (!player.playing || player.isDead()) return;
+            victims.push(player);
+            if (player.modifiers.contactDamage > 0) attackers.push(player);
+        });
+
+        if (!attackers.length) return;
+
+        const reach = this.gameOptions.contactReach ?? 0.1; //leniency on top of the two hitboxes (0.5 wide, 0.6 tall, origin at the feet) just touching
+
+        for (const victim of victims) {
+            if (victim.nextContactHit > now) continue;
+            const victimScale = victim.modifiers.scale || 1;
+
+            for (const attacker of attackers) {
+                if (attacker === victim) continue;
+                if (victim.team !== 0 && victim.team === attacker.team) continue; //team 0 is ffa, everyone is an enemy
+
+                const attackerScale = attacker.modifiers.scale || 1;
+                const touching = 0.25 * (victimScale + attackerScale) + reach; //centre to centre
+                const dx = victim.x - attacker.x;
+                const dz = victim.z - attacker.z;
+                const length = Math.hypot(dx, dz);
+                if (length > touching) continue;
+
+                const dy = victim.y - attacker.y; //feet to feet
+                if (dy > 0.6 * attackerScale || dy < -0.6 * victimScale) continue;
+
+                const damage = attacker.modifiers.contactDamage;
+
+                victim.nextContactHit = now + this.gameOptions.contactCooldown;
+                victim.hit(damage, attacker, length ? dx / length : 0, length ? dz / length : 1, undefined, damage); //direction of travel: from the toucher to the victim
+                break; //one hit per cooldown, whoever got there first
+            };
+        };
+    };
+
     async updateLoop (delta) {
         var currentTimeStamp = Date.now();
         this.existedFor = Date.now() - this.startTime;
@@ -374,6 +418,8 @@ export class RoomConstructor {
                 };
                 player.incrementStatesUsed();
             });
+
+            this.contactDamageUpdate(currentTimeStamp);
 
             plugins.emit('roomStateUpdate', {this: this, delta, currentTimeStamp});
 

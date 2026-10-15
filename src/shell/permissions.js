@@ -155,6 +155,26 @@ export class PermissionsConstructor {
             }
         });
         this.newCommand({
+            identifier: "contactDamage",
+            isCheat: true,
+            name: "contactDamage",
+            category: "change",
+            description: "Sets how much health players deal to enemies just by touching them (0 = off).",
+            example: "@a 20",
+            autocomplete: "@",
+            usage: "[@mention] number (0 to 100, step 1)",
+            permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
+            inputType: ["number", 0, 100, 1],
+            executeClient: ({ player, opts, mentions }) => {
+                forEachMentionInMentions(mentions, (player) => {
+                    player.changeModifiers({contactDamage: opts});
+                });
+            },
+            executeServer: ({ player, opts, mentions, mentionsLiteral }) => {
+                setGameOptionInMentions(player, mentions, mentionsLiteral, "contactDamage", opts);
+            }
+        });
+        this.newCommand({
             identifier: "jumpBoost",
             isCheat: true,
             name: "jumpBoost",

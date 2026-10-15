@@ -183,6 +183,7 @@ class Player {
             jumpBoostModifier: this.gameOptions.jumpBoostModifier[this.team],
             scale: this.gameOptions.scale[this.team],
             knockbackModifier: this.gameOptions.knockbackModifier[this.team],
+            contactDamage: this.gameOptions.contactDamage[this.team],
             physicsSpeedModifier: this.gameOptions.physicsSpeedModifier[this.team],
             bulletSpeedModifier: this.gameOptions.bulletSpeedModifier[this.team],
             reloadSpeedModifier: this.gameOptions.reloadSpeedModifier[this.team],
@@ -1115,7 +1116,11 @@ class Player {
 
         if (isServer && !noEggs) { //do request to add eggs here
             if (killedPlayer && this.id !== killedPlayer.id) {
-                this.client.addKillViaServices();
+                //a listener sets data.cancel = true to skip the default egg reward (own flag rather than plugins.cancel, which a later emit resets before this async check runs)
+                const data = { this: this, killedPlayer, cancel: false };
+                plugins.emit('scoreKillEggs', data).then(() => {
+                    if (!data.cancel) this.client.addKillViaServices();
+                });
             };
         };
     };
