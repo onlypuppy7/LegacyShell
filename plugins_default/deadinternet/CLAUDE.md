@@ -28,7 +28,16 @@ For the API surface (`findPath`, `EDGE_TYPE`, `DeadInternetBot` methods) see `RE
 
 | Script | What it does | Needs a server? |
 |---|---|---|
+| `bench-pathfinding.js` | Real-geometry A* benchmark: boots a real room offline (real map, collider and bot player; no plugins loaded, so no `git pull`) and times `findPath` between spawn points. `--profile`, `--repeat N`, `--ab <module>` (compare full routes against another pathfinding module in-process), `--per-pair`, `--leak-test`. Run ONE map per process: module state leaks between rooms in the same process and changes routes. | No |
 | `test-pathfinding.js` | Offline unit suite (synthetic maps, no physics). 21 assertions. | No |
+| `test-client-registration.js` | Loads `shared.js` the way the browser bundle does and checks every command still registers (a ReferenceError there silently hides commands). | No |
+| `test-commands.js` | Drives the real `/bots` and `/botsdebug field` handlers with a fake player: argument parsing, validation, listings (no spawning). | No |
+| `test-perf.js` | The bot AI profiler (`perf.js`) and its hooks in the controller. | No |
+| `test-path-economy.js` | `pathTo()`: route reuse, the search floor, backoff, goal snapping, partial routes, suspend/resume, and how the combat AI uses them. 37 assertions. | No |
+| `test-geometry-store.js` | The on-disk pathfinding cache: round trip, stale/corrupt files, merging between rooms, gzip vs plain, autosave, and speed-keyed physics verdicts. 37 assertions. | No |
+| `bench-lag.js` | Headless version of the browser stress test: a real room on a virtual clock, reports tick lag. `--plugin <dir>` runs a snapshot of older code. | No (but boots a room - slow, one scenario per process) |
+| `bench-compare.js` | Runs `bench-lag.js` over several seeds for several configurations and prints one table (see README "Performance"). | No |
+| `test-combat.js` | Offline unit suite for `combat.js` (mock players, synthetic map, seeded RNG). 299 assertions. | No |
 | `test-checkpoints.js` | Drives `/botsdebug pathtestcheckpoints` against a real map's checkpoint route. | Yes |
 | `test-allspawns.js` | Drives `/botsdebug pathtestall` — algorithmic all-pairs connectivity + a live full-spawn tour. Defaults to the `Castle` map (via `server-services/src/maps/Castle.json`, not this plugin's own `maps/`). | Yes |
 | `test-ingame.js` | Drives `/botsdebug pathtest` — one bot wandering forever between random spawn points. Good for a quick smoke test on any map. | Yes |

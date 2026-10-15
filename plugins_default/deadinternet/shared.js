@@ -5,7 +5,8 @@ import Comm from "#comm";
 import { plugins } from '#plugins';
 import { setGameOptionInMentions } from "#permissions";
 import ClientConstructor from "#client";
-import { DeadInternetBot, findPath } from "./index.js";
+import { planField, listScenarios, summarisePlan, FIELD_SCENARIOS, FIELD_MAX_TOTAL } from "./scenarios.js";
+import { DeadInternetBot, DeadInternetBots, perf, loadGeometryCache, saveGeometryCache, geometryStoreStats, clearGeometryStore, findPath, parseCombatArgs, parseSkill, resolveCombatOptions, listPresets, listClasses, DIFFICULTY_PRESETS, COMBAT_OPTIONS } from "./index.js";
 //(server-only-start)
 import { ss } from "#misc";
 import fs from 'node:fs';
@@ -34,6 +35,9 @@ function roomChat(room, text) {
 // only meaningful within it, so this never needs to be broken out per-room separately. One
 // entry per player CURRENTLY recording; playerStateUpdate (below) is a no-op for everyone else.
 const activeRecordings = new Map();
+
+// Timer for `/botsdebug perf start N` (one profile at a time per room worker).
+let botsPerfTimer = null;
 
 export const DeadInternetPlugin = {
     registerListeners: function (pluginManager) {
@@ -116,63 +120,252 @@ export const DeadInternetPlugin = {
     permissionsAfterSetup: function (data) {
         var ctx = data.this;
 
+        // --- /bots add: the real entry point. Everything about a bot's behavior is configurable at
+        // spawn time: `/bots add [count] [difficulty] [option=value ...]`, e.g.
+        //   /bots add 3 hard aim=1.5 team=2 nickname=Gary
+        //   /bots add easy role=ally
+        // A difficulty is just a preset bag of option values (see combat.js's DIFFICULTY_PRESETS);
+        // any option given explicitly wins over the preset. `/bots presets` and `/bots options`
+        // list what's available.
         ctx.newCommand({
             identifier: "addbot",
             isCheat: true,
             name: "add",
             category: "bots",
-            description: "Spawns some useless bots.",
-            example: "1",
-            warningText: "Add some test bots to the server.",
+            description: "Spawns combat bots. Usage: /bots add [count] [difficulty or skill 0-1] [option=value ...]",
+            example: "3 hard aim=1.5 role=ally  (or: 3 0.7)",
+            warningText: "Spawns bots that hunt (or defend) players. Use /bots presets and /bots options to see what you can customise.",
             permissionLevel: [ctx.ranksEnum.Admin, ctx.ranksEnum.Admin, false],
-            inputType: ["number", 1, 18, 1],
+            inputType: ["string"],
+            usage: "[count] [difficulty or skill 0-1] [option=value ...]",
             executeClient: ({ player, opts, mentions }) => { },
             executeServer: async ({ player, opts, mentions }) => {
-                // ctx.room.gameOptions.glitchyRoom1 = opts;
-                // new ClientConstructor(ctx.room, {
-                //     id: maxServerSlots + 1,
-                //     nickname: "DeadInternetBot",
-                //     wsId: null,
-                // });
-                for (let i = 0; i < opts; i++) {
-                    const bot = new DeadInternetBot(ctx.room, {
-                        // useOOBid: true,
-                    });
+                const feedback = (text) => player.client.commandFeedback(text);
+                const parsed = parseCombatArgs(opts, { defaultCount: 1, maxCount: 18 });
+                const config = { difficulty: parsed.difficulty, ...parsed.overrides };
 
+                // Validate once up front so a typo reports a single clear error instead of spawning N
+                // bots that each half-ignore it.
+                const check = resolveCombatOptions(config);
+                const errors = [...parsed.errors, ...check.errors];
+                if (errors.length) return feedback(`/bots add: ${errors.join('; ')}`);
+                if (check.warnings.length) feedback(`/bots add: ${check.warnings.join('; ')}`);
+
+                const owner = check.options.role === 'ally' ? player : null;
+
+                for (let i = 0; i < parsed.count; i++) {
+                    const bot = new DeadInternetBot(ctx.room, { combat: config, owner });
                     await bot.init();
+                    bot.startCombatAI();
+                };
+                const label = typeof parsed.difficulty === 'number' ? `skill ${parsed.difficulty}` : parsed.difficulty;
+                feedback(`Spawned ${parsed.count} ${label} bot${parsed.count === 1 ? '' : 's'}.`);
+            }
+        });
 
-                    bot.player.changeModifiers({
-                        speedModifier: Math.getRandomInt(4,6) / 10,
-                    });
+        ctx.newCommand({
+            identifier: "clearbots",
+            name: "clear",
+            category: "bots",
+            description: "Removes bots from the room. Usage: /bots clear [count]",
+            example: "2",
+            permissionLevel: [ctx.ranksEnum.Admin, ctx.ranksEnum.Admin, false],
+            inputType: ["string"],
+            usage: "[count] (omit to remove every bot)",
+            executeClient: ({ player, opts, mentions }) => { },
+            executeServer: async ({ player, opts, mentions }) => {
+                const feedback = (text) => player.client.commandFeedback(text);
+                const text = String(opts ?? '').trim().toLowerCase();
+                let limit = Infinity;
+                if (text && text !== 'all') {
+                    limit = parseInt(text, 10);
+                    if (!Number.isInteger(limit) || limit < 1) return feedback('/bots clear: count must be a positive number (or omit it to remove all)');
+                };
 
-                    bot.onDeath = () => {
-                        setTimeout(() => {
-                            bot.respawn();
-                        }, 7500);
-                    };
+                // Newest first, so "/bots clear 2" undoes the last two spawns. Snapshot the list
+                // because remove() splices it as it goes.
+                const mine = DeadInternetBots.filter((bot) => bot.room === ctx.room).reverse();
+                let removed = 0;
+                for (const bot of mine) {
+                    if (removed >= limit) break;
+                    bot.remove();
+                    removed++;
+                };
+                feedback(removed ? `Removed ${removed} bot${removed === 1 ? '' : 's'}.` : 'No bots to remove.');
+            }
+        });
 
-                    bot.onUpdate = async (data) => {
-                        const targetPlayer = bot.getNearestPlayer();
-                        if (!targetPlayer) return;
+        ctx.newCommand({
+            identifier: "botpresets",
+            name: "presets",
+            category: "bots",
+            description: "Lists bot difficulty presets (each is just a skill rating 0-1) and what they work out to.",
+            permissionLevel: [ctx.ranksEnum.Admin, ctx.ranksEnum.Admin, false],
+            inputType: ["string"],
+            usage: "[preset or skill 0-1]",
+            executeClient: ({ player, opts, mentions }) => { },
+            executeServer: async ({ player, opts, mentions }) => {
+                const feedback = (text) => player.client.commandFeedback(text);
+                const want = String(opts ?? '').trim().toLowerCase();
+                const names = want ? [want] : listPresets();
+                // The handful of options that best show what a skill level feels like.
+                const show = ['reactionTime', 'aimErrorDeg', 'missChance', 'turnRateDeg', 'sightRange', 'hearingRange', 'useCover', 'grenades', 'speed'];
+                for (const name of names) {
+                    const resolved = resolveCombatOptions({ difficulty: parseSkill(name) ?? name });
+                    if (resolved.errors.length) { feedback(`Unknown preset "${name}". Have: ${listPresets().join(', ')} - or a skill like 0.7`); continue; };
+                    const o = resolved.options;
+                    const num = (v) => (typeof v === 'number' ? +v.toFixed(2) : v);
+                    feedback(`${name} (skill ${num(o.skill)}): ${show.map((k) => `${k}=${num(o[k])}`).join(' ')}${DIFFICULTY_PRESETS[name]?.holdFire ? ' holdFire' : ''}`);
+                };
+            }
+        });
 
-                        bot.pathTo(targetPlayer.predicted ?? targetPlayer);
-                        const status = bot.followPath(data?.delta);
+        ctx.newCommand({
+            identifier: "botoptions",
+            name: "options",
+            category: "bots",
+            description: "Lists every option /bots add accepts, with range and default.",
+            permissionLevel: [ctx.ranksEnum.Admin, ctx.ranksEnum.Admin, false],
+            inputType: ["string"],
+            usage: "[filter]",
+            executeClient: ({ player, opts, mentions }) => { },
+            executeServer: async ({ player, opts, mentions }) => {
+                const feedback = (text) => player.client.commandFeedback(text);
+                const filter = String(opts ?? '').trim().toLowerCase();
+                for (const [key, spec] of Object.entries(COMBAT_OPTIONS)) {
+                    if (filter && !key.toLowerCase().includes(filter)) continue;
+                    const range = spec.classOption ? ['default', 'random', ...listClasses().map((c) => c.key)].join('|')
+                        : spec.type === 'enum' ? spec.values.join('|')
+                        : spec.type === 'number' ? `${spec.min}-${spec.max}`
+                        : spec.type;
+                    feedback(`${key} (${range}, default ${spec.default}${spec.skill ? ', follows skill' : ''}): ${spec.description}`);
+                };
+            }
+        });
 
-                        if (status === 'idle' || status === 'arrived') {
-                            // no route found, or already at the target's cell (melee range) -
-                            // just face them directly rather than standing there doing nothing.
-                            bot.lookAtPlayer(targetPlayer);
-                        };
-                    };
+        // --- Debug: fills the room with a whole field of bots from a named scenario (see
+        // scenarios.js) - a mix of difficulties, classes and allegiances, some of which fight each
+        // other, so the combat layer can be looked at in a crowd. `/botsdebug field list` shows them.
+        ctx.newCommand({
+            identifier: "botsfield",
+            isCheat: true,
+            name: "field",
+            category: "botsdebug",
+            description: "Spawns a field of bots from a scenario. Usage: /botsdebug field [scenario|list] [total] [option=value ...]",
+            example: "squad 16",
+            // Plain text on purpose: this runs when the command is REGISTERED, which also happens in the browser
+            // bundle, where nothing imported from scenarios.js exists (only executeServer may use those).
+            warningText: "Debug tool: spawns up to 40 bots. /botsdebug field list shows the scenarios; /bots clear removes them.",
+            permissionLevel: [ctx.ranksEnum.Admin, ctx.ranksEnum.Admin, false],
+            inputType: ["string"],
+            usage: "[scenario|list] [total] [option=value ...]",
+            executeClient: ({ player, opts, mentions }) => { },
+            executeServer: async ({ player, opts, mentions }) => {
+                const feedback = (text) => player.client.commandFeedback(text);
+                const tokens = String(opts ?? '').split(/\s+/).filter(Boolean);
+                const name = (tokens.shift() ?? 'list').toLowerCase();
 
-                    let weaponIdx = 1;
-                    setInterval(() => {
-                        // console.log("DeadInternetBot swapping weapon", weaponIdx);
-                        bot.player.swapWeapon(weaponIdx);
-                        weaponIdx = (weaponIdx + 1) % 2;
-                        bot.player.jump();
-                    }, 10e3);
-                }
+                if (name === 'list') {
+                    for (const id of listScenarios()) feedback(`${id} (default ${FIELD_SCENARIOS[id].defaultTotal}): ${FIELD_SCENARIOS[id].description}`);
+                    return feedback('Usage: /botsdebug field <scenario> [total up to ' + FIELD_MAX_TOTAL + '] [option=value ...] - extra options apply to every bot, e.g. skill=0.9');
+                };
+
+                let total;
+                const overrides = {};
+                const problems = [];
+                for (const token of tokens) {
+                    if (/^\d+$/.test(token)) total = parseInt(token, 10);
+                    else if (token.includes('=') && token.indexOf('=') > 0 && !token.endsWith('=')) overrides[token.slice(0, token.indexOf('='))] = token.slice(token.indexOf('=') + 1);
+                    else problems.push(`unknown argument "${token}"`);
+                };
+                if (problems.length) return feedback(`/botsdebug field: ${problems.join('; ')}`);
+
+                const { plan, errors, warnings } = planField(name, total, { overrides, invokerTeam: player.team });
+                if (errors.length) return feedback(`/botsdebug field: ${errors.join('; ')}`);
+                if (warnings.length) feedback(`/botsdebug field: ${warnings.join('; ')}`);
+
+                // Leave room for what's already there (the whole lot share the room's spare player ids).
+                const existing = DeadInternetBots.filter((bot) => bot.room === ctx.room).length;
+                const room = FIELD_MAX_TOTAL - existing;
+                if (room <= 0) return feedback('/botsdebug field: the room is already full of bots (use /bots clear first)');
+                if (plan.length > room) { feedback(`/botsdebug field: only room for ${room} more bots`); plan.length = room; };
+
+                for (const entry of plan) {
+                    const owner = entry.config.role === 'ally' ? player : null;
+                    const bot = new DeadInternetBot(ctx.room, { combat: entry.config, owner });
+                    await bot.init();
+                    bot.startCombatAI();
+                };
+                feedback(`Spawned ${plan.length} bots (${name}): ${summarisePlan(plan)}.`);
+            }
+        });
+
+        // --- Debug: profiles the bot AI (see perf.js). `/botsdebug perf start 10` records for 10 seconds
+        // then posts where the time went; run it while a `/botsdebug field stress` is fighting.
+        ctx.newCommand({
+            identifier: "botsperf",
+            name: "perf",
+            category: "botsdebug",
+            description: "Profiles the bot AI: where the time goes. /botsdebug perf start [seconds] | report | stop | reset",
+            permissionLevel: [ctx.ranksEnum.Admin, ctx.ranksEnum.Admin, false],
+            inputType: ["string"],
+            usage: "[start [seconds] | report | stop | reset]",
+            executeClient: ({ player, opts, mentions }) => { },
+            executeServer: async ({ player, opts, mentions }) => {
+                const feedback = (text) => player.client.commandFeedback(text);
+                const post = () => { const lines = perf.report(); for (const line of lines) feedback(line); console.log('[deadinternet perf]\n' + lines.join('\n')); };
+                const [sub = 'report', arg] = String(opts ?? '').trim().toLowerCase().split(/\s+/);
+
+                if (sub === 'start') {
+                    const seconds = Math.max(1, Math.min(300, parseFloat(arg) || 10));
+                    clearTimeout(botsPerfTimer);
+                    perf.start();
+                    botsPerfTimer = setTimeout(() => { perf.stop(); post(); }, seconds * 1000);
+                    return feedback(`Profiling the bot AI for ${seconds}s - let the bots fight; the results post here when it's done.`);
+                };
+                if (sub === 'stop') { clearTimeout(botsPerfTimer); perf.stop(); return post(); };
+                if (sub === 'reset') { perf.reset(); return feedback(`Profile cleared${perf.enabled ? ' (still recording)' : ''}.`); };
+                if (sub === 'report') return post();
+                feedback('Usage: /botsdebug perf start [seconds] | report | stop | reset');
+            }
+        });
+
+        // --- Debug: the on-disk pathfinding cache (see geometryStore.js). Everything the pathfinder works
+        // out about this map - collision answers, which moves are physically possible - is saved under
+        // this plugin's store/ folder and reloaded next time, so a fresh server starts fast.
+        ctx.newCommand({
+            identifier: "botscache",
+            name: "cache",
+            category: "botsdebug",
+            description: "The saved pathfinding cache for this map. /botsdebug cache [stats | save | clear]",
+            permissionLevel: [ctx.ranksEnum.Admin, ctx.ranksEnum.Admin, false],
+            inputType: ["string"],
+            usage: "[stats | save | clear]",
+            executeClient: ({ player, opts, mentions }) => { },
+            executeServer: async ({ player, opts, mentions }) => {
+                const feedback = (text) => player.client.commandFeedback(text);
+                const sub = String(opts ?? '').trim().toLowerCase() || 'stats';
+                const kb = (n) => `${(n / 1024).toFixed(0)}KB`;
+
+                if (sub === 'save') {
+                    await loadGeometryCache(ctx.room);
+                    const r = await saveGeometryCache(ctx.room, { force: true });
+                    return feedback(r.saved ? `Saved ${kb(r.bytes)} (${(r.rawBytes / 1048576).toFixed(1)}MB uncompressed): ${r.probes} collision answers, ${r.queries} lookups, ${r.edges} simulated moves. Game loop was busy ${r.ms.blocking.toFixed(0)}ms.` : `Not saved: ${r.reason}`);
+                };
+                if (sub === 'clear') {
+                    const gone = await clearGeometryStore(ctx.room);
+                    return feedback(gone ? 'Deleted the saved cache file (what is in memory is unchanged and will be saved again).' : 'There was no saved cache file to delete.');
+                };
+                if (sub !== 'stats') return feedback('Usage: /botsdebug cache [stats | save | clear]');
+
+                const st = geometryStoreStats(ctx.room);
+                if (!st.enabled) return feedback('The pathfinding cache is switched off.');
+                feedback(`In memory: ${st.entries.probes} collision answers, ${st.entries.queries} lookups, ${st.entries.edges} simulated moves (${st.newSinceSave} learned since the last save).`);
+                if (!st.file) return feedback('Nothing loaded yet: the cache attaches when the first bot joins.');
+                const l = st.loaded;
+                feedback(l?.loaded ? `At start it loaded ${l.added} answers from disk (${kb(l.bytes)}; the game loop was busy ${l.ms.blocking.toFixed(0)}ms).` : `At start nothing was loaded (${l?.reason ?? 'unknown'}).`);
+                feedback(st.lastSave ? `Last save: ${kb(st.lastSave.bytes)}, ${Math.round((Date.now() - st.lastSave.at) / 1000)}s ago.` : 'Not saved yet this session (it saves itself every 30s once enough new answers are learned).');
+                feedback('File: ' + st.file.split(/[\\\\/]/).slice(-3).join('/'));
             }
         });
 

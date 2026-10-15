@@ -619,6 +619,31 @@ export function simulateEdge(player, from, to, { climbingStart = null, jump = fa
     };
 };
 
+// Entry count / reset / persistence hooks for the per-room edge cache (diagnostics, benchmarks and
+// geometryStore.js). Entries are small plain objects, so they save as they are.
+let edgeCacheWriteCount = 0;
+export function edgeCacheWrites() { return edgeCacheWriteCount; }
+export function edgeCacheSize(room) { return roomCaches.get(room)?.size ?? 0; }
+export function clearEdgeCache(room) { roomCaches.delete(room); }
+export function exportEdgeCache(room) { return [...(roomCaches.get(room) ?? [])]; }
+export function importEdgeCache(room, entries) {
+    const cache = getCache(room);
+    let added = 0;
+    for (const [key, result] of entries ?? []) if (!cache.has(key)) { cache.set(key, result); added++; };
+    return added;
+}
+
+// Whether an edge can be traversed depends on HOW the bot moves, not just on the two points: the
+// speed modifier scales how far each tick carries it (and so which jumps clear), and gravity, jump
+// boost, physics speed and body scale matter likewise. The cache used to ignore all of this, so the
+// first bot to verify an edge decided it for every other bot in the room (measured: at speed 1.0
+// only 14 of 40 Castle routes matched the speed-0.6 ones). Speed is bucketed to 0.1 so bots with
+// slightly different variance-jittered speeds still share results.
+function physicsProfileKey(player) {
+    const m = player?.modifiers ?? {};
+    return [Math.round((m.speedModifier ?? 1) * 10) / 10, m.gravityModifier ?? 1, m.jumpBoostModifier ?? 1, m.physicsSpeedModifier ?? 1, m.scale ?? 1];
+}
+
 export function simulateEdgeCached(room, player, fromKey, toKey, from, to, opts = {}) {
     const cache = getCache(room);
     const cacheKey = JSON.stringify([
@@ -629,12 +654,14 @@ export function simulateEdgeCached(room, player, fromKey, toKey, from, to, opts 
         opts.requireSupport ?? false,
         opts.via ?? [], opts.climbingStart ?? null,
         opts.maxTicks ?? 600, opts.arrivalRadius ?? 0.3, opts.verticalTolerance ?? 1.25,
+        physicsProfileKey(player),
     ]);
     const cached = cache.get(cacheKey);
     if (cached) return cached;
 
     const result = simulateEdge(player, from, to, opts);
     cache.set(cacheKey, result);
+    edgeCacheWriteCount++;
     return result;
 };
 

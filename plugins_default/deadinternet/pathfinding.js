@@ -176,7 +176,7 @@ function rampBlocksDirection(cell, dx, dz) {
 // direction from ry by hand. Falls back to the old +0.5 guess offline (no real player/Collider to
 // probe with - test-pathfinding.js's synthetic fixtures).
 function findSupportedYUncached(player, x, z, minY, maxY) {
-    const collides = y => player.Collider.playerCollidesWithMap(player, { x, y, z });
+    const collides = y => playerProbe(player, { x, y, z });
     let clearY = null;
     const steps = Math.ceil((maxY - minY) / 0.1);
     for (let i = 0; i <= steps; i++) {
@@ -210,8 +210,8 @@ function findLadderTopStandUncached(player, cell, x, y, z) {
         for (const sign of i ? [-1, 1] : [1]) {
             const d = sign * i * 0.05;
             const pose = { x: x + 0.5 + nx * d, y: y + 1.001, z: z + 0.5 + nz * d };
-            if (player.Collider.playerCollidesWithMap(player, pose)) continue;
-            const support = player.Collider.playerCollidesWithMap(player, { ...pose, y: y + 0.98 });
+            if (playerProbe(player, pose)) continue;
+            const support = playerProbe(player, { ...pose, y: y + 0.98 });
             if (support?.cell === cell) return pose;
         }
     }
@@ -275,7 +275,7 @@ function findRampExitXZ(map, x, y, z, dirX, dirZ, player) {
 // second, parallel approximation of "does the player fit here" left to disagree with it.
 function isBlockedAt(map, x, y, z, player) {
     if (!player) return isBlockingCell(cellAt(map, x, y, z));
-    return !!player.Collider.playerCollidesWithMap(player, { x: x + 0.5, y, z: z + 0.5 });
+    return !!playerProbe(player, { x: x + 0.5, y, z: z + 0.5 });
 }
 
 // `aabb`/`obb` are the only two colliderTypes loading.js gives an author-defined arbitrary shape
@@ -316,7 +316,7 @@ function hasRealSupport(map, x, y, z, player) {
 
     // y is the boundary between cell y (here) and cell y-1 (below) - dip a hair under it so the
     // player's feet actually land inside the block below, not exactly on its surface.
-    return player.Collider.playerCollidesWithMap(player, { x: x + 0.5, y: y - 0.05, z: z + 0.5 });
+    return playerProbe(player, { x: x + 0.5, y: y - 0.05, z: z + 0.5 });
 }
 
 // A cell a bot's feet could occupy: not itself blocking (or it's a ramp/ladder, both of which a
@@ -404,7 +404,7 @@ function findAabbStandYUncached(map, x, y, z, player) {
     for (const baseH of [0.06, 0.3, 0.55, 0.8]) {
         for (let sox = -0.45; sox <= 0.45; sox += 0.15) {
             for (let soz = -0.45; soz <= 0.45; soz += 0.15) {
-                if (player.Collider.pointCollidesWithMap({ x: cellCx + sox, y: y + baseH, z: cellCz + soz })) {
+                if (pointProbe(player, { x: cellCx + sox, y: y + baseH, z: cellCz + soz })) {
                     sumOx += sox; sumOz += soz; hits++;
                 };
             };
@@ -436,14 +436,14 @@ function findAabbStandYUncached(map, x, y, z, player) {
     // below y+1. Starting at 0.98 therefore never finds its clear standing surface.
     for (let h = 1.02; h >= 0.02; h -= 0.02) {
         const candidateY = y + h;
-        const clearAbove = !player.Collider.pointCollidesWithMap({ x: cx, y: candidateY, z: cz });
-        const supportedBelow = player.Collider.pointCollidesWithMap({ x: cx, y: candidateY - 0.1, z: cz });
+        const clearAbove = !pointProbe(player, { x: cx, y: candidateY, z: cz });
+        const supportedBelow = pointProbe(player, { x: cx, y: candidateY - 0.1, z: cz });
         if (!clearAbove || !supportedBelow) continue;
         // The point check only proves the center clears, not that the player's whole box does (a
         // point can slip through a gap the real body would clip) - the real player-sized box is
         // the actual arbiter, checked here at the refined center, which is where the resulting
         // waypoint will actually sit.
-        if (!player.Collider.playerCollidesWithMap(player, { x: cx, y: candidateY, z: cz })) {
+        if (!playerProbe(player, { x: cx, y: candidateY, z: cz })) {
             return { y: candidateY, cx, cz };
         };
     };
@@ -570,7 +570,7 @@ function getNeighbors(map, x, y, z, player) {
             const stepOffCell = cellAt(map, x, ladderBaseY + 1, z);
             const hasRealFooting = stepOffCell && !isBlockedAt(map, x, ladderBaseY + 1, z, player) &&
                 (player
-                    ? player.Collider.playerCollidesWithMap(player, { x: x + 0.5, y: ladderBaseY + 1 - 0.05, z: z + 0.5 })
+                    ? playerProbe(player, { x: x + 0.5, y: ladderBaseY + 1 - 0.05, z: z + 0.5 })
                     : hasFullFootprint(cellAt(map, x, ladderBaseY, z)));
             if (hasRealFooting) {
                 neighbors.push({ x, y: ladderBaseY + 1, z, type: EDGE_TYPE.LADDER, cost: 1 });
@@ -1127,7 +1127,7 @@ function getNeighbors(map, x, y, z, player) {
                 // Uses the refined stand position when one exists (see findAabbStandY) rather
                 // than blindly the cell center, for the same off-center-AABB reason.
                 const headroomX = standPos ? standPos.cx : nx + 0.5, headroomZ = standPos ? standPos.cz : nz + 0.5;
-                if (player.Collider.playerCollidesWithMap(player, { x: headroomX, y: targetY + 0.3, z: headroomZ })) continue;
+                if (playerProbe(player, { x: headroomX, y: targetY + 0.3, z: headroomZ })) continue;
                 const isSmallHop = fractionalTargets.has(targetY);
                 // Adjacent fractional-height supports may be separated by open air even when
                 // their grid cells touch. Sample the real player-sized footing along the segment;
@@ -1138,7 +1138,7 @@ function getNeighbors(map, x, y, z, player) {
                 const departureX = departureStand?.cx ?? x + 0.5;
                 const departureZ = departureStand?.cz ?? z + 0.5;
                 const hasContinuousSupport = [0.25, 0.5, 0.75].every(t =>
-                    player.Collider.playerCollidesWithMap(player, {
+                    playerProbe(player, {
                         x: departureX + (headroomX - departureX) * t,
                         y: y + rise * t - 0.05,
                         z: departureZ + (headroomZ - departureZ) * t,
@@ -1224,8 +1224,39 @@ function heuristic(x, y, z, gx, gy, gz) {
 // `null` if no path exists (or the search exceeds `maxExpansions`), otherwise an array of
 // { x, y, z, type } - {x,z} are cell centers, `y` is the standing/feet height at that cell,
 // `type` is how to get FROM the previous waypoint TO this one (see EDGE_TYPE).
-// opts: { maxExpansions, avoidEdges: Set<"x,y,z->x,y,z"> }
+// opts: { maxExpansions, avoidEdges: Set<"x,y,z->x,y,z">, snapGoal, allowPartial }
+//   snapGoal     - if the goal cell isn't somewhere a bot can stand (a chased player mid-jump, on a
+//                  prop the grid can't model...), aim for the nearest cell that is (below it, else
+//                  beside it) instead of giving up. Meant for chasing, not for exact destinations.
+//   allowPartial - if no complete route is found (budget spent, or the goal is walled off), return
+//                  the route to the closest point the search reached, flagged `path.partial`,
+//                  rather than null - so a bot at least heads the right way. A partial route that
+//                  doesn't actually get any closer is still reported as null.
+// The nearest standable cell to an unstandable goal: where it would land (straight down), else one of
+// the eight cells beside it (same level, one down, one up), nearest to where the search starts.
+function snapGoalCell(map, gx, gy, gz, player, sx, sz) {
+    const landing = findLandingBelow(map, gx, gy + 1, gz, player);
+    if (landing) return { x: landing.x, y: Math.floor(landing.y), z: landing.z };
+    let best = null, bestD = Infinity;
+    for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) {
+        if (!dx && !dz) continue;
+        for (const dy of [0, -1, 1]) {
+            const cx = gx + dx, cy = gy + dy, cz = gz + dz;
+            if (!inBounds(map, cx, cy, cz) || !isStandable(map, cx, cy, cz, player)) continue;
+            const d = Math.hypot(cx - sx, cz - sz) + Math.abs(dy) * 0.5;
+            if (d < bestD) { bestD = d; best = { x: cx, y: cy, z: cz }; };
+        };
+    };
+    return best;
+}
+
+// What the most recent search did (expansions used, how it ended) - read right after a findPath()
+// call by the profiler/benchmarks; the search itself never looks at it.
+let lastSearch = { expansions: 0, outcome: 'none' };
+export function lastFindPathStats() { return lastSearch; }
+
 function findPathUncached(room, start, goal, opts = {}) {
+    lastSearch = { expansions: 0, outcome: 'none' };
     const map = room.map;
     if (!map || !map.data) return null;
 
@@ -1257,7 +1288,7 @@ function findPathUncached(room, start, goal, opts = {}) {
     // epsilon is small enough it can't flip a genuinely-below position (mid-fall y values aren't
     // this close to an integer).
     let sx = Math.floor(start.x), sy = Math.floor(start.y + 1e-6), sz = Math.floor(start.z);
-    const gx = Math.floor(goal.x), gy = Math.floor(goal.y), gz = Math.floor(goal.z);
+    let gx = Math.floor(goal.x), gy = Math.floor(goal.y), gz = Math.floor(goal.z);
 
     // The start position is wherever the bot actually is, which might not itself read as
     // "standable" this exact tick (mid-jump, mid-fall, right at a cell boundary) - fall back to
@@ -1265,6 +1296,11 @@ function findPathUncached(room, start, goal, opts = {}) {
     if (!isStandable(map, sx, sy, sz, player)) {
         const landing = findLandingBelow(map, sx, sy + 1, sz, player);
         if (landing) { sy = landing.y; } else if (isStandable(map, sx, sy - 1, sz, player)) { sy -= 1; };
+    };
+
+    if (opts.snapGoal && inBounds(map, gx, gy, gz) && !isStandable(map, gx, gy, gz, player)) {
+        const snapped = snapGoalCell(map, gx, gy, gz, player, sx, sz);
+        if (snapped) { gx = snapped.x; gy = snapped.y; gz = snapped.z; };
     };
 
     if (!inBounds(map, sx, sy, sz) || !inBounds(map, gx, gy, gz)) return null;
@@ -1299,6 +1335,16 @@ function findPathUncached(room, start, goal, opts = {}) {
     // computed for every node either way.
     let closestNode = { x: sx, y: sy, z: sz }, closestDist = heuristic(sx, sy, sz, gx, gy, gz);
 
+    const startDist = closestDist;
+    // The route to the closest point reached, if that is meaningfully nearer than where we started.
+    function partialRoute() {
+        if (!opts.allowPartial || closestDist > startDist - 1.5) return null;
+        const route = reconstructPath(cameFrom, key(closestNode.x, closestNode.y, closestNode.z), map, player);
+        if (!route || !route.length) return null;
+        route.partial = true;
+        return route;
+    }
+
     while (open.size) {
         const current = open.pop();
         if (current.verify) { current.verify(); continue; }
@@ -1306,12 +1352,14 @@ function findPathUncached(room, start, goal, opts = {}) {
         if (visited.has(currentKey)) continue;
         visited.add(currentKey);
 
-        if (currentKey === goalKey) return reconstructPath(cameFrom, currentKey, map, player);
+        if (currentKey === goalKey) { lastSearch = { expansions, outcome: 'found' }; return reconstructPath(cameFrom, currentKey, map, player); };
 
         const currentDist = heuristic(current.x, current.y, current.z, gx, gy, gz);
         if (currentDist < closestDist) { closestDist = currentDist; closestNode = current; };
 
         if (++expansions > maxExpansions) {
+            lastSearch = { expansions, outcome: 'limit' };
+            { const partial = partialRoute(); if (partial) { lastSearch.outcome = 'partial'; return partial; }; };
             console.log(`[deadinternet findPath] no path found (expansion limit) - closest reached: ${closestNode.x},${closestNode.y},${closestNode.z} (${closestDist.toFixed(1)} from goal ${gx},${gy},${gz})`);
             return null;
         };
@@ -1632,6 +1680,8 @@ function findPathUncached(room, start, goal, opts = {}) {
         };
     };
 
+    lastSearch = { expansions, outcome: 'exhausted' };
+    { const partial = partialRoute(); if (partial) { lastSearch.outcome = 'partial'; return partial; }; };
     console.log(`[deadinternet findPath] no path found (open set exhausted) - closest reached: ${closestNode.x},${closestNode.y},${closestNode.z} (${closestDist.toFixed(1)} from goal ${gx},${gy},${gz})`);
     return null;
 };
@@ -1760,21 +1810,189 @@ function reconstructPath(cameFrom, goalKey, map, player) {
     return waypoints;
 };
 
-// A search is synchronous. Nesting gets its own cache and restores the caller's
-// cache; nothing survives into a later search after map or player changes.
+// --- Static geometry caches -----------------------------------------------------------------
+// Everything this file asks the collider ("does a player-sized box at exactly this point touch
+// the map?", "does this point?") is a pure function of the probe position, the player's scale and
+// the map - none of it depends on where the player actually is or what it's doing. The map is
+// static for a room's lifetime, so these answers are cached per room (keyed by the room's own
+// Collider) for as long as the room exists, and shared by every bot and every search in it.
+// Measured on Castle: ~22,000 player-box probes per search were being recomputed from scratch,
+// almost all of them identical to the previous search's (see bench-pathfinding.js).
+//
+// Not used for the physics simulation (physicsSimulation.js), whose probes are along continuous
+// trajectories and never repeat. If a room's geometry ever changes in place, call
+// clearGeometryCaches(room) - nothing in core does that today.
+const probeCaches = new WeakMap();      // Collider -> Map<string, result>
+const geometryCaches = new WeakMap();   // Collider -> Map<string, result> (findAabbStandY etc.)
+
+function cacheFor(store, collider) {
+    let cache = store.get(collider);
+    if (!cache) { cache = new Map(); store.set(collider, cache); };
+    return cache;
+}
+
+// Keys are the raw numbers, nested (scale -> x -> y -> z): exact (no rounding, so a probe can
+// never be answered with a neighbour's result) and far cheaper than building a string from four
+// floats on every lookup - which, once the probes themselves were cached, had become the single
+// biggest cost of a search.
+function nestedGet(root, a, b, c) {
+    let m1 = root.get(a); if (!m1) { m1 = new Map(); root.set(a, m1); };
+    let m2 = m1.get(b); if (!m2) { m2 = new Map(); m1.set(b, m2); };
+    let m3 = m2.get(c); if (!m3) { m3 = new Map(); m2.set(c, m3); };
+    return m3; // the caller reads/writes the last key on this
+}
+
+// What a collision probe returns is {x, y, z, cell, mesh} (the cell it hit, plus the collision mesh),
+// or true (out of bounds), or false. The search only ever reads truthiness and `.cell`, so that is all
+// that is kept: smaller in memory, and - unlike the mesh - writable to disk (see geometryStore.js).
+let geometryCacheWriteCount = 0;
+export function geometryCacheWrites() { return geometryCacheWriteCount; }
+const slimProbe = (r) => (r && typeof r === 'object' ? { x: r.x, y: r.y, z: r.z, cell: r.cell } : (r ? true : false));
+
+function playerProbe(player, pos) {
+    const m = nestedGet(cacheFor(probeCaches, player.Collider), player.modifiers?.scale || 1, pos.x, pos.y, pos.z);
+    let v = m.get(pos.z);
+    if (v === undefined) {
+        v = slimProbe(player.Collider.playerCollidesWithMap(player, pos));
+        m.set(pos.z, v);
+        geometryCacheWriteCount++;
+    };
+    return v;
+}
+
+function pointProbe(player, pos) {
+    // Scale doesn't affect a point probe; 'point' keeps these apart from the player-box results.
+    const m = nestedGet(cacheFor(probeCaches, player.Collider), 'point', pos.x, pos.y, pos.z);
+    let v = m.get(pos.z);
+    if (v === undefined) {
+        v = slimProbe(player.Collider.pointCollidesWithMap(pos));
+        m.set(pos.z, v);
+        geometryCacheWriteCount++;
+    };
+    return v;
+}
+
+// Entry counts for the room-lifetime caches above (for /botsdebug perf and the benchmark).
+export function geometryCacheStats(room) {
+    const count = (m) => { let n = 0; for (const v of m.values()) n += v instanceof Map ? count(v) : 1; return n; };
+    const collider = room?.Collider;
+    return {
+        probes: collider && probeCaches.has(collider) ? count(probeCaches.get(collider)) : 0,
+        queries: collider && geometryCaches.has(collider) ? count(geometryCaches.get(collider)) : 0,
+    };
+}
+
+// --- Persistence hooks (used by geometryStore.js) ---------------------------------------------
+// Probe results are exported as flat number arrays per player scale: [x, y, z, code, ...] where code
+// is 0 = no collision, 1 = collision with no cell (out of bounds), or 2 + the packed coordinates of
+// the cell that was hit (the cell OBJECT is looked up in the map again on import - it is a live
+// reference, so it can't be saved). Coordinates are written as exact doubles (JSON round-trips
+// them losslessly), because lookups need to match bit for bit.
+const CELL_LIMIT = 4096;
+const packCell = (v) => (Number.isInteger(v.x) && Number.isInteger(v.y) && Number.isInteger(v.z)
+    && v.x >= 0 && v.y >= 0 && v.z >= 0 && v.x < CELL_LIMIT && v.y < CELL_LIMIT && v.z < CELL_LIMIT
+    ? 2 + v.x + CELL_LIMIT * v.y + CELL_LIMIT * CELL_LIMIT * v.z : null);
+
+export function exportGeometryCaches(room) {
+    const collider = room?.Collider;
+    const probes = [];
+    const pc = collider && probeCaches.get(collider);
+    if (pc) for (const [scale, byX] of pc) {
+        const flat = [];
+        for (const [x, byY] of byX) for (const [y, byZ] of byY) for (const [z, v] of byZ) {
+            const code = v === false ? 0 : v === true ? 1 : packCell(v);
+            if (code !== null) flat.push(x, y, z, code);
+        };
+        probes.push([scale, flat]);
+    };
+
+    const queries = [];
+    const qc = collider && geometryCaches.get(collider);
+    const walk = (node, prefix, name) => {
+        for (const [k, v] of node) {
+            if (v instanceof Map) walk(v, [...prefix, k], name);
+            else queries.push([name, [...prefix, k], v === undefined ? null : v]);
+        };
+    };
+    if (qc) for (const [name, node] of qc) walk(node, [], name);
+    return { probes, queries };
+}
+
+// Merges exported data into the room's caches WITHOUT overwriting anything already known there
+// (what this process computed itself is at least as fresh). Returns how many entries were added.
+export function importGeometryCaches(room, data) {
+    const collider = room?.Collider;
+    if (!collider || !data) return 0;
+    const mapData = room.map?.data;
+    let added = 0;
+
+    const pc = cacheFor(probeCaches, collider);
+    for (const [scale, flat] of data.probes ?? []) {
+        for (let i = 0; i + 3 < flat.length; i += 4) {
+            const x = flat[i], y = flat[i + 1], z = flat[i + 2], code = flat[i + 3];
+            let v;
+            if (code === 0) v = false;
+            else if (code === 1) v = true;
+            else {
+                const n = code - 2;
+                const cx = n % CELL_LIMIT, cy = Math.floor(n / CELL_LIMIT) % CELL_LIMIT, cz = Math.floor(n / (CELL_LIMIT * CELL_LIMIT));
+                const cell = mapData?.[cx]?.[cy]?.[cz];
+                if (!cell) continue; // the map no longer has that cell - leave this probe to be recomputed
+                v = { x: cx, y: cy, z: cz, cell };
+            };
+            const m = nestedGet(pc, scale, x, y, z);
+            if (!m.has(z)) { m.set(z, v); added++; };
+        };
+    };
+
+    const qc = cacheFor(geometryCaches, collider);
+    for (const [name, args, value] of data.queries ?? []) {
+        if (!args.length) continue;
+        let node = qc.get(name);
+        if (!node) { node = new Map(); qc.set(name, node); };
+        for (let i = 0; i < args.length - 1; i++) {
+            let next = node.get(args[i]);
+            if (!next) { next = new Map(); node.set(args[i], next); };
+            node = next;
+        };
+        const last = args[args.length - 1];
+        if (!node.has(last)) { node.set(last, value); added++; };
+    };
+    return added;
+}
+
+export function clearGeometryCaches(room) {
+    const collider = room?.Collider;
+    if (!collider) return;
+    probeCaches.delete(collider);
+    geometryCaches.delete(collider);
+}
+
+// A search is synchronous. geometryQuery() results live in the room-lifetime cache above
+// (every query's arguments - including the player's scale - are part of its key).
 let geometryQueries = null;
 export function findPath(room, start, goal, opts = {}) {
     const previous = geometryQueries;
-    geometryQueries = canSimulate(start) ? new Map() : null;
+    geometryQueries = canSimulate(start) && start.Collider ? cacheFor(geometryCaches, start.Collider) : null;
     try { return findPathUncached(room, start, goal, opts); }
     finally { geometryQueries = previous; }
 }
 function geometryQuery(name, args, compute) {
     if (!geometryQueries) return compute();
-    const key = JSON.stringify([name, ...args]);
-    if (geometryQueries.has(key)) return geometryQueries.get(key);
+    // A trie over the arguments (each level a Map keyed by the raw value) - exact like the old
+    // JSON key, without serialising every call.
+    let node = geometryQueries.get(name);
+    if (!node) { node = new Map(); geometryQueries.set(name, node); };
+    for (let i = 0; i < args.length - 1; i++) {
+        let next = node.get(args[i]);
+        if (!next) { next = new Map(); node.set(args[i], next); };
+        node = next;
+    };
+    const last = args[args.length - 1];
+    if (node.has(last)) return node.get(last);
     const value = compute();
-    geometryQueries.set(key, value);
+    node.set(last, value);
+    geometryCacheWriteCount++;
     return value;
 }
 

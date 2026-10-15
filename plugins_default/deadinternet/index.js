@@ -4,8 +4,12 @@ import path from 'node:path';
 //plugin: samplecommand
 import { DeadInternetPlugin } from './shared.js';
 import Comm from '#comm';
-import { CONTROL, devlog, iteratePlayers, ticksPerSecond } from '#constants';
-import { findPath, isStandable, isLadderCell, EDGE_TYPE, MOVEMENT_PROFILE } from './pathfinding.js';
+import { CONTROL, classes, devlog, iteratePlayers, ticksPerSecond } from '#constants';
+import { AllItems } from '#items';
+import { findPath, lastFindPathStats, isStandable, isLadderCell, EDGE_TYPE, MOVEMENT_PROFILE } from './pathfinding.js';
+import { perf } from './perf.js';
+import { loadGeometryCache, saveGeometryCache, geometryStoreStats, clearGeometryStore, setStoreEnabled, setStoreCompression, isStoreEnabled } from './geometryStore.js';
+import { CombatController, resolveCombatOptions, parseCombatArgs, listPresets, registerPreset, COMBAT_OPTIONS, DIFFICULTY_PRESETS, hasLineOfSight, weaponProfile, setClassProvider, resolveClassIndex, listClasses, parseSkill, SoundTracker, SKILL_CURVES, resolveShellColor, SHELL_COLORS } from './combat.js';
 import { simulateEdge, canSimulate, JUMP_RUNUP_BACKAWAY_SECONDS, ladderCatchTarget } from './physicsSimulation.js';
 //
 
@@ -13,14 +17,22 @@ import { simulateEdge, canSimulate, JUMP_RUNUP_BACKAWAY_SECONDS, ladderCatchTarg
 // '<path>/deadinternet/index.js'` without also needing to know pathfinding.js exists as a
 // separate file - the public surface of this plugin is meant to be this file, not its internals.
 export { findPath, isStandable, EDGE_TYPE, MOVEMENT_PROFILE };
+export { perf };
+export { loadGeometryCache, saveGeometryCache, geometryStoreStats, clearGeometryStore, setStoreEnabled, setStoreCompression, isStoreEnabled };
+export { CombatController, resolveCombatOptions, parseCombatArgs, listPresets, registerPreset, COMBAT_OPTIONS, DIFFICULTY_PRESETS, hasLineOfSight, weaponProfile, resolveClassIndex, listClasses, parseSkill, SoundTracker, SKILL_CURVES, resolveShellColor, SHELL_COLORS };
+
+// The bot's `class` option is validated against the game's own class list, read live: a plugin that
+// adds a class (Crackshot does, in its constructor) shows up here when it's loaded and simply isn't
+// there when it isn't - nothing in this plugin refers to any specific plugin.
+setClassProvider(() => classes);
 
 export const PluginMeta = {
     identifier: "deadinternet",
     name: 'DeadInternet',
     author: 'onlypuppy7',
     version: '1.0.0',
-    descriptionShort: 'Adds bot players to your game', //displayed when loading
-    descriptionLong: 'Adds bot players to your game',
+    descriptionShort: 'Adds bot players that walk the map and fight, at any skill level', //displayed when loading
+    descriptionLong: 'Adds bot players that walk the map and fight (aim, strafe, take cover, throw grenades, hear gunfire), from target dummies to nightmare skill, with ready-made fields of bots - plus a general A* pathfinding engine other plugins can use.',
     legacyShellVersion: 459, //legacy shell version, can be found in /versionEnum.txt, or just on the homescreen
 };
 
@@ -109,6 +121,44 @@ export class Plugin {
 
 export var DeadInternetBots = [];
 
+// How far apart two goals are for route-reuse purposes: ground distance, with height counting extra
+// (a goal one level up is a different place, not a slightly different one).
+function goalDistance(a, b) {
+    return Math.hypot(a.x - b.x, a.z - b.z) + Math.abs(a.y - b.y) * 1.5;
+}
+
+// One SoundTracker per room, shared by every bot in it (hearing is inferred from room state - see
+// combat-tactics.js - so there's no point each bot doing its own polling), and one "squad" focus
+// object per room + role + team, which bots use to gang up on the same target.
+const soundTrackers = new WeakMap();
+const squads = new WeakMap();
+
+function getSoundTracker(room) {
+    let tracker = soundTrackers.get(room);
+    if (!tracker) {
+        tracker = new SoundTracker({
+            iteratePlayers,
+            getProjectiles: () => {
+                const mm = room.munitionsManager;
+                const grenades = [], rockets = [];
+                mm?.grenadePool?.forEachActive((g) => grenades.push(g));
+                mm?.rocketPool?.forEachActive((r) => rockets.push(r));
+                return { grenades, rockets };
+            },
+        });
+        soundTrackers.set(room, tracker);
+    };
+    return tracker;
+}
+
+function getSquad(room, key) {
+    let byKey = squads.get(room);
+    if (!byKey) { byKey = new Map(); squads.set(room, byKey); };
+    let squad = byKey.get(key);
+    if (!squad) { squad = { focus: null, until: 0 }; byKey.set(key, squad); };
+    return squad;
+}
+
 export class DeadInternetBot {
     constructor(room, opts = {}) {
         this.room = room;
@@ -123,11 +173,21 @@ export class DeadInternetBot {
         Object.assign(this.opts, opts);
         DeadInternetBots.push(this);
 
+        // Combat behavior config: `opts.combat` is { difficulty, ...overrides } - a preset name
+        // plus any individual option overrides (see combat.js's COMBAT_OPTIONS). Resolved here
+        // once so a bad option is reported before the bot ever joins the room; the controller
+        // itself is built in init(), once there's a real Player to read from.
+        this.combatConfig = { ...(opts.combat ?? {}) };
+        this.combatResolved = resolveCombatOptions(this.combatConfig);
+        this.combat = null;
+        this.owner = opts.owner ?? null;
+
         this.currentPath = null;
         this.pathIndex = 0;
         this.pathIndex0NeedsGroundWait = false; // whether path[0] still needs the player to land before being pursued - see pathTo()/followPath()
         this.pathGoalKey = null;
         this.pathRecomputeAt = 0;
+        this.pathLastFailed = false; // whether the last findPath() for pathGoalKey returned null - see pathTo()
         this.pathStuckSinceTime = null;
         this.pathBestDistance = Infinity; // closest distance-to-waypoint achieved so far (horizontal normally, vertical while climbing - see checkStuck()) for the CURRENT metric only
         this.pathWasClimbing = false; // tracks checkStuck()'s progress metric across ticks, so a mid-waypoint switch between it (horizontal <-> vertical) resets pathBestDistance instead of comparing incompatible values
@@ -146,6 +206,14 @@ export class DeadInternetBot {
         this.jumpRunupStartY = 0; // player.y when the current run-up began, to detect backing off the takeoff ledge itself - see followPath()
         this.pathFailStreak = 0; // consecutive findPath() failures from the same (unmoved) position - see pathTo()
         this.pathFailPos = null;
+        // Search economy (see pathTo()): after a failed search the bot backs off instead of retrying the
+        // same unreachable place every time the target steps into a new cell; a route that still serves
+        // its goal is reused instead of re-searched; and a route survives a fight (suspended, not dropped).
+        this.pathFailCount = 0;     // consecutive failed searches
+        this.pathFailUntil = 0;     // Date.now() before which a retry near pathFailGoal is skipped
+        this.pathFailGoal = null;   // where the last failed search was headed
+        this.pathReplanBy = 0;      // even a good route is re-checked after this
+        this.pathSuspended = false; // route kept while the bot fights - see suspendPath()
         this.stuckEventCount = 0; // total checkStuck() replans since the last real progress, regardless of position - see checkStuck()
         // Lifetime counter, deliberately NEVER auto-reset (unlike stuckEventCount above, which
         // resets on real progress for ITS OWN purpose) - a test harness snapshots this before and
@@ -168,7 +236,8 @@ export class DeadInternetBot {
     async init() {
         this.client = await this.room.joinPlayer({
             id: null,
-            nickname: "DeadInternetBot",
+            nickname: this.combatResolved.options.nickname,
+            classIdx: resolveClassIndex(this.combatResolved.options.class),
             wsId: null,
             primary_item_id: 0,
             secondary_item_id: 0,
@@ -185,7 +254,145 @@ export class DeadInternetBot {
         console.log("client.room ??", !!this.client?.room);
 
         await this.client.clientReady();
+        await this.applyShellColor();
         await this.respawn();
+
+        // Pick up what earlier runs learned about this map (once per room; a missing or stale file just
+        // means starting cold). Awaited here so it is in place before the first search ever runs.
+        const store = await loadGeometryCache(this.room);
+        if (store.loaded) console.log(`[deadinternet] pathfinding cache loaded: ${store.added} answers (${(store.bytes / 1024).toFixed(0)}KB) for ${this.room.minMap?.name ?? 'this map'}`);
+        else if (store.reason && store.reason !== 'disabled' && store.reason !== 'no file yet') console.log(`[deadinternet] pathfinding cache not used: ${store.reason}`);
+
+        this.setupCombat();
+    }
+
+    // Sets the bot's egg colour (the `color` option) and tells everyone already in the room. The game only
+    // lets subscribers pick colours 7-13 (Client.setColorIdx clamps everyone else to 0-6, which includes
+    // every bot), so this sets the colour on the client directly and then applies the loadout, which
+    // broadcasts the change. Players joining later get it from the client when it is announced to them.
+    async applyShellColor() {
+        const index = resolveShellColor(this.combatResolved.options.color);
+        if (index === null) return;
+        this.client.colorIdx = index;
+        await this.client.applyLoadout();
+    }
+
+    // Builds the CombatController and applies the options that live on the Player itself (team,
+    // speed/damage/resistance modifiers). Only touches a modifier when its option is set - null
+    // means "leave the game's own value alone".
+    setupCombat() {
+        const o = this.combatResolved.options;
+        // Join the requested team first: the squad (who gangs up on whom) is per team.
+        if (o.team >= 0 && this.player.team !== o.team) this.player.switchTeam(o.team);
+
+        this.combat = new CombatController({
+            player: this.player,
+            map: this.room.map,
+            iteratePlayers,
+            owner: this.owner,
+            getPickups: (kind) => this.getPickups(kind),
+            sounds: getSoundTracker(this.room),
+            squad: getSquad(this.room, `${o.role}:${this.player.team}`),
+            perf,
+        }, this.combatConfig);
+
+        // Player-side modifiers come from the controller's own (per-bot varied) copy of the options,
+        // and only when set - null means "leave the game's own value alone".
+        const c = this.combat.opts;
+        const mods = {};
+        if (c.speed !== null) mods.speedModifier = c.speed;
+        if (c.damage !== null) mods.damageModifier = c.damage;
+        if (c.resistance !== null) mods.resistanceModifier = c.resistance;
+        if (Object.keys(mods).length) this.player.changeModifiers(mods);
+    }
+
+    // Active pickups of one item kind in this room ('AMMO', 'HEALTH', ...), as plain {x,y,z}. The
+    // pool index is looked up by codeName rather than assumed, since plugins add item kinds - and
+    // a kind this room doesn't have (the health pack plugin not loaded, say) just gives [].
+    getPickups(codeName) {
+        const out = [];
+        const kind = AllItems.findIndex((item) => item.codeName === codeName);
+        const pool = kind < 0 ? null : this.room.itemManager?.pools?.[kind];
+        if (pool) pool.forEachActive((item) => out.push({ x: item.x, y: item.y, z: item.z }));
+        return out;
+    }
+
+    setOwner(owner) {
+        this.owner = owner;
+        this.combat?.setOwner(owner);
+    }
+
+    // Applies one CombatController command to the real Player. When engaged the combat layer owns
+    // yaw + controls (path following is paused, since followPath() steers by setting yaw toward
+    // the next waypoint and forward is relative to yaw - they can't both drive it at once);
+    // otherwise it just supplies a destination for the normal pathTo()/followPath() pair.
+    applyCombat(cmd, delta = 1) {
+        const p = this.player;
+
+        if (cmd.reload) p.reload();
+        if (cmd.swap !== null) p.swapWeapon(cmd.swap);
+        // Queue a grenade; the controller keeps the aim locked until the throw actually happens.
+        if (cmd.grenade !== null && cmd.grenade !== undefined) p.queueGrenade(cmd.grenade);
+
+        if (cmd.engaged) {
+            this.suspendPath(); // keeps the route for after the fight; also zeroes controlKeys
+            p.yaw = cmd.yaw;
+            p.pitch = cmd.pitch;
+            p.controlKeys = cmd.controls & ~CONTROL.jump; // jump is an impulse (player.jump()) for bots, not a held key
+            if (cmd.jump) p.jump();
+            return;
+        };
+
+        if (cmd.moveTo) {
+            const pt0 = perf.now();
+            this.pathTo(cmd.moveTo, { chase: true });
+            perf.add('pathTo', pt0);
+            // No route to a pickup or cover spot: have the controller pick another next scan.
+            if ((cmd.state === 'restock' || cmd.state === 'heal' || cmd.state === 'cover') && this.pathLastFailed && !this.currentPath) this.combat.markUnreachable(cmd.moveTo);
+        } else if (this.pathSuspended) this.stopPath(); // nowhere to go any more: don't keep a route nobody is following
+        const fp0 = perf.now();
+        this.followPath(delta); // no-ops (and clears controlKeys) when there's no path
+        perf.add('followPath', fp0);
+    }
+
+    // One tick of the full default combat AI: decide, then act. Call from onUpdate, or use
+    // startCombatAI() to have it wired up for you.
+    think(delta = 1) {
+        if (!this.combat) return null;
+        const t0 = perf.now();
+        const cmd = this.combat.update(delta / ticksPerSecond);
+        perf.add('update', t0);
+        const a0 = perf.now();
+        this.applyCombat(cmd, delta);
+        perf.add('apply', a0);
+        perf.add('think', t0);
+        return cmd;
+    }
+
+    // Wires think() into onUpdate and a respawn-after-delay into onDeath. Replace either hook
+    // afterwards for custom behavior - they're plain properties.
+    startCombatAI() {
+        this.onUpdate = async (data) => { this.think(data?.delta); };
+        this.onDeath = () => {
+            this.combat?.reset();
+            clearTimeout(this.respawnTimer);
+            this.respawnTimer = setTimeout(() => { if (!this.removed) this.respawn(); }, this.combatResolved.options.respawnDelay * 1000);
+        };
+    }
+
+    // Takes the bot out of the room for good: disconnects its client (which broadcasts the
+    // removePlayer packet and frees its slot) and stops every hook from touching it again.
+    // Safe to call more than once.
+    remove() {
+        if (this.removed) return;
+        this.removed = true;
+        clearTimeout(this.respawnTimer);
+        this.onUpdate = null;
+        this.onDeath = null;
+        this.stopPath?.();
+        const i = DeadInternetBots.indexOf(this);
+        if (i !== -1) DeadInternetBots.splice(i, 1);
+        this.client?.onclose();
     }
 
     control(control) {
@@ -194,51 +401,6 @@ export class DeadInternetBot {
 
     async respawn() {
         await this.client.requestRespawn();
-    }
-
-    // Unlike respawn() above, which goes through the normal client.requestRespawn() flow -
-    // gated on the player actually being dead (`canRespawn() && !playing`, see client.js:252-253
-    // - it silently no-ops otherwise) - this repositions the bot immediately regardless of
-    // whether it's alive. Needed for the stuck-position recovery below: a bot that's merely
-    // wedged somewhere (not dead - there's no fall damage in this game) can never legitimately
-    // request a respawn through the normal flow, and would otherwise be stuck forever (confirmed
-    // by testing: this was a real, previously-undiscovered gap - the first version of this
-    // recovery called the normal respawn() and it silently did nothing, over and over). Mirrors
-    // exactly what requestRespawn() does once its gate passes: call Player.respawn() then
-    // broadcast the same wire packet real clients expect, so the bot's new position is visible
-    // to everyone else in the room too, not just tracked server-side.
-    async forceRespawn() {
-        // getBestSpawn() picks whichever spawn point is FARTHEST from other players - in a
-        // small room (as low as one human + this bot), that systematically favors isolated
-        // corner/edge spawns over central ones, which on "Castle" (and likely many maps) tend to
-        // be exactly the small/elevated tower-top platforms most prone to irregular real geometry
-        // the grid model can't represent precisely (see the fell-off-an-unmodeled-ledge check in
-        // followPath()). getRandomSpawn() samples uniformly across every spawn point instead -
-        // no reason a recovery respawn should be biased toward the hardest spots to escape.
-        const spawnPoint = this.room.getRandomSpawn(this.player);
-        this.player.respawn(spawnPoint);
-
-        // Player.respawn() resets position but not velocity - a natural death+respawn gets away
-        // with that because there are several real seconds of being dead for dx/dy/dz to settle
-        // to ~0 on their own before it matters again. forceRespawn() has no such gap: it can fire
-        // mid-fall or mid-stuck-struggle with real leftover momentum, which then gets applied on
-        // the very next physics tick AT THE NEW POSITION - shoving the bot off its fresh spawn
-        // point immediately (confirmed by testing: this was a real, previously-undiscovered
-        // contributor to bots looking "stuck" right after every forced respawn on "Castle").
-        this.player.dx = 0;
-        this.player.dy = 0;
-        this.player.dz = 0;
-        this.player.controlKeys = 0; // a real death (removeFromPlay()) clears this too - respawn() alone doesn't
-
-        const output = new Comm.Out(12);
-        output.packInt8U(Comm.Code.respawn);
-        output.packInt8U(this.client.id);
-        output.packFloat(this.player.x);
-        output.packFloat(this.player.y);
-        output.packFloat(this.player.z);
-        output.packRadU(this.player.yaw);
-        output.packRad(this.player.pitch);
-        this.client.sendToAll(output, "respawn");
     }
 
     getDistanceToPlayer(otherPlayer) {
@@ -303,8 +465,28 @@ export class DeadInternetBot {
         const now = Date.now();
         const force = opts.force || false;
 
-        if (!force && this.currentPath && goalKey === this.pathGoalKey && now < this.pathRecomputeAt) {
-            return this.currentPath;
+        if (!force) {
+            // Backing off: the last search toward (about) here failed, so don't repeat it every time the
+            // target steps into a new cell - that was a full search per step for something unreachable.
+            if (this.pathFailGoal && now < this.pathFailUntil && goalDistance(target, this.pathFailGoal) < 6) {
+                perf.count('search.skipped.backoff');
+                return this.currentPath;
+            };
+
+            if (this.currentPath) {
+                // A route kept through a fight: pick it up again if the bot is still near it.
+                if (this.pathSuspended && !this.resumeSuspendedPath()) {
+                    this.stopPath();
+                } else if (this.pathServesGoal(target, now)) {
+                    perf.count('search.skipped.reuse');
+                    return this.currentPath;
+                } else if (now < this.pathRecomputeAt && this.pathTargetPos && goalDistance(target, this.pathTargetPos) < 15) {
+                    // The goal moved further than the route tolerates, but we searched a moment ago. Keep
+                    // walking the old route rather than searching on every step of a moving target.
+                    perf.count('search.skipped.floor');
+                    return this.currentPath;
+                };
+            };
         };
 
         // A new destination gets a clean slate - an edge that failed on the way to some earlier
@@ -312,12 +494,31 @@ export class DeadInternetBot {
         // resets here too (not on every replan - checkStuck()'s own forced replans reuse the
         // SAME target, so goalKey doesn't change there, and stuckEventCount needs to keep
         // accumulating across those to do its job).
-        if (goalKey !== this.pathGoalKey) {
+        if (goalKey !== this.pathGoalKey && !(this.pathTargetPos && goalDistance(target, this.pathTargetPos) < 3)) {
             this.pathAvoidedEdges.clear();
             this.stuckEventCount = 0;
         };
 
-        const path = findPath(this.room, this.player, target, { avoidEdges: this.pathAvoidedEdges, ...opts });
+        if (perf.enabled) perf.count(force ? 'search.forced' : this.pathGoalKey === null ? 'search.fresh' : goalKey !== this.pathGoalKey ? 'search.goalMoved' : 'search.timer');
+        // Chasing something (the combat AI) wants a bounded search that always heads somewhere useful:
+        // aim for the nearest standable cell if the target is mid-air, and settle for the closest
+        // reachable point if there's no full route. Exact destinations (tests, tours) opt out.
+        // The budget scales with how far away the goal is: reaching a chased target takes ~30 expansions
+        // (measured), and a search that can't find one just burns its whole budget exploring everything
+        // reachable - so a nearby goal gets a small budget, a far one more.
+        const chaseBudget = () => Math.round(Math.max(400, Math.min(2500, 200 + 40 * Math.hypot(target.x - this.player.x, target.z - this.player.z))));
+        const searchOpts = opts.chase ? { snapGoal: true, allowPartial: true, maxExpansions: chaseBudget() } : {};
+        const fpt0 = perf.now();
+        let path = findPath(this.room, this.player, target, { avoidEdges: this.pathAvoidedEdges, ...searchOpts, ...opts });
+        perf.add('findPath', fpt0);
+        if (!path) perf.count('findPath.none');
+        if (perf.enabled) {
+            const st = lastFindPathStats();
+            perf.count('expansions.' + st.outcome, st.expansions);
+            perf.count('searches.' + st.outcome);
+            const ms = performance.now() - fpt0;
+            if (ms > 15 && (perf.slowSearches ??= []).length < 40) perf.slowSearches.push({ ms, expansions: st.expansions, outcome: st.outcome, dist: Math.hypot(target.x - this.player.x, target.z - this.player.z), up: target.y - this.player.y, chase: !!opts.chase, len: path ? path.length : 0, types: path ? [...new Set(path.map((w) => w.type))].join('/') : '' });
+        };
 
         if (!path) {
             // Track whether findPath() is failing repeatedly from the SAME spot, regardless of
@@ -333,22 +534,27 @@ export class DeadInternetBot {
             this.pathFailStreak = samePos ? (this.pathFailStreak || 0) + 1 : 1;
             this.pathFailPos = pos;
 
+            // Force-respawning as a recovery from this was removed on purpose: it fired every tick
+            // when the failing pathTo() came from a caller that retries each tick (e.g. chasing an
+            // unreachable target), producing a respawn storm. The bot just stays put and backs off.
             if (this.pathFailStreak >= 3) {
-                // respawn() (client.requestRespawn()) is a no-op here - the bot is stuck, not
-                // dead, and that method only works on a dead player (confirmed by testing: the
-                // first version of this recovery called it and it silently did nothing, forever).
-                // forceRespawn() bypasses that gate.
-                devlog('DeadInternetBot repeatedly failed to find a path from its current position, force-respawning', this.player.name);
+                devlog('DeadInternetBot repeatedly failed to find a path from its current position', this.player.name);
                 this.pathFailStreak = 0;
-                const targetPos = { x: target.x, y: target.y, z: target.z };
-                this.forceRespawn().then(() => this.pathTo(targetPos, { force: true }));
             };
+
+            this.pathFailCount++;
+            this.pathFailUntil = now + Math.min(6000, 600 * 2 ** (this.pathFailCount - 1));
+            this.pathFailGoal = { x: target.x, y: target.y, z: target.z };
         } else {
             this.pathFailStreak = 0;
+            this.pathFailCount = 0;
+            this.pathFailUntil = 0;
+            this.pathFailGoal = null;
         };
 
         this.currentPath = path;
         this.pathIndex = 0;
+        this.pathSuspended = false;
         this.ladderCatchSteeringWaypointIndex = null;
         // Every fresh path is computed from wherever the player happens to BE right now - which,
         // if this pathTo() call is a checkStuck()-forced replan (or any caller chaining straight
@@ -358,25 +564,78 @@ export class DeadInternetBot {
         // still actively carrying the player somewhere the new plan didn't account for - by the
         // time it actually lands, the plan's very first step is already stale. followPath() holds
         // forward and waits for this flag before touching path[0], for exactly one path (cleared
-        // once seen grounded, or once genuinely past the first waypoint) - see its check. This is
-        // deliberately NOT the same as gating every waypoint transition mid-path: chaining while
-        // still slightly airborne between two ALREADY-PLANNED, already-verified steps is normal
-        // and intended (see the 1.25-unit vertical arrival tolerance) - only a BRAND NEW plan's
-        // first step, computed from a possibly-still-moving snapshot, needs this. Confirmed live
-        // on "PathLadderTest": a replan triggered while airborne from a failed jump attempt
-        // activated a plain WALK waypoint at y=2.59 (jumping: true) immediately after, which
-        // never had a chance to reflect where the player actually landed.
+        // once seen grounded, or once genuinely past the first waypoint) - see its check.
         this.pathIndex0NeedsGroundWait = true;
         this.pathGoalKey = goalKey;
         this.pathTargetPos = { x: target.x, y: target.y, z: target.z }; // so followPath()'s own stuck-recovery can re-path without the caller having to call pathTo() every tick too
-        this.pathRecomputeAt = now + (opts.recomputeIntervalMs ?? 1000);
+        this.pathLastFailed = !path;
+        // The floor between searches is spread +-30% per search: bots that all start at the same instant
+        // (a freshly spawned field) would otherwise all come due again on the very same tick and search
+        // together. The spread changes nothing about how a bot behaves; it just stops them marching in step.
+        this.pathRecomputeAt = now + (opts.recomputeIntervalMs ?? 500) * (0.7 + Math.random() * 0.6);
+        this.pathReplanBy = now + 5000;
         this.pathStuckSinceTime = null;
         this.pathBestDistance = Infinity;
 
         return path;
     };
 
+    // Does the current route still do the job for `target`? Yes while the goal hasn't moved further
+    // than a tolerance that grows with distance (a target 20 blocks away can wander 5 before the route
+    // is stale; one right next to the bot barely at all), the route isn't old, and the bot is still on it.
+    pathServesGoal(target, now) {
+        if (!this.currentPath || !this.currentPath.length || !this.pathTargetPos) return false;
+        if (now > this.pathReplanBy) return false;
+        const remaining = Math.hypot(target.x - this.player.x, target.z - this.player.z);
+        const tolerance = Math.max(1.5, Math.min(6, remaining * 0.25));
+        if (goalDistance(target, this.pathTargetPos) > tolerance) return false;
+        return this.nearRoute(3.5, this.pathIndex - 1, this.pathIndex + 3) >= 0;
+    }
+
+    // Index of the route waypoint within `radius` blocks (horizontally, and within two blocks of height)
+    // of the bot, searching waypoints [from, to] - or -1. Nearest wins.
+    nearRoute(radius, from, to) {
+        const path = this.currentPath;
+        if (!path || !path.length) return -1;
+        let best = -1, bestD = radius;
+        for (let i = Math.max(0, from); i <= Math.min(path.length - 1, to); i++) {
+            const w = path[i];
+            if (Math.abs(w.y - this.player.y) > 2) continue;
+            const d = Math.hypot(w.x - this.player.x, w.z - this.player.z);
+            if (d <= bestD) { best = i; bestD = d; };
+        };
+        return best;
+    }
+
+    // While the bot fights, the route it was following is put aside instead of thrown away: the fight
+    // moves it a few blocks, but when the fight ends the route is usually still the way to go. All of
+    // the execution state (jump run-ups and so on) is reset exactly as stopPath() does - only the route
+    // itself, and which goal it was for, are kept.
+    suspendPath() {
+        if (!this.currentPath || this.pathSuspended) { this.player.controlKeys = 0; return; };
+        const keep = { path: this.currentPath, goalKey: this.pathGoalKey, index: this.pathIndex };
+        this.stopPath();
+        this.currentPath = keep.path;
+        this.pathGoalKey = keep.goalKey;
+        this.pathIndex = keep.index;
+        this.pathSuspended = true;
+    }
+
+    // Takes a suspended route up again from the waypoint nearest the bot, if it's still close to it.
+    resumeSuspendedPath() {
+        const at = this.nearRoute(3.5, 0, (this.currentPath?.length ?? 0) - 1);
+        if (at < 0) return false;
+        this.pathIndex = at;
+        this.pathIndex0NeedsGroundWait = true;
+        this.pathSuspended = false;
+        this.pathStuckSinceTime = null;
+        this.pathBestDistance = Infinity;
+        perf.count('path.resumed');
+        return true;
+    }
+
     stopPath() {
+        this.pathSuspended = false;
         this.currentPath = null;
         this.pathIndex = 0;
         this.pathIndex0NeedsGroundWait = false; // whether path[0] still needs the player to land before being pursued - see pathTo()/followPath()
@@ -454,7 +713,7 @@ export class DeadInternetBot {
         // contained - exactly how a real client's input already behaves.
         this.player.controlKeys = 0;
 
-        if (!this.currentPath) return 'idle';
+        if (!this.currentPath || this.pathSuspended) return 'idle';
 
         // findPath() returns `[]` (a valid zero-length path, not null) when the start and goal
         // are already the same cell - see pathfinding.js. That's a real, successful result, not
@@ -476,11 +735,10 @@ export class DeadInternetBot {
         // every future pathTo() call would return null forever without this. Force-respawning is
         // the only real recovery (confirmed by testing: this exact scenario happened on
         // "Castle") - the normal respawn() no-ops here since the bot is still alive, not dead.
+        // Force-respawning here was removed on purpose; the bot just gives up its path.
         if (this.player.y < -2) {
-            devlog('DeadInternetBot fell off the map, force-respawning', this.player.name);
+            devlog('DeadInternetBot fell off the map', this.player.name);
             this.stopPath();
-            const targetPos = this.pathTargetPos;
-            this.forceRespawn().then(() => { if (targetPos) this.pathTo(targetPos, { force: true }); });
             return 'idle';
         };
 
@@ -1405,12 +1663,13 @@ export class DeadInternetBot {
             // Total stuck-events since the last real waypoint arrival is a coarser, position-
             // independent signal that can't be defeated the same way - respawn unconditionally
             // once it's clearly not just "one bad edge, try the next."
+            // (Used to force-respawn here; removed on purpose. Now it just abandons the path.)
             if (this.stuckEventCount >= 5) {
-                devlog('DeadInternetBot stuck for too many replans in a row (possible position oscillation), force-respawning', this.player.name);
+                devlog('DeadInternetBot stuck for too many replans in a row (possible position oscillation), giving up on the path', this.player.name);
                 this.stuckEventCount = 0;
                 this.pathStuckSinceTime = null;
-                const targetPos = this.pathTargetPos;
-                this.forceRespawn().then(() => { if (targetPos) this.pathTo(targetPos, { force: true }); });
+                this.pathAvoidedEdges.clear();
+                this.stopPath();
                 return;
             };
 
@@ -1461,33 +1720,12 @@ export class DeadInternetBot {
                 // remembering it's bad (confirmed by testing: this was a real, slow-grinding
                 // failure mode on "Castle" - a bot stuck at one of its own spawn points kept
                 // re-litigating the same handful of doomed edges, leg after leg, for minutes).
-                devlog('DeadInternetBot exhausted every option from its current position, force-respawning', this.player.name);
-                const targetPos = this.pathTargetPos;
-                this.forceRespawn().then(() => {
-                    if (!targetPos) return;
-                    const freshPath = this.pathTo(targetPos, { force: true });
-                    // pathAvoidedEdges only clears when the GOAL changes (see pathTo()'s own
-                    // comment) - by design, so a genuinely bad edge found earlier in THIS leg stays
-                    // blacklisted across ordinary retries. But on a route-limited leg (few or no
-                    // alternate paths - confirmed live on "PathJumpTest"'s checkpoint4->goal, which
-                    // has exactly one route: walk->jump->ramp->walk, no redundancy at all), enough
-                    // accumulated blacklisting from earlier failed attempts can render the goal
-                    // completely unreachable even from a brand-new, valid spawn position - traced
-                    // live: findPath() returned NULL immediately after this exact respawn, from
-                    // (2.5,1,1.5), a perfectly ordinary spawn point, because every edge on the
-                    // leg's only route had already been blacklisted by then. Without this, the bot
-                    // just sits there 'idle' (no currentPath, nothing left to even get stuck ON)
-                    // for the rest of whatever timeout the caller enforces - a silent, total stall,
-                    // worse than the ordinary "1 stuck event, eventually succeeds" case this whole
-                    // recovery chain is built around. A fresh spawn position is exactly the moment
-                    // a clean slate is safe: whatever made those earlier edges look bad was tied to
-                    // the bot's PREVIOUS positions and momentum, not to the map itself.
-                    if (!freshPath) {
-                        devlog('DeadInternetBot still had no path after a fresh respawn, clearing the edge blacklist for one more try', this.player.name);
-                        this.pathAvoidedEdges.clear();
-                        this.pathTo(targetPos, { force: true });
-                    };
-                });
+                // (Used to force-respawn here; removed on purpose.) Drop the path and the
+                // blacklist so a later pathTo() starts from a clean slate instead of staying
+                // permanently boxed in by edges that were only bad relative to old positions.
+                devlog('DeadInternetBot exhausted every option from its current position, giving up on the path', this.player.name);
+                this.pathAvoidedEdges.clear();
+                this.stopPath();
             };
         };
     };
