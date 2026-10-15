@@ -8,7 +8,7 @@
 // transitions can't fight each other like the old per-branch if/else did.
 
 // uniforms/sampler the wet-surface + flash GLSL (weatherShader.js) adds to every material that uses the shared "standard" shader
-const WET_UNIFORMS = ["wetness", "wetPuddles", "wetTime", "wetSky", "wetCam", "wetMap", "wetHS", "flashDir", "flashAmount"];
+const WET_UNIFORMS = ["wetness", "wetPuddles", "wetTime", "wetSky", "wetCam", "wetMap", "wetHS", "flashDir", "flashAmount", "wetRipple"];
 
 // GPU rain/snow. One fixed mesh of pre-randomised quads per effect; the vertex shader places every
 // drop each frame from time + its random numbers, wrapped around the camera so the field is endless.
@@ -25,7 +25,7 @@ uniform vec3 camPos;
 uniform float time;
 uniform float amount;
 uniform vec2 wind;
-uniform vec4 field;   // x: box size (xz), y: box height, z: fall speed, w: unused
+uniform vec4 field;   // x: box size (xz), y: box height, z: fall speed, w: how far above the camera the box is centred
 uniform vec2 shape;   // rain: streak length, width. snow: flake size, unused
 varying vec2 vC;
 varying float vT;
@@ -38,7 +38,8 @@ void main(void) {
     vec2 xz = camPos.xz + mod(color.xy * S - camPos.xz + 0.5 * S, S) - 0.5 * S;
     float speed = field.z * (0.85 + 0.3 * position.z);
     float yy = color.z * H - time * speed;
-    float y = camPos.y + mod(yy - camPos.y + 0.5 * H, H) - 0.5 * H;
+    float cy = camPos.y + field.w; //the box is centred above the camera, so there's rain overhead as well as around
+    float y = cy + mod(yy - cy + 0.5 * H, H) - 0.5 * H;
     xz += wind * (camPos.y - y) * 0.35;
     #ifdef SNOW
         xz += vec2(sin(time * 0.7 + color.z * 40.0), cos(time * 0.9 + color.x * 40.0)) * 0.35;
@@ -62,8 +63,9 @@ void main(void) {
     vT = position.y * 0.5 + 0.5;
     vWorld = wp;
     float edge = 1.0 - smoothstep(0.35 * S, 0.5 * S, length(xz - camPos.xz));
-    float top = 1.0 - smoothstep(0.35 * H, 0.5 * H, abs(y - camPos.y));
-    vFade = edge * top;
+    float top = 1.0 - smoothstep(0.38 * H, 0.5 * H, abs(y - cy));
+    float near = smoothstep(0.8, 3.5, dist); //drops right at the camera would be huge streaks across the screen
+    vFade = edge * top * near;
     gl_Position = viewProjection * vec4(wp, 1.0);
 }`,
     fragment: `
@@ -97,6 +99,85 @@ void main(void) {
         float a = (1.0 - abs(vC.x)) * mix(1.0, 0.15, vT);
     #endif
     gl_FragColor = vec4(tint, a * alpha * vFade * fog);
+}`,
+};
+
+// The sky layer between the map's own skybox and the clouds: stars, and the colour of the sky at dawn,
+// sunrise, sunset and dusk (a gradient from the horizon colour up to the high-sky colour, all the way round,
+// a little stronger on the sun's side). One sphere, one shader.
+const WeatherSkyShaders = {
+    vertex: `
+precision highp float;
+attribute vec3 position;
+uniform mat4 worldViewProjection;
+varying vec3 vDir;
+void main(void) {
+    vDir = normalize(position);
+    gl_Position = worldViewProjection * vec4(position, 1.0);
+}`,
+    fragment: `
+precision highp float;
+uniform float time;
+uniform float stars;
+uniform vec3 glowColor;
+uniform vec3 glowTop;
+uniform float glowAmt;
+uniform vec3 sunDir;
+uniform float dim;
+varying vec3 vDir;
+float sH(vec3 p) {
+    p = fract(p * 0.3183099 + 0.1);
+    p *= 17.0;
+    return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
+}
+float sN(vec3 p) {
+    vec3 i = floor(p);
+    vec3 f = fract(p);
+    f = f * f * (3.0 - 2.0 * f);
+    return mix(mix(mix(sH(i), sH(i + vec3(1.0, 0.0, 0.0)), f.x), mix(sH(i + vec3(0.0, 1.0, 0.0)), sH(i + vec3(1.0, 1.0, 0.0)), f.x), f.y),
+               mix(mix(sH(i + vec3(0.0, 0.0, 1.0)), sH(i + vec3(1.0, 0.0, 1.0)), f.x), mix(sH(i + vec3(0.0, 1.0, 1.0)), sH(i + vec3(1.0, 1.0, 1.0)), f.x), f.y), f.z);
+}
+void main(void) {
+    vec3 d = normalize(vDir);
+    vec3 sd = normalize(sunDir);
+    float up = smoothstep(-0.03, 0.12, d.y);
+
+    // The sky's colour: horizon colour fading up into the high-sky colour, the same all the way round. The
+    // sun's side is only slightly stronger, and the change is spread smoothly over the whole circle (a cosine,
+    // not a spike): anything sharper turns into a splotch of colour on one side of the view.
+    vec2 az = sd.xz / max(length(sd.xz), 0.001);
+    vec2 dz = d.xz / max(length(d.xz), 0.001);
+    float side = 0.5 + 0.5 * dot(az, dz);
+    float band = exp(-pow(max(d.y, 0.0) / 0.65, 2.0)) * smoothstep(-0.25, 0.02, d.y);
+    float a = clamp(glowAmt * band * (0.92 + 0.08 * side), 0.0, 1.0) * 0.85 * dim;
+    vec3 away = glowColor * 0.94 + vec3(-0.02, 0.0, 0.03);
+    vec3 col = mix(mix(away, glowColor, side), glowTop, smoothstep(0.02, 0.85, d.y));
+
+    // stars: one possible star per cell of a 3D grid, twinkling; most are faint, a few are bright
+    if (stars > 0.01 && d.y > 0.0) {
+        vec3 p = d * 120.0;
+        vec3 c = floor(p);
+        float h = sH(c);
+        if (h > 0.965) {
+            float mag = (h - 0.965) / 0.035;
+            vec3 j = vec3(sH(c + 1.7), sH(c + 3.1), sH(c + 5.3)) - 0.5;
+            float dist = length(fract(p) - 0.5 - j * 0.45);
+            float tw = 0.7 + 0.3 * sin(time * (1.5 + h * 5.0) + h * 60.0);
+            float s = smoothstep(0.16 + 0.2 * mag, 0.0, dist) * tw * stars * up * dim * (0.35 + 0.65 * mag);
+            vec3 sc = mix(vec3(0.75, 0.85, 1.0), vec3(1.0, 0.9, 0.7), fract(h * 91.7));
+            col = mix(col, sc, clamp(s / max(a + s, 0.001), 0.0, 1.0));
+            a = max(a, s);
+        }
+        // a faint band of distant stars and dust across the sky
+        float band2 = exp(-pow(dot(d, normalize(vec3(0.35, 0.55, 0.75))) * 2.6, 2.0));
+        float dust = band2 * (0.45 + 0.55 * sN(d * 7.0)) * smoothstep(0.35, 0.95, sN(d * 16.0));
+        float m = dust * 0.2 * stars * up * dim;
+        col = mix(col, vec3(0.55, 0.62, 0.9), clamp(m / max(a + m, 0.001), 0.0, 1.0));
+        a = max(a, m);
+    }
+
+
+    gl_FragColor = vec4(col, a);
 }`,
 };
 
@@ -181,8 +262,15 @@ const WeatherRender = {
     boltMesh: null,     // the lightning ribbons (core + glow), rebuilt for every strike
     bolt: null,         // current strike: path segments, distance, direction
     boltDir: null,      // unit vector from the player toward the current strike
+    thunderSounds: [],  // thunder currently playing, so it can be faded out if the storm ends
+    thunderTimers: [],  // thunder waiting for its delay to pass
     lastFlashUniform: 0,
     clouds: null,       // cloud dome mesh + material
+    sky: null,          // stars + the colour of the sky at dawn/sunrise/sunset/dusk
+    auto: null,         // the running automatic day: { minutes, phase at the anchor, at (ms), seq }
+    autoStart: 0,       // when it started, to blend in from whatever the sky was
+    autoFrom: null,
+    fogBase: [0.5, 0.55, 0.6],
     lastFrame: 0,
     snapNext: true,     // first sync after joining applies instantly instead of fading in
     rainSound: null,
@@ -214,8 +302,10 @@ const WeatherRender = {
         this.snapNext = true;
         this.wetLevel = null;
         this.wetPuddle = 0;
+        this.auto = null;
         this.lastSkyMat = null;
         this.shelter = 1;
+        this.silenceThunder(0);
         this.stopRainSound();
     },
 
@@ -232,13 +322,29 @@ const WeatherRender = {
         return { r: 0.5, g: 0.55, b: 0.6, density: 0.01 };
     },
 
+    // where we are in the automatic day (0-1), by our own clock since the last sync
+    autoPhaseNow() {
+        var a = this.auto;
+        if (!a) return 0.5;
+        return (((a.phase + (performance.now() - a.at) / (a.minutes * 60000)) % 1) + 1) % 1;
+    },
+
     channelsFor(time, weather) {
         var base = this.baseFog();
-        var fogColor = time.fogColor || [base.r, base.g, base.b];
+        this.fogBase = [base.r, base.g, base.b];
+        var tv = time, phase = time.phase;
+        if (time.auto && this.auto) { //the automatic day: the sky for this moment of it
+            phase = this.autoPhaseNow();
+            tv = WeatherState.timeAt(phase, this.fogBase, time.daylight, time.linger);
+        };
+        var fogColor = tv.fogColor || this.fogBase;
+        var sd = WeatherState.sunDir(phase, time.auto ? time.daylight : 0);
         var timeCh = {
-            sunR: time.sun[0], sunG: time.sun[1], sunB: time.sun[2],
+            sunR: tv.sun[0], sunG: tv.sun[1], sunB: tv.sun[2],
             fogR: fogColor[0], fogG: fogColor[1], fogB: fogColor[2],
-            baseDensity: base.density, fogMult: time.fogMult, sky: time.sky,
+            baseDensity: base.density, fogMult: tv.fogMult, sky: tv.sky,
+            stars: tv.stars, glowAmt: tv.glow, glowR: tv.glowColor[0], glowG: tv.glowColor[1], glowB: tv.glowColor[2], glowTR: tv.glowTop[0], glowTG: tv.glowTop[1], glowTB: tv.glowTop[2],
+            sunX: sd[0], sunY: sd[1], sunZ: sd[2],
         };
         var weatherCh = {};
         for (var layer of WeatherState.layerNames()) {
@@ -253,8 +359,28 @@ const WeatherRender = {
     },
 
     setTarget(time, weather, snap) {
+        var wasAuto = !!this.auto;
         this.time = time;
         this.weather = weather;
+
+        // the automatic day keeps its own clock; a sync only re-aims it if it's new or we've drifted
+        var now = performance.now();
+        if (time.auto) {
+            var a = time.auto, mine = this.auto ? this.autoPhaseNow() : null;
+            var diff = mine === null ? 1 : Math.abs((((a.phase - mine + 0.5) % 1) + 1) % 1 - 0.5);
+            var fresh = !this.auto || this.auto.seq !== a.seq || this.auto.minutes !== a.minutes;
+            if (fresh || diff > 0.01) this.auto = { minutes: a.minutes, phase: a.phase, at: now, seq: a.seq };
+            if (fresh) {
+                this.autoStart = snap ? -1e9 : now;
+                this.autoFrom = {};
+                for (var n of ["sunR", "sunG", "sunB", "fogR", "fogG", "fogB", "fogMult", "sky", "stars", "glowAmt", "glowR", "glowG", "glowB", "glowTR", "glowTG", "glowTB", "sunX", "sunY", "sunZ"]) {
+                    if (this.ch[n]) this.autoFrom[n] = this.ch[n].cur;
+                };
+            };
+        } else {
+            this.auto = null;
+        };
+
         var { timeCh, weatherCh } = this.channelsFor(time, weather);
 
         var set = (name, to, secs) => {
@@ -270,11 +396,37 @@ const WeatherRender = {
                 c.from = c.cur; c.to = to; c.dur = secs; c.t = 0;
             };
         };
-        for (var k of Object.keys(timeCh)) set(k, timeCh[k], time.transitionSecs);
+        for (var k of Object.keys(timeCh)) {
+            if (this.auto && this.ch[k] && k !== "baseDensity") continue; //the automatic day drives these every frame (driveAutoTime)
+            set(k, timeCh[k], time.transitionSecs);
+        };
         for (var k of Object.keys(weatherCh)) set(k, weatherCh[k], weather.transitionSecs);
 
         this.busy = Object.values(this.ch).some(c => c.t < c.dur);
+        if (weather.storm.thunder <= 0.01) this.silenceThunder(1500); //the storm is over (or muted): let the rumble die away
         this.apply();
+    },
+
+    // The automatic day writes the time channels straight from the clock every frame (it's continuous, so it
+    // needs no easing), blending in from the sky it replaced over the transition time.
+    driveAutoTime(now) {
+        var phase = this.autoPhaseNow();
+        var v = WeatherState.timeAt(phase, this.fogBase, this.time.daylight, this.time.linger);
+        var sd = WeatherState.sunDir(phase, this.time.daylight);
+        var vals = {
+            sunR: v.sun[0], sunG: v.sun[1], sunB: v.sun[2], fogR: v.fogColor[0], fogG: v.fogColor[1], fogB: v.fogColor[2],
+            fogMult: v.fogMult, sky: v.sky, stars: v.stars, glowAmt: v.glow, glowR: v.glowColor[0], glowG: v.glowColor[1], glowB: v.glowColor[2], glowTR: v.glowTop[0], glowTG: v.glowTop[1], glowTB: v.glowTop[2],
+            sunX: sd[0], sunY: sd[1], sunZ: sd[2],
+        };
+        var secs = Math.max(0.001, this.time.transitionSecs);
+        var k = Math.min(1, Math.max(0, (now - this.autoStart) / (secs * 1000)));
+        var ease = k * k * (3 - 2 * k);
+        for (var name in vals) {
+            var c = this.ch[name] || (this.ch[name] = { cur: vals[name], from: vals[name], to: vals[name], dur: 0, t: 0 });
+            var from = this.autoFrom && this.autoFrom[name] !== undefined ? this.autoFrom[name] : vals[name];
+            c.cur = c.from = c.to = from + (vals[name] - from) * ease;
+            c.dur = 0; c.t = 0;
+        };
     },
 
     // re-derive channel targets after something they depend on changed (new map -> new base fog)
@@ -293,6 +445,8 @@ const WeatherRender = {
         var dt = self.lastFrame ? Math.min(0.5, (now - self.lastFrame) / 1000) : 0; //real elapsed time, so transitions take their stated length even at low fps
         self.lastFrame = now;
         var changed = false;
+
+        if (self.time && self.time.auto && self.auto) { self.driveAutoTime(now); changed = true; };
 
         if (self.busy) {
             var stillBusy = false;
@@ -325,6 +479,7 @@ const WeatherRender = {
         self.updateWetness(dt);
         if (self.bolt && self.boltMesh && (self.flashT >= 0 || self.boltMesh.mesh.isEnabled())) self.layoutBolt();
         self.updateFlashLight();
+        self.updateSky();
         self.updateClouds();
         self.updateSplashes(dt);
         self.updateRainSound();
@@ -337,7 +492,7 @@ const WeatherRender = {
         var flash = this.flash;
 
         // sunlight: time of day, dimmed by the storm, brightened by lightning
-        var dark = 1 - g("storm.darkness");
+        var dark = Math.max(0, 1 - g("storm.darkness"));
         var lift = 1 + flash * 0.35; //the rest of the flash comes from the shader, lighting what faces the bolt
         var sun = gameScene.sunLight.diffuse;
         sun.r = g("sunR") * dark * lift;
@@ -392,7 +547,12 @@ const WeatherRender = {
     strike(seed, angleByte, distance) {
         if (!this.weather || !this.camPos) return;
         var storm = this.weather.storm;
-        var angle = angleByte / 256 * Math.PI * 2;
+        var angle = angleByte / 256 * Math.PI * 2; //anywhere around the player
+        var cam = (typeof camera !== "undefined" && camera) || gameScene.activeCamera;
+        if (cam && Math.random() < storm.front) { //or in the half-circle in front of them
+            var f = cam.getForwardRay(1).direction;
+            angle = WeatherState.frontAzimuth(angleByte, Math.atan2(f.z, f.x));
+        };
         this.flashPeak = storm.flash * Math.max(0.35, 1.1 - distance / 200); //far bolts are dimmer
         this.flashT = 0;
         this.buildBolt(seed, angle, distance);
@@ -400,7 +560,36 @@ const WeatherRender = {
         var delay = distance / 120; //seconds until the thunder arrives
         var vol = storm.thunder * Math.min(1, Math.max(0.25, 1.15 - distance / 150));
         var rate = 1.1 - Math.min(0.3, distance / 400); //distant thunder is lower
-        setTimeout(() => { if (inGame) playSoundIndependent2D("thunder", { vol, rate }); }, delay * 1000);
+        var timer = setTimeout(() => {
+            this.thunderTimers = this.thunderTimers.filter(t => t !== timer);
+            if (!inGame) return;
+            this.thunderSounds.push(playSoundIndependent2D("thunder", { vol, rate }));
+            if (this.thunderSounds.length > 8) this.thunderSounds.shift();
+        }, delay * 1000);
+        this.thunderTimers.push(timer);
+    },
+
+    // stop thunder that hasn't played yet and fade out what's playing (storm ended, or left the game)
+    silenceThunder(fadeMs) {
+        this.thunderTimers.forEach(t => clearTimeout(t));
+        this.thunderTimers = [];
+        this.thunderSounds.forEach(s => {
+            try {
+                if (fadeMs > 0) { s.fade(s.volume(), 0, fadeMs); setTimeout(() => s.stop(), fadeMs + 50); }
+                else s.stop();
+            } catch (e) { devlog("legacyweather: couldn't silence thunder", e); };
+        });
+        this.thunderSounds = [];
+    },
+
+    // These meshes place their own vertices (in a shader, or by rewriting them each frame), so their real
+    // bounding box means nothing. Don't use alwaysSelectAsActiveMesh to get around that: in this Babylon
+    // it skips the layer-mask check too, which made the orthographic UI camera draw them over the screen.
+    // A huge bounding box passes the frustum test and still respects layer masks.
+    unbounded(mesh) {
+        mesh.setBoundingInfo(new BABYLON.BoundingInfo(new BABYLON.Vector3(-1e5, -1e5, -1e5), new BABYLON.Vector3(1e5, 1e5, 1e5)));
+        mesh.alwaysSelectAsActiveMesh = false;
+        mesh.layerMask = 0x0FFFFFFF; //the player camera's layers only, never the UI camera's
     },
 
     rng(seed) {
@@ -503,7 +692,7 @@ const WeatherRender = {
         var vd = new BABYLON.VertexData();
         vd.positions = positions; vd.colors = colors; vd.uvs = uvs; vd.indices = indices;
         vd.applyToMesh(mesh, true);
-        mesh.alwaysSelectAsActiveMesh = true;
+        this.unbounded(mesh);
         mesh.isPickable = false;
 
         BABYLON.Effect.ShadersStore["weatherBoltVertexShader"] = WeatherBoltShaders.vertex;
@@ -521,14 +710,57 @@ const WeatherRender = {
         this.boltMesh = { mesh, mat, positions, colors, maxSeg };
     },
 
+    // ---- sky: stars and the colour of the sky ----
+
+    buildSky() {
+        BABYLON.Effect.ShadersStore["weatherSkyVertexShader"] = WeatherSkyShaders.vertex;
+        BABYLON.Effect.ShadersStore["weatherSkyPixelShader"] = WeatherSkyShaders.fragment;
+        var mesh = BABYLON.MeshBuilder.CreateSphere("weatherSky", { diameter: 94, segments: 24 }, gameScene);
+        this.unbounded(mesh);
+        mesh.isPickable = false;
+        mesh.alphaIndex = 1; //drawn before the clouds (2), so they sit in front of the stars
+        var mat = new BABYLON.ShaderMaterial("weatherSky", gameScene, { vertex: "weatherSky", fragment: "weatherSky" }, {
+            attributes: ["position"],
+            uniforms: ["worldViewProjection", "time", "stars", "glowColor", "glowTop", "glowAmt", "sunDir", "dim"],
+            needAlphaBlending: true,
+        });
+        mat.backFaceCulling = false;
+        mat.disableDepthWrite = true;
+        mat.u = { glowColor: new BABYLON.Vector3(), glowTop: new BABYLON.Vector3(), sunDir: new BABYLON.Vector3(0, 1, 0) };
+        mat.setVector3("glowColor", mat.u.glowColor); mat.setVector3("glowTop", mat.u.glowTop); mat.setVector3("sunDir", mat.u.sunDir);
+        mesh.material = mat;
+        mesh.setEnabled(false);
+        this.sky = { mesh, mat };
+    },
+
+    updateSky() {
+        var sk = this.sky;
+        if (!sk) return;
+        var dim = 1 - 0.85 * this.get("storm.clouds"); //cloud cover hides the sky behind it
+        var stars = this.get("stars"), glow = this.get("glowAmt");
+        var on = (stars * dim > 0.01) || (glow * dim > 0.01);
+        if (sk.mesh.isEnabled() !== on) sk.mesh.setEnabled(on);
+        if (!on) return;
+        if (this.camPos) sk.mesh.position.copyFrom(this.camPos);
+        var u = sk.mat.u;
+        u.glowColor.set(this.get("glowR"), this.get("glowG"), this.get("glowB"));
+        u.glowTop.set(this.get("glowTR"), this.get("glowTG"), this.get("glowTB"));
+        u.sunDir.set(this.get("sunX"), this.get("sunY"), this.get("sunZ"));
+        sk.mat.setFloat("time", (performance.now() / 1000) % 3600);
+        sk.mat.setFloat("stars", stars);
+        sk.mat.setFloat("glowAmt", glow);
+        sk.mat.setFloat("dim", dim);
+    },
+
     // ---- clouds ----
 
     buildClouds() {
         BABYLON.Effect.ShadersStore["weatherCloudsVertexShader"] = WeatherCloudShaders.vertex;
         BABYLON.Effect.ShadersStore["weatherCloudsPixelShader"] = WeatherCloudShaders.fragment;
         var mesh = BABYLON.MeshBuilder.CreateSphere("weatherClouds", { diameter: 90, segments: 16 }, gameScene);
-        mesh.infiniteDistance = true;
-        mesh.alwaysSelectAsActiveMesh = true;
+        //not infiniteDistance: that follows whichever camera rendered last, and this game renders two (player + UI),
+        //which left the dome centred on the UI camera. updateClouds() moves it onto the player camera each frame.
+        this.unbounded(mesh);
         mesh.isPickable = false;
         var mat = new BABYLON.ShaderMaterial("weatherClouds", gameScene, { vertex: "weatherClouds", fragment: "weatherClouds" }, {
             attributes: ["position"],
@@ -540,6 +772,7 @@ const WeatherRender = {
         mat.u = { base: new BABYLON.Vector3(), wind: new BABYLON.Vector2(), boltDir: new BABYLON.Vector3(0, 1, 0) };
         mat.setVector3("base", mat.u.base); mat.setVector2("wind", mat.u.wind); mat.setVector3("boltDir", mat.u.boltDir);
         mesh.material = mat;
+        mesh.alphaIndex = 2;
         mesh.setEnabled(false);
         this.clouds = { mesh, mat };
     },
@@ -547,6 +780,7 @@ const WeatherRender = {
     updateClouds() {
         var c = this.clouds;
         if (!c) return;
+        if (this.camPos) c.mesh.position.copyFrom(this.camPos);
         var cover = this.get("storm.clouds");
         var on = cover > 0.01;
         if (c.mesh.isEnabled() !== on) c.mesh.setEnabled(on);
@@ -601,6 +835,7 @@ const WeatherRender = {
             m.setFloat("wetness", 0);
             m.setFloat("wetPuddles", 0);
             m.setFloat("wetTime", 0);
+            m.setFloat("wetRipple", 0);
             m.setFloat("flashAmount", 0);
             m.setVector3("flashDir", new BABYLON.Vector3(0, 1, 0));
         });
@@ -612,8 +847,9 @@ const WeatherRender = {
         var puddleTarget = this.get("rain.puddles") * (this.qualityFactor() >= 1 ? 1 : 0); //puddles are the expensive part
         if (this.wetLevel === null) { this.wetLevel = target; this.wetPuddle = puddleTarget; }; //first look after joining: already as wet as it should be
 
-        //wets in ~20s of rain, takes ~60s to dry
-        var step = (cur, to) => cur < to ? Math.min(to, cur + dt / 20) : Math.max(to, cur - dt / 60);
+        //wets in ~20s of rain; how long it takes to dry comes from the weather state (60s when the rain just ends, the clear's own time when cleared by hand)
+        var dry = Math.max(0.001, this.weather ? this.weather.dryingSecs : 60);
+        var step = (cur, to) => cur < to ? Math.min(to, cur + dt / 20) : Math.max(to, cur - dt / dry);
         var prev = this.wetLevel;
         this.wetLevel = step(this.wetLevel, target);
         this.wetPuddle = step(this.wetPuddle, puddleTarget);
@@ -624,11 +860,13 @@ const WeatherRender = {
         this.wetU.sky.x = fog.r * 1.1 + lift; this.wetU.sky.y = fog.g * 1.1 + lift; this.wetU.sky.z = fog.b * 1.15 + lift;
         if (this.camPos) this.wetU.cam.copyFrom(this.camPos);
         var t = (performance.now() / 1000) % 3600;
+        var ripple = Math.min(1, this.get("rain.drops") * 1.5); //ripples need rain actually falling; puddles stay while the ground dries
         for (var i = 0; i < this.wetMats.length; i++) {
             var m = this.wetMats[i];
             m.setFloat("wetness", this.wetLevel);
             m.setFloat("wetPuddles", this.wetPuddle);
             m.setFloat("wetTime", t);
+            m.setFloat("wetRipple", ripple);
         };
     },
 
@@ -650,8 +888,9 @@ const WeatherRender = {
             if (this.splash) { this.splash.mesh.dispose(false, true); this.splash.tex.dispose(); };
             if (this.boltMesh) this.boltMesh.mesh.dispose(false, true);
             if (this.clouds) this.clouds.mesh.dispose(false, true);
+            if (this.sky) this.sky.mesh.dispose(false, true);
         } catch (e) { devlog("legacyweather: dispose failed", e); };
-        this.frameFn = this.frameScene = this.rainMesh = this.snowMesh = this.rainMat = this.snowMat = this.heightTex = this.heights = this.splash = this.boltMesh = this.clouds = this.bolt = null;
+        this.frameFn = this.frameScene = this.rainMesh = this.snowMesh = this.rainMat = this.snowMat = this.heightTex = this.heights = this.splash = this.boltMesh = this.clouds = this.sky = this.bolt = null;
     },
 
     // Highest solid point of every x,z column, so the shader (and the rain loop) can tell what's
@@ -721,7 +960,7 @@ const WeatherRender = {
         var vd = new BABYLON.VertexData();
         vd.positions = positions; vd.colors = colors; vd.indices = indices;
         vd.applyToMesh(mesh, false);
-        mesh.alwaysSelectAsActiveMesh = true; //its real positions come from the shader, so the bounding box means nothing
+        this.unbounded(mesh);
         mesh.isPickable = false;
 
         BABYLON.Effect.ShadersStore["weatherPrecipVertexShader"] = WeatherShaders.vertex;
@@ -747,14 +986,15 @@ const WeatherRender = {
     buildPrecip() {
         this.disposePrecip();
         this.buildHeightMap();
-        var rain = this.makePrecipMesh("weatherRain", 5000, false);
-        var snow = this.makePrecipMesh("weatherSnow", 3000, true);
+        var rain = this.makePrecipMesh("weatherRain", 9000, false);
+        var snow = this.makePrecipMesh("weatherSnow", 5000, true);
         this.rainMesh = rain.mesh; this.rainMat = rain.mat;
         this.snowMesh = snow.mesh; this.snowMat = snow.mat;
         this.camPos = new BABYLON.Vector3();
         this.bindWetMaterials();
         this.buildSplashes();
         this.buildBoltMesh();
+        this.buildSky();
         this.buildClouds();
         this.frameScene = gameScene;
         this.frameFn = this.frame;
@@ -785,7 +1025,7 @@ const WeatherRender = {
         if (!on) return;
         var u = mat.u;
         u.wind.x = windX; u.wind.y = windZ;
-        u.field.x = 28; u.field.y = 22; u.field.z = fallSpeed; u.field.w = 0;
+        u.field.x = 26; u.field.y = 44; u.field.z = fallSpeed; u.field.w = 9; //26 wide, 44 tall, from ~13 below the camera to ~31 above
         u.shape.x = shape[0]; u.shape.y = shape[1];
         u.tint.x = tint[0]; u.tint.y = tint[1]; u.tint.z = tint[2];
         u.mapInfo.x = map.width; u.mapInfo.y = map.depth; u.mapInfo.z = this.texW; u.mapInfo.w = this.texD;
@@ -815,15 +1055,16 @@ const WeatherRender = {
         vd.positions = positions; vd.colors = colors; vd.uvs = uvs; vd.indices = indices;
         vd.applyToMesh(mesh, true);
         mesh.hasVertexAlpha = true;
-        mesh.alwaysSelectAsActiveMesh = true;
+        this.unbounded(mesh);
         mesh.isPickable = false;
 
         var tex = new BABYLON.DynamicTexture("weatherSplashRing", 64, gameScene, false);
         var ctx = tex.getContext();
         ctx.clearRect(0, 0, 64, 64);
         ctx.strokeStyle = "white";
-        ctx.lineWidth = 5;
-        ctx.beginPath(); ctx.arc(32, 32, 24, 0, Math.PI * 2); ctx.stroke();
+        ctx.shadowColor = "white"; ctx.shadowBlur = 4; //soft edge instead of a hard outline
+        ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(32, 32, 22, 0, Math.PI * 2); ctx.stroke();
         tex.update();
         tex.hasAlpha = true;
 
@@ -848,7 +1089,7 @@ const WeatherRender = {
         var amount = this.get("rain.splashes") * (this.qualityFactor() >= 1 ? 1 : 0);
 
         //spawn
-        sp.acc += 45 * amount * dt;
+        sp.acc += 30 * amount * dt;
         while (sp.acc >= 1) {
             sp.acc -= 1;
             var ang = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * 13;
@@ -878,7 +1119,7 @@ const WeatherRender = {
                 continue;
             };
             active++;
-            var t = q.age / q.life, size = 0.05 + 0.3 * t, fade = Math.pow(1 - t, 1.5) * 0.7;
+            var t = q.age / q.life, size = 0.03 + 0.13 * t, fade = Math.pow(1 - t, 1.5) * 0.5;
             pos[o]     = q.x - size; pos[o + 1]  = q.y; pos[o + 2]  = q.z - size;
             pos[o + 3] = q.x + size; pos[o + 4]  = q.y; pos[o + 5]  = q.z - size;
             pos[o + 6] = q.x + size; pos[o + 7]  = q.y; pos[o + 8]  = q.z + size;

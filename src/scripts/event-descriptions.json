@@ -161,6 +161,7 @@
   "server-client/src/client-static/src/shellshock.min.js#startUp": "The in-browser game client script finished its own top-level setup.",
   "server-client/src/client-static/src/shellshock.min.js#afterBullshit": "Fires after an early setup block (the name is kept verbatim from the original game source).",
   "server-client/src/client-static/src/shellshock.min.js#LegacyShellOnMessage": "Every incoming server packet, after opcode decoding, before dispatch — a general-purpose network message hook; `data.input` is a still-positioned `Comm.In` reader, so a plugin can read a custom opcode's payload here.",
+  "server-client/src/client-static/src/shellshock.min.js#leaveGame": "The player is leaving the game for the main menu - fired just before the game scene is disposed. A plugin should stop anything it started for the game (sounds, timers).",
   "server-client/src/client-static/src/shellshock.min.js#shadowsToggled": "Shadows were just switched on or off (by the settings or the auto-detail optimiser) and the map's material swapped with them; `data.shadowsEnabled` is the new state. Lets a plugin re-apply anything that replaces the map material.",
   "server-client/src/client-static/src/shellshock.min.js#roundEndSFX": "Round-end sound/UI cue.",
   "server-client/src/client-static/src/shellshock.min.js#playerDeathAnimation": "A player's death animation is playing.",

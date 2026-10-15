@@ -769,7 +769,7 @@ export class PermissionsConstructor {
 };
 
 class Command {
-    constructor(context, { identifier, isCheat, name, category, description, example, usage, autocomplete, mentionTypes, warningText, permissionLevel, inputType, executeClient, executeServer }) {
+    constructor(context, { identifier, isCheat, name, category, description, example, usage, autocomplete, options, mentionTypes, warningText, permissionLevel, inputType, executeClient, executeServer }) {
         if (!context.cmds[category]) context.cmds[category] = {};
         context.cmds[category][name] = this;
         context.cmdsByIdentifier[identifier] = this;
@@ -787,6 +787,7 @@ class Command {
         this.description = description;
         this.example = example;
         this.autocomplete = autocomplete || "";
+        this.options = options || null; //optional: the choices for the command's first argument, offered by chat autocomplete (e.g. ["rain", "snow"])
         this.mentionTypes = mentionTypes || {player: true, group: true};
         this.warningText = warningText || "";
         if (isCheat) {

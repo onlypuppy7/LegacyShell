@@ -38,18 +38,19 @@ Every `plugins.emit(...)` call site found in the files below, extracted directly
 | `onMapCompleteBeforeSetup` | `server-client/src/client-static/src/shellshock.min.js:4103` | `{ gameScene, minMap }` | Before final map setup finishes. |
 | `onMapComplete` | `server-client/src/client-static/src/shellshock.min.js:4116` | `{ gameScene }` | After final map setup finishes. |
 | `resetGamePlayer` | `server-client/src/client-static/src/shellshock.min.js:4384` | `{player}` | Client-local counterpart to the server's `resetGamePlayer` — round-scoped UI/state reset. |
-| `addKillTextBefore` | `server-client/src/client-static/src/shellshock.min.js:4749` | `{msgs}` | Before the kill-feed text is rendered. |
-| `onBalanceUpdated` | `server-client/src/client-static/src/shellshock.min.js:4771` | `{balance: playerAccount.currentBalance}` | The player's currency balance display changed. |
-| `onResourcesLoadedEnd` | `server-client/src/client-static/src/shellshock.min.js:4816` | `{}` | All game resources (models/sounds/textures) finished loading. |
-| `shadowsToggled` | `server-client/src/client-static/src/shellshock.min.js:5493` | `{ shadowsEnabled: false }` | Shadows were just switched on or off (by the settings or the auto-detail optimiser) and the map's material swapped with them; `data.shadowsEnabled` is the new state. Lets a plugin re-apply anything that replaces the map material. |
-| `shadowsToggled` | `server-client/src/client-static/src/shellshock.min.js:5500` | `{ shadowsEnabled: true }` | Shadows were just switched on or off (by the settings or the auto-detail optimiser) and the map's material swapped with them; `data.shadowsEnabled` is the new state. Lets a plugin re-apply anything that replaces the map material. |
-| `shellFragBurstBefore` | `server-client/src/client-static/src/shellshock.min.js:5910` | `{ player, count, theSize, theAnimLength }` | Before a shell-casing particle burst effect plays. |
-| `syncToServer` | `server-client/src/client-static/src/shellshock.min.js:6473` | `{loadout}` | The client is about to push a loadout change to the server. |
-| `waitForSetupAndAuthComplete` | `server-client/src/client-static/src/shellshock.min.js:6710` | `{waitIteration}` | The startup poll loop, waiting for auth and page setup to both finish, has started. |
-| `waitForSetupAndAuthCompleteCheck` | `server-client/src/client-static/src/shellshock.min.js:6723` | `{waitIteration, customizer, authAttemptComplete, houseAdsLoaded}` | The startup poll loop is checking whether auth and page setup have both finished yet. |
-| `waitForSetupAndAuthCompleteReady` | `server-client/src/client-static/src/shellshock.min.js:6726` | `{waitIteration}` | The startup poll loop has confirmed both auth and page setup are ready. |
-| `setupComplete` | `server-client/src/client-static/src/shellshock.min.js:6741` | `{}` | The startup poll loop concluded successfully. |
-| `reachedEnd` | `server-client/src/client-static/src/shellshock.min.js:7575` | `{}` | End of the whole client script file, once. |
+| `leaveGame` | `server-client/src/client-static/src/shellshock.min.js:4480` | `{}` | The player is leaving the game for the main menu - fired just before the game scene is disposed. A plugin should stop anything it started for the game (sounds, timers). |
+| `addKillTextBefore` | `server-client/src/client-static/src/shellshock.min.js:4750` | `{msgs}` | Before the kill-feed text is rendered. |
+| `onBalanceUpdated` | `server-client/src/client-static/src/shellshock.min.js:4772` | `{balance: playerAccount.currentBalance}` | The player's currency balance display changed. |
+| `onResourcesLoadedEnd` | `server-client/src/client-static/src/shellshock.min.js:4817` | `{}` | All game resources (models/sounds/textures) finished loading. |
+| `shadowsToggled` | `server-client/src/client-static/src/shellshock.min.js:5497` | `{ shadowsEnabled: false }` | Shadows were just switched on or off (by the settings or the auto-detail optimiser) and the map's material swapped with them; `data.shadowsEnabled` is the new state. Lets a plugin re-apply anything that replaces the map material. |
+| `shadowsToggled` | `server-client/src/client-static/src/shellshock.min.js:5504` | `{ shadowsEnabled: true }` | Shadows were just switched on or off (by the settings or the auto-detail optimiser) and the map's material swapped with them; `data.shadowsEnabled` is the new state. Lets a plugin re-apply anything that replaces the map material. |
+| `shellFragBurstBefore` | `server-client/src/client-static/src/shellshock.min.js:5914` | `{ player, count, theSize, theAnimLength }` | Before a shell-casing particle burst effect plays. |
+| `syncToServer` | `server-client/src/client-static/src/shellshock.min.js:6477` | `{loadout}` | The client is about to push a loadout change to the server. |
+| `waitForSetupAndAuthComplete` | `server-client/src/client-static/src/shellshock.min.js:6714` | `{waitIteration}` | The startup poll loop, waiting for auth and page setup to both finish, has started. |
+| `waitForSetupAndAuthCompleteCheck` | `server-client/src/client-static/src/shellshock.min.js:6727` | `{waitIteration, customizer, authAttemptComplete, houseAdsLoaded}` | The startup poll loop is checking whether auth and page setup have both finished yet. |
+| `waitForSetupAndAuthCompleteReady` | `server-client/src/client-static/src/shellshock.min.js:6730` | `{waitIteration}` | The startup poll loop has confirmed both auth and page setup are ready. |
+| `setupComplete` | `server-client/src/client-static/src/shellshock.min.js:6745` | `{}` | The startup poll loop concluded successfully. |
+| `reachedEnd` | `server-client/src/client-static/src/shellshock.min.js:7579` | `{}` | End of the whole client script file, once. |
 | `loadMeshesBeforeMaterial` | `server-client/src/client-static/editor/js/mapEdit.js:88278` | `{mesh}` | Same hook as the shared `loading.js` version, duplicated for the standalone map-editor page. |
 
 ---
