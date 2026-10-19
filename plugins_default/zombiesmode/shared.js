@@ -19,11 +19,16 @@ export const ZombiesModeDefaults = {
     suddenDeathSpeed: 1.4,  //zombies' speed is multiplied by this in sudden death
     surgeSpeed: 1.5,        //...and by this on top for surgeSecs after each lightning strike (needs legacyweather's storm; 1 = off)
     surgeSecs: 2,
+    weatherArc: true,       //the round plays out under a sky that darkens and a storm that builds (needs legacyweather; false leaves the weather alone)
+    dayHoldSecs: 4,         //...it starts as an ordinary day for this long
+    darkenSecs: 40,         //...and is a dark, stormy dusk this long after that
+    victoryGapMs: 100,      //when the humans win the horde dies one after another, this far apart
+    victoryHoldMs: 1500,    //...and the round ends this long after the last one goes
     headStartSecs: 6,       //the humans are in the round this long before the first zombie spawns
     staggerSecs: 8,         //...and the horde spawns spread over this long, rather than all at once
     spawnClearRadius: 12,   //zombies only spawn at spawn points with no human within this many blocks (at most 40% of the map's size)
     searchBudget: 5000,     //how hard a zombie looks for a way to someone (a path search gives up after this many steps)
-    zombieSpeed: 0.55,      //zombie bots' speed modifier
+    zombieSpeed: 0.7,       //zombie bots' speed modifier (not much lower: how far a bot can jump depends on its speed, and at 0.55 a two block gap is too wide)
     zombieResistance: 1,    //...and resistance (it divides damage taken: 1 is a normal player, 0.5 dies twice as fast)
 };
 
@@ -49,6 +54,32 @@ export const ZombiesModePlugin = {
             if (this.id === meId && gameOptions.plugins && gameOptions.plugins.zombies) ZombiesModePlugin.enterGame();
             return result;
         };
+
+        setInterval(function () { ZombiesModePlugin.interimTick(); }, 250);
+    },
+
+    // WAITING... in the middle of the screen, for someone who is in play while it is the gap between two rounds (they have joined during it:
+    // everyone in the room when a round ends is taken out of play, and the game does not let you spawn again until the next one starts). They
+    // are put into the next round when it starts.
+    // Whether it is the gap comes from the server (gameOptions.plugins.zombiesInterim, sent when it starts and to anyone joining during it):
+    // what this browser thinks about rounds depends on which packets it happened to be there for.
+    interimTick() {
+        try {
+            var interim = !!(gameOptions && gameOptions.plugins && gameOptions.plugins.zombies && gameOptions.plugins.zombiesInterim === true && me && me.playing);
+
+            var waiting = document.getElementById("zombiesWaiting");
+            if (!waiting) {
+                if (!interim) return;
+                waiting = document.createElement("div");
+                waiting.id = "zombiesWaiting";
+                var style = window.getComputedStyle(document.getElementById("gameClock")); //the same look as the clock, smaller
+                waiting.style.cssText = "position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none;z-index:5;text-align:center;"
+                    + "font-family:" + style.fontFamily + ";font-weight:" + style.fontWeight + ";color:" + style.color + ";text-shadow:" + style.textShadow + ";font-size:1.2em";
+                waiting.innerText = "WAITING...";
+                document.body.appendChild(waiting);
+            };
+            waiting.style.display = interim ? "block" : "none";
+        } catch (e) { };
     },
 
     enterGame() {
@@ -81,9 +112,10 @@ export const ZombiesModePlugin = {
                 damageModifier: [1, 1, 0],
                 contactDamage: [0, 0, 15],
                 contactCooldown: 500,
-                contactReach: 0.5, //zombies stop about a block short of someone, so a touch counts from a bit further than usual
                 resistanceModifier: [1, 1, 0.75], //infected humans have about 75 hp
                 knockbackModifier: [0, 0, 0],
+                //the usual ammo and grenades, and health packs (healthpackitem) for the humans; the horde cannot pick them up
+                itemsEnabled: [...data.defaultOptions.itemsEnabled, ...(data.ItemTypes.HEALTH !== undefined ? [[data.ItemTypes.HEALTH, 240, 1]] : [])],
                 startingGrenades: 1,
                 plugins: {
                     zombies: { ...ZombiesModeDefaults },

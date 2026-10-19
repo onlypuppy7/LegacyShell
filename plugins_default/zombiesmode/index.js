@@ -3,6 +3,7 @@ import path from 'node:path';
 //plugin: zombiesmode
 import { ZombiesModePlugin, ZombiesModeDefaults } from './shared.js';
 import { DeadInternetBot, registerPreset } from '../deadinternet/index.js';
+import { hasGroundAhead } from '../deadinternet/combat.js';
 //legacyshell
 import { iteratePlayers, CONTROL } from '#constants';
 import Comm from '#comm';
@@ -84,7 +85,10 @@ function getState(room) {
             bots: [],               //DeadInternetBots making up the horde
             filling: false,         //fillHorde() is running
             eggs: new Map(),        //player id -> kill eggs earned this round
-            savedEnv: null,         //weather and time as they were before sudden death
+            savedEnv: null,         //weather and time as they were before the round changed them
+            victory: false,         //the humans have won and the horde is being put down: nothing comes back, nothing bites
+            timerKey: null,         //which round the round-end timer has been taken over for
+            envStage: 0,            //how far through the round's sky it is: 0 day, 1 darkening, 2 getting darker still, 3 sudden death
         };
         states.set(room, z);
     };
@@ -137,6 +141,8 @@ export class Plugin {
         this.plugins.on('game:scoreKillEggs', this.scoreKillEggs.bind(this));
         this.plugins.on('game:roomDestroy', this.roomDestroy.bind(this));
         this.plugins.on('game:thunderStrike', this.thunderStrike.bind(this));
+        this.plugins.on('game:itemsLoaded', this.itemsLoaded.bind(this));
+        this.plugins.on('game:packUpdateRoomParams', this.packUpdateRoomParams.bind(this));
     };
 
     pluginSourceInsertion(data) {
@@ -160,6 +166,14 @@ export class Plugin {
 
         if (!room.betweenRounds() && z.roundKey !== room.roundEndTime) this.beginRound(room, z);
         if (!z.active) return;
+
+        this.environment(room, z, cfg, now);
+
+        if (z.timerKey !== z.roundKey) { //the round ends through roundTimeUp from here (see there)
+            z.timerKey = z.roundKey;
+            clearTimeout(room.roundTimeout);
+            room.roundTimeout = setTimeout(() => this.roundTimeUp(room), Math.max(0, room.roundEndTime - now));
+        };
 
         z.bots = z.bots.filter((bot) => !bot.removed && room.players_by_id[bot.player?.id] === bot.player);
 
@@ -311,6 +325,26 @@ export class Plugin {
         player.zombieSurge = 0;
     };
 
+    // Tells the browsers whether it is the gap between two rounds (in the room params, which everyone gets on joining and whenever they
+    // change). The browser cannot work this out for itself reliably: what it knows about rounds depends on which packets it happened to be there for.
+    packUpdateRoomParams(data) {
+        const room = data.this;
+        if (!isZombieRoom(room)) return;
+        room.gameOptions.plugins.zombiesInterim = !getState(room).active && room.roundEndTime <= Date.now() && room.roundRestartTime > Date.now();
+    };
+
+    // Health packs (the healthpackitem plugin, enabled for this gamemode in shared.js) are for the humans: the horde walks over them.
+    itemsLoaded(data) {
+        const health = data.AllItems[data.ItemTypes.HEALTH];
+        if (!health || health.zombiesWrapped) return;
+        health.zombiesWrapped = true;
+        const collect = health.collect;
+        health.collect = function (player, applyToWeaponIdx) {
+            if (isZombieRoom(player.room) && player.team === HORDE) return false;
+            return collect.call(this, player, applyToWeaponIdx);
+        };
+    };
+
     roomDestroy(data) {
         const room = data.this;
         if (isZombieRoom(room)) this.clearHorde(getState(room));
@@ -328,6 +362,18 @@ export class Plugin {
         z.suddenDeath = false;
         z.winner = null;
         z.eggs = new Map();
+        z.envStage = 0;
+        z.victory = false;
+        room.updateRoomParamsForClients(); //(the interim is over)
+        iteratePlayers((player) => { //the last round's victory switched the bite off for whoever was left
+            if (player.team === HORDE) player.changeModifiers({ contactDamage: room.gameOptions.contactDamage[HORDE] });
+        });
+
+        const cfg = settings(room);
+        if (cfg.weatherArc) { //the sky starts as an ordinary day
+            z.savedEnv = { weather: clone(room.gameOptions.plugins.weather), time: clone(room.gameOptions.plugins.time) };
+            this.setSky(room, { rain: 0, storm: { intensity: 0.1, lightning: 0 }, transitionSecs: 0 }, { preset: 'day', transitionSecs: 0 });
+        };
 
         console.log(`[zombiesmode] round started (${room.roundLength}s)`);
     };
@@ -355,7 +401,31 @@ export class Plugin {
         };
 
         this.restoreEnvironment(room, z);
+        room.updateRoomParamsForClients(); //(the interim begins)
         console.log(`[zombiesmode] round over: ${winner ?? 'no winner'}`);
+    };
+
+    // The round timer has run out (this replaces the room's own, which would end the round on the spot). If there are humans left they
+    // have won: the horde is put down, one after another, and only then does the round end.
+    roundTimeUp(room) {
+        const z = getState(room);
+        const cfg = settings(room);
+        if (!z.active || z.winner || z.victory || activeHumans(z).length === 0) return room.endRound();
+
+        z.victory = true;
+        const survivors = activeHumans(z);
+        const horde = [];
+        iteratePlayers((player) => {
+            if (player.team !== HORDE) return;
+            player.changeModifiers({ contactDamage: 0 }); //nobody gets bitten while it plays out
+            if (player.playing && !player.isDead()) horde.push(player);
+        });
+
+        horde.forEach((player, i) => setTimeout(() => {
+            if (player.playing && !player.isDead() && z.victory) player.die(survivors[i % survivors.length].id); //credited to a survivor in the kill feed, not scored
+        }, i * cfg.victoryGapMs));
+        setTimeout(() => { if (z.victory && z.active) room.endRound(); }, horde.length * cfg.victoryGapMs + cfg.victoryHoldMs);
+        console.log(`[zombiesmode] humans win: putting down ${horde.length}`);
     };
 
     // Ends the round now (the timer would otherwise run to its end).
@@ -388,10 +458,7 @@ export class Plugin {
         if (z.suddenDeath) return;
         z.suddenDeath = true;
 
-        z.savedEnv = { weather: clone(room.gameOptions.plugins.weather), time: clone(room.gameOptions.plugins.time) };
-        room.gameOptions.plugins.weather = { rain: 0.7, storm: 1 }; //legacyweather's format; without that plugin this is only a flag nobody reads
-        room.gameOptions.plugins.time = 'night';
-        room.updateRoomParamsForClients();
+        if (cfg.weatherArc) this.environment(room, z, cfg, Date.now());
 
         iteratePlayers((player) => { if (player.team === HORDE) this.speedUp(player, cfg); });
 
@@ -403,6 +470,43 @@ export class Plugin {
         if (player.zombieSpeedUp) return;
         player.zombieSpeedUp = cfg.suddenDeathSpeed;
         player.changeModifiers({ speedModifier: player.modifiers.speedModifier * cfg.suddenDeathSpeed });
+    };
+
+    // ---- the sky ---------------------------------------------------------------------------------------------------------------
+    // Written to legacyweather's state (gameOptions.plugins.weather / .time, both in its own format; without that plugin they are only
+    // values nobody reads). The clients blend between what they are sent over transitionSecs, so a few updates make a smooth round-long arc:
+    // an ordinary day, then within darkenSecs a dark, stormy dusk, then slowly on towards night with the storm building, and in sudden
+    // death a downpour with lightning every second or two.
+
+    setSky(room, weather, time) {
+        room.gameOptions.plugins.weather = { wind: { strength: 0.5, direction: 70 }, ...weather };
+        room.gameOptions.plugins.time = time;
+        room.updateRoomParamsForClients();
+    };
+
+    environment(room, z, cfg, now) {
+        if (!cfg.weatherArc || !z.active) return;
+        const elapsed = (now - z.roundStart) / 1e3;
+
+        if (z.suddenDeath) {
+            if (z.envStage < 3) {
+                z.envStage = 3;
+                this.setSky(room,
+                    { rain: 0.9, storm: { intensity: 1, lightning: 4, flash: 2.5, thunder: 1, distance: 55, front: 0.6 }, wind: { strength: 1.6, direction: 70 }, transitionSecs: 6 },
+                    { preset: 'night', sky: 0.06, transitionSecs: 6 });
+            };
+        } else if (z.envStage === 0 && elapsed >= cfg.dayHoldSecs) {
+            z.envStage = 1;
+            this.setSky(room,
+                { rain: 0.5, storm: { intensity: 0.75, lightning: 0.6, thunder: 0.8, distance: 90 }, wind: { strength: 0.6, direction: 70 }, transitionSecs: cfg.darkenSecs },
+                { preset: 'twilight', transitionSecs: cfg.darkenSecs });
+        } else if (z.envStage === 1 && elapsed >= cfg.dayHoldSecs + cfg.darkenSecs) {
+            z.envStage = 2; //from here to nearly the end of the round: a little darker, the storm a little stronger
+            const secs = Math.max(10, Math.round(room.roundLength - elapsed - 10));
+            this.setSky(room,
+                { rain: 0.65, storm: { intensity: 0.9, lightning: 1.2, thunder: 0.9, distance: 80 }, wind: { strength: 0.9, direction: 70 }, transitionSecs: secs },
+                { preset: 'night', transitionSecs: secs });
+        };
     };
 
     restoreEnvironment(room, z) {
@@ -430,7 +534,7 @@ export class Plugin {
         if (z.filling) return;
         z.filling = true;
         try {
-            while (z.active && z.bots.length < cfg.count && anyHumanClient()) {
+            while (z.active && !z.victory && z.bots.length < cfg.count && anyHumanClient()) {
                 const wait = z.hordeReadyAt - Date.now();
                 if (wait > 0) { await sleep(wait); continue; };
 
@@ -442,7 +546,7 @@ export class Plugin {
                 const pathTo = bot.pathTo.bind(bot);
                 bot.pathTo = (target, opts = {}) => pathTo(target, { maxExpansions: cfg.searchBudget, ...opts });
                 const applyCombat = bot.applyCombat.bind(bot);
-                bot.applyCombat = (cmd, delta) => { applyCombat(cmd, delta); this.zombieMove(bot, cmd); };
+                bot.applyCombat = (cmd, delta) => { this.zombieThink(bot, cmd); applyCombat(cmd, delta); this.zombieDrive(bot, cmd); };
                 bot.onDeath = () => { //replaces the default respawn so the delay can be cut short or cancelled with the round
                     bot.combat?.reset();
                     this.scheduleRespawn(z, bot, cfg.respawnSecs);
@@ -459,39 +563,87 @@ export class Plugin {
 
     // Zombies are taken out of play when a round starts without dying; bring them back (after the head start), staggered.
     respawnIdleZombies(room, z, cfg) {
-        if (Date.now() < z.hordeReadyAt) return;
+        if (z.victory || Date.now() < z.hordeReadyAt) return;
         for (const bot of z.bots) {
             if (!bot.player || bot.player.playing || bot.zombieTimer) continue;
             this.scheduleRespawn(z, bot, Math.random() * cfg.staggerSecs);
         };
     };
 
-    // What a zombie does on top of the bots' own movement (see the preset: this is the part a gun-carrying bot does not need).
-    zombieMove(bot, cmd) {
+    // What a zombie does on top of the bots' own movement (see the preset: this is the part a gun-carrying bot does not need), in two parts:
+    // zombieThink changes what the controller decided before it is applied, zombieDrive adjusts what that did to the player.
+
+    // A bot that has someone in sight stops following routes and just walks at them. That is fine on the level, but someone on a ledge,
+    // a stair or a roof is not somewhere a straight line gets to: the zombie would stand beneath them looking up. So it only does that
+    // when they are level with it and not far, and otherwise goes by route, which is what takes it up the stairs.
+    zombieThink(bot, cmd) {
         const p = bot.player;
-        const goal = cmd.engaged ? bot.combat?.target : cmd.moveTo; //whoever it has in sight, or wherever the pathfinder is taking it
+
+        //A bot that has lost sight of someone goes to where it last saw them, or where it heard a shot, and only then goes looking. A zombie
+        //knows where the humans are: that just sends it to an empty spot (underneath them, once they have gone up somewhere) to stand about.
+        if (!cmd.engaged && (cmd.state === 'search' || cmd.state === 'investigate')) {
+            const prey = bot.combat.nearestHostile(500);
+            if (prey) {
+                const t = prey.predicted ?? prey;
+                cmd.state = 'hunt';
+                cmd.moveTo = { x: t.x, y: t.y, z: t.z };
+            };
+            return;
+        };
+
+        const target = cmd.engaged ? bot.combat?.target : null;
+        if (!target) return;
+
+        const dx = target.x - p.x, dz = target.z - p.z;
+        const flat = Math.hypot(dx, dz);
+        const level = Math.abs(target.y - p.y) < 1;
+        if (bot.zPath > 0) bot.zPath--;
+
+        //Straight at them is for when they are level, near enough, and there is ground the whole way: a gap or a drop on the way (the bots'
+        //ledge guard would stop it at the edge, standing there for good, since a bot in sight never follows a route) is for the route to
+        //cross, which it knows how to jump. Once it has handed over it stays handed over for a while, so a jump is not interrupted halfway.
+        const straight = level && !(bot.zPath > 0) && flat < 14 && hasGroundAhead(bot.room.map, p.x, p.y, p.z, dx, dz, { reach: Math.min(0.9, flat) });
+        if (straight) return;
+        if (level && !(bot.zPath > 0) && flat < 14) bot.zPath = 90; //(ticks: 1.5s) the ground ran out
+
+        const t = target.predicted ?? target;
+        cmd.engaged = false; //so the bot follows a route to them instead
+        cmd.fire = false;
+        cmd.state = 'hunt';
+        cmd.moveTo = { x: t.x, y: t.y, z: t.z };
+    };
+
+    zombieDrive(bot, cmd) {
+        const p = bot.player;
+        const goal = cmd.engaged ? bot.combat?.target : cmd.moveTo; //whoever it has in sight, or wherever the route is taking it
         if (!goal) { bot.zIdle = 0; bot.zSwarm = 0; return; };
 
-        const dx = goal.x - p.x, dz = goal.z - p.z;
+        const dx = goal.x - p.x, dz = goal.z - p.z, dy = goal.y - p.y;
         const flat = Math.hypot(dx, dz);
+        const ground = (reach) => hasGroundAhead(bot.room.map, p.x, p.y, p.z, dx, dz, { reach }); //something to stand on that far ahead (the bots' ledge guard)
 
-        //The last blocks to someone in sight: the bots' ledge guard (never step toward a drop while fighting, which looks a block ahead)
-        //would otherwise hold it back a block short of anyone standing near an edge, so it just walks.
-        if (cmd.engaged && flat < 2.5) { bot.zIdle = 0; bot.zSwarm = 0; p.controlKeys |= CONTROL.up; return; };
+        //Within biting range and level: walk into them. The bots' ledge guard looks a block ahead, which is past someone standing at the
+        //edge of something, so look only as far as they are.
+        if (cmd.engaged && flat < 2.5 && Math.abs(dy) < 1) {
+            bot.zIdle = 0; bot.zSwarm = 0;
+            if (ground(Math.min(0.9, flat))) p.controlKeys |= CONTROL.up;
+            return;
+        };
 
-        //Wanting to get somewhere but not getting anywhere: whoever it is after cannot be reached (on top of a tower, across a gap).
-        //In sight, the bot just stands there at its ledge guard; out of sight the pathfinder has no route, or only to the closest point
-        //it could find, and the bot waits there. A zombie does not wait: it walks straight at them and jumps at whatever is in the way,
-        //so the horde piles up against the foot of the tower.
+        //Wanting to get somewhere but not getting anywhere. Straight at someone in sight and blocked (a gap, a wall): the route takes over for
+        //a while. Following a route and out of it (no way to them, or only to the closest point it found, so they are on a tower, say): walk
+        //straight at them and jump at whatever is in the way, so the horde piles up against the foot of it instead of standing about.
         if (!bot.zSwarm) {
             bot.zIdle = Math.hypot(p.dx, p.dz) < 0.004 ? (bot.zIdle ?? 0) + 1 : 0;
             if (bot.zIdle < 20) return;
             bot.zIdle = 0;
-            bot.zSwarm = 90; //ticks (1.5s), then the bots' own movement gets another go
+            if (cmd.engaged) { bot.zPath = 150; return; }; //ticks (2.5s)
+            bot.zSwarm = 90; //ticks (1.5s), then the route gets another go
         };
         bot.zSwarm--;
 
         if (flat < 0.6) return;
+        if (!(dy < -0.5 || ground(0.9))) return; //not off an edge, unless they are down there
         p.yaw = Math.atan2(dx, dz);
         p.controlKeys = CONTROL.up;
         if (bot.zSwarm % 45 === 0) p.jump();
@@ -520,7 +672,7 @@ export class Plugin {
         clearTimeout(bot.zombieTimer);
         bot.zombieTimer = setTimeout(() => {
             bot.zombieTimer = null;
-            if (!bot.removed && z.active) bot.respawn();
+            if (!bot.removed && z.active && !z.victory) bot.respawn();
         }, seconds * 1e3);
     };
 

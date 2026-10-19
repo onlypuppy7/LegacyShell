@@ -39,14 +39,17 @@ if (isMainThread) {
         ss.maps = JSON.parse(fs.readFileSync(path.join(ss.rootDir, 'server-game', 'store', 'maps.json'), 'utf8'));
         ss.items = JSON.parse(fs.readFileSync(path.join(ss.rootDir, 'server-game', 'store', 'items.json'), 'utf8'));
         ss.permissions = yaml.load(fs.readFileSync(path.join(ss.rootDir, 'store', 'config', 'distributed_permissions.yaml'), 'utf8'));
-        await (await import('#items')).initItems();
         const { plugins } = await import('#plugins');
 
         // Plugin listeners go in before the room (and with it gametypes.js) is loaded, as the gametype is registered at load.
         const zombies = await import('./index.js');
         const deadinternet = await import('../deadinternet/index.js');
+        const healthpack = await import('../healthpackitem/index.js');
         new zombies.Plugin(plugins, here);
         new deadinternet.Plugin(plugins, path.join(here, '..', 'deadinternet'));
+        new healthpack.Plugin(plugins, path.join(here, '..', 'healthpackitem'));
+        const items = await import('#items');
+        await items.initItems(); //after the plugins, so they get to add their items and wrap each other\'s
 
         if (process.env.NOSWARM) zombies.pluginInstance.zombieMove = () => {}; //to compare with zombies that just wait
         const RoomConstructor = (await import('#rooms')).default;
@@ -56,7 +59,7 @@ if (isMainThread) {
         await sleep(100); //GameType is filled in by an async block
         unmute();
 
-        const mapName = (workerData.args[0] || 'Castle').toLowerCase();
+        const mapName = (workerData.args[0] || 'Two Towers').toLowerCase();
         const mapId = ss.maps.findIndex((m) => m.name.toLowerCase() === mapName);
         if (mapId < 0) { say(`unknown map ${mapName}`); parentPort.postMessage({ __test: true, line: '', done: true, failed: 1 }); return; };
         assert('the zombies gametype is registered', typeof GameType.zombies === 'number', JSON.stringify(GameType));
@@ -118,6 +121,16 @@ if (isMainThread) {
         assert(`the horde is brought up to ${COUNT}`, bots().length === COUNT, `${bots().length}`);
         const zs = bots().map((b) => b.player);
         assert('zombies keep no gun distance', bots().every((b) => b.combat.rangesFor({ prefMax: 20, prefMin: 5 }).prefMax === 0));
+        assert('the room has health packs, for the humans', room.gameOptions.itemsEnabled.some((e) => e[0] === items.ItemTypes.HEALTH), JSON.stringify(room.gameOptions.itemsEnabled));
+        {
+            const pack = items.AllItems[items.ItemTypes.HEALTH];
+            const z0 = bots()[0].player;
+            z0.hp = 50; H1.hp = 50;
+            const zombieGot = pack.collect(z0, 0), humanGot = pack.collect(H1, 0);
+            assert('...a human can pick one up, and is healed', humanGot === true && H1.hp === 100, `${humanGot} ${H1.hp}`);
+            assert('...the horde cannot, and the pack stays put', zombieGot === false && z0.hp === 50, `${zombieGot} ${z0.hp}`);
+            z0.hp = 100;
+        };
         assert('zombies are on team 2', zs.every((p) => p.team === 2), zs.map((p) => p.team).join());
         assert('zombies are slow and about as tough as a player', zs.every((p) => p.modifiers.resistanceModifier === 1 && p.modifiers.speedModifier < 0.9), JSON.stringify(zs[0].modifiers));
         assert('zombies bite', zs.every((p) => p.modifiers.contactDamage === 15));
@@ -130,19 +143,33 @@ if (isMainThread) {
             H1.x = where.x + 0.5; H1.y = where.y; H1.z = where.z + 0.5;
             const near = Math.min(12, 0.4 * Math.max(room.map.width, room.map.depth));
             const places = new Set();
-            let tooClose = 0, respawned = 0;
+            let tooClose = 0, respawned = 0, packetsMatch = 0, extraPackets = 0;
+            const sent = [];
+            const sendToAll = room.sendToAll.bind(room);
+            room.sendToAll = (output, id, debug) => { sent.push({ debug, buffer: output.buffer.slice(0) }); return sendToAll(output, id, debug); };
             for (let i = 0; i < 16; i++) {
                 const b = bots()[i % COUNT];
+                sent.length = 0;
                 mute(); b.player.removeFromPlay(); b.player.nextRespawn = 0; await b.respawn(); unmute();
                 if (!b.player.playing) continue;
                 respawned++;
                 const p = b.player;
+                const packets = sent.filter((m) => m.debug === 'respawn');
+                if (packets.length === 1) { //the position it spawned at is in the one respawn packet: nothing moves it afterwards
+                    const input = new Comm.In(packets[0].buffer);
+                    input.unPackInt8U(); input.unPackInt8U();
+                    const px = input.unPackFloat(), py = input.unPackFloat(), pz = input.unPackFloat();
+                    if (Math.abs(px - p.x) < 1e-4 && Math.abs(py - p.y) < 1e-4 && Math.abs(pz - p.z) < 1e-4) packetsMatch++;
+                };
+                extraPackets += sent.filter((m) => m.debug !== 'respawn' && /tele|move|pos|sync/i.test(m.debug)).length;
                 for (const h of [H1, H2]) if (Math.hypot(p.x - h.x, p.y - h.y, p.z - h.z) <= near) tooClose++;
                 places.add(`${Math.round(p.x)},${Math.round(p.z)}`);
             };
             assert('zombies respawn', respawned === 16, `${respawned}`);
             assert(`...never within ${near.toFixed(1)} blocks of a human`, tooClose === 0, `${tooClose}`);
             assert('...and at different spawn points, not all in one place', places.size >= 3, `${places.size} places of ${all.length} spawn points`);
+            room.sendToAll = sendToAll;
+            assert('the spawn position is in the respawn packet, not a teleport after it', packetsMatch === 16 && extraPackets === 0, `${packetsMatch} of 16 packets match, ${extraPackets} other movement packets`);
             await spawn(h1);
         };
 
@@ -165,7 +192,8 @@ if (isMainThread) {
         assert('a human who dies joins the horde', H1.team === 2, `${H1.team}`);
         assert('...and gets the horde\'s modifiers: bites, no gun, about 75 hp', H1.modifiers.contactDamage === 15 && H1.modifiers.damageModifier === 0 && Math.abs(H1.modifiers.resistanceModifier - 0.75) < 1e-9, JSON.stringify(H1.modifiers));
         assert('...and is announced', notes.some((n) => n.includes('Human1') && n.includes('infected')), notes.join(' | '));
-        assert('the last human left starts sudden death', room.gameOptions.plugins.time === 'night' && room.gameOptions.plugins.weather?.storm === 1, JSON.stringify(room.gameOptions.plugins));
+        assert('the last human left starts sudden death', room.gameOptions.plugins.time?.preset === 'night', JSON.stringify(room.gameOptions.plugins.time));
+        assert('...in a downpour with lightning every second or two', room.gameOptions.plugins.weather?.storm?.lightning >= 3 && room.gameOptions.plugins.weather?.storm?.intensity === 1 && room.gameOptions.plugins.weather?.rain >= 0.8, JSON.stringify(room.gameOptions.plugins.weather));
         assert('...and the horde is faster', zs.every((p) => p.modifiers.speedModifier > 0.7), zs.map((p) => p.modifiers.speedModifier).join());
         assert('...which includes the infected human', H1.modifiers.speedModifier > 1.3, `${H1.modifiers.speedModifier}`);
         assert('...and says so', notes.some((n) => n.includes('SUDDEN DEATH')));
@@ -186,8 +214,11 @@ if (isMainThread) {
         mute(); await meta(); unmute();
         assert('the round ends early when nobody is left', room.roundEndTime <= Date.now() && room.roundEndTime !== roundEndBefore, `${room.roundEndTime} vs ${roundEndBefore}`);
         assert('...announcing the horde', notes.some((n) => n.includes('horde wins')), notes.join(' | '));
-        assert('...and sudden death is put away', room.gameOptions.plugins.time !== 'night' && !(room.gameOptions.plugins.weather?.storm === 1), JSON.stringify(room.gameOptions.plugins));
+        assert('...and the sky goes back to what the room had', room.gameOptions.plugins.time === undefined && room.gameOptions.plugins.weather === undefined, JSON.stringify(room.gameOptions.plugins));
         assert('...and the speed-up with it', H1.modifiers.speedModifier < 1.1 && zs.every((p) => p.modifiers.speedModifier < 0.8), `${H1.modifiers.speedModifier} ${zs.map((p) => p.modifiers.speedModifier)}`);
+        await sleep(5);
+        mute(); room.packUpdateRoomParams(new Comm.Out()); unmute(); //what everyone is sent, and anyone joining
+        assert('between rounds the room params tell the browsers it is the gap', room.gameOptions.plugins.zombiesInterim === true, JSON.stringify(room.gameOptions.plugins.zombiesInterim));
 
         // ---- next round ----
         mute();
@@ -199,18 +230,45 @@ if (isMainThread) {
         assert("a new round cures the infected", H1.team === 1 && H2.team === 1, `${H1.team} ${H2.team}`);
         assert("...and gives them the human modifiers back", H1.modifiers.contactDamage === 0 && H1.modifiers.damageModifier === 1, JSON.stringify(H1.modifiers));
         assert("...and spawns everyone into it without anyone pressing play", H1.playing && H2.playing, `${H1.playing} ${H2.playing}`);
+        mute(); room.packUpdateRoomParams(new Comm.Out()); unmute();
+        assert("...and the room params say the gap is over", room.gameOptions.plugins.zombiesInterim === false, JSON.stringify(room.gameOptions.plugins.zombiesInterim));
         await see(H1, H2); await meta(); await see(H1, H2);
+
+        // ---- the sky ----
+        const sky = () => room.gameOptions.plugins;
+        assert("a round starts as an ordinary day", sky().time?.preset === "day" && sky().time.transitionSecs === 0 && !(sky().weather?.rain > 0), JSON.stringify(sky()));
+        room.gameOptions.plugins.zombies.dayHoldSecs = 0; room.gameOptions.plugins.zombies.darkenSecs = 0.3;
+        await meta();
+        assert("...which turns into a dark, stormy dusk", sky().time.preset === "twilight" && sky().weather.storm.intensity >= 0.7 && sky().weather.rain >= 0.4, JSON.stringify(sky()));
+        assert("...over darkenSecs", sky().time.transitionSecs === 0.3 && sky().weather.transitionSecs === 0.3);
+        await sleep(400); await meta();
+        assert("...and then slowly on towards night, the storm building", sky().time.preset === "night" && sky().time.transitionSecs >= 10 && sky().weather.storm.lightning > 1 && sky().weather.storm.intensity > 0.75, JSON.stringify(sky()));
+        room.gameOptions.plugins.zombies.dayHoldSecs = 4; room.gameOptions.plugins.zombies.darkenSecs = 40;
 
         // ---- the humans win ----
         eggs.Human1 = 0; eggs.Human2 = 0;
-        clearTimeout(room.roundTimeout);
-        mute(); room.endRound(); unmute();
+        room.gameOptions.plugins.zombies.respawnSecs = 0.05; //so a zombie that did come back would do so quickly
+        for (const b of bots()) { mute(); if (!b.player.playing) { b.player.nextRespawn = 0; await b.respawn(); }; unmute(); };
+        const alive = () => zs.filter((p) => p.playing && !p.isDead()).length;
+        assert("the horde is all there to start with", alive() === COUNT, `${alive()}`);
+        const victoryRoundEnd = room.roundEndTime;
+        mute(); zombies.pluginInstance.roundTimeUp(room); unmute(); //the round timer running out, with the humans still standing
+        await sleep(30);
+        assert("when the humans win the horde starts to die, one at a time", alive() === COUNT - 1, `${alive()}`);
+        assert("...and nobody gets bitten while it plays out", zs.every((p) => p.modifiers.contactDamage === 0));
+        await sleep(COUNT * 100);
+        assert("...until none are left", alive() === 0, `${alive()}`);
+        await sleep(300);
+        assert("...and none come back, with the round still to be ended", alive() === 0 && room.roundEndTime === victoryRoundEnd, `${alive()} ${room.roundEndTime === victoryRoundEnd}`);
+        await sleep(1400);
+        assert("...which then ends", room.roundEndTime !== victoryRoundEnd);
         assert("surviving the round wins it", notes.some((n) => n.includes("humans survived")), notes.join(" | "));
         assert("...and pays each survivor", eggs.Human1 === 20 && eggs.Human2 === 20, JSON.stringify(eggs));
 
         // ---- leaving through the menu ----
         mute(); notes.length = 0; clearTimeout(room.roundTimeout); room.setRoundTimeout(); unmute();
         await sleep(150); await see(H1, H2); await meta(); await see(H1, H2);
+        assert("the next round gives the horde its bite back after the victory", zs.every((p) => p.modifiers.contactDamage === 15), zs.map((p) => p.modifiers.contactDamage).join());
         mute(); H1.removeFromPlay(); unmute(); //what the game does a few seconds after escape is pressed
         await see(H1);
         assert("dropping out of play without dying infects you", H1.team === 2, `${H1.team}`);
@@ -292,7 +350,7 @@ if (isMainThread) {
                 mute(); clearTimeout(room.roundTimeout); room.setRoundTimeout(); unmute();
                 await sleep(100);
                 for (const b of bots()) { mute(); if (!b.player.playing) { b.player.nextRespawn = 0; await b.respawn(); }; unmute(); };
-                H1.hp = 100; H1.team = 1; H1.x = perch.x + 0.5; H1.y = perch.y; H1.z = perch.z + 0.5;
+                H1.hp = 100; H1.team = 1; H1.x = perch.x + 0.5; H1.y = perch.y; H1.z = perch.z + 0.5; H1.predicted = H1; //(the zombies chase the predicted position, which a real client keeps up to date)
                 mute(); H2.removeFromPlay(); H2.playing = false; H1.playing = true; unmute();
                 const closeTo = (r) => zs.filter((p) => p.playing && Math.hypot(p.x - H1.x, p.z - H1.z) < r).length;
                 let best = Infinity;
@@ -301,13 +359,109 @@ if (isMainThread) {
                     virtual += TickStep;
                     await room.updateLoop(1);
                     if (t % 120 === 0) await plugins.emit('metaLoop', { this: room });
-                    H1.hp = 100; //only watching where they go
+                    H1.hp = 100; H1.predicted = H1; //only watching where they go
                     for (const p of zs) if (p.playing) best = Math.min(best, Math.hypot(p.x - H1.x, p.z - H1.z));
                 };
                 unmute();
                 say(`  (a human at ${perch.x},${perch.y},${perch.z}, which no route leads to the top of: after 60s the closest zombie is ${best.toFixed(1)} blocks away, ${closeTo(4)} of ${zs.length} within 4 blocks)`);
                 assert('zombies crowd up against a human they cannot reach', best < 4 && closeTo(5) >= 2, `${best.toFixed(2)}, ${closeTo(5)} within 5`);
             };
+        };
+
+        // ---- someone higher up who can be reached ----
+        {
+            const map = room.map;
+            const standable = [];
+            for (let x = 0; x < map.width; x++) for (let z = 0; z < map.depth; z++) for (let y = map.height - 1; y >= 1; y--) if (deadinternet.isStandable(map, x, y, z)) { standable.push({ x, y, z }); break; };
+            standable.sort((a, b) => b.y - a.y);
+            const from = { x: start.x + 0.5, y: start.y, z: start.z + 0.5 };
+            mute();
+            //somewhere a few levels up (not the highest place there is: that is a parkour course, not a stair)
+            const ledge = standable.filter((c) => c.y >= start.y + 2 && c.y <= start.y + 3).slice(0, 150).find((c) => deadinternet.findPath(room, from, { x: c.x + 0.5, y: c.y, z: c.z + 0.5 }));
+            unmute();
+            if (!ledge) say('  (no reachable place two or three levels above the spawn found on this map: the next check is skipped)');
+            else {
+                mute(); clearTimeout(room.roundTimeout); room.setRoundTimeout(); unmute();
+                await sleep(100);
+                for (const b of bots()) { mute(); if (!b.player.playing) { b.player.nextRespawn = 0; await b.respawn(); }; unmute(); };
+                mute(); H2.removeFromPlay(); H2.playing = false; unmute();
+                H1.hp = 100; H1.team = 1; H1.x = ledge.x + 0.5; H1.y = ledge.y; H1.z = ledge.z + 0.5; H1.playing = true; H1.predicted = H1;
+                for (const b of bots()) { mute(); b.player.removeFromPlay(); b.player.nextRespawn = 0; await b.respawn(); unmute(); }; //spawned again now the human is there: the horde starts well away
+                let bitten = null;
+                mute();
+                for (let t = 0; t < 120 * 60 && bitten === null; t++) {
+                    virtual += TickStep;
+                    await room.updateLoop(1);
+                    if (t % 120 === 0) await plugins.emit('metaLoop', { this: room });
+                    H1.predicted = H1;
+                    if (H1.hp < 100) bitten = t / 60;
+                };
+                unmute();
+                say(`  (a human at ${ledge.x},${ledge.y},${ledge.z}, ${ledge.y - start.y} levels above the spawn, reachable by a route: first bitten after ${bitten === null ? 'never' : bitten.toFixed(1) + 's'})`);
+                assert('zombies find their way up to someone standing higher up, and bite them', bitten !== null);
+            };
+        };
+
+        // ---- crossing a one block gap, from a run-up ----
+        {
+            const map = room.map;
+            const stand = (x, y, z) => deadinternet.isStandable(map, x, y, z);
+            let gap = null;
+            mute();
+            for (let x = 0; x < map.width && !gap; x++) for (let z = 0; z < map.depth && !gap; z++) for (let y = 1; y < map.height && !gap; y++) {
+                if (!stand(x, y, z)) continue;
+                for (const [dx, dz] of [[2, 0], [0, 2]]) {
+                    const bx = x + dx, bz = z + dz;
+                    if (gap || !stand(bx, y, bz) || stand(x + dx / 2, y, z + dz / 2)) continue;
+                    const route = deadinternet.findPath(room, { x: x + 0.5, y, z: z + 0.5 }, { x: bx + 0.5, y, z: bz + 0.5 });
+                    if (!route || route.length > 4 || !route.some((w) => w.type === 'jump')) continue;
+                    const ux = Math.sign(dx), uz = Math.sign(dz);
+                    let back = 0;
+                    while (back < 6 && stand(x - ux * (back + 1), y, z - uz * (back + 1))) back++;
+                    if (back >= 3) gap = { x, y, z, bx, bz, ux, uz, back: Math.min(back, 5) };
+                };
+            };
+            unmute();
+            if (!gap) say('  (no one block gap with room for a run-up found on this map: the next check is skipped)');
+            else {
+                mute(); clearTimeout(room.roundTimeout); room.setRoundTimeout(); unmute();
+                await sleep(100);
+                for (const b of bots()) { mute(); if (!b.player.playing) { b.player.nextRespawn = 0; await b.respawn(); }; unmute(); };
+                mute(); H2.removeFromPlay(); H2.playing = false; unmute();
+                H1.hp = 100; H1.team = 1; H1.playing = true;
+                H1.x = gap.bx + 0.5; H1.y = gap.y; H1.z = gap.bz + 0.5; H1.predicted = H1;
+                const Z = zs[0], bot0 = bots().find((b) => b.player === Z);
+                Z.x = gap.x - gap.ux * gap.back + 0.5; Z.y = gap.y; Z.z = gap.z - gap.uz * gap.back + 0.5; Z.dx = Z.dy = Z.dz = 0;
+                bot0.stopPath(); bot0.combat.reset();
+                let crossed = null;
+                mute();
+                for (let t = 0; t < 30 * 60 && crossed === null; t++) {
+                    virtual += TickStep;
+                    await room.updateLoop(1);
+                    H1.hp = 100; H1.predicted = H1;
+                    if (Math.hypot(Z.x - H1.x, Z.z - H1.z) < 0.8 && Math.abs(Z.y - H1.y) < 1) crossed = t / 60;
+                };
+                unmute();
+                say(`  (a zombie ${gap.back} blocks back from a one block gap at ${gap.x},${gap.y},${gap.z}, the human across it: ${crossed === null ? 'did not get across' : 'across after ' + crossed.toFixed(1) + 's'})`);
+                assert('zombies jump a one block gap to get at someone', crossed !== null);
+            };
+        };
+
+        // ---- handing over to a route ----
+        {
+            const bot = bots()[0], p = bot.player;
+            const attempt = (target, state = 'engage') => {
+                const cmd = { engaged: true, fire: true, state, controls: 1 };
+                bot.combat.target = target;
+                let threw = null;
+                try { zombies.pluginInstance.zombieThink(bot, cmd); } catch (e) { threw = e; };
+                bot.combat.target = null;
+                return { cmd, threw };
+            };
+            const above = attempt({ x: p.x + 5, y: p.y + 3, z: p.z });
+            assert('someone in sight on another level is gone to by route (and that does not throw: it once did, which froze the zombie)', !above.threw && above.cmd.engaged === false && above.cmd.state === 'hunt' && above.cmd.moveTo?.y === p.y + 3 && above.cmd.fire === false, String(above.threw ?? JSON.stringify(above.cmd)));
+            const far = attempt({ x: p.x + 40, y: p.y, z: p.z });
+            assert('...and so is someone a long way off on the level', !far.threw && far.cmd.engaged === false && far.cmd.moveTo?.x === p.x + 40, String(far.threw ?? JSON.stringify(far.cmd)));
         };
 
         say(`\n${passed} passed, ${failed} failed`);
