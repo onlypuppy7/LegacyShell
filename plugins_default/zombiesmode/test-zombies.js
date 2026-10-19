@@ -79,6 +79,7 @@ if (isMainThread) {
         room.packChat = (output, text, ...rest) => { notes.push(text); return packChat(output, text, ...rest); }; //chat lines
         const COUNT = 4;
         room.gameOptions.plugins.zombies.count = COUNT;
+        if (process.env.ZSPEED) room.gameOptions.plugins.zombies.zombieSpeed = Number(process.env.ZSPEED); //to find out what speed a gap needs
         room.gameOptions.plugins.zombies.headStartSecs = 0; //the real defaults would only slow the test down
         room.gameOptions.plugins.zombies.staggerSecs = 0;
 
@@ -132,7 +133,10 @@ if (isMainThread) {
             z0.hp = 100;
         };
         assert('zombies are on team 2', zs.every((p) => p.team === 2), zs.map((p) => p.team).join());
-        assert('zombies are slow and about as tough as a player', zs.every((p) => p.modifiers.resistanceModifier === 1 && p.modifiers.speedModifier < 0.9), JSON.stringify(zs[0].modifiers));
+        const baseSpeeds = zs.map((p) => p.modifiers.speedModifier);
+        assert('zombies are all exactly the zombie speed', baseSpeeds.every((v) => Math.abs(v - room.gameOptions.plugins.zombies.zombieSpeed) < 1e-9), baseSpeeds.join());
+        assert('humans are a little faster than normal', Math.abs(H2.modifiers.speedModifier - 1.1) < 1e-9, `${H2.modifiers.speedModifier}`);
+        assert('zombies are slow and have about 70 hp', zs.every((p) => Math.abs(p.modifiers.resistanceModifier - 0.7) < 1e-9 && p.modifiers.speedModifier < 0.9), JSON.stringify(zs[0].modifiers));
         assert('zombies bite', zs.every((p) => p.modifiers.contactDamage === 15));
         assert('zombies cannot shoot', zs.every((p) => p.modifiers.damageModifier === 0));
 
@@ -190,12 +194,12 @@ if (isMainThread) {
         await see(H1, H2); await meta();
         await killByZombie(H1);
         assert('a human who dies joins the horde', H1.team === 2, `${H1.team}`);
-        assert('...and gets the horde\'s modifiers: bites, no gun, about 75 hp', H1.modifiers.contactDamage === 15 && H1.modifiers.damageModifier === 0 && Math.abs(H1.modifiers.resistanceModifier - 0.75) < 1e-9, JSON.stringify(H1.modifiers));
+        assert('...and gets the horde\'s modifiers: bites, no gun, about 60 hp', H1.modifiers.contactDamage === 15 && H1.modifiers.damageModifier === 0 && Math.abs(H1.modifiers.resistanceModifier - 0.6) < 1e-9, JSON.stringify(H1.modifiers));
         assert('...and is announced', notes.some((n) => n.includes('Human1') && n.includes('infected')), notes.join(' | '));
         assert('the last human left starts sudden death', room.gameOptions.plugins.time?.preset === 'night', JSON.stringify(room.gameOptions.plugins.time));
         assert('...in a downpour with lightning every second or two', room.gameOptions.plugins.weather?.storm?.lightning >= 3 && room.gameOptions.plugins.weather?.storm?.intensity === 1 && room.gameOptions.plugins.weather?.rain >= 0.8, JSON.stringify(room.gameOptions.plugins.weather));
-        assert('...and the horde is faster', zs.every((p) => p.modifiers.speedModifier > 0.7), zs.map((p) => p.modifiers.speedModifier).join());
-        assert('...which includes the infected human', H1.modifiers.speedModifier > 1.3, `${H1.modifiers.speedModifier}`);
+        assert('...and the horde is faster', zs.every((p) => Math.abs(p.modifiers.speedModifier - 1.2) < 1e-6), zs.map((p) => p.modifiers.speedModifier).join());
+        assert('...which includes the infected human', Math.abs(H1.modifiers.speedModifier - 1.2) < 1e-6, `${H1.modifiers.speedModifier}`);
         assert('...and says so', notes.some((n) => n.includes('SUDDEN DEATH')));
 
         // ---- thunder ----
@@ -215,7 +219,7 @@ if (isMainThread) {
         assert('the round ends early when nobody is left', room.roundEndTime <= Date.now() && room.roundEndTime !== roundEndBefore, `${room.roundEndTime} vs ${roundEndBefore}`);
         assert('...announcing the horde', notes.some((n) => n.includes('horde wins')), notes.join(' | '));
         assert('...and the sky goes back to what the room had', room.gameOptions.plugins.time === undefined && room.gameOptions.plugins.weather === undefined, JSON.stringify(room.gameOptions.plugins));
-        assert('...and the speed-up with it', H1.modifiers.speedModifier < 1.1 && zs.every((p) => p.modifiers.speedModifier < 0.8), `${H1.modifiers.speedModifier} ${zs.map((p) => p.modifiers.speedModifier)}`);
+        assert('...and the speed-up with it', H1.modifiers.speedModifier < 1.1 && zs.every((p, i) => Math.abs(p.modifiers.speedModifier - baseSpeeds[i]) < 1e-9), `${H1.modifiers.speedModifier} ${zs.map((p) => p.modifiers.speedModifier)} vs ${baseSpeeds}`);
         await sleep(5);
         mute(); room.packUpdateRoomParams(new Comm.Out()); unmute(); //what everyone is sent, and anyone joining
         assert('between rounds the room params tell the browsers it is the gap', room.gameOptions.plugins.zombiesInterim === true, JSON.stringify(room.gameOptions.plugins.zombiesInterim));

@@ -16,7 +16,7 @@ export const ZombiesModeDefaults = {
     eggCap: 100,            //most kill eggs one player can earn in a round
     winEggs: 20,            //eggs for each survivor when the humans win
     suddenDeathSecs: 60,    //a lone human (or a solo player) gets this long before sudden death at the latest
-    suddenDeathSpeed: 1.4,  //zombies' speed is multiplied by this in sudden death
+    suddenDeathSpeed: 1.2,  //zombies' speed in sudden death (the speed itself, not a multiplier)
     surgeSpeed: 1.5,        //...and by this on top for surgeSecs after each lightning strike (needs legacyweather's storm; 1 = off)
     surgeSecs: 2,
     weatherArc: true,       //the round plays out under a sky that darkens and a storm that builds (needs legacyweather; false leaves the weather alone)
@@ -28,8 +28,8 @@ export const ZombiesModeDefaults = {
     staggerSecs: 8,         //...and the horde spawns spread over this long, rather than all at once
     spawnClearRadius: 12,   //zombies only spawn at spawn points with no human within this many blocks (at most 40% of the map's size)
     searchBudget: 5000,     //how hard a zombie looks for a way to someone (a path search gives up after this many steps)
-    zombieSpeed: 0.7,       //zombie bots' speed modifier (not much lower: how far a bot can jump depends on its speed, and at 0.55 a two block gap is too wide)
-    zombieResistance: 1,    //...and resistance (it divides damage taken: 1 is a normal player, 0.5 dies twice as fast)
+    zombieSpeed: 0.65,      //zombie bots' speed modifier (not much lower: how far a bot can jump depends on its speed, and a two block gap is too wide for 0.6)
+    zombieResistance: 0.7,  //...and resistance (it divides damage taken: 1 is a normal player, 0.5 dies twice as fast)
 };
 
 export const ZombiesModePlugin = {
@@ -109,10 +109,11 @@ export const ZombiesModePlugin = {
                 },
                 //team 2 is the horde: bots and infected humans alike. Infected humans cannot shoot, only bite; the bots get a weaker
                 //and slower profile of their own (zombieSpeed, zombieResistance above).
+                speedModifier: [1, 1.1, 1], //the humans are a little faster than normal (and than the horde)
                 damageModifier: [1, 1, 0],
                 contactDamage: [0, 0, 15],
                 contactCooldown: 500,
-                resistanceModifier: [1, 1, 0.75], //infected humans have about 75 hp
+                resistanceModifier: [1, 1, 0.6], //infected humans have about 60 hp: faster and cleverer than the bots, so they break more easily
                 knockbackModifier: [0, 0, 0],
                 //the usual ammo and grenades, and health packs (healthpackitem) for the humans; the horde cannot pick them up
                 itemsEnabled: [...data.defaultOptions.itemsEnabled, ...(data.ItemTypes.HEALTH !== undefined ? [[data.ItemTypes.HEALTH, 240, 1]] : [])],

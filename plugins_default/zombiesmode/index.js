@@ -466,10 +466,13 @@ export class Plugin {
         console.log('[zombiesmode] sudden death');
     };
 
+    // Everyone on the horde goes to cfg.suddenDeathSpeed, whatever they were at (the bots and the infected differ). Remembered as the factor it
+    // took, so it can be taken off again (and a lightning surge on top of it, which is also a factor, comes off the same way).
     speedUp(player, cfg) {
         if (player.zombieSpeedUp) return;
-        player.zombieSpeedUp = cfg.suddenDeathSpeed;
-        player.changeModifiers({ speedModifier: player.modifiers.speedModifier * cfg.suddenDeathSpeed });
+        const base = player.modifiers.speedModifier / (player.zombieSurge || 1);
+        player.zombieSpeedUp = cfg.suddenDeathSpeed / base;
+        player.changeModifiers({ speedModifier: player.modifiers.speedModifier * player.zombieSpeedUp });
     };
 
     // ---- the sky ---------------------------------------------------------------------------------------------------------------
@@ -540,6 +543,9 @@ export class Plugin {
 
                 const bot = new DeadInternetBot(room, { combat: { difficulty: 'zombie', speed: cfg.zombieSpeed, resistance: cfg.zombieResistance } });
                 await bot.init();
+                //exactly the zombie speed: the bots each get a few percent either way, which is within the same pathfinding speed bucket, so the
+                //jumps it has verified for the one are not quite right for the other, and the slower of the two lands short of a wide gap
+                bot.player.changeModifiers({ speedModifier: cfg.zombieSpeed });
                 bot.startCombatAI();
                 //when there is no way to someone, the route it settles for is the closest point the search got to, so a bigger search budget than the
                 //bots' default (which is sized for a target that can be reached) gets it a lot closer
