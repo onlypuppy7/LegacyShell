@@ -51,7 +51,8 @@ export default async function run () {
 
             app.listen(port);
 
-            app.use(gzipStatic([path.join(ss.currentDir, 'store', 'client-modified'), path.join(ss.currentDir, 'src', 'client-static')]));
+            const gzipped = gzipStatic([path.join(ss.currentDir, 'store', 'client-modified'), path.join(ss.currentDir, 'src', 'client-static')]);
+            app.use(gzipped);
 
             await plugins.emit('onStartServer', { ss, app, ws });
 
@@ -140,6 +141,8 @@ export default async function run () {
                         prepareModified(),
                     ]);
                     log.success('All start-client promises resolved in ' + (Date.now() - promiseStart) + 'ms');
+
+                    gzipped.precompress(); //not awaited on purpose, brotli takes a while. gzip covers until its done
 
                     delete ss.cache; //MEMORY LEAK FUCKING MI-Mi-mi-MITIGATED!!!
                 } catch (error) {
