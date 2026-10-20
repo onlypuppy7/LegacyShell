@@ -35,6 +35,7 @@ For the API surface (`findPath`, `EDGE_TYPE`, `DeadInternetBot` methods) see `RE
 | `test-perf.js` | The bot AI profiler (`perf.js`) and its hooks in the controller. | No |
 | `test-path-economy.js` | `pathTo()`: route reuse, the search floor, backoff, goal snapping, partial routes, suspend/resume, and how the combat AI uses them. 37 assertions. | No |
 | `test-geometry-store.js` | The on-disk pathfinding cache: round trip, stale/corrupt files, merging between rooms, gzip vs plain, autosave, and speed-keyed physics verdicts. 37 assertions. | No |
+| `bench-checkpoints.js` | Headless `/botsdebug pathtestcheckpoints`: runs a map's parkour route on a virtual clock and prints per-leg results. `--plugin <dir>` runs older code (extract with `git show <rev>:<file>` into `store/versions/<name>/`) - THE way to check a change didn't break a route. Run it on the parkour maps before and after touching bot setup, `pathTo`, or physics. | No (boots a room - slow, one map per process) |
 | `bench-lag.js` | Headless version of the browser stress test: a real room on a virtual clock, reports tick lag. `--plugin <dir>` runs a snapshot of older code. | No (but boots a room - slow, one scenario per process) |
 | `bench-compare.js` | Runs `bench-lag.js` over several seeds for several configurations and prints one table (see README "Performance"). | No |
 | `test-combat.js` | Offline unit suite for `combat.js` (mock players, synthetic map, seeded RNG). 299 assertions. | No |

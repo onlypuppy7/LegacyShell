@@ -55,6 +55,7 @@ without you having to stand somewhere awkward first.
 | `perf.js` | The bot AI profiler behind `/botsdebug perf`. |
 | `shared.js` | The chat commands, and the client-side plugin registration glue. Not the reusable API - see [Scope](#scope-indexjs-is-the-api-sharedjs-is-the-commands). |
 | `bench-lag.js`, `bench-compare.js`, `bench-pathfinding.js` | Headless benchmarks - see [Performance](#measuring-it). |
+| `bench-checkpoints.js` | Headless version of `/botsdebug pathtestcheckpoints` - see [Testing](#testing). |
 | `test-*.js` | Tests - see [Testing](#testing). |
 | `maps/` | The parkour/pathing test maps (JSON, with notes for some), inserted into the game's map list. |
 | `CLAUDE.md` | Operational notes for iterating on this plugin (what the maps are for, what the author has ruled out, how to run things). |
@@ -420,6 +421,14 @@ Offline - no server needed, and safe to run any time:
 ```bash
 node plugins_default/deadinternet/test-combat.js        # (any of the above)
 ```
+
+**Headless, boots a real room** (slow - one map per process, no game server needed):
+
+| File | Does |
+|---|---|
+| `bench-checkpoints.js` | Runs a map's parkour checkpoint route exactly as `/botsdebug pathtestcheckpoints` does, on a virtual clock (seconds, not minutes), and reports each leg: first try / needed stuck recovery / timed out / no path. `--plugin <dir>` runs another copy of the plugin's files (e.g. `git show <rev>:<file>` extracted into `store/versions/<name>/`), which is how to tell whether a change broke a route; `--speed <n>` forces the bot's speed. |
+
+A bot that is only set up with `init()` (the debug and pathtest bots, or any plugin that just wants a bot to navigate) keeps the game's default physics. The combat options that change the Player itself (speed, damage, resistance) are applied only when the combat AI starts - a bot slowed to a combat skill's speed can't make the jumps a parkour route needs, and the pathfinder, which verifies every move against the bot's real physics, correctly reports no path.
 
 **Live** - these connect to a *running game server* (default `localhost:13372`) as a raw WebSocket client,
 join a room and run chat commands, so **never run them casually or in a loop over every `test-*.js`**:

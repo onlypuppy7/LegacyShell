@@ -89,6 +89,45 @@ console.log('Test: bots wear their egg colour');
     assert('/bots options color lists the colours', /white\(0\)|white/.test((await run('bots options', 'color'))[0]) || /color/.test((await run('bots options', 'color'))[0]));
 }
 
+console.log('Test: only fighting bots get combat physics (a debug bot keeps the game\'s defaults)');
+{
+    // Regression: setting a bot up used to apply the combat skill's speed (~0.6) to EVERY bot, including
+    // the pathtest/checkpoint bots. At that speed the physics verifier correctly finds the parkour jumps
+    // impossible, so /botsdebug pathtestcheckpoints reported "no path" on every leg.
+    const make = (combat) => {
+        const bot = new DeadInternetBot({}, { combat });
+        const changes = [];
+        bot.player = { team: 0, playing: false, controlKeys: 0, modifiers: { speedModifier: 1, damageModifier: 1, resistanceModifier: 1 }, changeModifiers(m) { changes.push(m); Object.assign(this.modifiers, m); }, switchTeam() { } };
+        bot.client = {};
+        bot.setupCombat();
+        return { bot, changes };
+    };
+    const debug = make({});
+    assert('a bot that is only set up (what pathtest and the checkpoint tour spawn) changes nothing', debug.changes.length === 0 && debug.bot.player.modifiers.speedModifier === 1 && debug.bot.player.modifiers.damageModifier === 1);
+
+    const fighter = make({ difficulty: 'normal', variance: 0 });
+    assert('...still true right after setup for a bot that will fight', fighter.changes.length === 0);
+    fighter.bot.startCombatAI();
+    assert('starting the combat AI applies the skill\'s speed', fighter.changes.length === 1 && fighter.bot.player.modifiers.speedModifier === 0.6, JSON.stringify(fighter.changes));
+    fighter.bot.startCombatAI(); fighter.bot.applyCombatModifiers();
+    assert('...once, not again on later calls', fighter.changes.length === 1);
+
+    const easy = make({ difficulty: 'easy', variance: 0 });
+    easy.bot.startCombatAI();
+    assert('an easy bot is slower and deals less damage', easy.bot.player.modifiers.speedModifier === 0.4 && easy.bot.player.modifiers.damageModifier === 0.6);
+
+    const thinker = make({ difficulty: 'hard', variance: 0 });
+    thinker.bot.think(1);
+    assert('driving a bot with think() directly applies them too', thinker.changes.length === 1 && thinker.bot.player.modifiers.speedModifier === 0.8);
+    thinker.bot.think(1);
+    assert('...once', thinker.changes.length === 1);
+
+    const explicit = make({ difficulty: 'easy', speed: 1, variance: 0 });
+    explicit.bot.startCombatAI();
+    assert('an explicit speed beats the skill\'s', explicit.bot.player.modifiers.speedModifier === 1);
+    DeadInternetBots.length = 0;
+}
+
 console.log('Test: /bots commands');
 const presets = await run('bots presets', '');
 assert('/bots presets lists every preset with its skill', presets.length === 5 && presets.every((l) => /skill/.test(l)), presets.join(' | '));

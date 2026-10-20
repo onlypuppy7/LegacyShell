@@ -82,7 +82,7 @@ export const COMBAT_OPTIONS = {
     // --- movement while engaged
     engageMovement:     { type: 'enum', values: ['static', 'strafe', 'advance'], default: 'strafe', skill: true, description: 'static = stand and shoot, advance = close to range only, strafe = hold range and strafe.' },
     preferredRangeMin:  { type: 'number', min: 0, max: 100, default: null, nullable: true, description: 'backs away from targets closer than this (auto = from the weapon in hand).' },
-    preferredRangeMax:  { type: 'number', min: 1, max: 200, default: null, nullable: true, description: 'advances on targets farther than this (auto = from the weapon in hand).' },
+    preferredRangeMax:  { type: 'number', min: 0, max: 200, default: null, nullable: true, description: 'advances on targets farther than this (auto = from the weapon in hand).' },
     strafeInterval:     { type: 'number', min: 0.2, max: 10, default: 1.2, description: 'average seconds between strafe direction changes.' },
     strafeVariance:     { type: 'number', min: 0, max: 1, default: 0.5, skill: true, description: 'how unpredictable the strafing is: varied timing, pauses to shoot, dodging when hit. 0 = metronome.' },
     jumpChance:         { type: 'number', min: 0, max: 5, default: 0.1, skill: true, description: 'jumps per second (on average) while fighting.' },

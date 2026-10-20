@@ -296,8 +296,21 @@ export class DeadInternetBot {
             perf,
         }, this.combatConfig);
 
-        // Player-side modifiers come from the controller's own (per-bot varied) copy of the options,
-        // and only when set - null means "leave the game's own value alone".
+        // NOTE: the player-side modifiers (speed, damage, resistance) are deliberately NOT applied here.
+        // init() is also how the debug/pathtest bots (and any plugin that just wants a bot to navigate)
+        // are created, and they must keep the game's default physics: a bot slowed to a combat skill's
+        // speed can't make the jumps its route needs, and the pathfinder - which verifies every move
+        // against the bot's real physics - correctly reports no path. They are applied when the combat
+        // AI actually starts, see applyCombatModifiers().
+    }
+
+    // Applies the combat options that change the Player itself: speed, damage dealt, resistance. Only
+    // when set - null means "leave the game's own value alone" - and taken from the controller's own
+    // (per-bot varied) copy of the options. Runs once, when the combat AI starts (startCombatAI() or the
+    // first think()), so a bot that never fights keeps its default modifiers.
+    applyCombatModifiers() {
+        if (this.combatModifiersApplied || !this.combat) return;
+        this.combatModifiersApplied = true;
         const c = this.combat.opts;
         const mods = {};
         if (c.speed !== null) mods.speedModifier = c.speed;
@@ -359,6 +372,7 @@ export class DeadInternetBot {
     // startCombatAI() to have it wired up for you.
     think(delta = 1) {
         if (!this.combat) return null;
+        this.applyCombatModifiers();
         const t0 = perf.now();
         const cmd = this.combat.update(delta / ticksPerSecond);
         perf.add('update', t0);
@@ -372,6 +386,7 @@ export class DeadInternetBot {
     // Wires think() into onUpdate and a respawn-after-delay into onDeath. Replace either hook
     // afterwards for custom behavior - they're plain properties.
     startCombatAI() {
+        this.applyCombatModifiers();
         this.onUpdate = async (data) => { this.think(data?.delta); };
         this.onDeath = () => {
             this.combat?.reset();
