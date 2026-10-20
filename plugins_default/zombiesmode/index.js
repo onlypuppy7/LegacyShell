@@ -15,7 +15,7 @@ import Comm from '#comm';
 export const PluginMeta = {
     identifier: "zombiesmode",
     name: 'ZombiesMode',
-    author: 'onlypuppy7',
+    author: 'onlypuppy7 (+Claude)', //NOTE! most of this plugin is VIBECODED.
     version: '1.1.0',
     descriptionShort: 'Adds the zombies gamemode: survive the horde, the infected join it', //displayed when loading
     descriptionLong: 'Adds the Zombies gamemode. A horde of slow DeadInternet bots walks at the humans and bites them; a human who dies (or leaves the fight through the menu) is infected and joins the horde. Last human standing wins, or the humans win by outlasting the round.',

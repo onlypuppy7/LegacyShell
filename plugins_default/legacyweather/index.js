@@ -10,7 +10,7 @@ import express from 'express';
 export const PluginMeta = {
     identifier: "legacyweather",
     name: 'LegacyWeather',
-    author: 'onlypuppy7',
+    author: 'onlypuppy7 (+Claude)', //NOTE! most of this plugin is VIBECODED.
     version: '2.0.0',
     descriptionShort: 'Layered rain/storm/snow weather and time of day, with smooth transitions and /weather and /time commands.',
     descriptionLong: 'Independent rain, storm and snow layers (each a 0-1 intensity or an object of tunable parts), wind and time of day, blended smoothly on the client. See README.md.',

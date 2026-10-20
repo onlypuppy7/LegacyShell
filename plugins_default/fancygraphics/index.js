@@ -8,7 +8,7 @@ import fs from 'node:fs';
 export const PluginMeta = {
     identifier: "fancygraphics",
     name: 'FancyGraphics',
-    author: 'onlypuppy7',
+    author: 'onlypuppy7 & Burnt',
     version: '1.0.0-wip',
     descriptionShort: 'Readds old stuff and also some new fancy options', //displayed when loading
     descriptionLong: 'Readds old stuff and also some new fancy options',
