@@ -11,6 +11,7 @@ import express from 'express';
 import prepareModified from '#prepare-modified';
 import { spawn } from 'cross-spawn';
 import { prepareStamps } from '#stampsGenerator';
+import gzipStatic from './src/gzipStatic.js';
 //legacyshell: logging
 import log from 'puppylog';
 //legacyshell: ss
@@ -49,6 +50,8 @@ export default async function run () {
             const app = express();
 
             app.listen(port);
+
+            app.use(gzipStatic([path.join(ss.currentDir, 'store', 'client-modified'), path.join(ss.currentDir, 'src', 'client-static')]));
 
             await plugins.emit('onStartServer', { ss, app, ws });
 
