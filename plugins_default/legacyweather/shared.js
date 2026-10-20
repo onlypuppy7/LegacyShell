@@ -40,7 +40,6 @@ export const LegacyWeatherPlugin = {
 
         if (isClient && typeof LegacySettings !== "undefined") {
             LegacySettings.addTab("Graphics", [1,1]);
-            LegacySettings.addCategory("Graphics", 1, "Weather", { defaultOpen: true, collapsible: false });
             this.weatherQuality = LegacySettings.addOption("Graphics", {
                 type: "select", key: "weatherQuality", label: "Rain & Snow", default: "high",
                 options: [
@@ -48,7 +47,7 @@ export const LegacyWeatherPlugin = {
                     { value: "low", label: "Low (fewer drops)" },
                     { value: "off", label: "Off" },
                 ],
-            }, 1, "Weather");
+            }, 1, "Detail"); //joins the Detail group (created by legacyshellcore, or on demand)
         };
 
         console.log("registering weather/time commands... (legacyweather plugin)");

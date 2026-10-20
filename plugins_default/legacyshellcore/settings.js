@@ -48,28 +48,30 @@ const LegacyShellCoreSettings = {
         this.updateDetailVisibility();
     },
 
-    checkbox: function (id, label, category) {
-        return LegacySettings.addOption("General", {
+    checkbox: function (tab, panel, category, id, label) {
+        return LegacySettings.addOption(tab, {
             type: "checkbox",
             key: id,
             get label() { return typeof label === "function" ? label() : label; },
             getValue: () => id === "mouseInvert" ? settings.mouseInvert === -1 : !!settings[id],
             setValue: (val) => LegacyShellCoreSettings.checkOption(id, val),
-        }, 1, category);
+        }, panel, category);
     },
 
     setup: function () {
         const loc = this.loc;
         this.defaultControls = { ...inputToControlMap }; //snapshot before the stored config is merged in
 
-        LegacySettings.addTab("General", [1, 1]);
-        LegacySettings.tabOrder = ["General", ...LegacySettings.tabOrder.filter(t => t !== "General")];
         LegacySettings.absorbOldSettings = false;
+        LegacySettings.addTab("Controls", [1, 1]);
+        LegacySettings.addTab("General", [1]);
+        LegacySettings.addTab("Graphics", [1, 1]); //other plugins (e.g. fancygraphics) add to this tab too
+        LegacySettings.tabOrder = ["Controls", "General", "Graphics", ...LegacySettings.tabOrder.filter(t => !["Controls", "General", "Graphics"].includes(t))];
 
-        //left panel: bindings
-        LegacySettings.addCategory("General", 0, "Control Bindings");
+        //controls: bindings on the left, mouse on the right
+        LegacySettings.addCategory("Controls", 0, "Control Bindings");
         for (const control of settingsKeyNames) {
-            LegacySettings.addOption("General", {
+            LegacySettings.addOption("Controls", {
                 type: "bind",
                 key: "bind_" + control,
                 get label() { return loc("ui_settings_bind_" + control, control); },
@@ -78,19 +80,8 @@ const LegacyShellCoreSettings = {
             }, 0, "Control Bindings");
         };
 
-        //right panel
-        LegacySettings.addCategory("General", 1, "Sound");
-        LegacySettings.addOption("General", {
-            type: "slider",
-            key: "volume",
-            get label() { return loc("ui_settings_mastervol", "Master Volume"); },
-            min: 0, max: 1, step: 0.01, showNumber: true,
-            getValue: () => Number(settings.volume),
-            setValue: (val) => extern.setVolume({ value: val }),
-        }, 1, "Sound");
-
-        LegacySettings.addCategory("General", 1, "Mouse & Aiming");
-        LegacySettings.addOption("General", {
+        LegacySettings.addCategory("Controls", 1, "Mouse & Aiming");
+        LegacySettings.addOption("Controls", {
             type: "slider",
             key: "mouseSensitivity",
             get label() { return loc("ui_settings_mousespeed", "Mouse Speed"); },
@@ -98,26 +89,38 @@ const LegacyShellCoreSettings = {
             getValue: () => Number(settings.mouseSensitivity),
             setValue: (val) => extern.setMouseSensitivity({ value: val }),
         }, 1, "Mouse & Aiming");
-        this.checkbox("mouseInvert", () => loc("ui_settings_invertmouse", "Invert Mouse"), "Mouse & Aiming");
-        this.checkbox("fastPollMouse", () => loc("ui_settings_fastPollMouse", "Fix Mouse Glitch"), "Mouse & Aiming");
-        this.checkbox("holdToAim", () => loc("ui_settings_holdtoaim", "Hold To Aim"), "Mouse & Aiming");
+        this.checkbox("Controls", 1, "Mouse & Aiming", "mouseInvert", () => loc("ui_settings_invertmouse", "Invert Mouse"));
+        this.checkbox("Controls", 1, "Mouse & Aiming", "fastPollMouse", () => loc("ui_settings_fastPollMouse", "Fix Mouse Glitch"));
+        this.checkbox("Controls", 1, "Mouse & Aiming", "holdToAim", () => loc("ui_settings_holdtoaim", "Hold To Aim"));
 
-        LegacySettings.addCategory("General", 1, "Chat");
-        this.checkbox("enableChat", () => loc("ui_settings_chat", "Enable chat"), "Chat");
-        this.checkbox("enable18Chat", "Allow 18+ chat", "Chat");
+        //general: sound, chat, reset
+        LegacySettings.addCategory("General", 0, "Sound");
+        LegacySettings.addOption("General", {
+            type: "slider",
+            key: "volume",
+            get label() { return loc("ui_settings_mastervol", "Master Volume"); },
+            min: 0, max: 1, step: 0.01, showNumber: true,
+            getValue: () => Number(settings.volume),
+            setValue: (val) => extern.setVolume({ value: val }),
+        }, 0, "Sound");
 
-        LegacySettings.addCategory("General", 1, "Detail");
-        this.checkbox("autoDetail", () => loc("ui_settings_autodetail", "Auto Detail"), "Detail");
-        this.shadowsOption = this.checkbox("shadowsEnabled", "Shadows & Weather", "Detail");
-        this.highResOption = this.checkbox("highRes", () => loc("ui_settings_highres", "High Resolution"), "Detail");
+        LegacySettings.addCategory("General", 0, "Chat");
+        this.checkbox("General", 0, "Chat", "enableChat", () => loc("ui_settings_chat", "Enable chat"));
+        this.checkbox("General", 0, "Chat", "enable18Chat", "Allow 18+ chat");
 
-        LegacySettings.addCategory("General", 1, "Defaults");
+        LegacySettings.addCategory("General", 0, "Defaults");
         LegacySettings.addOption("General", {
             type: "button",
             key: "resetToDefaults",
             get text() { return loc("ui_settings_defaults", "Reset to Defaults"); },
             onClick: () => LegacyShellCoreSettings.resetToDefaults(),
-        }, 1, "Defaults");
+        }, 0, "Defaults");
+
+        //graphics: one detail group
+        LegacySettings.addCategory("Graphics", 1, "Detail");
+        this.checkbox("Graphics", 1, "Detail", "autoDetail", () => loc("ui_settings_autodetail", "Auto Detail"));
+        this.shadowsOption = this.checkbox("Graphics", 1, "Detail", "shadowsEnabled", "Shadows & Weather");
+        this.highResOption = this.checkbox("Graphics", 1, "Detail", "highRes", () => loc("ui_settings_highres", "High Resolution"));
 
         //once the menu has been built, apply the initial visibility
         plugins.on('game:waitForSetupAndAuthCompleteReady', () => this.updateDetailVisibility());

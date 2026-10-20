@@ -417,8 +417,7 @@ class LegacySettingsOptionClass {
     //re-reads the value into the control, for when state changed outside of the control itself
     refresh() { if (this._refresh) this._refresh(); }
 
-    //hides but keeps the layout space, like the original settings menu did
-    setVisible(visible) { if (this.el) this.el.style.visibility = visible ? "" : "hidden"; }
+    setVisible(visible) { if (this.el) this.el.style.display = visible ? "" : "none"; }
 }
 
 class LegacySettingsClass {
@@ -659,6 +658,7 @@ LegacySettings.registerListeners(plugins);
 LegacySettings.applyCSS();
 
 /* ---------------- Example Usage ---------------- */
+/* disabled: test tab, uncomment this line and the closing marker at the end of the file to enable
 LegacySettings.addTab("Gameplay", [1,1]);
 LegacySettings.addCategory("Gameplay", 0, "Collapsible Category", { defaultOpen: true, collapsible: true });
 LegacySettings.addOption("Gameplay", { type: "slider", showNumber: true, key: "speed", label: "Slider", min:1,max:10,step:1,default:5 }, 0, "Collapsible Category");
@@ -789,3 +789,4 @@ LegacySettings.addOption(
     0,
     "Collapsible Category"
 );
+//*/
