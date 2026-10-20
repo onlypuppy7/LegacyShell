@@ -18,6 +18,52 @@ import { getLastSavedTimestamp } from 'puppymisc';
 
 var debuggingLogs = false;
 
+//the classic guns (old.*) in egg.babylon were made for the hands skeleton, but the game gives them the skeleton of the modern gun. so their bones are renamed to the modern equivalents
+var classicGunBones = {
+    gunBody: "body",
+    magazine: "clip",
+    foreStock: "forestock",
+};
+
+function remapClassicGunBones(baseBabylon, baseBabylonsDir) {
+    for (const mesh of baseBabylon.meshes) {
+        if (!mesh.name.startsWith("old.") || !mesh.matricesIndices) continue;
+
+        const handsSkeleton = baseBabylon.skeletons[mesh.skeletonId];
+        const gunBabylonPath = path.join(baseBabylonsDir, `gun_${mesh.name.slice(4)}.babylon`);
+
+        if (handsSkeleton?.name !== "hands_skeleton" || !fs.existsSync(gunBabylonPath)) {
+            log.warning(`Cannot remap bones of classic gun ${mesh.name}, leaving it as is.`);
+            continue;
+        };
+
+        const gunSkeleton = JSON.parse(fs.readFileSync(gunBabylonPath, 'utf8')).skeletons[0];
+
+        //index of each hands skeleton bone in the gun skeleton (-1 if it has no equivalent)
+        const boneMap = handsSkeleton.bones.map(bone => {
+            const gunBoneName = classicGunBones[bone.name] || bone.name;
+            return gunSkeleton.bones.findIndex(gunBone => gunBone.name === gunBoneName);
+        });
+        const missingBones = new Set();
+
+        //matricesIndices has the (up to) 4 bone indices of a vertex packed into one number, a byte each
+        mesh.matricesIndices = mesh.matricesIndices.map(packed => {
+            let remapped = 0;
+            for (let i = 0; i < 4; i++) {
+                const shift = 2 ** (8 * i);
+                const handsBoneIndex = Math.floor(packed / shift) % 256;
+                if (boneMap[handsBoneIndex] === -1) missingBones.add(handsSkeleton.bones[handsBoneIndex].name);
+                remapped += Math.max(boneMap[handsBoneIndex] ?? 0, 0) * shift;
+            };
+            return remapped;
+        });
+
+        if (missingBones.size) log.warning(`${mesh.name}: ${gunSkeleton.name} has no bone for ${[...missingBones].join(", ")}, using the first bone instead.`);
+
+        debuggingLogs && console.log("Remapped bones of", mesh.name, "to", gunSkeleton.name);
+    };
+};
+
 export async function prepareBabylons(endBabylonsDir = path.join(ss.rootDir, 'store', 'export-static', 'models'), baseBabylonsDir = path.join(ss.rootDir, 'src', 'base-babylons')) {
     let startTime = Date.now();
 
@@ -92,6 +138,7 @@ export async function prepareBabylons(endBabylonsDir = path.join(ss.rootDir, 'st
                     attemptFixSkeleton: !!item.attemptFixSkeleton,
                 })),
                 stampCount,
+                classicGuns: filename === "egg" ? baseBabylons.filter(file => file.startsWith("gun_")).map(file => statSig(path.join(baseBabylonsDir, file))) : null, //egg takes bones from these
             };
 
             const outputBabylonPath = path.join(endBabylonsDir, `${filename}.babylon`);
@@ -283,6 +330,8 @@ export async function prepareBabylons(endBabylonsDir = path.join(ss.rootDir, 'st
                     };
                 };
             };
+
+            if (filename === "egg") remapClassicGunBones(baseBabylon, baseBabylonsDir);
 
             debuggingLogs && console.log(babylon, "after", baseBabylon.meshes.length);
 

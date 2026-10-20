@@ -37855,8 +37855,12 @@ BABYLON.Skeleton.prototype.disableBlending = function () {
         })
     })
 };
-BABYLON.Scene.prototype.cloneMesh = function (name, parent) {
-    return this.getMeshByName(name).clone("", parent)
+BABYLON.Scene.prototype.cloneMesh = function (name, parent, skeletonName) {
+    //egg.babylon has copies of the guns skinned to the hands skeleton, so a name can match more than one mesh. skeletonName picks the right one (otherwise its whichever loaded first)
+    var mesh = skeletonName && this.meshes.find(function (mesh) {
+        return mesh.name === name && mesh.skeleton && mesh.skeleton.name === skeletonName
+    });
+    return (mesh || this.getMeshByName(name)).clone("", parent)
 };
 BABYLON.Scene.prototype.cloneSkeleton = function (name) {
     var skeleton = this.getSkeletonByName(name).clone();
