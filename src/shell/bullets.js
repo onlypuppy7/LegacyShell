@@ -160,6 +160,7 @@ Bullet.prototype.update = function (delta) {
                         s.angle = Math.random() * Math.PI2;
                         s.rotate = .08 * Math.random() - .04;
                         s.animColors = bulletHitColors;
+                        plugins.emit('bulletHitSpriteAfter', { sprite: s });
                     };
 
                     plugins.emit('bulletHitAfter', { x, y, z, dx, dy, dz, player: this.player });

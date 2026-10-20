@@ -872,6 +872,37 @@ const WeatherRender = {
         };
     },
 
+    // Sprites (egg shell fragments, yolk) are unlit, so they'd stay full-bright at night or in a storm
+    // while the egg itself is dimmed. Tint the n most recently spawned ones by the current sunlight,
+    // the same colour the shader multiplies everything else by. They only live a second or two, so
+    // doing it once as they spawn is enough.
+    tintRecentSprites(manager, n) {
+        if (!manager || typeof gameScene === "undefined" || !gameScene || !gameScene.sunLight) return;
+        var sun = gameScene.sunLight.diffuse, len = manager.sprites.length;
+        for (var k = 1; k <= n && k <= len; k++) {
+            var s = manager.sprites[(manager.nextIdx - k + len * 2) % len];
+            s.color.r *= sun.r; s.color.g *= sun.g; s.color.b *= sun.b;
+        };
+    },
+
+    // Explosion smoke and fire, rocket trails and bullet-impact puffs fade through a colour table that the
+    // game copies onto sprite.color every tick, so tinting sprite.color would be overwritten straight away.
+    // Give each sprite a tinted copy of its table instead (one copy per table, rebuilt only when the
+    // sunlight changes).
+    tintSpriteColors(sprite) {
+        if (typeof gameScene === "undefined" || !gameScene || !gameScene.sunLight || !sprite.animColors) return;
+        var sun = gameScene.sunLight.diffuse;
+        var key = sun.r + "," + sun.g + "," + sun.b;
+        if (!this.tintedTables || this.tintedKey !== key) { this.tintedTables = new Map(); this.tintedKey = key; };
+        var source = sprite.animColors;
+        var tinted = this.tintedTables.get(source);
+        if (!tinted) {
+            tinted = source.map(c => ({ pos: c.pos, color: new BABYLON.Color4(c.color.r * sun.r, c.color.g * sun.g, c.color.b * sun.b, c.color.a) }));
+            this.tintedTables.set(source, tinted);
+        };
+        sprite.animColors = tinted;
+    },
+
     // ---- precipitation ----
 
     qualityFactor() {

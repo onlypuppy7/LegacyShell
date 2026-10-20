@@ -33,6 +33,10 @@ export const LegacyWeatherPlugin = {
         this.plugins.on('game:leaveGame', this.leaveGame.bind(this));
         this.plugins.on('game:onMapComplete', this.onMapComplete.bind(this));
         this.plugins.on('game:shadowsToggled', this.shadowsToggled.bind(this));
+        this.plugins.on('game:shellFragBurstAfter', (data) => { if (!isServer) WeatherRender.tintRecentSprites(shellFragManager, data.count); });
+        this.plugins.on('game:explosionSpriteAfter', (data) => { if (!isServer) WeatherRender.tintSpriteColors(data.sprite); });
+        this.plugins.on('game:bulletHitSpriteAfter', (data) => { if (!isServer) WeatherRender.tintSpriteColors(data.sprite); });
+        this.plugins.on('game:yolkBurstAfter', (data) => { if (!isServer) WeatherRender.tintRecentSprites(data.manager, 10); });
     },
 
     permissionsAfterSetup: function (data) {

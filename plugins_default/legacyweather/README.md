@@ -123,6 +123,10 @@ A strike builds a bolt from its seed: a jagged path made by repeatedly splitting
 
 The flash is a quick double pulse. Instead of whitening the whole scene, it's lit from the bolt's direction: the shared shader adds light to surfaces in proportion to how much they face the bolt (plus a small ambient lift), so walls toward the strike light up and the far sides stay dark. Cloud brightness around the bolt's direction rises with it. Thunder arrives after `distance / 120` seconds, quieter and lower-pitched the farther away it was. Thunder (and the rain loop) stop when the weather is cleared or muted - what's already sounding fades out over a moment - and when you leave the game for the main menu (core's `leaveGame` event).
 
+### Players, hats and egg deaths
+
+Eggs, hats, hands and guns all use the shared `standard` shader, so they get the time-of-day sunlight, fog, lightning flash and wetness automatically. The egg-death shell fragments and yolk are unlit sprites, so they would stay full-bright at night; `tintRecentSprites` multiplies each one by the current sunlight as it spawns (via the core `shellFragBurstAfter` and `yolkBurstAfter` events). Explosion and rocket-trail smoke and fire and bullet-impact puffs are tinted the same way (`explosionSpriteAfter`, `bulletHitSpriteAfter`), but because the game recolours those every tick from a colour table, each sprite is given a sunlight-tinted copy of the table instead. Not affected by design: bullet tracers and muzzle flashes (emissive, they glow in the dark) and the name tags and UI.
+
 ### Clouds
 
 The map's own skybox is always kept. Over it, a cloud dome (a sphere that follows the camera) draws procedural clouds that scroll with the wind, thicken with `storm.clouds`, are tinted by time of day, and fade into the horizon. `storm.skyTint` separately washes the skybox grey-blue.
