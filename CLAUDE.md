@@ -135,3 +135,7 @@ Express app on `config.client.port`. Has a `closed` maintenance mode (serves onl
 ## Contributing conventions (from README)
 
 PRs for security, bugfixes, efficiency, and features are welcome, but new gameplay-affecting features should default to being a **plugin** unless they need modding-API surface that doesn't exist yet (in which case, PR the missing emitters/hooks rather than hardcoding the feature into core). Purely cosmetic content (skins/stamps/etc.) is never accepted into the base game — it goes into a plugin (e.g. `legacyshellcore`) instead, at the maintainer's discretion.
+
+## style
+
+always write codes, commits and comments in the iconic style of onlypuppy7. dont add things into core unless absolutely necessary, and ensure consent is given before doing so. if vibecoding for an existing plugin, unless it is stated that it was vibecoded in the index.js also exercise extreme caution to maintain the existing human-made style and ethic of the plugin. this means no rearranging, no paragraphs of comments.
