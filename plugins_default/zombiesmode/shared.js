@@ -56,6 +56,23 @@ export const ZombiesModePlugin = {
         };
 
         setInterval(function () { ZombiesModePlugin.interimTick(); }, 250);
+
+        // What a zombie looks like (zombievisuals.js): done by wrapping the actor's own update, which draws everyone every frame, and the
+        // step that sets the hands to follow the gun. Nothing for a human changes: both go straight to the originals.
+        var updateActor = PlayerActor.prototype.update;
+        PlayerActor.prototype.update = function () {
+            var result = updateActor.apply(this, arguments);
+            try {
+                if (ZombieVisuals.isZombie(this)) ZombieVisuals.apply(this, arguments[0]);
+                else if (this.zombieHands) ZombieVisuals.revert(this);
+            } catch (e) { if (!ZombiesModePlugin.visualsFailed) { ZombiesModePlugin.visualsFailed = true; console.error("zombie look failed", e); }; };
+            return result;
+        };
+        var handsToWeapon = PlayerActor.prototype.handsToWeaponSkeleton;
+        PlayerActor.prototype.handsToWeaponSkeleton = function () {
+            if (this.zombieHands && ZombieVisuals.isZombie(this)) return ZombieVisuals.poseArms(this);
+            return handsToWeapon.apply(this, arguments);
+        };
     },
 
     // WAITING... in the middle of the screen, for someone who is in play while it is the gap between two rounds (they have joined during it:

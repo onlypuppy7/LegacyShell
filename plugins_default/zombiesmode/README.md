@@ -24,6 +24,14 @@ Needs the DeadInternet plugin (the zombies are its bots).
 
 Infections and round results go to the room's chat (green lines from the server); only sudden death gets the on-screen pop-up.
 
+## How zombies look
+
+Everyone on the horde (the bots and the infected, anywhere in the browser, including your own view if you are infected) looks the part. This is browser-only code in `zombievisuals.js`, spliced into the client bundle next to `shared.js`, which wraps the game's `PlayerActor` update and its hands-to-gun step; nothing about a human changes.
+
+- **A stumble** instead of the egg's even wobble: one turn of its own phase is a left step and a right, rolling the egg over one way then the other (some steps worse than others, with a harsher second beat), hunched forward and nodding, twisting against the roll, and dropping hard on the heavy side as if that foot is being dragged. It goes both ways evenly, counts up continuously rather than following the game's walk cycle (which wraps and made the first version jump and lean one way), scales with how fast they are going, and a standing zombie only sways a little.
+- **No gun** in hand.
+- **Both hands the open hand from the model**, held out in front, fingers straight forward, palms down, thumbs in, drooping a little at the wrist and swaying with the steps. The model's `hands` mesh is two hands in one skinned mesh (the right one closed round a grip, the left open under the foregrip), so the zombie's is built once from its data: the left hand, and a mirrored copy of it skinned to the right hand's bone. The bones are posed directly. How to turn the hand square on is worked out from the model's own bone frame for it (its local z is the fingers and y the thumb, and as that bone is a mirror there is exactly one proper rotation that points them forward and in, which for a left hand has to be palm down), not by eye; the right bone is set so its hand is the left one exactly mirrored. Both are checked against the model's data in the tests.
+
 ## Eggs
 
 The usual per-kill reward is replaced: a human earns `killEggs` (2) per zombie killed, up to `eggCap` (100) a round, and nothing for anything else. Nothing is paid in rooms with cheats on. This uses the `scoreKillEggs` event.
@@ -64,7 +72,7 @@ node plugins_default/zombiesmode/test-client-registration.js
 
 `test-zombies.js` boots a real room headlessly with stand-in humans: the gametype, the horde and its head start, eggs, infection (by dying, by leaving through the menu, by joining late), sudden death, both ways a round can end, the next round (including everyone being spawned into it), where zombies spawn (and that the position is in the respawn packet), whether they reach and bite a standing human, whether they find their way up to a human a few levels higher, whether they jump a one block gap from a run-up, and whether they crowd up against a human on a tower they cannot walk up (`NOSWARM=1` turns the walk-straight-at-them part off to compare). Takes a minute or so.
 
-`test-client-registration.js` loads `shared.js` the way the browser bundle does and checks the gametype registers, the browser-side spawn behaves and the WAITING... text, with no server.
+`test-client-registration.js` loads `shared.js` and `zombievisuals.js` the way the browser bundle does and checks the gametype registers, the browser-side spawn behaves, the WAITING... text, and the zombie look (the hooks on the actors, the stumble, the gun and hands, and that humans are left alone), with no server and the meshes stood in for.
 
 ---
 *This page was drafted with AI assistance and reviewed for accuracy. If something looks wrong, please [open a PR](https://github.com/onlypuppy7/LegacyShell) or flag it.*

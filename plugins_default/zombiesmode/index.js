@@ -152,6 +152,12 @@ export class Plugin {
             insertAfter: `\nconsole.log("inserting after... (${PluginMeta.name})!");`,
             position: 'before'
         });
+        data.pluginInsertion.files.push({ //what a zombie looks like, which shared.js hooks onto the actors
+            insertBefore: `\nconsole.log("inserting before... (${PluginMeta.name} look)");`,
+            filepath: path.join(this.thisDir, 'zombievisuals.js'),
+            insertAfter: `\nconsole.log("inserting after... (${PluginMeta.name} look)!");`,
+            position: 'before'
+        });
     };
 
     // ---- events ------------------------------------------------------------------------------------------------------------
@@ -543,10 +549,10 @@ export class Plugin {
 
                 const bot = new DeadInternetBot(room, { combat: { difficulty: 'zombie', speed: cfg.zombieSpeed, resistance: cfg.zombieResistance } });
                 await bot.init();
+                bot.startCombatAI(); //(this is what applies the bot's combat speed, damage and resistance to the player)
                 //exactly the zombie speed: the bots each get a few percent either way, which is within the same pathfinding speed bucket, so the
                 //jumps it has verified for the one are not quite right for the other, and the slower of the two lands short of a wide gap
                 bot.player.changeModifiers({ speedModifier: cfg.zombieSpeed });
-                bot.startCombatAI();
                 //when there is no way to someone, the route it settles for is the closest point the search got to, so a bigger search budget than the
                 //bots' default (which is sized for a target that can be reached) gets it a lot closer
                 const pathTo = bot.pathTo.bind(bot);
