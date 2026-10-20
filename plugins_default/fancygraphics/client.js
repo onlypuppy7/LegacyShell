@@ -35,7 +35,8 @@ export const FancyItemsPlugin = {
         LegacySettings.addCategory("Graphics", 1, "Modern Options", { defaultOpen: true, collapsible: false });
 
         this.fancyShadows = LegacySettings.addOption("Graphics", { type: "checkbox", key: "fancyShadows", label: "Fancy Shadows", default: false }, 1, "Modern Options");
-        this.fancyBullets = LegacySettings.addOption("Graphics", { type: "checkbox", key: "fancyBullets", label: "Fancy Bullets", default: false }, 1, "Modern Options");
+        this.fancyBullets = LegacySettings.addOption("Graphics", { type: "checkbox", key: "fancyBullets", label: "Fancy Bullets", default: false, tooltip: "Inspiration from Burnt" }, 1, "Modern Options");
+        this.fancyMuzzleFlash = LegacySettings.addOption("Graphics", { type: "checkbox", key: "fancyMuzzleFlash", label: "Fancy Muzzle Flash", default: false, tooltip: "Model by Burnt" }, 1, "Modern Options");
     },
 
     playerActorShadowRenderList: function (data) {
@@ -60,6 +61,30 @@ export const FancyItemsPlugin = {
         if (this.fancyShadows.get()) {
             shadowGen.getShadowMap().renderList.push(gunActor.gunMesh);
         };
+
+        //the base muzzleFlash clone is assigned after this event, so wrap the property: the getter hands out
+        //either the base or the fancy clone depending on the live setting, no reload needed
+        let baseFlash, fancyFlash;
+        Object.defineProperty(gunActor, "muzzleFlash", {
+            configurable: true,
+            enumerable: true,
+            set: (mesh) => {
+                baseFlash = mesh;
+            },
+            get: () => {
+                if (!baseFlash || !this.fancyMuzzleFlash.get() || !gunActor.scene.getMeshByName("muzzleFlash_Burnt")) return baseFlash;
+
+                if (!fancyFlash) {
+                    fancyFlash = gunActor.scene.cloneMesh("muzzleFlash_Burnt", gunActor.playerActor.gunContainer);
+                    fancyFlash.material = gunActor.scene.getMaterialByName("muzzleFlash");
+                    fancyFlash.setEnabled(false);
+                    gunActor.gun.player.id == meId && fancyFlash.setRenderingGroupId(1);
+                };
+                fancyFlash.parent = baseFlash.parent;
+                fancyFlash.position.copyFrom(baseFlash.position);
+                return fancyFlash;
+            },
+        });
     },
 
     onBalanceUpdated: function (data) {
