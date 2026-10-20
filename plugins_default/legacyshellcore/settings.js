@@ -39,8 +39,16 @@ const LegacyShellCoreSettings = {
         LegacySettings.refresh();
     },
 
+    //vertical field of view, shown in degrees. the core default is 1.25 rad (~72 degrees) and stays in force until the player changes it
+    applyFov: function (degrees) {
+        settings.fov = degrees ? degrees * Math.PI / 180 : undefined;
+        if (typeof camera !== "undefined" && camera) camera.fov = getDefaultFov(); //takes effect immediately when not scoped (scoping lerps toward the weapon's own fov)
+    },
+
     resetToDefaults: function () {
-        extern.clearSettings(); //also resets `settings` from the cleared storage
+        extern.clearSettings();
+        LegacySettings.set("fovDegrees", undefined);
+        this.applyFov(); //also resets `settings` from the cleared storage
         for (const key in inputToControlMap) delete inputToControlMap[key];
         Object.assign(inputToControlMap, this.defaultControls);
         apolloSetVolume(settings.volume);
@@ -115,6 +123,21 @@ const LegacyShellCoreSettings = {
             get text() { return loc("ui_settings_defaults", "Reset to Defaults"); },
             onClick: () => LegacyShellCoreSettings.resetToDefaults(),
         }, 0, "Defaults");
+
+        //graphics: view on the left, one detail group on the right
+        LegacySettings.addCategory("Graphics", 0, "View");
+        LegacySettings.addOption("Graphics", {
+            type: "slider",
+            key: "fovDegrees",
+            label: "Field of View",
+            min: 50, max: 110, step: 1, showNumber: true,
+            getValue: () => Math.round((settings.fov || 1.25) * 180 / Math.PI),
+            setValue: (val) => {
+                LegacySettings.set("fovDegrees", val);
+                LegacyShellCoreSettings.applyFov(val);
+            },
+        }, 0, "View");
+        this.applyFov(LegacySettings.get("fovDegrees")); //restore the saved value
 
         //graphics: one detail group
         LegacySettings.addCategory("Graphics", 1, "Detail");

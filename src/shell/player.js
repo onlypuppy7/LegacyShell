@@ -1136,7 +1136,7 @@ class Player {
             if (this.id == meId) {
                 reticle.hide();
                 scope.hide();
-                camera.fov = 1.25;
+                camera.fov = getDefaultFov();
                 grenadePowerUp = false;
                 document.getElementById("grenadeThrowContainer").style.visibility = "hidden";
             };
