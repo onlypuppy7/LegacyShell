@@ -64,6 +64,7 @@ Typed in-game, this becomes `/sample test`.
 | `example` | Shown as usage help. |
 | `usage` | Optional - overrides the auto-generated usage string. |
 | `autocomplete` | Optional autocomplete trigger character, e.g. `"@"`. |
+| `options` | Optional array of choices for the command's first argument, e.g. `["rain", "storm", "snow"]`. Chat autocomplete offers them as you type, so players can see what's valid. `usage` is shown in the command info panel as HTML, so write `&lt;` and `&gt;` for literal angle brackets (and `<br>` for line breaks). |
 | `mentionTypes` | Optional, defaults to `{player: true, group: true}` - restricts which `@mention` kinds this command accepts (see below). |
 | `isCheat` | Optional, defaults to falsy - if true, additionally requires the room's `gameOptions.cheatsEnabled` flag, regardless of rank. |
 | `warningText` | Optional extra text shown alongside the command. |
