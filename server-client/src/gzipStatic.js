@@ -23,7 +23,7 @@ const types = {
 const minSize = 1024;
 const brotliThreads = 2; //libuv only has 4 threads, dont hog them all
 
-//gzips on first request. brotli (q11, too slow to do on request) is made in the background by precompress(), and only used once its done
+//gzips on first request. brotli (q9) is made in the background by precompress(), and only used once its done
 export default function gzipStatic(roots) {
     const gzipCache = new Map(); //filepath -> { mtimeMs, size, etag, promise }
     const brotliCache = new Map(); //filepath -> { mtimeMs, size, etag, buffer }
@@ -105,7 +105,7 @@ export default function gzipStatic(roots) {
         const total = queue.length;
         let finished = 0, rawTotal = 0, brotliTotal = 0;
 
-        log.info(`Brotli: compressing ${total} files at quality 11 in the background. gzip is served until each one is done.`);
+        log.info(`Brotli: compressing ${total} files at quality 9 in the background. gzip is served until each one is done.`);
 
         const worker = async () => {
             let item;
@@ -115,7 +115,7 @@ export default function gzipStatic(roots) {
                 try {
                     const buffer = await brotli(await fs.promises.readFile(file.filepath), {
                         params: {
-                            [zlib.constants.BROTLI_PARAM_QUALITY]: 11,
+                            [zlib.constants.BROTLI_PARAM_QUALITY]: 9,
                             [zlib.constants.BROTLI_PARAM_SIZE_HINT]: file.size,
                         },
                     });
