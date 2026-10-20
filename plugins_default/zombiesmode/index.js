@@ -2,7 +2,7 @@
 import path from 'node:path';
 //plugin: zombiesmode
 import { ZombiesModePlugin, ZombiesModeDefaults } from './shared.js';
-import { DeadInternetBot, registerPreset } from '../deadinternet/index.js';
+import { DeadInternetBot, registerPreset, findPath, isStandable } from '../deadinternet/index.js';
 import { hasGroundAhead } from '../deadinternet/combat.js';
 import Player from '#player';
 //legacyshell
@@ -199,6 +199,20 @@ export class Plugin {
         };
         if (!z.hordeReadyAt) z.hordeReadyAt = now + cfg.headStartSecs * 1e3; //somebody has just turned up: the same head start again
 
+        //Everyone is spawned in when a round starts, and anyone who joins can press play: someone who still has not spawned after a while
+        //(the spawn failed, or they are just sitting on the menu) is infected, so they do not hold up the round or sit out as a human.
+        iteratePlayers((player) => {
+            if (!player.client?.isHuman || player.team !== HUMANS) return;
+            if (player.zombieSeen === z.roundKey) { player.zWaitKey = null; return; };
+            if (player.zWaitKey !== z.roundKey) { player.zWaitKey = z.roundKey; player.zWaitSince = now; };
+            if (now - player.zWaitSince >= cfg.spawnFailsafeSecs * 1e3) { this.infect(room, z, player, 'never spawned in'); z.neverSpawned = true; };
+        });
+        if (z.neverSpawned && !z.winner) { //the round has nobody left to play it if they were all infected
+            let waiting = false;
+            iteratePlayers((player) => { if (player.client?.isHuman && player.team === HUMANS) waiting = true; });
+            if (!waiting) this.endEarly(room, z, 'zombies');
+        };
+
         const humans = activeHumans(z);
         if (humans.length > z.humansAtStart && (now - z.roundStart <= cfg.graceSecs * 1e3 || z.humansAtStart === 0)) z.humansAtStart = humans.length;
 
@@ -384,6 +398,7 @@ export class Plugin {
         z.eggs = new Map();
         z.envStage = 0;
         z.victory = false;
+        z.neverSpawned = false;
         room.updateRoomParamsForClients(); //(the interim is over)
         iteratePlayers((player) => { //the last round's victory switched the bite off for whoever was left
             if (player.team === HORDE) player.changeModifiers({ contactDamage: isGhost(player) ? settings(room).ghostBite : room.gameOptions.contactDamage[HORDE] });
@@ -571,6 +586,12 @@ export class Plugin {
         room.updateRoomParamsForClients();
     };
 
+    // Ghosts are see-through: a copy of the shared player shader (zombievisuals.js makes the materials) that gives up part of its alpha and glows (lit towards white, whatever the light: at night the lit egg is nearly black, and it would blend into the dark as a black ghost).
+    shaderSources(data) {
+        if (!data.shaders.pixel.includes('//@pixelPreFog')) return;
+        data.shaders.pixel = data.shaders.pixel.replace('//@pixelPreFog', '//@pixelPreFog\n    #ifdef GHOSTALPHA\n        color.rgb = mix(color.rgb, vec3(1.), 0.75);\n        color.a = GHOSTALPHA;\n    #endif');
+    };
+
     // ---- the horde ---------------------------------------------------------------------------------------------------------
 
     // Spawns zombies one after another until the room has the number it should: not before the humans have had their head start, and
@@ -586,12 +607,6 @@ export class Plugin {
                 //a share of them are ghosts (evenly through the horde: with 1 in 6, the 6th, the 12th...)
                 const ghosts = z.bots.filter((bot) => bot.zGhost).length;
                 const bot = ghosts < Math.floor((z.bots.length + 1) * cfg.ghostRatio + 1e-9) ? await this.spawnGhost(room, z, cfg) : await this.spawnZombie(room, z, cfg);
-    // Ghosts are see-through: a copy of the shared player shader (zombievisuals.js makes the materials) that gives up part of its alpha and glows (lit towards white, whatever the light: at night the lit egg is nearly black, and it would blend into the dark as a black ghost).
-    shaderSources(data) {
-        if (!data.shaders.pixel.includes('//@pixelPreFog')) return;
-        data.shaders.pixel = data.shaders.pixel.replace('//@pixelPreFog', '//@pixelPreFog\n    #ifdef GHOSTALPHA\n        color.rgb = mix(color.rgb, vec3(1.), 0.75);\n        color.a = GHOSTALPHA;\n    #endif');
-    };
-
                 z.bots.push(bot);
                 if (cfg.staggerSecs > 0) await sleep(cfg.staggerSecs * 1e3 / cfg.count);
             };
@@ -612,7 +627,18 @@ export class Plugin {
         //when there is no way to someone, the route it settles for is the closest point the search got to, so a bigger search budget than the
         //bots' default (which is sized for a target that can be reached) gets it a lot closer
         const pathTo = bot.pathTo.bind(bot);
-        bot.pathTo = (target, opts = {}) => pathTo(target, { maxExpansions: cfg.searchBudget, ...opts });
+        bot.pathTo = (target, opts = {}) => {
+            const search = { maxExpansions: cfg.searchBudget, ...opts };
+            if (!opts.chase) return pathTo(target, search);
+            const now = Date.now(), near = bot.zAlt && Math.hypot(target.x - bot.zAlt.human.x, target.y - bot.zAlt.human.y, target.z - bot.zAlt.human.z) < 1.5;
+            if (near && bot.zAlt.cell && now < bot.zAlt.until) return pathTo(bot.zAlt.cell, search); //still going to the spot it chose
+            const route = pathTo(target, search);
+            if (route && !route.partial) { bot.zAlt = null; return route; };
+            if (near && now < bot.zAlt.until) return route; //looked a moment ago and found nothing
+            const cell = this.reachableNear(bot, target, cfg);
+            bot.zAlt = { human: { x: target.x, y: target.y, z: target.z }, cell, until: now + (cell ? 3000 : 2000) };
+            return cell ? pathTo(cell, { ...search, force: true }) : route;
+        };
         const applyCombat = bot.applyCombat.bind(bot);
         bot.applyCombat = (cmd, delta) => { this.zombieThink(bot, cmd); applyCombat(cmd, delta); this.zombieDrive(bot, cmd); };
         bot.onDeath = () => { //replaces the default respawn so the delay can be cut short or cancelled with the round
@@ -620,6 +646,26 @@ export class Plugin {
             this.scheduleRespawn(z, bot, cfg.respawnSecs);
         };
         return bot;
+    };
+
+    // No way to someone (they are up somewhere nothing leads to): the blocks around them, in the 5x5 columns centred on theirs, are tried
+    // for one with a route, closest to them first, and the first that has one is where the zombie goes instead.
+    reachableNear(bot, target, cfg) {
+        const map = bot.room.map, p = bot.player;
+        const cx = Math.floor(target.x), cy = Math.floor(target.y), cz = Math.floor(target.z);
+        const cells = [];
+        for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) for (let y = cy + 1; y >= cy - 3; y--) {
+            const x = cx + dx, z = cz + dz;
+            if ((!dx && !dz && y === cy) || x < 0 || z < 0 || x >= map.width || z >= map.depth || y < 0 || y >= map.height || !isStandable(map, x, y, z, p)) continue;
+            cells.push({ x, y, z, d: Math.hypot(x + 0.5 - target.x, y - target.y, z + 0.5 - target.z) });
+        };
+        cells.sort((a, b) => a.d - b.d);
+        for (const c of cells) {
+            const goal = { x: c.x + 0.5, y: c.y, z: c.z + 0.5 };
+            const route = findPath(bot.room, p, goal, { maxExpansions: cfg.searchBudget });
+            if (route && !route.partial) return goal;
+        };
+        return null;
     };
 
     // A ghost: white, in a ghost hat, slower than a zombie and biting less, and with noclip, so it goes straight through walls. It has no
@@ -688,6 +734,15 @@ export class Plugin {
     zombieThink(bot, cmd) {
         const p = bot.player;
 
+        //Wandering (see zombieDrive): going to a random spot, until it gets there or the time is up.
+        if (bot.zWander > 0 && !cmd.engaged) {
+            bot.zWander = Math.hypot(bot.zWanderTo.x - p.x, bot.zWanderTo.z - p.z) < 1 ? 0 : bot.zWander - 1;
+            cmd.state = 'hunt';
+            cmd.moveTo = bot.zWanderTo;
+            return;
+        };
+        bot.zWander = 0;
+
         //A bot that has lost sight of someone goes to where it last saw them, or where it heard a shot, and only then goes looking. A zombie
         //knows where the humans are: that just sends it to an empty spot (underneath them, once they have gone up somewhere) to stand about.
         if (!cmd.engaged && (cmd.state === 'search' || cmd.state === 'investigate')) {
@@ -711,7 +766,9 @@ export class Plugin {
         //Straight at them is for when they are level, near enough, and there is ground the whole way: a gap or a drop on the way (the bots'
         //ledge guard would stop it at the edge, standing there for good, since a bot in sight never follows a route) is for the route to
         //cross, which it knows how to jump. Once it has handed over it stays handed over for a while, so a jump is not interrupted halfway.
-        const straight = level && !(bot.zPath > 0) && flat < 14 && hasGroundAhead(bot.room.map, p.x, p.y, p.z, dx, dz, { reach: Math.min(0.9, flat) });
+        //Any drop counts (maxDrop 0): the bots' own guard lets a couple of blocks go, and the opening at the top of a stairwell has the stairs a
+        //block or two below it to land on, so a zombie that has just climbed out would turn to face them and walk straight back down it.
+        const straight = level && !(bot.zPath > 0) && flat < 14 && hasGroundAhead(bot.room.map, p.x, p.y, p.z, dx, dz, { reach: Math.min(0.9, flat), maxDrop: 0 });
         if (straight) return;
         if (level && !(bot.zPath > 0) && flat < 14) bot.zPath = 90; //(ticks: 1.5s) the ground ran out
 
@@ -724,51 +781,42 @@ export class Plugin {
 
     zombieDrive(bot, cmd) {
         const p = bot.player;
+
+        //Close to someone it cannot quite reach (they are up on something, or it is just standing there short of them): a jump now and
+        //then, which is what gets a player onto a ledge or a step they were a little short of.
+        const prey = bot.combat?.nearestHostile(4);
+        if (prey) {
+            const t = prey.predicted ?? prey;
+            const near = Math.hypot(t.x - p.x, t.z - p.z);
+            if (near < 3 && (t.y - p.y > 0.4 || Math.hypot(p.dx, p.dz) < 0.004) && Math.random() < 0.005) p.jump();
+        };
         const goal = cmd.engaged ? bot.combat?.target : cmd.moveTo; //whoever it has in sight, or wherever the route is taking it
-        if (!goal) { bot.zIdle = 0; bot.zSwarm = 0; return; };
+        if (!goal) { bot.zIdle = 0; return; };
 
         const dx = goal.x - p.x, dz = goal.z - p.z, dy = goal.y - p.y;
         const flat = Math.hypot(dx, dz);
-        const ground = (reach) => hasGroundAhead(bot.room.map, p.x, p.y, p.z, dx, dz, { reach }); //something to stand on that far ahead (the bots' ledge guard)
+        const ground = (reach) => hasGroundAhead(bot.room.map, p.x, p.y, p.z, dx, dz, { reach, maxDrop: 0 }); //something to stand on that far ahead, level with it (the bots' ledge guard, without its couple of blocks of fall)
 
         //Within biting range and level: walk into them. The bots' ledge guard looks a block ahead, which is past someone standing at the
         //edge of something, so look only as far as they are.
         if (cmd.engaged && flat < 2.5 && Math.abs(dy) < 1) {
-            bot.zIdle = 0; bot.zSwarm = 0;
+            bot.zIdle = 0;
             if (ground(Math.min(0.9, flat))) p.controlKeys |= CONTROL.up;
             return;
         };
 
-        //Wanting to get somewhere but not getting anywhere. Straight at someone in sight and blocked (a gap, a wall): the route takes over for
-        //a while. Following a route and out of it (no way to them, or only to the closest point it found, so they are on a tower, say): walk
-        //at them and jump at whatever is in the way. Each one heads for its own spot around them (a random angle and distance) and keeps off
-        //the others, so the horde spreads around the foot of it instead of piling up on one point.
-        if (!bot.zSwarm) {
-            bot.zIdle = Math.hypot(p.dx, p.dz) < 0.004 ? (bot.zIdle ?? 0) + 1 : 0;
-            if (bot.zIdle < 20) return;
-            bot.zIdle = 0;
-            if (cmd.engaged) { bot.zPath = 150; return; }; //ticks (2.5s)
-            bot.zSwarm = 180; //ticks (3s), then the route gets another go
-            const angle = Math.random() * Math.PI * 2, radius = 1.2 + Math.random() * 1.2;
-            bot.zSlot = { x: Math.sin(angle) * radius, z: Math.cos(angle) * radius };
-        };
-        bot.zSwarm--;
-
-        let sx = dx + bot.zSlot.x, sz = dz + bot.zSlot.z; //towards its own spot
-        const toSlot = Math.hypot(sx, sz);
-        if (flat < 0.6 || toSlot < 0.4) return;
-        if (!(dy < -0.5 || hasGroundAhead(bot.room.map, p.x, p.y, p.z, sx, sz, { reach: 0.9 }))) return; //not off an edge, unless they are down there
-
-        sx /= toSlot; sz /= toSlot;
-        iteratePlayers((other) => { //...and away from anyone else close
-            if (other === p || other.team !== HORDE || !other.playing || Math.abs(other.y - p.y) > 1) return;
-            const ox = p.x - other.x, oz = p.z - other.z, near = Math.hypot(ox, oz);
-            if (near > 0 && near < 1) { sx += ox / near * (1 - near) * 1.5; sz += oz / near * (1 - near) * 1.5; };
-        });
-        if (!hasGroundAhead(bot.room.map, p.x, p.y, p.z, sx, sz, { reach: 0.9 }) && dy >= -0.5) { sx = dx; sz = dz; }; //(the push must not walk it off an edge)
-        p.yaw = Math.atan2(sx, sz);
-        p.controlKeys = CONTROL.up;
-        if (bot.zSwarm % 45 === 0) p.jump();
+        //Wanting to get somewhere but not getting anywhere: following a route and out of it. The route search already goes to the closest
+        //point it can reach when there is no way to them (they are on a tower, say), so this bot is standing at that point, as close as it
+        //gets. Rather than stand about (or pile up with the rest of the horde on the one point), it wanders off to somewhere random nearby
+        //for a while, then the route gets another go.
+        if (bot.zWander > 0) return;
+        bot.zIdle = Math.hypot(p.dx, p.dz) < 0.004 ? (bot.zIdle ?? 0) + 1 : 0;
+        if (bot.zIdle < 20) return;
+        bot.zIdle = 0;
+        if (cmd.engaged) { bot.zPath = 150; return; }; //ticks (2.5s)
+        const angle = Math.random() * Math.PI * 2, radius = 3 + Math.random() * 5;
+        bot.zWanderTo = { x: p.x + Math.sin(angle) * radius, y: p.y, z: p.z + Math.cos(angle) * radius };
+        bot.zWander = 180; //ticks (3s)
     };
 
     // Zombies (the bots and the infected) spawn at a random spawn point with no human near it, so the horde is spread out and does not

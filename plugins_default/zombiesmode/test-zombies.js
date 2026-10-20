@@ -272,6 +272,9 @@ if (isMainThread) {
         assert("...which then ends", room.roundEndTime !== victoryRoundEnd);
         assert("surviving the round wins it", notes.some((n) => n.includes("humans survived")), notes.join(" | "));
         assert("...and pays each survivor", eggs.Human1 === 20 && eggs.Human2 === 20, JSON.stringify(eggs));
+        mute(); room.packUpdateRoomParams(new Comm.Out()); unmute();
+        say(`  (after the humans win: zombiesInterim ${room.gameOptions.plugins.zombiesInterim}, round end ${room.roundEndTime - Date.now()}ms, restart in ${room.roundRestartTime - Date.now()}ms)`);
+        assert('after the humans win the room params also say it is the gap', room.gameOptions.plugins.zombiesInterim === true, JSON.stringify(room.gameOptions.plugins.zombiesInterim));
 
         // ---- leaving through the menu ----
         mute(); notes.length = 0; clearTimeout(room.roundTimeout); room.setRoundTimeout(); unmute();
@@ -372,8 +375,22 @@ if (isMainThread) {
                 };
                 unmute();
                 say(`  (a human at ${perch.x},${perch.y},${perch.z}, which no route leads to the top of: after 60s the closest zombie is ${best.toFixed(1)} blocks away, ${closeTo(4)} of ${zs.length} within 4 blocks)`);
-                assert('zombies crowd up against a human they cannot reach', best < 4 && closeTo(5) >= 2, `${best.toFixed(2)}, ${closeTo(5)} within 5`);
+                assert('zombies go to the closest point they can reach to a human they cannot', best < 8, best.toFixed(2));
             };
+        };
+
+        // ---- out of route: wander ----
+        {
+            const z = zombies.pluginInstance, b = bots().find((x) => x.player.playing), p = b.player;
+            const cmd = { engaged: false, state: 'hunt', moveTo: { x: p.x + 20, y: p.y, z: p.z } };
+            p.dx = p.dz = 0; b.zIdle = 19; b.zWander = 0;
+            z.zombieDrive(b, cmd);
+            const far = b.zWanderTo && Math.hypot(b.zWanderTo.x - p.x, b.zWanderTo.z - p.z);
+            assert('a zombie standing still on the way to someone starts wandering to a random spot 3 to 8 blocks off', b.zWander > 0 && far >= 3 - 1e-9 && far <= 8 + 1e-9, `${b.zWander} ${far}`);
+            const next = { engaged: false, state: 'search', moveTo: null };
+            z.zombieThink(b, next);
+            assert('...and goes there, instead of towards them', next.moveTo === b.zWanderTo && next.state === 'hunt');
+            b.zWander = 0;
         };
 
         // ---- someone higher up who can be reached ----
@@ -470,6 +487,24 @@ if (isMainThread) {
             assert('someone in sight on another level is gone to by route (and that does not throw: it once did, which froze the zombie)', !above.threw && above.cmd.engaged === false && above.cmd.state === 'hunt' && above.cmd.moveTo?.y === p.y + 3 && above.cmd.fire === false, String(above.threw ?? JSON.stringify(above.cmd)));
             const far = attempt({ x: p.x + 40, y: p.y, z: p.z });
             assert('...and so is someone a long way off on the level', !far.threw && far.cmd.engaged === false && far.cmd.moveTo?.x === p.x + 40, String(far.threw ?? JSON.stringify(far.cmd)));
+
+            //the top of a stairwell: a floor with a two wide opening in it and the stairs a block and two below, the human on the other side. A
+            //zombie that has just climbed out must not walk at them across the opening (a couple of blocks is not a drop to the bots' own guard)
+            const solid = () => ({ idx: 1, mesh: { colliderType: 'full' }, rx: 0, ry: 0, rz: 0 });
+            const data = Array.from({ length: 40 }, () => Array.from({ length: 10 }, () => new Array(40).fill(null)));
+            for (let x = 0; x < 40; x++) for (let z = 0; z < 40; z++) data[x][3][z] = solid();
+            data[20][3][10] = data[21][3][10] = null;
+            data[20][2][10] = solid(); data[21][1][10] = solid();
+            const stairwell = (x) => {
+                const fake = { player: { x, y: 4, z: 10.5 }, room: { map: { width: 40, height: 10, depth: 40, data } }, combat: { target: null }, zPath: 0 };
+                const cmd = { engaged: true, fire: true, state: 'engage', controls: 1 };
+                fake.combat.target = { x: 24.5, y: 4, z: 10.5 };
+                zombies.pluginInstance.zombieThink(fake, cmd);
+                return cmd;
+            };
+            assert('a zombie on solid floor with someone level on the other side of a stairwell still walks straight at them', stairwell(15.5).engaged === true);
+            const atOpening = stairwell(19.6);
+            assert('...but at the edge of the opening it goes by route instead of falling down it', atOpening.engaged === false && atOpening.state === 'hunt', JSON.stringify(atOpening));
         };
 
         // ---- ghosts ----
@@ -530,6 +565,34 @@ if (isMainThread) {
                 assert('...through the wall', inWall.length > 0 && bitten !== null, `${inWall.length} ticks in solid, bitten ${bitten}`);
                 assert('...and takes ghostBite off them, not a zombie\'s bite', H1.hp === 92, `${H1.hp}`);
             };
+        };
+
+        // ---- never spawned in ----
+        {
+            mute(); clearTimeout(room.roundTimeout); room.setRoundTimeout(); unmute();
+            await sleep(150);
+            mute(); H2.removeFromPlay(); H2.playing = false; H2.zombieSeen = null; H2.zWaitKey = null; if (H2.team !== 1) H2.switchTeam(1); unmute();
+            await meta();
+            virtual += 14000; await meta();
+            assert('a human who has not spawned in is left alone for a while', H2.team === 1, `${H2.team}`);
+            virtual += 2000; await meta();
+            assert('...and infected after 15 seconds', H2.team === 2, `${H2.team}`);
+            assert('...and it says so', notes.some((n) => n.includes('Human2') && n.includes('never spawned in')), notes.join(' | '));
+
+            const endBefore = room.roundEndTime;
+            await meta();
+            assert('...the round carries on while a human who did spawn is still in it', room.roundEndTime === endBefore);
+            mute(); H1.switchTeam(2); unmute(); //the last human is infected as well
+            await meta();
+            await sleep(1700);
+            assert('...and with nobody left to play it the round ends', room.roundEndTime !== endBefore && room.roundEndTime <= Date.now(), `${room.roundEndTime - endBefore}`);
+            assert('...as a win for the horde', notes.some((n) => n.includes('horde wins')), notes.join(' | '));
+
+            const PlayerClass = H1.constructor, shooter = (team) => ({ team, gameOptions: room.gameOptions }); //(a player that would throw if the real trigger code ran)
+            let threw = {};
+            for (const team of [2, 1]) for (const method of ['fire', 'pullTrigger']) { try { PlayerClass.prototype[method].call(shooter(team)); } catch { threw[team + method] = true; } }
+            assert('the infected cannot fire or pull the trigger (the original code never runs)', !threw['2fire'] && !threw['2pullTrigger'], JSON.stringify(threw));
+            assert('...and everyone else still can', threw['1fire'] && threw['1pullTrigger'], JSON.stringify(threw));
         };
 
         say(`\n${passed} passed, ${failed} failed`);
