@@ -30,6 +30,11 @@ export const ZombiesModeDefaults = {
     searchBudget: 5000,     //how hard a zombie looks for a way to someone (a path search gives up after this many steps)
     zombieSpeed: 0.65,      //zombie bots' speed modifier (not much lower: how far a bot can jump depends on its speed, and a two block gap is too wide for 0.6)
     zombieResistance: 0.7,  //...and resistance (it divides damage taken: 1 is a normal player, 0.5 dies twice as fast)
+    ghostRatio: 0.125,      //one in this many of the horde (1 in 8) are ghosts instead: they float straight through walls at whoever is nearest
+    ghostSpeed: 0.5,        //a ghost's speed modifier (1 is the pace of a walking player), under the zombies'
+    ghostBite: 8,           //hp a ghost's touch takes (a zombie's is the team's contactDamage)
+    ghostResistance: 0.7,   //...and its resistance
+    ghostHat: 50244,        //the item id of the hat a ghost wears (Ghost Hat, from modernshellhats; 0 for none)
 };
 
 export const ZombiesModePlugin = {

@@ -55,7 +55,7 @@ if (isMainThread) {
         const RoomConstructor = (await import('#rooms')).default;
         const Comm = (await import('#comm')).default;
         const { GameType } = await import('#gametypes');
-        const { TickStep, iteratePlayers } = await import('#constants');
+        const { TickStep, iteratePlayers, ItemType } = await import('#constants');
         await sleep(100); //GameType is filled in by an async block
         unmute();
 
@@ -79,6 +79,7 @@ if (isMainThread) {
         room.packChat = (output, text, ...rest) => { notes.push(text); return packChat(output, text, ...rest); }; //chat lines
         const COUNT = 4;
         room.gameOptions.plugins.zombies.count = COUNT;
+        room.gameOptions.plugins.zombies.ghostRatio = 0; //(ghosts have their own section at the end)
         if (process.env.ZSPEED) room.gameOptions.plugins.zombies.zombieSpeed = Number(process.env.ZSPEED); //to find out what speed a gap needs
         room.gameOptions.plugins.zombies.headStartSecs = 0; //the real defaults would only slow the test down
         room.gameOptions.plugins.zombies.staggerSecs = 0;
@@ -466,6 +467,66 @@ if (isMainThread) {
             assert('someone in sight on another level is gone to by route (and that does not throw: it once did, which froze the zombie)', !above.threw && above.cmd.engaged === false && above.cmd.state === 'hunt' && above.cmd.moveTo?.y === p.y + 3 && above.cmd.fire === false, String(above.threw ?? JSON.stringify(above.cmd)));
             const far = attempt({ x: p.x + 40, y: p.y, z: p.z });
             assert('...and so is someone a long way off on the level', !far.threw && far.cmd.engaged === false && far.cmd.moveTo?.x === p.x + 40, String(far.threw ?? JSON.stringify(far.cmd)));
+        };
+
+        // ---- ghosts ----
+        {
+            const cfgNow = room.gameOptions.plugins.zombies;
+            cfgNow.ghostRatio = 0.5; cfgNow.count = 6; //the two new ones will be ghosts
+            mute(); clearTimeout(room.roundTimeout); room.setRoundTimeout(); unmute();
+            await sleep(100);
+            mute(); await plugins.emit('metaLoop', { this: room }); unmute();
+            for (let i = 0; i < 400 && !(bots().filter((b) => b.zGhost && b.onDeath).length >= 2); i++) await sleep(50);
+            const ghosts = bots().filter((b) => b.zGhost);
+            const normal = bots().filter((b) => !b.zGhost);
+            assert('the horde has ghosts among it, spread by the ratio', ghosts.length === 2 && normal.length === 4, `${ghosts.length} ghosts, ${normal.length} others`);
+            const g = ghosts[0], gp = g.player;
+            assert('a ghost is white, named Ghost, in the ghost hat', g.client.colorIdx === 0 && g.client.nickname === 'Ghost' && g.client.loadout[ItemType.Hat]?.id === 50244, `${g.client.colorIdx} ${g.client.nickname} ${g.client.loadout[ItemType.Hat]?.id}`);
+            assert('...has noclip, bites for ghostBite and moves at ghostSpeed', gp.modifiers.noclip === 1 && gp.modifiers.contactDamage === 8 && Math.abs(gp.modifiers.speedModifier - 0.5) < 1e-9 && Math.abs(gp.modifiers.resistanceModifier - 0.7) < 1e-9, JSON.stringify(gp.modifiers));
+            assert('...and the zombies do not', normal.every((b) => !b.player.modifiers.noclip && b.player.modifiers.contactDamage === 15));
+
+            //everything else out of the way: just this ghost and one human, with solid ground between them
+            for (const b of bots()) if (b !== g) { mute(); b.player.removeFromPlay(); clearTimeout(b.zombieTimer); unmute(); };
+            mute(); H2.removeFromPlay(); H2.playing = false; unmute();
+            H1.team = 1; H1.playing = true; H1.hp = 100;
+
+            const solidBetween = (a, b) => { for (let s = 0.1; s < 0.9; s += 0.02) if (gp.collidesWithMap({ x: a.x + (b.x - a.x) * s, y: a.y + (b.y - a.y) * s, z: a.z + (b.z - a.z) * s })) return true; return false; };
+            const from = { x: gp.x, y: gp.y, z: gp.z };
+            let to = null;
+            mute();
+            search: for (const dy of [0, 2, -1]) for (let radius = 4; radius <= 9; radius++) for (let a = 0; a < 16; a++) {
+                const cand = { x: from.x + Math.cos(a * Math.PI / 8) * radius, y: from.y + dy, z: from.z + Math.sin(a * Math.PI / 8) * radius };
+                if (cand.x < 1 || cand.z < 1 || cand.x > room.map.width - 1 || cand.z > room.map.depth - 1 || cand.y < 0) continue;
+                if (gp.collidesWithMap(cand) || !solidBetween(from, cand)) continue;
+                to = cand; break search;
+            };
+            unmute();
+            if (!to) say('  (no free spot with a wall between it and the ghost found: the chase check is skipped)');
+            else {
+                H1.x = to.x; H1.y = to.y; H1.z = to.z; H1.predicted = H1;
+                const distance = Math.hypot(to.x - from.x, to.y - from.y, to.z - from.z);
+                const steps = [], inWall = [];
+                let last = { x: gp.x, y: gp.y, z: gp.z }, bitten = null, arrived = null;
+                mute();
+                for (let t = 0; t < 60 * 60 && bitten === null; t++) {
+                    virtual += TickStep;
+                    await room.updateLoop(1);
+                    H1.predicted = H1; H1.x = to.x; H1.y = to.y; H1.z = to.z;
+                    const now = { x: gp.x, y: gp.y, z: gp.z };
+                    const step = Math.hypot(now.x - last.x, now.y - last.y, now.z - last.z);
+                    if (arrived === null && Math.hypot(now.x - to.x, now.y - to.y, now.z - to.z) > 0.3) steps.push(step);
+                    if (gp.collidesWithMap(now)) inWall.push(t);
+                    if (arrived === null && Math.hypot(now.x - to.x, now.z - to.z) < 0.8) arrived = t / 60;
+                    if (H1.hp < 100) bitten = t / 60;
+                    last = now;
+                };
+                unmute();
+                const expected = 0.0315 * 0.5;
+                say(`  (a ghost ${distance.toFixed(1)} blocks from a human with a wall between: arrived after ${arrived === null ? 'never' : arrived.toFixed(1) + 's'}, bitten after ${bitten === null ? 'never' : bitten.toFixed(1) + 's'}, ${inWall.length} ticks inside solid blocks on the way)`);
+                assert('a ghost goes straight at a human at a constant speed in all three axes', steps.length > 20 && steps.every((s) => Math.abs(s - expected) < expected * 0.1), `${Math.min(...steps).toFixed(4)} to ${Math.max(...steps).toFixed(4)}, expected ${expected.toFixed(4)}`);
+                assert('...through the wall', inWall.length > 0 && bitten !== null, `${inWall.length} ticks in solid, bitten ${bitten}`);
+                assert('...and takes ghostBite off them, not a zombie\'s bite', H1.hp === 92, `${H1.hp}`);
+            };
         };
 
         say(`\n${passed} passed, ${failed} failed`);

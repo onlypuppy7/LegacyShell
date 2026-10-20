@@ -115,6 +115,11 @@ const ZombieVisuals = {
         return typeof gameOptions !== "undefined" && !!(gameOptions.plugins && gameOptions.plugins.zombies) && actor.player.team === 2;
     },
 
+    // Ghosts are the horde's players with noclip (the server sets it on them and nothing else in the gamemode: the modifier is synced to everyone).
+    isGhost(actor) {
+        return !!actor.player.modifiers.noclip;
+    },
+
     // Called after each of the actor's updates for a zombie: the open mirrored hands in place of the model's, no gun, the stumble.
     apply(actor, delta) {
         if (!actor.zombieHands) {
@@ -131,6 +136,8 @@ const ZombieVisuals = {
 
         var weapons = actor.player.weapons || [];
         for (var i = 0; i < weapons.length; i++) if (weapons[i].actor && weapons[i].actor.gunMesh) weapons[i].actor.gunMesh.setEnabled(false); //the game shows the one in hand again whenever it is equipped
+
+        if (this.isGhost(actor)) return this.float(actor); //(no stumble: it does not walk)
 
         //How far through the stumble it is. The game's own walk cycle (player.bobble) is no use for this: it wraps at a full turn, and anything
         //that is not a whole number of beats per turn jumps there (which is what made the first stumble lean one way). This keeps counting, at
@@ -160,10 +167,23 @@ const ZombieVisuals = {
         body.position.y = 0.32 + k * (0.01 - 0.05 * heavy * heavy);
     },
 
-    // Instead of following the gun: the arms out in front, swaying and drooping a little with the steps.
+    // A ghost does not walk, it floats along: leaning forward a little, a little off the ground, bobbing and swaying slowly.
+    float(actor) {
+        var body = actor.bodyMesh, t = Date.now() / 1000, id = actor.player.id;
+        body.rotation.x += 0.22;
+        body.rotation.z = 0.05 * Math.sin(t * 1.7 + id);
+        body.rotation.y = 0.08 * Math.sin(t * 1.1 + id * 2);
+        body.position.y = 0.36 + 0.035 * Math.sin(t * 2.2 + id);
+    },
+
+    // Instead of following the gun: the arms out in front, swaying and drooping a little with the steps (a ghost's, with the bobbing).
     poseArms(actor) {
         var ph = actor.zPhase || 0, k = this.gait(actor);
         var pose = Object.assign({}, this.pose);
+        if (this.isGhost(actor)) {
+            pose.y += 0.02 * Math.sin(Date.now() / 1000 * 2.2 + actor.player.id + 0.5);
+            return this.poseBones(actor.hands.skeleton, this.template(actor.scene), pose);
+        };
         pose.y += k * 0.025 * Math.sin(ph + 0.5);
         pose.z += k * 0.02 * Math.sin(2 * ph);
         pose.droop += k * 0.12 * Math.sin(ph + 1);

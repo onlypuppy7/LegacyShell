@@ -5,7 +5,9 @@ import { ZombiesModePlugin, ZombiesModeDefaults } from './shared.js';
 import { DeadInternetBot, registerPreset } from '../deadinternet/index.js';
 import { hasGroundAhead } from '../deadinternet/combat.js';
 //legacyshell
-import { iteratePlayers, CONTROL } from '#constants';
+import { iteratePlayers, CONTROL, ItemType } from '#constants';
+import { ss } from '#misc';
+import * as catalogModule from '#catalog';
 import Comm from '#comm';
 //
 
@@ -59,6 +61,10 @@ registerPreset('zombie', {
 
 const HUMANS = 1;
 const HORDE = 2;
+const WALK_PACE = 0.0315; //how far a player at speed 1 goes in a tick walking (it settles there: acceleration .007, drag .8)
+
+// Ghosts are the horde's players with noclip (nothing else turns it on in this gamemode), which is also how the browsers tell them apart.
+const isGhost = (player) => !!player.modifiers.noclip;
 
 // One per room (a worker only has one, but the plugin is also loaded on the main thread, which has none).
 const states = new WeakMap();
@@ -206,6 +212,7 @@ export class Plugin {
     // that is what leaving through the menu does (the game takes you out of play a few seconds after you press escape).
     playerUpdate(data) {
         const player = data.player;
+        if (player.team === HORDE && isGhost(player) && !player.client?.isHuman && isZombieRoom(data.this)) return this.ghostThink(data.this, player);
         if (player.team !== HUMANS || !player.client?.isHuman) return;
         const room = data.this;
         if (!isZombieRoom(room)) return;
@@ -372,7 +379,7 @@ export class Plugin {
         z.victory = false;
         room.updateRoomParamsForClients(); //(the interim is over)
         iteratePlayers((player) => { //the last round's victory switched the bite off for whoever was left
-            if (player.team === HORDE) player.changeModifiers({ contactDamage: room.gameOptions.contactDamage[HORDE] });
+            if (player.team === HORDE) player.changeModifiers({ contactDamage: isGhost(player) ? settings(room).ghostBite : room.gameOptions.contactDamage[HORDE] });
         });
 
         const cfg = settings(room);
@@ -477,7 +484,7 @@ export class Plugin {
     speedUp(player, cfg) {
         if (player.zombieSpeedUp) return;
         const base = player.modifiers.speedModifier / (player.zombieSurge || 1);
-        player.zombieSpeedUp = cfg.suddenDeathSpeed / base;
+        player.zombieSpeedUp = cfg.suddenDeathSpeed * (isGhost(player) ? cfg.ghostSpeed / cfg.zombieSpeed : 1) / base; //(a ghost stays as much slower than a zombie)
         player.changeModifiers({ speedModifier: player.modifiers.speedModifier * player.zombieSpeedUp });
     };
 
@@ -547,22 +554,9 @@ export class Plugin {
                 const wait = z.hordeReadyAt - Date.now();
                 if (wait > 0) { await sleep(wait); continue; };
 
-                const bot = new DeadInternetBot(room, { combat: { difficulty: 'zombie', speed: cfg.zombieSpeed, resistance: cfg.zombieResistance } });
-                await bot.init();
-                bot.startCombatAI(); //(this is what applies the bot's combat speed, damage and resistance to the player)
-                //exactly the zombie speed: the bots each get a few percent either way, which is within the same pathfinding speed bucket, so the
-                //jumps it has verified for the one are not quite right for the other, and the slower of the two lands short of a wide gap
-                bot.player.changeModifiers({ speedModifier: cfg.zombieSpeed });
-                //when there is no way to someone, the route it settles for is the closest point the search got to, so a bigger search budget than the
-                //bots' default (which is sized for a target that can be reached) gets it a lot closer
-                const pathTo = bot.pathTo.bind(bot);
-                bot.pathTo = (target, opts = {}) => pathTo(target, { maxExpansions: cfg.searchBudget, ...opts });
-                const applyCombat = bot.applyCombat.bind(bot);
-                bot.applyCombat = (cmd, delta) => { this.zombieThink(bot, cmd); applyCombat(cmd, delta); this.zombieDrive(bot, cmd); };
-                bot.onDeath = () => { //replaces the default respawn so the delay can be cut short or cancelled with the round
-                    bot.combat?.reset();
-                    this.scheduleRespawn(z, bot, cfg.respawnSecs);
-                };
+                //one in every so many is a ghost (evenly through the horde: the 8th, the 16th...)
+                const ghosts = z.bots.filter((bot) => bot.zGhost).length;
+                const bot = ghosts < Math.floor((z.bots.length + 1) * cfg.ghostRatio) ? await this.spawnGhost(room, z, cfg) : await this.spawnZombie(room, z, cfg);
                 z.bots.push(bot);
                 if (cfg.staggerSecs > 0) await sleep(cfg.staggerSecs * 1e3 / cfg.count);
             };
@@ -571,6 +565,74 @@ export class Plugin {
         } finally {
             z.filling = false;
         };
+    };
+
+    async spawnZombie(room, z, cfg) {
+        const bot = new DeadInternetBot(room, { combat: { difficulty: 'zombie', speed: cfg.zombieSpeed, resistance: cfg.zombieResistance } });
+        await bot.init();
+        bot.startCombatAI(); //(this is what applies the bot's combat speed, damage and resistance to the player)
+        //exactly the zombie speed: the bots each get a few percent either way, which is within the same pathfinding speed bucket, so the
+        //jumps it has verified for the one are not quite right for the other, and the slower of the two lands short of a wide gap
+        bot.player.changeModifiers({ speedModifier: cfg.zombieSpeed });
+        //when there is no way to someone, the route it settles for is the closest point the search got to, so a bigger search budget than the
+        //bots' default (which is sized for a target that can be reached) gets it a lot closer
+        const pathTo = bot.pathTo.bind(bot);
+        bot.pathTo = (target, opts = {}) => pathTo(target, { maxExpansions: cfg.searchBudget, ...opts });
+        const applyCombat = bot.applyCombat.bind(bot);
+        bot.applyCombat = (cmd, delta) => { this.zombieThink(bot, cmd); applyCombat(cmd, delta); this.zombieDrive(bot, cmd); };
+        bot.onDeath = () => { //replaces the default respawn so the delay can be cut short or cancelled with the round
+            bot.combat?.reset();
+            this.scheduleRespawn(z, bot, cfg.respawnSecs);
+        };
+        return bot;
+    };
+
+    // A ghost: white, in a ghost hat, slower than a zombie and biting less, and with noclip, so it goes straight through walls. It has no
+    // combat AI or route finding: ghostThink just points it at whoever is nearest every tick.
+    async spawnGhost(room, z, cfg) {
+        const bot = new DeadInternetBot(room, { combat: { difficulty: 'zombie', nickname: 'Ghost', color: 'white', speed: cfg.ghostSpeed, resistance: cfg.ghostResistance } });
+        await bot.init();
+        bot.zGhost = true;
+        bot.player.changeModifiers({ noclip: 1, speedModifier: cfg.ghostSpeed, resistanceModifier: cfg.ghostResistance, contactDamage: cfg.ghostBite });
+        bot.onDeath = () => this.scheduleRespawn(z, bot, cfg.respawnSecs);
+        await this.giveHat(bot, cfg.ghostHat);
+        return bot;
+    };
+
+    // Puts a hat on a bot (the game only lets accounts that own one wear it, so this bypasses that and tells the room).
+    async giveHat(bot, itemId) {
+        if (!itemId) return;
+        try {
+            this.catalog ??= new (catalogModule.CatalogConstructor ?? catalogModule.default)(ss.items);
+            const hat = this.catalog.findItemById(itemId);
+            if (!hat) return;
+            bot.client.loadout[ItemType.Hat] = hat;
+            await bot.client.applyLoadout();
+        } catch (error) {
+            console.error('[zombiesmode] could not give a hat:', error);
+        };
+    };
+
+    // Every tick, before the game moves a ghost: its velocity is a straight line at whoever is nearest, in all three axes, at the pace of
+    // walking (the noclip movement then scales that by its speed modifier).
+    ghostThink(room, player) {
+        const z = getState(room);
+        if (!z.active || z.victory || !player.playing || player.isDead()) { player.dx = player.dy = player.dz = 0; return; };
+
+        let target = null, best = Infinity;
+        iteratePlayers((other) => {
+            if (other.team === HORDE || !other.playing || other.isDead()) return;
+            const t = other.predicted ?? other;
+            const d = Math.hypot(t.x - player.x, t.y - player.y, t.z - player.z);
+            if (d < best) { best = d; target = t; };
+        });
+        if (!target || best < 0.05) { player.dx = player.dy = player.dz = 0; return; }; //nobody, or right on top of them
+
+        const dx = target.x - player.x, dy = target.y - player.y, dz = target.z - player.z;
+        player.dx = dx / best * WALK_PACE;
+        player.dy = dy / best * WALK_PACE;
+        player.dz = dz / best * WALK_PACE;
+        if (dx || dz) player.yaw = Math.atan2(dx, dz);
     };
 
     // Zombies are taken out of play when a round starts without dying; bring them back (after the head start), staggered.

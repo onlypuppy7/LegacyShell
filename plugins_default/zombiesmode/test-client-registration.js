@@ -131,10 +131,10 @@ Visuals.poseBones = (skeleton, data, pose) => posed.push(pose);
 function mesh() {
     return { enabled: true, renderingGroupId: 1, colorMult: { r: 1 }, setEnabled(v) { this.enabled = v; }, dispose() { this.disposed = true; } };
 }
-function actor(team, id = 5) {
+function actor(team, id = 5, noclip = 0) {
     const gun = mesh();
     return {
-        scene: {}, player: { team, id, bobble: 1.2, weapons: [{ actor: { gunMesh: gun } }], weapon: { actor: { gunMesh: gun } } },
+        scene: {}, player: { team, id, modifiers: { noclip }, bobble: 1.2, weapons: [{ actor: { gunMesh: gun } }], weapon: { actor: { gunMesh: gun } } },
         hands: Object.assign(mesh(), { skeleton: {} }), bodyMesh: { rotation: { x: 0, y: 0, z: 0 }, position: { y: 0.32 } }, bobbleIntensity: 0.02, gun,
     };
 }
@@ -168,6 +168,21 @@ assert('a zombie standing still only sways a little', Math.abs(still.bodyMesh.ro
     assert('...with a phase that only ever counts up, so nothing jumps', phases.every((p, i) => i === 0 || p > phases[i - 1]));
     const jump = Math.max(...rolls.map((r, i) => (i ? Math.abs(r - rolls[i - 1]) : 0)));
     assert('...smoothly from one frame to the next', jump < 0.08, jump.toFixed(3));
+}
+
+{
+    const ghost = actor(2, 7, 1);
+    const rolls = [];
+    for (let i = 0; i < 200; i++) { ghost.bodyMesh.rotation.x = 0; run(ghost); rolls.push(Math.abs(ghost.bodyMesh.rotation.z)); }
+    assert('a ghost has the open hands out in front and no gun too', ghost.hands.enabled === false && ghost.zombieHands && ghost.zombieHands.enabled === true && ghost.gun.enabled === false);
+    assert('...leans forward a little, and floats a little off the ground', Math.abs(ghost.bodyMesh.rotation.x - 0.22) < 0.001 && ghost.bodyMesh.position.y > 0.32 && ghost.bodyMesh.position.y < 0.45, JSON.stringify(ghost.bodyMesh));
+    assert('...without the stumble (only a slow sway, though the egg is moving)', Math.max(...rolls) < 0.06 && ghost.zPhase === undefined, `${Math.max(...rolls).toFixed(3)} ${ghost.zPhase}`);
+    posed.length = 0;
+    PlayerActorStub.prototype.handsToWeaponSkeleton.call(ghost);
+    assert('...and its hands are posed out in front too', posed.length === 1 && posed[0].z > 0.3);
+    const zombie = actor(2, 8, 0);
+    run(zombie);
+    assert('(a zombie next to it still stumbles)', zombie.zPhase > 0 && Math.abs(zombie.bodyMesh.rotation.z) > 0);
 }
 
 const human = actor(1);
