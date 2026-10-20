@@ -575,6 +575,8 @@ class ClientConstructor {
         output.packInt8(this.player.modifiers.damageModifier * 10); //range: -12.8 to 12.7
         output.packInt8(this.player.modifiers.resistanceModifier * 10); //range: -12.8 to 12.7
         output.packInt8(this.player.modifiers.jumpBoostModifier * 10); //range: -12.8 to 12.7
+        //unsigned
+        output.packInt8U(this.player.modifiers.noclip ? 1 : 0); //0 or 1
 
         output.packLongString("{}"); //this is for in the future when i cant be fucked with this stupid packet shit any more
     };

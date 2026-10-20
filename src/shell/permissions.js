@@ -175,6 +175,26 @@ export class PermissionsConstructor {
             }
         });
         this.newCommand({
+            identifier: "noclip",
+            isCheat: true,
+            name: "noclip",
+            category: "change",
+            description: "Lets players fly through everything: no collision, no gravity. Forward goes where you look, jump is up.",
+            example: "true",
+            autocomplete: "@",
+            usage: "[@mention] true/false",
+            permissionLevel: [this.ranksEnum.Moderator, this.ranksEnum.Guest, true],
+            inputType: ["bool"],
+            executeClient: ({ player, opts, mentions }) => {
+                forEachMentionInMentions(mentions, (player) => {
+                    player.changeModifiers({noclip: opts ? 1 : 0});
+                });
+            },
+            executeServer: ({ player, opts, mentions, mentionsLiteral }) => {
+                setGameOptionInMentions(player, mentions, mentionsLiteral, "noclip", opts ? 1 : 0);
+            }
+        });
+        this.newCommand({
             identifier: "jumpBoost",
             isCheat: true,
             name: "jumpBoost",

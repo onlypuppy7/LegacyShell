@@ -52,6 +52,11 @@ export var defaultOptions = {
         0, //team1
         0, //team2
     ],
+    noclip: [ //1 = fly through everything, no collision or gravity
+        0, //ffa
+        0, //team1
+        0, //team2
+    ],
     contactDamage: [ //hp dealt to an enemy this team's players touch (0 = off). server-side, see Room.contactDamageUpdate
         0, //ffa
         0, //team1

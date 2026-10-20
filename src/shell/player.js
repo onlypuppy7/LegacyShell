@@ -183,6 +183,7 @@ class Player {
             jumpBoostModifier: this.gameOptions.jumpBoostModifier[this.team],
             scale: this.gameOptions.scale[this.team],
             knockbackModifier: this.gameOptions.knockbackModifier[this.team],
+            noclip: this.gameOptions.noclip[this.team],
             contactDamage: this.gameOptions.contactDamage[this.team],
             physicsSpeedModifier: this.gameOptions.physicsSpeedModifier[this.team],
             bulletSpeedModifier: this.gameOptions.bulletSpeedModifier[this.team],
@@ -206,9 +207,12 @@ class Player {
         this.sendModifiers(init);
     };
     changeModifiers(modifiers, init) { //a little less disorganized but it works for this purpose
+        const wasNoclip = this.modifiers.noclip;
         Object.assign(this.modifiers, modifiers);
 
         if (modifiers.scale !== undefined) this.changeScale(modifiers.scale, init);
+
+        if (wasNoclip && !this.modifiers.noclip && !init) this.unstick();
 
         this.sendModifiers(init);
     };
@@ -245,7 +249,7 @@ class Player {
         var ddy = 0;
         var ddz = 0;
 
-        if (this.y < -3 && isServer && this.hp > 0) {
+        if (this.y < -3 && isServer && this.hp > 0 && !this.modifiers.noclip) {
             devlog("[player fell out of the world]");
             this.hit(10000, this, 0, 0);
         };
@@ -291,6 +295,10 @@ class Player {
             this.lastActivity = Date.now();
             if (this.climbing) {
                 ddy += 1;
+            } else if (this.modifiers.noclip) { //forward is where you look (positive pitch is down)
+                ddx += Math.sin(this.yaw) * Math.cos(this.pitch);
+                ddy -= Math.sin(this.pitch);
+                ddz += Math.cos(this.yaw) * Math.cos(this.pitch);
             } else {
                 ddx += Math.sin(this.yaw);
                 ddz += Math.cos(this.yaw);
@@ -301,13 +309,23 @@ class Player {
             this.lastActivity = Date.now();
             if (this.climbing) {
                 ddy -= 1;
+            } else if (this.modifiers.noclip) {
+                ddx -= Math.sin(this.yaw) * Math.cos(this.pitch);
+                ddy += Math.sin(this.pitch);
+                ddz -= Math.cos(this.yaw) * Math.cos(this.pitch);
             } else {
                 ddx -= Math.sin(this.yaw);
                 ddz -= Math.cos(this.yaw);
             };
         };
 
-        if ((this.controlKeys & CONTROL.jump) && (0 < this.lastTouchedGround && Date.now() > this.lastTouchedGround + 100)) {
+        if (this.modifiers.noclip) { //jump is up
+            if (this.controlKeys & CONTROL.jump) {
+                this.lastActivity = Date.now();
+                ddy += 1;
+            };
+            this.jumpHeld = false;
+        } else if ((this.controlKeys & CONTROL.jump) && (0 < this.lastTouchedGround && Date.now() > this.lastTouchedGround + 100)) {
             this.lastActivity = Date.now();
             if (!this.jumpHeld) {
                 this.jump();
@@ -472,7 +490,21 @@ class Player {
             corrections: input.corrections ?? this.corrections,
         };
 
-        if (this.climbing) { //ladders
+        if (this.modifiers.noclip) { //walking acceleration on all axes, no gravity, nothing solid
+            this.climbing = false;
+            this.isFalling = false;
+            if (this.jumping) this.setJumping(false);
+            var flyDir = new BABYLON.Vector3(out.ddx, out.ddy, out.ddz).normalize();
+            var pfx = out.dx, pfy = out.dy, pfz = out.dz;
+            out.dx += .007 * flyDir.x * out.delta;
+            out.dy += .007 * flyDir.y * out.delta;
+            out.dz += .007 * flyDir.z * out.delta;
+            var fly = this.modifiers.speedModifier * out.delta;
+            out.x += .5 * (out.dx + pfx) * fly;
+            out.y += .5 * (out.dy + pfy) * fly;
+            out.z += .5 * (out.dz + pfz) * fly;
+            out.dy *= Math.pow(.8, out.delta); //update() does this to dx and dz after the move
+        } else if (this.climbing) { //ladders
             this.setJumping(false);
             var pdy = out.dy;
             if (out.corrections) {
@@ -540,6 +572,10 @@ class Player {
 
         if (dontAssign) return out;
         Object.assign(this, out);
+    };
+    unstick() { //noclip was just turned off, move up out of any block
+        if (!this.map) return;
+        for (let i = 0; i < 400 && this.collidesWithMap(); i++) this.y += 0.1;
     };
     createSnapshot(returnShallow) { //save all necessary data to be able to restore player state
         const shallow = {
