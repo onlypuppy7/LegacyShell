@@ -38,6 +38,7 @@ const css = `
 .ssCategory.collapsible .ssArrow { transform: rotate(0deg); }
 .ssCategory.collapsible.open .ssArrow { transform: rotate(90deg); }
 .ssOption { display: flex; align-items: center; margin: 0.35em 0; }
+.ssTooltip { position: fixed; display: none; max-width: 16em; padding: 0.25em 0.5em; background: var(--ss-blue5); color: var(--ss-white0); border-radius: 0.25em; font-size: 0.7em; line-height: 1.3; pointer-events: none; z-index: 100000; }
 .ssOption label { flex: 1; margin-right: 0.5em; color: var(--ss-white0); }
 .ssLabelAbove {
     display: flex;

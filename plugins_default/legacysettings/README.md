@@ -21,7 +21,7 @@ Existing settings added before this plugin's own UI takes over are preserved: `f
 
 ## Option types
 
-`checkbox`, `slider` (with an optional live number readout), `button`, `bind` (captures the next keypress/mouse button/scroll direction as a keybind), `select`, `radio`, `text`, `info` (static, but updatable text), `list` (removable and/or drag-reorderable), `gallery` (a small image carousel), and `customDiv` (wraps an arbitrary existing DOM element - this is the mechanism `absorbOldSettings` itself uses). An unrecognized `type` renders a visible "Unknown option type" placeholder rather than failing silently, which is worth knowing if a typo'd type string doesn't show what you expected.
+`checkbox`, `slider` (with an optional live number readout), `button`, `bind` (captures the next keypress/mouse button/scroll direction as a keybind), `select`, `radio`, `text`, `info` (static, but updatable text), `list` (removable and/or drag-reorderable), `gallery` (a small image carousel), and `customDiv` (wraps an arbitrary existing DOM element - this is the mechanism `absorbOldSettings` itself uses). Any option can also take a `tooltip` string, shown immediately in a floating tooltip that follows the cursor while it is over the row (label and control). An unrecognized `type` renders a visible "Unknown option type" placeholder rather than failing silently, which is worth knowing if a typo'd type string doesn't show what you expected.
 
 ## Notes
 

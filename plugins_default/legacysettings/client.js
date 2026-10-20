@@ -16,6 +16,11 @@ class LegacySettingsOptionClass {
         const row = document.createElement("div");
         row.id = this.opt.key ? `${this.parent.id}_option_${this.opt.key}` : "";
         row.className = "ssOption";
+        if (this.opt.tooltip) {
+            row.onmouseenter = (e) => this.parent.showTooltip(this.opt.tooltip, e);
+            row.onmousemove = (e) => this.parent.moveTooltip(e);
+            row.onmouseleave = () => this.parent.hideTooltip();
+        }
 
         if (this.opt.label) {
             const label = document.createElement("label");
@@ -453,6 +458,27 @@ class LegacySettingsClass {
         document.head.appendChild(style);
     }
 
+    //one shared tooltip element, fixed-position so scrolling panels can't clip it
+    showTooltip(text, e) {
+        if (!this.tooltipEl) {
+            this.tooltipEl = document.createElement("div");
+            this.tooltipEl.className = "ssTooltip";
+            document.body.appendChild(this.tooltipEl);
+        }
+        this.tooltipEl.textContent = text;
+        this.tooltipEl.style.display = "block";
+        this.moveTooltip(e);
+    }
+    moveTooltip(e) {
+        const el = this.tooltipEl;
+        if (!el) return;
+        const x = Math.min(e.clientX + 14, window.innerWidth - el.offsetWidth - 4);
+        const y = e.clientY + 18 + el.offsetHeight > window.innerHeight ? e.clientY - el.offsetHeight - 10 : e.clientY + 18;
+        el.style.left = Math.max(4, x) + "px";
+        el.style.top = Math.max(4, y) + "px";
+    }
+    hideTooltip() { if (this.tooltipEl) this.tooltipEl.style.display = "none"; }
+
     save() { localStorage.setItem(this.id, JSON.stringify(this.state)); }
     get(key, def) { return this.state[key] ?? def; }
     set(key, value) { this.state[key] = value; this.save(); }
@@ -662,7 +688,7 @@ LegacySettings.applyCSS();
 LegacySettings.addTab("Gameplay", [1,1]);
 LegacySettings.addCategory("Gameplay", 0, "Collapsible Category", { defaultOpen: true, collapsible: true });
 LegacySettings.addOption("Gameplay", { type: "slider", showNumber: true, key: "speed", label: "Slider", min:1,max:10,step:1,default:5 }, 0, "Collapsible Category");
-LegacySettings.addOption("Gameplay", { type: "checkbox", key: "autoRun", label: "Checkbox", default: false }, 0, "Collapsible Category");
+LegacySettings.addOption("Gameplay", { type: "checkbox", key: "autoRun", label: "Checkbox", default: false, tooltip: "Shown when hovering the option" }, 0, "Collapsible Category");
 LegacySettings.addOption("Gameplay", { type: "bind", key: "forwardKey", label: "Bind", default: "W" }, 0, "Collapsible Category");
 LegacySettings.addCategory("Gameplay", 1, "Uncollapsible Category", { defaultOpen: true });
 LegacySettings.addOption("Gameplay", { type: "slider", key: "slider", label: "Slider", min:1,max:10,step:1,default:5 }, 1, "Uncollapsible Category");
