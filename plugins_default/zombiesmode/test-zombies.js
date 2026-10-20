@@ -199,9 +199,11 @@ if (isMainThread) {
         assert('...and is announced', notes.some((n) => n.includes('Human1') && n.includes('infected')), notes.join(' | '));
         assert('the last human left starts sudden death', room.gameOptions.plugins.time?.preset === 'night', JSON.stringify(room.gameOptions.plugins.time));
         assert('...in a downpour with lightning every second or two', room.gameOptions.plugins.weather?.storm?.lightning >= 3 && room.gameOptions.plugins.weather?.storm?.intensity === 1 && room.gameOptions.plugins.weather?.rain >= 0.8, JSON.stringify(room.gameOptions.plugins.weather));
-        assert('...and the horde is faster', zs.every((p) => Math.abs(p.modifiers.speedModifier - 1.2) < 1e-6), zs.map((p) => p.modifiers.speedModifier).join());
-        assert('...which includes the infected human', Math.abs(H1.modifiers.speedModifier - 1.2) < 1e-6, `${H1.modifiers.speedModifier}`);
+        assert('...and the horde is faster', zs.every((p) => Math.abs(p.modifiers.speedModifier - 0.9) < 1e-6), zs.map((p) => p.modifiers.speedModifier).join());
+        assert('...which includes the infected human', Math.abs(H1.modifiers.speedModifier - 0.9) < 1e-6, `${H1.modifiers.speedModifier}`);
         assert('...and says so', notes.some((n) => n.includes('SUDDEN DEATH')));
+        assert('...the human left is quicker (1.1 to 1.3) and reloads faster (1.2 to 1.3)', Math.abs(H2.modifiers.speedModifier - 1.3) < 1e-9 && Math.abs(H2.modifiers.reloadSpeedModifier - 1.3) < 1e-9, JSON.stringify(H2.modifiers));
+        assert('...and the browsers are told', room.gameOptions.plugins.zombiesSuddenDeath === true);
 
         // ---- thunder ----
         room.gameOptions.plugins.zombies.surgeSecs = 0.3;
@@ -220,6 +222,7 @@ if (isMainThread) {
         assert('the round ends early when nobody is left', room.roundEndTime <= Date.now() && room.roundEndTime !== roundEndBefore, `${room.roundEndTime} vs ${roundEndBefore}`);
         assert('...announcing the horde', notes.some((n) => n.includes('horde wins')), notes.join(' | '));
         assert('...and the sky goes back to what the room had', room.gameOptions.plugins.time === undefined && room.gameOptions.plugins.weather === undefined, JSON.stringify(room.gameOptions.plugins));
+        assert('...and the human buff is gone from the infected (back to the team reload)', Math.abs(H2.modifiers.reloadSpeedModifier - 1.2) < 1e-9 && room.gameOptions.plugins.zombiesSuddenDeath === false, `${H2.modifiers.reloadSpeedModifier}`);
         assert('...and the speed-up with it', H1.modifiers.speedModifier < 1.1 && zs.every((p, i) => Math.abs(p.modifiers.speedModifier - baseSpeeds[i]) < 1e-9), `${H1.modifiers.speedModifier} ${zs.map((p) => p.modifiers.speedModifier)} vs ${baseSpeeds}`);
         await sleep(5);
         mute(); room.packUpdateRoomParams(new Comm.Out()); unmute(); //what everyone is sent, and anyone joining

@@ -16,7 +16,9 @@ export const ZombiesModeDefaults = {
     eggCap: 100,            //most kill eggs one player can earn in a round
     winEggs: 20,            //eggs for each survivor when the humans win
     suddenDeathSecs: 60,    //a lone human (or a solo player) gets this long before sudden death at the latest
-    suddenDeathSpeed: 1.2,  //zombies' speed in sudden death (the speed itself, not a multiplier)
+    suddenDeathSpeed: 0.9,  //zombies' speed in sudden death (the speed itself, not a multiplier)
+    suddenDeathReload: 1.3, //the humans' reload speed modifier in sudden death (1.2 the rest of the time: reloadSpeedModifier in the gametype)
+    suddenDeathHumanSpeed: 0.2, //...and how much faster they move then (added to their speed modifier)
     surgeSpeed: 1.5,        //...and by this on top for surgeSecs after each lightning strike (needs legacyweather's storm; 1 = off)
     surgeSecs: 2,
     weatherArc: true,       //the round plays out under a sky that darkens and a storm that builds (needs legacyweather; false leaves the weather alone)
@@ -30,7 +32,7 @@ export const ZombiesModeDefaults = {
     searchBudget: 5000,     //how hard a zombie looks for a way to someone (a path search gives up after this many steps)
     zombieSpeed: 0.65,      //zombie bots' speed modifier (not much lower: how far a bot can jump depends on its speed, and a two block gap is too wide for 0.6)
     zombieResistance: 0.7,  //...and resistance (it divides damage taken: 1 is a normal player, 0.5 dies twice as fast)
-    ghostRatio: 0.125,      //one in this many of the horde (1 in 8) are ghosts instead: they float straight through walls at whoever is nearest
+    ghostRatio: 1 / 6,      //the share of the horde (1 in 6) that are ghosts instead: they float straight through walls at whoever is nearest
     ghostSpeed: 0.5,        //a ghost's speed modifier (1 is the pace of a walking player), under the zombies'
     ghostBite: 8,           //hp a ghost's touch takes (a zombie's is the team's contactDamage)
     ghostResistance: 0.7,   //...and its resistance
@@ -43,6 +45,7 @@ export const ZombiesModePlugin = {
 
         this.plugins.on('game:GameTypesInit', this.GameTypesInit.bind(this));
         this.plugins.on('game:onPageLoadedEnd', this.onPageLoadedEnd.bind(this)); //(browser only)
+        this.plugins.on('game:roomParamsUpdated', this.roomParamsUpdated.bind(this)); //(browser only)
     },
 
     // ---- the browser ---------------------------------------------------------------------------------------------------------
@@ -78,6 +81,15 @@ export const ZombiesModePlugin = {
             if (this.zombieHands && ZombieVisuals.isZombie(this)) return ZombieVisuals.poseArms(this);
             return handsToWeapon.apply(this, arguments);
         };
+    },
+
+    // Sudden death changes the humans' reload speed on the server, which the modifiers packet does not carry, so the browser's own idea of it
+    // (the reload timer on the HUD) follows the room params instead.
+    roomParamsUpdated(data) {
+        if (!isClient || typeof me === "undefined" || !me) return;
+        var params = data.roomParamsObj.plugins, cfg = params && params.zombies;
+        if (!cfg) return;
+        me.changeModifiers({ reloadSpeedModifier: params.zombiesSuddenDeath ? cfg.suddenDeathReload : gameOptions.reloadSpeedModifier[me.team] });
     },
 
     // WAITING... in the middle of the screen, for someone who is in play while it is the gap between two rounds (they have joined during it:
@@ -132,6 +144,7 @@ export const ZombiesModePlugin = {
                 //team 2 is the horde: bots and infected humans alike. Infected humans cannot shoot, only bite; the bots get a weaker
                 //and slower profile of their own (zombieSpeed, zombieResistance above).
                 speedModifier: [1, 1.1, 1], //the humans are a little faster than normal (and than the horde)
+                reloadSpeedModifier: [1.2, 1.2, 1.2], //...and reload a little faster
                 damageModifier: [1, 1, 0],
                 contactDamage: [0, 0, 15],
                 contactCooldown: 500,

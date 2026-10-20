@@ -273,6 +273,9 @@ export class Plugin {
             client.player.team = HUMANS; //not switchTeam: nobody has been told about this player yet
             client.player.setDefaultModifiers(true);
         };
+
+        const z = getState(client.room);
+        if (z.active && z.suddenDeath) this.buffHuman(client.player, settings(client.room), true); //(joining in sudden death)
     };
 
     // Someone spawning into a round that has been going a while for the first time comes in as a zombie.
@@ -344,6 +347,7 @@ export class Plugin {
         const room = data.this;
         if (!isZombieRoom(room)) return;
         room.gameOptions.plugins.zombiesInterim = !getState(room).active && room.roundEndTime <= Date.now() && room.roundRestartTime > Date.now();
+        room.gameOptions.plugins.zombiesSuddenDeath = getState(room).active && getState(room).suddenDeath;
     };
 
     // Health packs (the healthpackitem plugin, enabled for this gamemode in shared.js) are for the humans: the horde walks over them.
@@ -460,6 +464,7 @@ export class Plugin {
     // ---- infection ---------------------------------------------------------------------------------------------------------
 
     infect(room, z, player, how = '') {
+        player.zSuddenBuff = false; //(switching team gives back the team's own modifiers)
         player.switchTeam(HORDE); //the horde's team options (bite, no gun, a bit under full health) apply from here
         if (z.suddenDeath) this.speedUp(player, settings(room));
         chat(room, `${player.name} ${how ? how + ' and ' : ''}was infected`);
@@ -473,7 +478,12 @@ export class Plugin {
 
         if (cfg.weatherArc) this.environment(room, z, cfg, Date.now());
 
-        iteratePlayers((player) => { if (player.team === HORDE) this.speedUp(player, cfg); });
+        iteratePlayers((player) => {
+            if (player.team === HORDE) this.speedUp(player, cfg);
+            else if (player.team === HUMANS) this.buffHuman(player, cfg);
+        });
+        room.gameOptions.plugins.zombiesSuddenDeath = true; //(the browsers' reload timer follows this)
+        room.updateRoomParamsForClients();
 
         room.notify('SUDDEN DEATH: the horde is faster now', 8);
         console.log('[zombiesmode] sudden death');
@@ -481,6 +491,19 @@ export class Plugin {
 
     // Everyone on the horde goes to cfg.suddenDeathSpeed, whatever they were at (the bots and the infected differ). Remembered as the factor it
     // took, so it can be taken off again (and a lightning surge on top of it, which is also a factor, comes off the same way).
+    // The humans get a little quicker on their feet and with a reload in sudden death (the reload is the player's reloadSpeedModifier).
+    buffHuman(player, cfg, init = false) {
+        if (player.zSuddenBuff) return;
+        player.zSuddenBuff = true;
+        player.changeModifiers({ speedModifier: player.modifiers.speedModifier + cfg.suddenDeathHumanSpeed, reloadSpeedModifier: cfg.suddenDeathReload }, init);
+    };
+
+    unbuffHuman(room, player, cfg) {
+        if (!player.zSuddenBuff) return;
+        player.zSuddenBuff = false;
+        player.changeModifiers({ speedModifier: player.modifiers.speedModifier - cfg.suddenDeathHumanSpeed, reloadSpeedModifier: room.gameOptions.reloadSpeedModifier[player.team] });
+    };
+
     speedUp(player, cfg) {
         if (player.zombieSpeedUp) return;
         const base = player.modifiers.speedModifier / (player.zombieSurge || 1);
@@ -526,7 +549,10 @@ export class Plugin {
     };
 
     restoreEnvironment(room, z) {
+        room.gameOptions.plugins.zombiesSuddenDeath = false;
+        const cfg = settings(room);
         iteratePlayers((player) => {
+            this.unbuffHuman(room, player, cfg);
             this.endSurge(player);
             if (!player.zombieSpeedUp) return;
             player.changeModifiers({ speedModifier: player.modifiers.speedModifier / player.zombieSpeedUp });
@@ -554,9 +580,9 @@ export class Plugin {
                 const wait = z.hordeReadyAt - Date.now();
                 if (wait > 0) { await sleep(wait); continue; };
 
-                //one in every so many is a ghost (evenly through the horde: the 8th, the 16th...)
+                //a share of them are ghosts (evenly through the horde: with 1 in 6, the 6th, the 12th...)
                 const ghosts = z.bots.filter((bot) => bot.zGhost).length;
-                const bot = ghosts < Math.floor((z.bots.length + 1) * cfg.ghostRatio) ? await this.spawnGhost(room, z, cfg) : await this.spawnZombie(room, z, cfg);
+                const bot = ghosts < Math.floor((z.bots.length + 1) * cfg.ghostRatio + 1e-9) ? await this.spawnGhost(room, z, cfg) : await this.spawnZombie(room, z, cfg);
                 z.bots.push(bot);
                 if (cfg.staggerSecs > 0) await sleep(cfg.staggerSecs * 1e3 / cfg.count);
             };
@@ -706,19 +732,32 @@ export class Plugin {
 
         //Wanting to get somewhere but not getting anywhere. Straight at someone in sight and blocked (a gap, a wall): the route takes over for
         //a while. Following a route and out of it (no way to them, or only to the closest point it found, so they are on a tower, say): walk
-        //straight at them and jump at whatever is in the way, so the horde piles up against the foot of it instead of standing about.
+        //at them and jump at whatever is in the way. Each one heads for its own spot around them (a random angle and distance) and keeps off
+        //the others, so the horde spreads around the foot of it instead of piling up on one point.
         if (!bot.zSwarm) {
             bot.zIdle = Math.hypot(p.dx, p.dz) < 0.004 ? (bot.zIdle ?? 0) + 1 : 0;
             if (bot.zIdle < 20) return;
             bot.zIdle = 0;
             if (cmd.engaged) { bot.zPath = 150; return; }; //ticks (2.5s)
-            bot.zSwarm = 90; //ticks (1.5s), then the route gets another go
+            bot.zSwarm = 180; //ticks (3s), then the route gets another go
+            const angle = Math.random() * Math.PI * 2, radius = 1.2 + Math.random() * 1.2;
+            bot.zSlot = { x: Math.sin(angle) * radius, z: Math.cos(angle) * radius };
         };
         bot.zSwarm--;
 
-        if (flat < 0.6) return;
-        if (!(dy < -0.5 || ground(0.9))) return; //not off an edge, unless they are down there
-        p.yaw = Math.atan2(dx, dz);
+        let sx = dx + bot.zSlot.x, sz = dz + bot.zSlot.z; //towards its own spot
+        const toSlot = Math.hypot(sx, sz);
+        if (flat < 0.6 || toSlot < 0.4) return;
+        if (!(dy < -0.5 || hasGroundAhead(bot.room.map, p.x, p.y, p.z, sx, sz, { reach: 0.9 }))) return; //not off an edge, unless they are down there
+
+        sx /= toSlot; sz /= toSlot;
+        iteratePlayers((other) => { //...and away from anyone else close
+            if (other === p || other.team !== HORDE || !other.playing || Math.abs(other.y - p.y) > 1) return;
+            const ox = p.x - other.x, oz = p.z - other.z, near = Math.hypot(ox, oz);
+            if (near > 0 && near < 1) { sx += ox / near * (1 - near) * 1.5; sz += oz / near * (1 - near) * 1.5; };
+        });
+        if (!hasGroundAhead(bot.room.map, p.x, p.y, p.z, sx, sz, { reach: 0.9 }) && dy >= -0.5) { sx = dx; sz = dz; }; //(the push must not walk it off an edge)
+        p.yaw = Math.atan2(sx, sz);
         p.controlKeys = CONTROL.up;
         if (bot.zSwarm % 45 === 0) p.jump();
     };
