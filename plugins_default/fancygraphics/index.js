@@ -2,6 +2,7 @@
 import path from 'node:path';
 import log from 'puppylog';
 import express from 'express';
+import fs from 'node:fs';
 //
 
 export const PluginMeta = {
@@ -30,6 +31,9 @@ export class Plugin {
 
         this.plugins.on('client:onStartServer', this.onStartServer.bind(this));
         this.plugins.on('client:pluginSourceInsertion', this.pluginSourceInsertion.bind(this));
+        
+        this.plugins.on('client:prepareBabylon', this.prepareBabylon.bind(this));
+        this.plugins.on('game:prepareBabylon', this.prepareBabylon.bind(this));
     };
     
     async onStartServer(data) {
@@ -45,5 +49,23 @@ export class Plugin {
             insertAfter: `\nconsole.log("inserting after... (${PluginMeta.name})!");`,
             position: 'after'
         });
+    };
+    
+    async prepareBabylon(data) {
+        // console.log('prepareBabylon', data.filename);
+        var extraBabylons = data.extraBabylons;
+
+        const babylonPath = path.join(this.thisDir, 'models');
+        const babylonFiles = fs.readdirSync(babylonPath);
+        for (const file of babylonFiles) {
+            if (data.filename + ".babylon" === file) {
+                console.log('found', file, 'from', PluginMeta.identifier);
+                extraBabylons.push({
+                    filepath: path.join(this.thisDir, 'models', file),
+                    overwrite: true,
+                    location: PluginMeta.identifier,
+                });
+            };
+        };
     };
 };
