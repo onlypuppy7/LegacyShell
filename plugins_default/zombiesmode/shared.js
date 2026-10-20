@@ -26,6 +26,7 @@ export const ZombiesModeDefaults = {
     darkenSecs: 40,         //...and is a dark, stormy dusk this long after that
     victoryGapMs: 100,      //when the humans win the horde dies one after another, this far apart
     victoryHoldMs: 1500,    //...and the round ends this long after the last one goes
+    spawnFailsafeSecs: 15,  //a human who has not spawned into a round this long after it started (or after they joined it) is infected
     headStartSecs: 6,       //the humans are in the round this long before the first zombie spawns
     staggerSecs: 8,         //...and the horde spawns spread over this long, rather than all at once
     spawnClearRadius: 12,   //zombies only spawn at spawn points with no human within this many blocks (at most 40% of the map's size)
@@ -48,6 +49,22 @@ export const ZombiesModePlugin = {
         this.plugins.on('game:roomParamsUpdated', this.roomParamsUpdated.bind(this)); //(browser only)
     },
 
+    // The horde has no gun: an infected player's trigger does nothing (the zombies' own damage is already off, this stops the shot itself, and
+    // the sound and recoil that come with it). Patched on the player class, on both sides: the browser for the one holding the trigger, the
+    // server for what it will accept from anyone.
+    blockFire(Player) {
+        if (Player.prototype.zombiesFireBlocked) return;
+        Player.prototype.zombiesFireBlocked = true;
+        var infected = function (player) {
+            var options = player.gameOptions;
+            return !!(options && options.plugins && options.plugins.zombies && player.team === 2);
+        };
+        var fire = Player.prototype.fire;
+        Player.prototype.fire = function () { if (infected(this)) return; return fire.apply(this, arguments); };
+        var pullTrigger = Player.prototype.pullTrigger;
+        Player.prototype.pullTrigger = function () { if (infected(this)) return; return pullTrigger.apply(this, arguments); };
+    },
+
     // ---- the browser ---------------------------------------------------------------------------------------------------------
     // The server spawns everyone when a round starts, including people sitting on the game menu. Normally you press PLAY, which also
     // takes the pointer lock and closes the menu; here nobody pressed anything, so do the same when the server spawns you.
@@ -55,6 +72,7 @@ export const ZombiesModePlugin = {
     onPageLoadedEnd() {
         if (!isClient || this.patched) return;
         this.patched = true;
+        this.blockFire(Player);
 
         var original = Player.prototype.respawn;
         Player.prototype.respawn = function () {
@@ -92,14 +110,16 @@ export const ZombiesModePlugin = {
         me.changeModifiers({ reloadSpeedModifier: params.zombiesSuddenDeath ? cfg.suddenDeathReload : gameOptions.reloadSpeedModifier[me.team] });
     },
 
-    // WAITING... in the middle of the screen, for someone who is in play while it is the gap between two rounds (they have joined during it:
-    // everyone in the room when a round ends is taken out of play, and the game does not let you spawn again until the next one starts). They
-    // are put into the next round when it starts.
+    // WAITING... in the middle of the screen, for anyone who has gone into the game while it is the gap between two rounds: whoever pressed
+    // PLAY (the game menu is gone) or is already in play. Everyone in the room when a round ends is taken out of play, and the game does not
+    // let you spawn again until the next one starts, so they are not in play yet (me.playing is false): they are put into the next round when
+    // it starts.
     // Whether it is the gap comes from the server (gameOptions.plugins.zombiesInterim, sent when it starts and to anyone joining during it):
     // what this browser thinks about rounds depends on which packets it happened to be there for.
     interimTick() {
         try {
-            var interim = !!(gameOptions && gameOptions.plugins && gameOptions.plugins.zombies && gameOptions.plugins.zombiesInterim === true && me && me.playing);
+            var menu = document.getElementById("gameMenu");
+            var interim = !!(gameOptions && gameOptions.plugins && gameOptions.plugins.zombies && gameOptions.plugins.zombiesInterim === true && inGame && me && (me.playing || (menu && menu.style.display === "none")));
 
             var waiting = document.getElementById("zombiesWaiting");
             if (!waiting) {

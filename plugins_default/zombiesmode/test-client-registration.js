@@ -23,7 +23,7 @@ const assert = (name, ok, detail = '') => { ok ? passed++ : failed++; console.lo
 const listeners = {};
 const calls = [];
 const intervals = [];
-const elements = { gameClock: { style: { display: 'none' }, innerText: '0:00' } };
+const elements = { gameClock: { style: { display: 'none' }, innerText: '0:00' }, gameMenu: { style: { display: 'none' } } };
 class Player { constructor(id) { this.id = id; } respawn() { calls.push('respawn'); return 'ok'; } }
 function PlayerActor() { }
 PlayerActor.prototype.update = function () { calls.push('actor update'); return 'updated'; };
@@ -37,7 +37,7 @@ const sandbox = {
     gameOptions: { plugins: { zombies: {} } },
     canvas: { requestPointerLock: () => calls.push('lock') },
     hideGameMenu: () => calls.push('menu'),
-    timedGame: true, betweenRounds: false, me: { playing: true }, respawnTime: null,
+    timedGame: true, betweenRounds: false, inGame: true, me: { playing: true }, respawnTime: null,
     setInterval: (fn) => { intervals.push(fn); },
     window: { getComputedStyle: () => ({ fontFamily: 'Nunito', fontWeight: '900', color: 'white', textShadow: '1px 1px black' }) },
     document: {
@@ -105,11 +105,20 @@ assert('the clock is left to the game', clock.innerText === '0:00' && clock.styl
 
 sandbox.me = { playing: false };
 tick();
-assert('someone who is not in play does not get it', waiting().style.display === 'none');
+assert('someone who has pressed PLAY (the menu is gone) gets it too, though the game has not put them in play yet', waiting().style.display === 'block');
 
-sandbox.me = { playing: true };
+elements.gameMenu.style.display = 'block';
 tick();
-assert('...until they are', waiting().style.display === 'block');
+assert('someone still on the menu does not', waiting().style.display === 'none');
+
+elements.gameMenu.style.display = 'none'; sandbox.inGame = false;
+tick();
+assert('...nor does someone who is not in a game', waiting().style.display === 'none');
+sandbox.inGame = true;
+
+sandbox.me = { playing: true }; elements.gameMenu.style.display = 'block';
+tick();
+assert('someone in play gets it whatever the menu is doing', waiting().style.display === 'block');
 
 server(false);
 tick();

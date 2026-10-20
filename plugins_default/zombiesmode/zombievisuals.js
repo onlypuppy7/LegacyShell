@@ -10,7 +10,7 @@ const ZombieVisuals = {
     // The pose of the left hand. The hand itself is turned square (see poseBones: fingers straight forward, palm down, thumb in), then
     // yaw turns it a little further in (radians), droop tips it down at the wrist, and x/y/z is where its centre goes, in the space the
     // gun is held in (x is to the player's right, y up, z forward).
-    pose: { yaw: 0.08, droop: 0.25, x: -0.17, y: 0.03, z: 0.42 },
+    pose: { yaw: 0.08, droop: 0.25, x: -0.16, y: 0.03, z: 0.42 },
 
     // ---- the hands mesh --------------------------------------------------------------------------------------------------------
 
@@ -137,6 +137,7 @@ const ZombieVisuals = {
         var weapons = actor.player.weapons || [];
         for (var i = 0; i < weapons.length; i++) if (weapons[i].actor && weapons[i].actor.gunMesh) weapons[i].actor.gunMesh.setEnabled(false); //the game shows the one in hand again whenever it is equipped
 
+        this.ghostly(actor, this.isGhost(actor));
         if (this.isGhost(actor)) return this.float(actor); //(no stumble: it does not walk)
 
         //How far through the stumble it is. The game's own walk cycle (player.bobble) is no use for this: it wraps at a full turn, and anything
@@ -145,6 +146,44 @@ const ZombieVisuals = {
         actor.zPhase = (actor.zPhase || 0) + (delta || 1) * 7 * actor.bobbleIntensity * 0.7;
 
         this.stumble(actor);
+    },
+
+    // A ghost is see-through: its body, hands and hat get a copy of their material with the GHOSTALPHA define (the pixel shader gives that
+    // part of its alpha: see shaderSources in index.js) and alpha blending. Back to the originals when it is not one (the same actor can be a
+    // zombie next round).
+    ghostly(actor, on) {
+        var meshes = [[actor.bodyMesh, 0.65], [actor.zombieHands, 0.65]]; //(and how opaque each is: the hat reads as more solid than the egg at the same alpha, so it gets less)
+        if (actor.hat) {
+            meshes.push([actor.hat, 0.55]);
+            var parts = actor.hat.getChildMeshes ? actor.hat.getChildMeshes() : [];
+            for (var p = 0; p < parts.length; p++) meshes.push([parts[p], 0.55]);
+        };
+        for (var i = 0; i < meshes.length; i++) {
+            var mesh = meshes[i][0], alpha = meshes[i][1];
+            if (!mesh) continue;
+            if (on) {
+                var original = mesh.zOriginalMaterial || mesh.material;
+                if (!original || !original._options || mesh.material !== original) continue; //(already done, or not a shader material)
+                mesh.zOriginalMaterial = original;
+                mesh.material = this.ghostMaterial(original, alpha);
+            } else if (mesh.zOriginalMaterial) {
+                mesh.material = mesh.zOriginalMaterial;
+                mesh.zOriginalMaterial = null;
+            };
+        };
+    },
+
+    ghostMaterial(original, alpha) {
+        this.ghostMaterials = this.ghostMaterials || new Map();
+        var key = original.uniqueId !== undefined ? original.uniqueId + "@" + alpha : original.name + "@" + alpha;
+        var made = this.ghostMaterials.get(key);
+        if (made) return made;
+        var options = Object.assign({}, original._options, { needAlphaBlending: true, defines: (original._options.defines || []).concat(["#define GHOSTALPHA " + alpha]) });
+        made = new BABYLON.ShaderMaterial(original.name + "Ghost", original.getScene(), original._shaderPath, options);
+        made.onBind = original.onBind;
+        made.backFaceCulling = original.backFaceCulling;
+        this.ghostMaterials.set(key, made);
+        return made;
     },
 
     // How far into a walk: 0 standing still, 1 at a full walk (the egg's own bobbling scales by the same number, about 0.02 at a walk).
@@ -192,6 +231,7 @@ const ZombieVisuals = {
 
     // No longer on the horde (cured at the start of a round): the model's own hands and the gun back, and the egg upright.
     revert(actor) {
+        this.ghostly(actor, false);
         actor.zombieHands.setEnabled(false);
         actor.hands.setEnabled(true);
         actor.bodyMesh.rotation.y = 0;

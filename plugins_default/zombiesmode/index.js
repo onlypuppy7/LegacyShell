@@ -4,6 +4,7 @@ import path from 'node:path';
 import { ZombiesModePlugin, ZombiesModeDefaults } from './shared.js';
 import { DeadInternetBot, registerPreset } from '../deadinternet/index.js';
 import { hasGroundAhead } from '../deadinternet/combat.js';
+import Player from '#player';
 //legacyshell
 import { iteratePlayers, CONTROL, ItemType } from '#constants';
 import { ss } from '#misc';
@@ -135,7 +136,9 @@ export class Plugin {
         pluginInstance = this;
 
         ZombiesModePlugin.registerListeners(this.plugins);
+        ZombiesModePlugin.blockFire(Player);
         this.plugins.on('client:pluginSourceInsertion', this.pluginSourceInsertion.bind(this));
+        this.plugins.on('client:shaderSources', this.shaderSources.bind(this));
 
         this.plugins.on('game:metaLoop', this.metaLoop.bind(this));
         this.plugins.on('game:playerUpdate', this.playerUpdate.bind(this));
@@ -583,6 +586,12 @@ export class Plugin {
                 //a share of them are ghosts (evenly through the horde: with 1 in 6, the 6th, the 12th...)
                 const ghosts = z.bots.filter((bot) => bot.zGhost).length;
                 const bot = ghosts < Math.floor((z.bots.length + 1) * cfg.ghostRatio + 1e-9) ? await this.spawnGhost(room, z, cfg) : await this.spawnZombie(room, z, cfg);
+    // Ghosts are see-through: a copy of the shared player shader (zombievisuals.js makes the materials) that gives up part of its alpha and glows (lit towards white, whatever the light: at night the lit egg is nearly black, and it would blend into the dark as a black ghost).
+    shaderSources(data) {
+        if (!data.shaders.pixel.includes('//@pixelPreFog')) return;
+        data.shaders.pixel = data.shaders.pixel.replace('//@pixelPreFog', '//@pixelPreFog\n    #ifdef GHOSTALPHA\n        color.rgb = mix(color.rgb, vec3(1.), 0.75);\n        color.a = GHOSTALPHA;\n    #endif');
+    };
+
                 z.bots.push(bot);
                 if (cfg.staggerSecs > 0) await sleep(cfg.staggerSecs * 1e3 / cfg.count);
             };
