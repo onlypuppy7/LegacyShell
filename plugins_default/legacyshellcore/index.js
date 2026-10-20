@@ -135,6 +135,12 @@ export class Plugin {
             insertAfter: '\nconsole.log("inserting after... (LegacyShellCore)!");',
             position: 'before'
         });
+        data.pluginInsertion.files.push({ //needs the whole core (settingsKeyNames, extern, ...) and LegacySettings to exist
+            insertBefore: '\nconsole.log("inserting before... (LegacyShellCore settings)");',
+            filepath: path.join(this.thisDir, 'settings.js'),
+            insertAfter: '\nconsole.log("inserting after... (LegacyShellCore settings)!");',
+            position: 'after'
+        });
     };
 
     async stampImageDirs(data) {

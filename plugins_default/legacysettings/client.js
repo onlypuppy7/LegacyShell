@@ -40,15 +40,26 @@ class LegacySettingsOptionClass {
         let input;
         const key = this.opt.key;
 
-        const setState = (val) => { if (key) this.parent.set(key, val); };
-        const getState = () => key ? this.parent.get(key, this.opt.default) : undefined;
+        //opt.getValue/opt.setValue back an option with external state (instead of LegacySettings' own storage)
+        const setState = (val) => {
+            if (this.opt.setValue) this.opt.setValue(val);
+            else if (key) this.parent.set(key, val);
+        };
+        const getState = () => {
+            if (this.opt.getValue) return this.opt.getValue();
+            return key ? this.parent.get(key, this.opt.default) : undefined;
+        };
 
         if (this.opt.type === "checkbox") {
             input = document.createElement("input");
             input.type = "checkbox";
             input.className = "ss_checkbox";
-            input.checked = getState();
-            input.onchange = () => setState(input.checked);
+            input.checked = !!getState();
+            input.onchange = () => {
+                setState(input.checked);
+                if (this.opt.onChange) this.opt.onChange(input.checked);
+            };
+            this._refresh = () => input.checked = !!getState();
         }
 
         if (this.opt.type === "slider") {
@@ -75,6 +86,10 @@ class LegacySettingsOptionClass {
                 if (display) display.textContent = val;
                 if (this.opt.onChange) this.opt.onChange(val);
             };
+            this._refresh = () => {
+                input.value = getState() ?? this.opt.min;
+                if (display) display.textContent = input.value;
+            };
         }
 
         if (this.opt.type === "button") {
@@ -88,6 +103,8 @@ class LegacySettingsOptionClass {
             input = document.createElement("div");
             input.className = "bindBox";
             input.textContent = getState() || "UNBOUND";
+
+            this._refresh = () => input.textContent = getState() || "UNBOUND";
 
             input.addEventListener("mousedown", (e) => {
                 if (this.parent.globalBindingActive) return;
@@ -386,11 +403,22 @@ class LegacySettingsOptionClass {
         return row;
     }
 
-    get() { return this.opt.key ? this.parent.get(this.opt.key) : undefined; }
-    set(val) {
-        if (this.opt.key) this.parent.set(this.opt.key, val);
-        if (this._reactiveUpdate) this._reactiveUpdate(val);
+    get() {
+        if (this.opt.getValue) return this.opt.getValue();
+        return this.opt.key ? this.parent.get(this.opt.key) : undefined;
     }
+    set(val) {
+        if (this.opt.setValue) this.opt.setValue(val);
+        else if (this.opt.key) this.parent.set(this.opt.key, val);
+        if (this._reactiveUpdate) this._reactiveUpdate(val);
+        this.refresh();
+    }
+
+    //re-reads the value into the control, for when state changed outside of the control itself
+    refresh() { if (this._refresh) this._refresh(); }
+
+    //hides but keeps the layout space, like the original settings menu did
+    setVisible(visible) { if (this.el) this.el.style.visibility = visible ? "" : "hidden"; }
 }
 
 class LegacySettingsClass {
@@ -470,6 +498,8 @@ class LegacySettingsClass {
 
         return optionObj;
     }
+
+    refresh() { this.allOptions.forEach(o => o.refresh()); }
 
     getOption(key) {
         for (const opt of this.allOptions) {
@@ -574,6 +604,9 @@ class LegacySettingsClass {
             const optionObj = this.addOption("General", { type: "customDiv", key: "settingsContainer", el: settingsContainer });
             this.tabOrder = ["General", ...this.tabOrder.filter(t => t !== "General")];
             document.getElementById("settingsMenu")?.remove();
+        } else if (settingsContainer) {
+            //the old DOM must stay (the core's loadSettings reads/writes its elements), but its id is needed for the open/close functions
+            document.getElementById("settingsMenu").id = "settingsMenuOld";
         }
 
         this.tabOrder.forEach(name => {
