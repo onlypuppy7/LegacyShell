@@ -849,10 +849,12 @@ const WeatherRender = {
 
         //wets in ~20s of rain; how long it takes to dry comes from the weather state (60s when the rain just ends, the clear's own time when cleared by hand)
         var dry = Math.max(0.001, this.weather ? this.weather.dryingSecs : 60);
-        var step = (cur, to) => cur < to ? Math.min(to, cur + dt / 20) : Math.max(to, cur - dt / dry);
+        //puddles are gone by the time the rain's transition ends (the ground itself stays damp a while longer)
+        var gone = Math.max(0.001, Math.min(dry, this.weather ? this.weather.transitionSecs : 8));
+        var step = (cur, to, secs) => cur < to ? Math.min(to, cur + dt / 20) : Math.max(to, cur - dt / secs);
         var prev = this.wetLevel;
-        this.wetLevel = step(this.wetLevel, target);
-        this.wetPuddle = step(this.wetPuddle, puddleTarget);
+        this.wetLevel = step(this.wetLevel, target, dry);
+        this.wetPuddle = step(this.wetPuddle, puddleTarget, gone);
         if (this.wetLevel <= 0 && prev <= 0) return;
 
         var fog = gameScene.fogColor;

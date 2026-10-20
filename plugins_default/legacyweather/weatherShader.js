@@ -107,7 +107,7 @@ const pixelPreFog = `
                 WP vec2 pp = vWeatherWorld.xz;
                 float n = wNoise(pp * 0.7) * 0.65 + wNoise(pp * 2.1) * 0.35;
                 float cover = 0.62 - 0.25 * wetPuddles;
-                float pud = smoothstep(cover, cover + 0.06, n) * wet;
+                float pud = smoothstep(cover, cover + 0.06, n) * wet * smoothstep(0.0, 0.3, wetPuddles); //fades out with the puddle amount, so they're gone when the rain's transition ends
 
                 // a ring per cell that expands and fades, restarting at a per-cell phase
                 WP vec2 cell = floor(pp * 4.0);
