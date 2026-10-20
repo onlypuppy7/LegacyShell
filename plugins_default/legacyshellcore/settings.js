@@ -48,7 +48,9 @@ const LegacyShellCoreSettings = {
     resetToDefaults: function () {
         extern.clearSettings();
         LegacySettings.set("fovDegrees", undefined);
-        this.applyFov(); //also resets `settings` from the cleared storage
+        this.applyFov();
+        LegacySettings.set("scopeSensitivity", undefined);
+        settings.scopeSensitivity = undefined; //also resets `settings` from the cleared storage
         for (const key in inputToControlMap) delete inputToControlMap[key];
         Object.assign(inputToControlMap, this.defaultControls);
         apolloSetVolume(settings.volume);
@@ -97,6 +99,18 @@ const LegacyShellCoreSettings = {
             getValue: () => Number(settings.mouseSensitivity),
             setValue: (val) => extern.setMouseSensitivity({ value: val }),
         }, 1, "Mouse & Aiming");
+        LegacySettings.addOption("Controls", {
+            type: "slider",
+            key: "scopeSensitivity",
+            label: "Scoped Sensitivity",
+            min: 0.05, max: 1.5, step: 0.05, showNumber: true, //a multiplier on mouse speed while scoped, the original is a fixed 0.3
+            getValue: () => settings.scopeSensitivity ?? 0.3,
+            setValue: (val) => {
+                settings.scopeSensitivity = val;
+                LegacySettings.set("scopeSensitivity", val);
+            },
+        }, 1, "Mouse & Aiming");
+        settings.scopeSensitivity = LegacySettings.get("scopeSensitivity"); //restore the saved value
         this.checkbox("Controls", 1, "Mouse & Aiming", "mouseInvert", () => loc("ui_settings_invertmouse", "Invert Mouse"));
         this.checkbox("Controls", 1, "Mouse & Aiming", "fastPollMouse", () => loc("ui_settings_fastPollMouse", "Fix Mouse Glitch"));
         this.checkbox("Controls", 1, "Mouse & Aiming", "holdToAim", () => loc("ui_settings_holdtoaim", "Hold To Aim"));
@@ -129,7 +143,7 @@ const LegacyShellCoreSettings = {
         LegacySettings.addOption("Graphics", {
             type: "slider",
             key: "fovDegrees",
-            label: "Field of View",
+            label: "FOV",
             min: 50, max: 110, step: 1, showNumber: true,
             getValue: () => Math.round((settings.fov || 1.25) * 180 / Math.PI),
             setValue: (val) => {
