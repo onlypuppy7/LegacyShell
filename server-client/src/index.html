@@ -367,6 +367,30 @@
         <script>var version = 'LEGACYSHELLHTMLVERSION';</script>
         <script>var versionExtended = 'LEGACYSHELLEXTVERSION';</script>
         <script src="src/servers.js?SERVERJSHASH"></script>
+        <script>
+            //the login request doesnt need the bundle, so it goes out as soon as servers.js has said where services is instead of after the bundle is downloaded and parsed.
+            //shellshock.min.js uses window.earlyLoginRequest if it is there (same request as validateLoginViaAuthToken there)
+            (function () {
+                try {
+                    var authToken = localStorage.getItem("LegacyShellAuthToken");
+                    if (!authToken) return;
+                    window.earlyLoginRequest = new Promise(function (resolve, reject) {
+                        var ws = new WebSocket(servicesServer);
+                        ws.onopen = function () {
+                            ws.send(JSON.stringify({ cmd: "validateLoginViaAuthToken", username: localStorage.getItem("LegacyShellPreviousUsername"), authToken: authToken }));
+                        };
+                        ws.onmessage = function (e) {
+                            try { resolve(JSON.parse(e.data)) } catch (error) { reject("Failed to parse response") } finally { ws.close() };
+                        };
+                        ws.onclose = function (e) { if (e.code !== 1000) reject("WebSocket closed unexpectedly: " + e.reason) };
+                        ws.onerror = function () { reject("WebSocket error occurred") };
+                    });
+                    window.earlyLoginRequest.catch(function () { }); //shellshock.min.js handles it
+                } catch (error) {
+                    window.earlyLoginRequest = null;
+                };
+            })();
+        </script>
         <script src="src/gameplayTips.js?GAMEPLAYTIPSHASH"></script>
         <script src="src/shellshock.min.js?SHELLSHOCKMINJSHASH"></script>
     </head>
