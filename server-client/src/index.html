@@ -368,6 +368,26 @@
         <script>var versionExtended = 'LEGACYSHELLEXTVERSION';</script>
         <script src="src/servers.js?SERVERJSHASH"></script>
         <script>
+            //tells the browser to start dns and tls for the services server and the game server used last time before anything asks for them
+            (function () {
+                try {
+                    var hosts = [];
+                    if (/^wss:/.test(servicesServer)) hosts.push("https://" + servicesServer.replace(/^wss:\/\//, "").split("/")[0]);
+                    var last = servers[parseInt(localStorage.getItem("selectedServer"), 10) || 0] || servers[0];
+                    if (last && location.protocol === "https:") hosts.push("https://" + last.address);
+                    hosts.forEach(function (href, i) {
+                        if (hosts.indexOf(href) !== i) return;
+                        ["preconnect", "dns-prefetch"].forEach(function (rel) {
+                            var link = document.createElement("link");
+                            link.rel = rel;
+                            link.href = href;
+                            document.head.appendChild(link);
+                        });
+                    });
+                } catch (error) { };
+            })();
+        </script>
+        <script>
             //the login request doesnt need the bundle, so it goes out as soon as servers.js has said where services is instead of after the bundle is downloaded and parsed.
             //shellshock.min.js uses window.earlyLoginRequest if it is there (same request as validateLoginViaAuthToken there)
             (function () {
