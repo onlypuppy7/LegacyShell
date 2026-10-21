@@ -37848,6 +37848,19 @@
 
 
 // [LS] BABYLON modifications
+//the model manifests are baked into the bundle at build (bakedManifests, see prepare-modified.js), so loading a model doesnt wait on a request just to read its version
+var checkManifestFile = BABYLON.Database.prototype._checkManifestFile;
+BABYLON.Database.prototype._checkManifestFile = function () {
+    var baked = typeof bakedManifests !== "undefined" && bakedManifests[this.currentSceneUrl.split("?")[0].split("/").pop()];
+    if (!baked) return checkManifestFile.call(this);
+    var _this = this;
+    this._enableSceneOffline = baked.enableSceneOffline;
+    this._enableTexturesOffline = baked.enableTexturesOffline;
+    baked.version && !isNaN(parseInt(baked.version)) && (this.manifestVersionFound = baked.version);
+    BABYLON.Tools.SetImmediate(function () {
+        _this.callbackManifestChecked && _this.callbackManifestChecked(true);
+    });
+};
 BABYLON.Skeleton.prototype.disableBlending = function () {
     this.bones.forEach(function (bone) {
         bone.animations.forEach(function (animation) {

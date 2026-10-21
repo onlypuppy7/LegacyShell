@@ -21,9 +21,10 @@ async function prepareModified() {
     let startTimestamp = Date.now();
 
     try {
+        const babylonsDone = prepareBabylons(path.join(ss.rootDir, 'server-client', 'store', 'client-modified', 'models'));
         await Promise.all([
-            prepareBabylons(path.join(ss.rootDir, 'server-client', 'store', 'client-modified', 'models')),
-            modifyFiles(),
+            babylonsDone,
+            modifyFiles(babylonsDone),
         ]);
         log.success('All prepareModified promises resolved in ' + (Date.now() - startTimestamp) + 'ms');
     } catch (error) {
@@ -31,7 +32,7 @@ async function prepareModified() {
     };
 };
 
-async function modifyFiles() {
+async function modifyFiles(babylonsDone) {
     log.info('\nGenerating modified files (eg minifying shellshock.min.js)...');
 
     const sourceShellJsPath = path.join(ss.currentDir, 'src', 'client-static', 'src', 'shellshock.min.js');
@@ -150,6 +151,16 @@ async function modifyFiles() {
 
         skyboxes.sort();
 
+        //the manifests only exist once the babylons are prepared. they go in the bundle so the client doesnt have to request each one just to read its version
+        await babylonsDone;
+        const modelsDir = path.join(ss.currentDir, 'store', 'client-modified', 'models');
+        const bakedManifests = {};
+        for (const file of fs.readdirSync(modelsDir).filter(file => file.endsWith('.babylon.manifest'))) {
+            bakedManifests[file.replace(/\.manifest$/, '')] = JSON.parse(fs.readFileSync(path.join(modelsDir, file), 'utf8'));
+        };
+        const housePromoPath = path.join(ss.currentDir, 'src', 'client-static', 'housePromo.json');
+        const bakedHousePromo = fs.existsSync(housePromoPath) ? JSON.parse(fs.readFileSync(housePromoPath, 'utf8')) : null;
+
         const replacementsBefore = [
             { pattern: /LEGACYSHELLPLUGINSBEFOREBEFORE/g, insertion: pluginInsertion.strings.beforebefore },
             { pattern: /LEGACYSHELLPLUGINSBEFORE/g, insertion: pluginInsertion.strings.before },
@@ -184,6 +195,8 @@ async function modifyFiles() {
             { pattern: /LEGACYSHELLISCLIENTSERVER/g, file: "#isClientServer" },
             { pattern: /LEGACYSHELLEVENTS/g, insertion: JSON.stringify(ss.events) },
             { pattern: /LEGACYSHELLDISTRIBUTEDDATA/g, insertion: JSON.stringify(ss.distributed_data) },
+            { pattern: /LEGACYSHELLMANIFESTS/g, insertion: JSON.stringify(bakedManifests) },
+            { pattern: /LEGACYSHELLHOUSEPROMO/g, insertion: JSON.stringify(bakedHousePromo) },
 
             { pattern: /LEGACYSHELLMAPZIPTIMESTAMP/g, insertion: getLastSavedTimestamp(path.join(ss.currentDir, 'store', 'client-modified', 'models', 'map.zip')) },
             { pattern: /LEGACYSHELLSTAMPSPNG/g, insertion: getLastSavedTimestamp(path.join(ss.currentDir, 'store', 'client-modified', 'img', 'stamps.png')) },
