@@ -185,7 +185,6 @@ async function modifyFiles() {
             { pattern: /LEGACYSHELLEVENTS/g, insertion: JSON.stringify(ss.events) },
             { pattern: /LEGACYSHELLDISTRIBUTEDDATA/g, insertion: JSON.stringify(ss.distributed_data) },
 
-            { pattern: /LEGACYSHELLZIPTIMES/g, insertion: (String(getLastSavedTimestamp(path.join(ss.currentDir, 'store', 'client-modified', 'models', 'models.zip')))+String(getLastSavedTimestamp(path.join(ss.currentDir, 'store', 'client-modified', 'models', 'map.zip')))) },
             { pattern: /LEGACYSHELLMAPZIPTIMESTAMP/g, insertion: getLastSavedTimestamp(path.join(ss.currentDir, 'store', 'client-modified', 'models', 'map.zip')) },
             { pattern: /LEGACYSHELLSTAMPSPNG/g, insertion: getLastSavedTimestamp(path.join(ss.currentDir, 'store', 'client-modified', 'img', 'stamps.png')) },
 
