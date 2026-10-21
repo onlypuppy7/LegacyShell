@@ -238,6 +238,7 @@ export async function prepareStamps() {
     cacheModified = true;
 
     if (skipGeneration) {
+        await makeWebp(outputImagePath);
         await plugins.emit('stampsPreparedSkip', {this: this, items, composites, image, output: outputImagePath});
         return;
     };
@@ -252,6 +253,7 @@ export async function prepareStamps() {
     log.info('[Stamps] Saving stamps to', outputImagePath);
 
     await image.toFile(outputImagePath);
+    await makeWebp(outputImagePath, true);
 
     log.success('Stamps prepared in', Date.now() - startTime, 'ms');
     
@@ -262,6 +264,19 @@ export async function prepareStamps() {
     fs.writeFileSync(imageHashesPath, JSON.stringify(imageHashes, null, 4));
 
     await plugins.emit('stampsPrepared', {this: this, items, composites, image, output: outputImagePath});
+};
+
+//lossless webp next to the png, a lot smaller. stampsWebp.js serves it to browsers that take it
+const makeWebp = async (pngPath, force) => {
+    const webpPath = pngPath.replace(/\.png$/, '.webp');
+    try {
+        if (!force && fs.existsSync(webpPath) && fs.statSync(webpPath).mtimeMs >= fs.statSync(pngPath).mtimeMs) return;
+        let webpStart = Date.now();
+        await sharp(pngPath).webp({ lossless: true, effort: 4 }).toFile(webpPath);
+        log.success('[Stamps] Saved lossless webp in', Date.now() - webpStart, 'ms');
+    } catch (error) {
+        log.warning('[Stamps] Could not make stamps.webp, png only:', error);
+    };
 };
 
 export const needsBorderCheck = async (sharpInstance) => {

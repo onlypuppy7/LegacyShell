@@ -12,6 +12,7 @@ import prepareModified from '#prepare-modified';
 import { spawn } from 'cross-spawn';
 import { prepareStamps } from '#stampsGenerator';
 import gzipStatic from './src/gzipStatic.js';
+import stampsWebp from './src/stampsWebp.js';
 //legacyshell: logging
 import log from 'puppylog';
 //legacyshell: ss
@@ -52,6 +53,7 @@ export default async function run () {
             app.listen(port);
 
             const gzipped = gzipStatic([path.join(ss.currentDir, 'store', 'client-modified'), path.join(ss.currentDir, 'src', 'client-static')]);
+            app.use(stampsWebp(path.join(ss.currentDir, 'store', 'client-modified', 'img', 'stamps.webp')));
             app.use(gzipped);
 
             await plugins.emit('onStartServer', { ss, app, ws });
