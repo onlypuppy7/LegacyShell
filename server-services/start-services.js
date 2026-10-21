@@ -181,9 +181,9 @@ export default async function run (runStart) {
             // Apparently, WS ips die after disconnect?
             // https://stackoverflow.com/questions/12444598/why-is-socket-remoteaddress-undefined-on-end-event
 
-            let ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || req.connection.remoteAddress;
-            // Unhashed, for plugins that need the real client address (legacyadmin's audit log).
-            const rawIp = ip;
+            // behind cloudflare the socket/xff ip is an edge node that changes per connection, cf-connecting-ip is the real client
+            const rawIp = req.headers['cf-connecting-ip'] || (req.headers['x-forwarded-for'] || "").split(",")[0].trim() || req.socket.remoteAddress || req.connection.remoteAddress;
+            let ip = rawIp;
 
             ws.on('message', async (message) => {
                 try {
@@ -203,7 +203,7 @@ export default async function run (runStart) {
                     ss.config.verbose && msg.cmd !=="servicesInfo" && (log.dim("Received cmd: "+msg.cmd+"; type: "+cmdType), console.log(msg));
     
                     if (ss.config.services.ratelimit.protect_ips)
-                        ip = crypto.createHash('md5').update(ip).digest('hex');
+                        ip = crypto.createHash('md5').update(rawIp).digest('hex'); //from rawIp, else it rehashes every message
     
                     let isAccepted;
     
