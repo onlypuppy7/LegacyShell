@@ -353,7 +353,7 @@ export const LegacyWeatherPlugin = {
     },
 
     loadSounds: function (data) {
-        data.soundsList.push(["sound/ambiance/rain.mp3", "rain"]);
+        data.soundsList.push(["sound/ambiance/rain.mp3", "rain", { preload: false }]);
 
         //thunder, with cue
         let thunderSrcs = [];

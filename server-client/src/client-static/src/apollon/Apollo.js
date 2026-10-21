@@ -72,8 +72,10 @@ stopAllSounds = function () {
  * loads a sound from a given source and saves it under the given name.
  * @param {String} src - the source of the media.
  * @param {String} name - the name of the sound.
+ * @param {Object} options - extra Howl options. { preload: false } skips downloading until the first play (and doesnt hold up loading), add html5: true to stream it instead of decoding it all.
  */
-function loadSound(src, name, onLoadingComplete) {
+function loadSound(src, name, onLoadingComplete, options = {}) {
+  const lazy = options.preload === false;
   if (APOLLO_LOG)
     console.log(`APOLLO: loadSound() called for ${name} via ${src} `);
   const loadTimeout = setTimeout(() => {
@@ -87,19 +89,26 @@ function loadSound(src, name, onLoadingComplete) {
     clearTimeout(loadTimeout);
     onLoadingComplete();
   };
-  let snd = new Howl({ src, onload: ()=>{
+  let snd = new Howl({ src, ...options, onload: ()=>{
+    if (lazy) return; //already set below, this is just the first play finishing the download
     setSound(name, snd);
     onload();
   }, onloaderror: (err, err2)=>{
     devlog(`APOLLO: sound ${name} failed to load!`, err, err2);
+    if (lazy) return;
     if (src.split(".").pop() == "mp3") {
       devlog("APOLLO: trying to load ogg instead for sound", name);
       clearTimeout(loadTimeout);
-      loadSound(src.replace("mp3", "ogg"), name, onLoadingComplete);
+      loadSound(src.replace("mp3", "ogg"), name, onLoadingComplete, options);
     } else {
       onload(err2);
     };
   }}); //create howl object
+  if (lazy) {
+    clearTimeout(loadTimeout);
+    setSound(name, snd);
+    onLoadingComplete();
+  };
 }
 
 /**
@@ -136,7 +145,7 @@ function loadCue(name, srcs) {
 //wait there is @example? Cool!
 /**
  * loads a list of sounds from a given list.
- * @param {Array} list - the list of sounds to load. each entry should be an array with the first element being the source and the second being the name.
+ * @param {Array} list - the list of sounds to load. each entry should be an array with the first element being the source and the second being the name. an optional third element is an options object, see loadSound().
  * @param {Function} onComplete - the function to call when all sounds have been loaded.
  * @returns {void}
  * @example loadSoundsFromList([["sound/1.mp3", "sound1"], ["sound/2.mp3", "sound2"]], () => console.log("all sounds loaded!"));
@@ -156,7 +165,7 @@ function loadSoundsFromList(list, onComplete) { //i hate this formatting, delete
 
   for (var i = 0; i < list.length; i++) {
     var sound = list[i];
-    loadSound(sound[0], sound[1], catComplete);
+    loadSound(sound[0], sound[1], catComplete, sound[2]);
   }
 }
 
@@ -174,6 +183,7 @@ function getSound(name) {
     return APOLLO_EMERGENCY_FALLBACK_SOUND;
   }
   if (sounds[sName] instanceof Cue) sName = sounds[sName].getSound();
+  if (sounds[sName].state() === "unloaded") sounds[sName].load(); //howler wont load preload: false sounds by itself, the play just gets queued till it does
   return sounds[sName];
 }
 

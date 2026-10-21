@@ -121,7 +121,7 @@ export const ParkourModePlugin = {
             ["sound/parkour/checkpoint4.mp3", "parkour.checkpoint4"],
             ["sound/parkour/checkpoint5.mp3", "parkour.checkpoint5"],
             ["sound/parkour/goal.mp3", "parkour.goal"],
-            ["sound/parkour/gerudo.mp3", "parkour.gerudo"],
+            ["sound/parkour/gerudo.mp3", "parkour.gerudo", { preload: false, html5: true }],
             ["sound/parkour/roundEnd.mp3", "parkour.roundEnd"],
         ];
     
