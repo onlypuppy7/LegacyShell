@@ -65,6 +65,8 @@ export const FancyItemsPlugin = {
         //the base muzzleFlash clone is assigned after this event, so wrap the property: the getter hands out
         //either the base or the fancy clone depending on the live setting, no reload needed
         let baseFlash, fancyFlash;
+        let setupDone = false;
+        Promise.resolve().then(() => setupDone = true); //setup is synchronous, so this flips once it has finished
         Object.defineProperty(gunActor, "muzzleFlash", {
             configurable: true,
             enumerable: true,
@@ -72,7 +74,8 @@ export const FancyItemsPlugin = {
                 baseFlash = mesh;
             },
             get: () => {
-                if (!baseFlash || !this.fancyMuzzleFlash.get() || !gunActor.scene.getMeshByName("muzzleFlash_Burnt")) return baseFlash;
+                //until setup has finished, hand out the base so setup's writes land on it
+                if (!baseFlash || !setupDone || !this.fancyMuzzleFlash.get() || !gunActor.scene.getMeshByName("muzzleFlash_Burnt")) return baseFlash;
 
                 if (!fancyFlash) {
                     fancyFlash = gunActor.scene.cloneMesh("muzzleFlash_Burnt", gunActor.playerActor.gunContainer);
