@@ -65,8 +65,10 @@ export class RoomConstructor {
         this.items = {};
 
         //scene init
-        this.engine = new BABYLON.NullEngine();
-        this.scene = new BABYLON.Scene(this.engine);
+        this.preload = ss.preload; //made by the worker while it was spare, map.babylon is already in it
+        ss.preload = null;
+        this.engine = this.preload?.engine ?? new BABYLON.NullEngine();
+        this.scene = this.preload?.scene ?? new BABYLON.Scene(this.engine);
         this.scene.room = this;
         this.map = null;
 
@@ -141,7 +143,10 @@ export class RoomConstructor {
         return new Promise(async (resolve, reject) => {
             try {
                 setParamsforLoader(minMap, this.Collider);
-                loadMapMeshes(this.scene, async () => {
+                const preload = this.preload; //only good for the first build, a rebuild loads them again like before
+                this.preload = null;
+                const loadMeshes = preload ? (scene, callback) => preload.done.then(callback) : loadMapMeshes;
+                loadMeshes(this.scene, async () => {
                     try {
                         ss.config.verbose && console.log("done loadMapMeshes");
 
