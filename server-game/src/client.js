@@ -42,7 +42,9 @@ class ClientConstructor {
 
         //
         this.session = info.session;
-        await this.updateUserData();
+        const userDataStart = Date.now();
+        await this.updateUserData(info.prefetchedUser);
+        console.log(`[join] user data ${info.prefetchedUser ? "was prefetched" : "asked for"}, took ${Date.now() - userDataStart}ms in the room`);
         // console.log(info.nickname, this.userData)
         //
         this.timeout = new TimeoutManagerConstructor();
@@ -198,10 +200,12 @@ class ClientConstructor {
         // console.log("upgradeProductId", this.userData.upgradeProductId, this.loggedIn ? this.userData.upgradeProductId : 0);
     };
 
-    async updateUserData() {
+    async updateUserData(prefetched) {
         var response;
 
-        if (this.session && this.session.length > 0) {
+        if (prefetched) {
+            response = prefetched; //main thread already got it from services (see servicesLink.js)
+        } else if (this.session && this.session.length > 0) {
             response = await wsrequest({
                 cmd: "getUser",
                 session: this.session,

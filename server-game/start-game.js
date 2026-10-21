@@ -10,6 +10,7 @@ import wsrequest from '#wsrequest';
 import WebSocket, { WebSocketServer } from 'ws';
 import Comm from '#comm';
 import rm from '#roomManager';
+import { getUser, warm as warmServicesLink } from './src/servicesLink.js';
 import { getMapsByAvailabilityAsInts, GameTypes, getMapPool } from '#gametypes';
 //legacyshell: logging
 import log from 'puppylog';
@@ -43,6 +44,7 @@ export default async function run () {
     function startServer() {
         const RoomManager = new rm.newRoomManager();
         ss.RoomManager = RoomManager;
+        warmServicesLink();
 
         const port = ss.config.game.port || 13372;
         const wss = new WebSocketServer({ port: port });
@@ -94,6 +96,8 @@ export default async function run () {
 
                                     ss.config.verbose && console.log(msg, Comm.Convert(msg.joinType), Comm.Convert(msg.gameType));
 
+                                    const userLookup = getUser(msg.session); //starts now, while the room is found/made
+
                                     let roomFound = RoomManager.searchRooms(msg);
                                     console.log("roomFound", !!roomFound);
 
@@ -103,7 +107,7 @@ export default async function run () {
                                             console.log("Comm.Close.gameFull");
                                             ws.close(Comm.Close.gameFull);
                                         } else {
-                                            await RoomManager.joinRoom(roomFound, msg, ws, ip);
+                                            await RoomManager.joinRoom(roomFound, msg, ws, ip, userLookup);
                                         };
                                     } else {
                                         console.log("Comm.Close.gameNotFound");

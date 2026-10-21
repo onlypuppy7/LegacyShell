@@ -296,7 +296,7 @@ class newRoomManager {
         return createdRoom;
     };
 
-    async joinRoom(room, msg, ws, ip) {
+    async joinRoom(room, msg, ws, ip, userLookup) {
         console.log("uuids", room.uuids, msg.uuid)
 
         // Lets a plugin reject a join before it happens at all (e.g. legacyadmin's global ban
@@ -333,6 +333,12 @@ class newRoomManager {
     
             msg.wsId = wsId;
             // msg.ip = ip;
+
+            //the worker uses this instead of asking services itself (null means it still will)
+            const lookupStart = Date.now();
+            msg.prefetchedUser = userLookup ? await userLookup : null;
+            console.log(`[join] services user ${msg.prefetchedUser ? "prefetched" : "not prefetched"}, waited ${Date.now() - lookupStart}ms for it`);
+
             room.worker.postMessage(["joinPlayer", msg]);
         };
     };
