@@ -30,7 +30,9 @@ const slowQuality = 11;
 //gzips on first request. brotli is made in the background by precompress(): everything at q9 flat out first, then q11 slowly, swapping each one in as it finishes.
 //dutyCycle is the share of the time each q11 thread is actually running (0.5 = takes twice as long but leaves the rest of the cpu alone).
 //cacheDir keeps the results on disk by content hash so a restart only has to redo what changed
+//patch(express) hooks express.static, so every static mount (plugins included) gets compressed in its own place in the mount order
 export default function gzipStatic(roots, { cacheDir, threads = 2, dutyCycle = 0.5 } = {}) {
+    const allRoots = [...roots];
     const gzipCache = new Map(); //filepath -> { mtimeMs, size, etag, promise }
     const brotliCache = new Map(); //filepath -> { mtimeMs, size, etag, buffer }
 
@@ -53,7 +55,7 @@ export default function gzipStatic(roots, { cacheDir, threads = 2, dutyCycle = 0
         next();
     });
 
-    const middleware = async (req, res, next) => {
+    const build = (roots) => async (req, res, next) => {
         try {
             if (req.method !== 'GET' && req.method !== 'HEAD') return next();
 
@@ -107,27 +109,45 @@ export default function gzipStatic(roots, { cacheDir, threads = 2, dutyCycle = 0
         };
     };
 
+    const middleware = build(allRoots);
+
+    middleware.forRoot = (root) => {
+        allRoots.push(root);
+        return build([root]);
+    };
+
+    //options (index, dotfiles, etc) are for express.static to enforce, so those mounts are left alone
+    middleware.patch = (express) => {
+        const original = express.static;
+        express.static = (root, options) => {
+            const serve = original(root, options);
+            if (options && Object.keys(options).length) return serve;
+            const compressed = middleware.forRoot(path.resolve(root));
+            return (req, res, next) => compressed(req, res, (error) => error ? next(error) : serve(req, res, next));
+        };
+    };
+
     //not awaited by the caller, so it never holds up the client starting
     middleware.precompress = async () => {
         const startTime = Date.now();
 
-        const files = new Map(); //url path -> { filepath, size, mtimeMs }, first root wins like express.static would
+        const files = new Map(); //filepath -> { urlPath, size, mtimeMs }, a file under two roots is only done once
         const walk = (root, dir) => {
             for (const dirent of fs.readdirSync(dir, { withFileTypes: true })) {
                 const filepath = path.join(dir, dirent.name);
                 if (dirent.isDirectory()) { walk(root, filepath); continue; };
                 if (!types[path.extname(dirent.name).toLowerCase()]) continue;
                 const urlPath = path.relative(root, filepath).split(path.sep).join('/');
-                if (files.has(urlPath)) continue;
+                if (files.has(filepath)) continue;
                 const stat = fs.statSync(filepath);
-                if (stat.size >= minSize) files.set(urlPath, { filepath, size: stat.size, mtimeMs: stat.mtimeMs });
+                if (stat.size >= minSize) files.set(filepath, { urlPath, size: stat.size, mtimeMs: stat.mtimeMs });
             };
         };
-        for (const root of roots) {
+        for (const root of allRoots) {
             try { walk(root, root); } catch (error) { log.warning(`Brotli: couldn't scan ${root}:`, error); };
         };
 
-        const list = [...files.entries()].map(([urlPath, file]) => ({ urlPath, ...file })).sort((a, b) => b.size - a.size); //biggest first, theyre the ones that matter
+        const list = [...files.entries()].map(([filepath, file]) => ({ filepath, ...file })).sort((a, b) => b.size - a.size); //biggest first, theyre the ones that matter
 
         const cacheName = (file, quality) => `${file.hash}.${quality}.br`;
         const readCached = (file, quality) => {

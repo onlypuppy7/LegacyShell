@@ -52,9 +52,9 @@ export default async function run () {
 
             app.listen(port);
 
-            const gzipped = gzipStatic([path.join(ss.currentDir, 'store', 'client-modified'), path.join(ss.currentDir, 'src', 'client-static')], { cacheDir: path.join(ss.currentDir, 'store', 'brotli-cache') });
+            const gzipped = gzipStatic([], { cacheDir: path.join(ss.currentDir, 'store', 'brotli-cache') });
+            gzipped.patch(express); //every express.static from here on, plugins included, is compressed where it is mounted
             app.use(stampsWebp(path.join(ss.currentDir, 'store', 'client-modified', 'img', 'stamps.webp')));
-            app.use(gzipped);
 
             await plugins.emit('onStartServer', { ss, app, ws });
 
