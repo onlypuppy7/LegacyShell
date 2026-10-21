@@ -37,7 +37,6 @@ ratelimit: #limit spammy requests
     reset_interval: 300 #in seconds
     cmds:
       - "validateLogin"
-      - "validateLoginViaAuthToken"
       - "validateRegister"
       - "feedback"
 
