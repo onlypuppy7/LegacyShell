@@ -6,7 +6,7 @@ Needs the DeadInternet plugin (the zombies are its bots) and the Modern Shell Ha
 
 ## How a round goes
 
-- Timed rounds (3 minutes), on the maps in the `Teams` pool. Humans are team 1, the horde is team 2. Nobody can switch teams.
+- Timed rounds (3 minutes), on the maps in the `Zombies` pool: `ZombiesModeMaps` in `shared.js` (Blue, Castle, Dirt, Feedlot, Moonbase, Ruins, Shellville, Shipyard, Two Towers). The plugin hooks services' `insertMaps` event, which fires for each map as it goes into the database on every services start, and adds a `Zombies` mode to those maps' `modes` (the gametype's `mapPool`); the other maps are not touched, so they never come up for this mode. Humans are team 1, the horde is team 2. Nobody can switch teams.
 - **Everyone is spawned into the round the moment it starts**, whether or not they pressed PLAY (the browser closes the menu and takes the pointer lock for them; if the browser refuses the lock without a click, the first click on the game does it). The horde follows after a head start (`headStartSecs`, 6) and spawns spread over `staggerSecs` (8), so nobody spawns into a horde that has already walked to the spawn. A human who still has not spawned in `spawnFailsafeSecs` (15) after the round started (or after they joined it) is infected.
 - The room keeps `count` (20) zombie bots in play while at least one human is in it. A killed zombie comes back after a few seconds. Zombies (the bots and the infected) spawn at a random spawn point with no human within `spawnClearRadius` (12 blocks, at most 40% of the map's size), so the horde is spread around the map rather than appearing on top of anyone.
 - **WAITING...** is shown in the middle of the screen to someone who is in play while it is the gap between two rounds. That is only ever someone who has joined during the gap: everyone in the room when a round ends is taken out of play, and the game does not let you spawn again until the next round starts. They are put into the next round when it starts. Whether it is the gap is sent by the server in the room params (`gameOptions.plugins.zombiesInterim`), rather than the browser working it out from the game's own round state, which depends on which packets it happened to be there for.
@@ -21,7 +21,7 @@ Needs the DeadInternet plugin (the zombies are its bots) and the Modern Shell Ha
 - **The sky** (with legacyweather): a round starts as an ordinary day, and within about 45 seconds (`dayHoldSecs` 4, then `darkenSecs` 40) has turned into a dark, stormy dusk with rain, wind and the odd bolt. From there it slowly gets darker and the storm builds, reaching night and a heavy storm by the end of the round. The clients blend between the few states the server sends, so it is a smooth change rather than steps. It goes back to the room's own weather when the round ends. `weatherArc: false` leaves the weather alone.
 - **Sudden death** starts when one human is left of two or more, or for a player on their own when `suddenDeathSecs` (60) are left: it goes to full night in a downpour with lightning every second or two, and every zombie (the bots and the infected) goes up to `suddenDeathSpeed` (0.9). The humans get a little quicker too: `suddenDeathHumanSpeed` (+0.2, so 1.3) and a `suddenDeathReload` (1.3) reload, up from the 1.2 reload they have the rest of the round (`reloadSpeedModifier` in the gametype). Each lightning strike then also makes the horde lunge for `surgeSecs` (2) at `surgeSpeed` (1.5x), via legacyweather's `thunderStrike` event. 
 - A new round cures everyone.
-- **Health packs** (from the healthpackitem plugin, when it is loaded) spawn in this gamemode, for the humans, at a quarter of the usual rate (one per 240 blocks of map, at least one): the horde walks over them without picking them up.
+- **Health packs** (from the healthpackitem plugin, when it is loaded) spawn in this gamemode, for the humans, at a quarter of the usual rate (one per 240 blocks of map, at least one). Health packs, ammo and grenades are for the humans only: the horde walks over them without taking anything.
 
 Infections and round results go to the room's chat (green lines from the server); only sudden death gets the on-screen pop-up.
 
@@ -53,7 +53,8 @@ Everything is in `gameOptions.plugins.zombies` (the gametype sets the defaults i
 | `headStartSecs` | 6 | how long into a round before the first zombie spawns |
 | `staggerSecs` | 8 | how long the horde takes to spawn in, spread out |
 | `spawnClearRadius` | 12 | zombies only spawn at spawn points with no human this close (blocks) |
-| `searchBudget` | 5000 | how hard a zombie looks for a way to someone (path search steps) |
+| `searchBudget` | 1500 | how hard a zombie looks for a way to someone (path search steps: a failed search spends all of them) |
+| `searchBudgetMs` | 6 | once the horde's route searches have taken this many ms in a tick, the others wait for a later one |
 | `zombieSpeed` | 0.65 | zombie bots' speed modifier. Not much lower than this: how far a bot can jump depends on its speed, and a two block gap tried from a four block run-up is too wide at 0.6 (and 0.62 is enough) |
 | `ghostRatio` | 1/6 | the share of the horde that are ghosts |
 | `ghostSpeed` / `ghostResistance` | 0.5 / 0.7 | a ghost's speed modifier (1 is the pace of a walking player) and resistance |
@@ -79,6 +80,14 @@ The horde's team options (`damageModifier`, `contactDamage`, `contactCooldown`, 
 node plugins_default/zombiesmode/test-zombies.js [map]    # Two Towers by default
 node plugins_default/zombiesmode/test-client-registration.js
 ```
+
+## Running it on a slow machine
+
+The cost of the mode is route searching (the zombies' AI is otherwise cheap): every search checks moves against the physics, and the first time a move is checked on a map it is expensive; the answers are then cached, per speed. On a cold cache a Pi 4 hangs for a second at a time while the horde works out its first routes; once the cache is warm it does not. So:
+
+- Fill the cache in advance, once per machine, for the zombies' speed (the bots' usual speed does not help, the cache is per speed): `node plugins_default/zombiesmode/warm-cache.js` (all the standard maps; or name some; `--searches N`, 2000 by default; a minute or two a map on a Pi). It is kept in `plugins_default/deadinternet/store/` and is thrown away whenever the physics or pathfinding code changes, so run it again after updating those. On a PC the worst tick in a test round went from about 1.3s to under 0.1s with it.
+- Fewer zombies cost proportionally less: `count` (20 by default; try 10-12 on a Pi 4).
+- The horde shares one route search budget per tick (`searchBudgetMs`), and the search for a way to someone out of reach is shared between them (and kept for a few seconds) instead of every zombie doing its own.
 
 `test-zombies.js` boots a real room headlessly with stand-in humans: the gametype, the horde and its head start, eggs, infection (by dying, by leaving through the menu, by joining late), sudden death, both ways a round can end, the next round (including everyone being spawned into it), where zombies spawn (and that the position is in the respawn packet), whether they reach and bite a standing human, whether they find their way up to a human a few levels higher, whether they jump a one block gap from a run-up, whether they get as close as they can to a human on a tower they cannot walk up, and that they wander when they are stuck on the way (`NOSWARM=1` turns that off to compare). Takes a minute or so.
 

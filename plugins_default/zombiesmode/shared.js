@@ -7,6 +7,10 @@ import { plugins } from '#plugins';
 // Spliced into the browser bundle as well as imported by the game server: the gametype has to exist on both sides, with the same
 // index. Everything else (the horde, infection, the round) is server-side and lives in index.js.
 
+// The maps this mode is played on (the rest are left out: the horde has to be able to get about them). index.js gives each of them the
+// "Zombies" mode when the maps are loaded into the database, which is what the gametype's map pool is made of.
+export const ZombiesModeMaps = ['Blue', 'Castle', 'Dirt', 'Feedlot', 'Moonbase', 'Ruins', 'Shellville', 'Shipyard', 'Two Towers'];
+
 // Per-room settings, read from gameOptions.plugins.zombies. A gametype (or another plugin) can change any of them.
 export const ZombiesModeDefaults = {
     count: 20,              //zombie bots kept alive in the room while there are humans
@@ -30,7 +34,8 @@ export const ZombiesModeDefaults = {
     headStartSecs: 6,       //the humans are in the round this long before the first zombie spawns
     staggerSecs: 8,         //...and the horde spawns spread over this long, rather than all at once
     spawnClearRadius: 12,   //zombies only spawn at spawn points with no human within this many blocks (at most 40% of the map's size)
-    searchBudget: 5000,     //how hard a zombie looks for a way to someone (a path search gives up after this many steps)
+    searchBudget: 1500,     //how hard a zombie looks for a way to someone (a path search gives up after this many steps: a failed one spends all of them)
+    searchBudgetMs: 6,      //the whole horde's route searching stops for the tick after this many ms (the rest carry on with the route they have)
     zombieSpeed: 0.65,      //zombie bots' speed modifier (not much lower: how far a bot can jump depends on its speed, and a two block gap is too wide for 0.6)
     zombieResistance: 0.7,  //...and resistance (it divides damage taken: 1 is a normal player, 0.5 dies twice as fast)
     ghostRatio: 1 / 6,      //the share of the horde (1 in 6) that are ghosts instead: they float straight through walls at whoever is nearest
@@ -152,7 +157,7 @@ export const ZombiesModePlugin = {
             shortName: "Zombies",
             longName: "Zombies",
             codeName: "zombies",
-            mapPool: "Teams", //humans are team 1, the horde team 2, so it needs maps with spawns for both
+            mapPool: "Zombies", //only ZombiesModeMaps (see above); humans are team 1, the horde team 2, so they have spawns for both
             options: {
                 teamsEnabled: true,
                 teamSwitchMaximumDifference: -999, //nobody may switch teams: infection is one way

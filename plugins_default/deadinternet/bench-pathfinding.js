@@ -42,6 +42,7 @@ if (isMainThread) {
     const coldSplit = has('--cold-split');
     const useStore = has('--store');
     const warmCount = parseInt(flag('--warm', '0'), 10);
+    const warmSpeed = parseFloat(flag('--speed', '1')); // the speed modifier --warm searches at (physics verdicts are cached per speed, rounded to 0.1)
     const speedTest = has('--speed-test');
     const abFile = flag('--ab', null); // path to another pathfinding module to compare routes against, in-process
     if (has('--verify-probes')) globalThis.__DI_VERIFY_PROBES = [];
@@ -139,6 +140,7 @@ if (isMainThread) {
                     const from = pick(i), to = pick(i + (i % 3));
                     player.respawn(from);
                     Object.assign(player, { x: from.x, y: from.y, z: from.z, dx: 0, dy: 0, dz: 0 });
+                    player.modifiers.speedModifier = warmSpeed;
                     mute();
                     const p = findPath(room, player, to, { snapGoal: true, allowPartial: true, maxExpansions: 2500 });
                     unmute();

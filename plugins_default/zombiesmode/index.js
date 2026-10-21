@@ -1,7 +1,7 @@
 //basic
 import path from 'node:path';
 //plugin: zombiesmode
-import { ZombiesModePlugin, ZombiesModeDefaults } from './shared.js';
+import { ZombiesModePlugin, ZombiesModeDefaults, ZombiesModeMaps } from './shared.js';
 import { DeadInternetBot, registerPreset, findPath, isStandable } from '../deadinternet/index.js';
 import { hasGroundAhead } from '../deadinternet/combat.js';
 import Player from '#player';
@@ -90,6 +90,9 @@ function getState(room) {
             suddenDeath: false,
             winner: null,           //'humans' | 'zombies', set when the round is ended early
             bots: [],               //DeadInternetBots making up the horde
+            searchFrame: 0,         //when the tick the route searches are being paid for began (performance.now())
+            searchCost: 0,          //...and what they have cost so far this tick, in ms
+            searchEnd: 0,           //...and when the last of them finished
             filling: false,         //fillHorde() is running
             eggs: new Map(),        //player id -> kill eggs earned this round
             savedEnv: null,         //weather and time as they were before the round changed them
@@ -139,6 +142,7 @@ export class Plugin {
         ZombiesModePlugin.blockFire(Player);
         this.plugins.on('client:pluginSourceInsertion', this.pluginSourceInsertion.bind(this));
         this.plugins.on('client:shaderSources', this.shaderSources.bind(this));
+        this.plugins.on('services:insertMaps', this.insertMaps.bind(this));
 
         this.plugins.on('game:metaLoop', this.metaLoop.bind(this));
         this.plugins.on('game:playerUpdate', this.playerUpdate.bind(this));
@@ -368,14 +372,17 @@ export class Plugin {
     };
 
     // Health packs (the healthpackitem plugin, enabled for this gamemode in shared.js) are for the humans: the horde walks over them.
+    // Pickups (health, ammo, grenades) are for the humans: the horde walks over them without taking anything, and they stay where they are.
     itemsLoaded(data) {
-        const health = data.AllItems[data.ItemTypes.HEALTH];
-        if (!health || health.zombiesWrapped) return;
-        health.zombiesWrapped = true;
-        const collect = health.collect;
-        health.collect = function (player, applyToWeaponIdx) {
-            if (isZombieRoom(player.room) && player.team === HORDE) return false;
-            return collect.call(this, player, applyToWeaponIdx);
+        for (const type of [data.ItemTypes.HEALTH, data.ItemTypes.AMMO, data.ItemTypes.GRENADE]) {
+            const item = type === undefined ? null : data.AllItems[type];
+            if (!item || item.zombiesWrapped) continue;
+            item.zombiesWrapped = true;
+            const collect = item.collect;
+            item.collect = function (player, applyToWeaponIdx) {
+                if (isZombieRoom(player.room) && player.team === HORDE) return false;
+                return collect.call(this, player, applyToWeaponIdx);
+            };
         };
     };
 
@@ -586,6 +593,13 @@ export class Plugin {
         room.updateRoomParamsForClients();
     };
 
+    // Services is putting the maps into its database: the ones this mode is played on get a "Zombies" mode (their other modes are left as they were).
+    insertMaps(data) {
+        const map = data.map;
+        if (!ZombiesModeMaps.includes(map.name)) return;
+        map.modes = { FFA: true, Teams: true, ...(map.modes ?? {}), Zombies: true };
+    };
+
     // Ghosts are see-through: a copy of the shared player shader (zombievisuals.js makes the materials) that gives up part of its alpha and glows (lit towards white, whatever the light: at night the lit egg is nearly black, and it would blend into the dark as a black ghost).
     shaderSources(data) {
         if (!data.shaders.pixel.includes('//@pixelPreFog')) return;
@@ -626,16 +640,30 @@ export class Plugin {
         bot.player.changeModifiers({ speedModifier: cfg.zombieSpeed });
         //when there is no way to someone, the route it settles for is the closest point the search got to, so a bigger search budget than the
         //bots' default (which is sized for a target that can be reached) gets it a lot closer
-        const pathTo = bot.pathTo.bind(bot);
+        const rawPathTo = bot.pathTo.bind(bot);
+        //Searching is what costs: a few searches in the same tick is how a slow server stalls, since each is a lot of physics. They are paid for
+        //out of one budget per tick for the whole horde: once it is spent the other zombies carry on with the route they have (or wait a tick for
+        //one), and search on a later tick.
+        const pathTo = (target, search) => {
+            const t0 = performance.now();
+            //A new tick is when the last search ended a while ago (one tick's steps for the whole horde run back to back, a few ms), or, if the
+            //server is so far behind that ticks run back to back too, when this budget is old enough that the horde must not go on waiting for it.
+            if (t0 - z.searchEnd > 8 || t0 - z.searchFrame > 50) { z.searchFrame = t0; z.searchCost = 0; };
+            if (z.searchCost >= cfg.searchBudgetMs) return bot.currentPath ?? null;
+            const route = rawPathTo(target, search);
+            z.searchEnd = performance.now();
+            z.searchCost += z.searchEnd - t0;
+            return route;
+        };
         bot.pathTo = (target, opts = {}) => {
             const search = { maxExpansions: cfg.searchBudget, ...opts };
-            if (!opts.chase) return pathTo(target, search);
+            if (!opts.chase) return rawPathTo(target, search);
             const now = Date.now(), near = bot.zAlt && Math.hypot(target.x - bot.zAlt.human.x, target.y - bot.zAlt.human.y, target.z - bot.zAlt.human.z) < 1.5;
             if (near && bot.zAlt.cell && now < bot.zAlt.until) return pathTo(bot.zAlt.cell, search); //still going to the spot it chose
             const route = pathTo(target, search);
             if (route && !route.partial) { bot.zAlt = null; return route; };
             if (near && now < bot.zAlt.until) return route; //looked a moment ago and found nothing
-            const cell = this.reachableNear(bot, target, cfg);
+            const cell = this.cachedReachableNear(bot, target, cfg);
             bot.zAlt = { human: { x: target.x, y: target.y, z: target.z }, cell, until: now + (cell ? 3000 : 2000) };
             return cell ? pathTo(cell, { ...search, force: true }) : route;
         };
@@ -650,6 +678,19 @@ export class Plugin {
 
     // No way to someone (they are up somewhere nothing leads to): the blocks around them, in the 5x5 columns centred on theirs, are tried
     // for one with a route, closest to them first, and the first that has one is where the zombie goes instead.
+    // The answer is the same for every zombie going after the same human, so it is worked out once per spot for a few seconds, for the whole
+    // room: each search is expensive (a failed one spends its whole budget), and a horde of them all doing it at once is what hangs a slow server.
+    cachedReachableNear(bot, target, cfg) {
+        const near = getState(bot.room).near ??= new Map();
+        const key = `${Math.floor(target.x)},${Math.floor(target.y)},${Math.floor(target.z)}`, now = Date.now();
+        const known = near.get(key);
+        if (known && now - known.at < 5000) return known.cell;
+        if (near.size > 50) near.clear();
+        const cell = this.reachableNear(bot, target, cfg);
+        near.set(key, { cell, at: now });
+        return cell;
+    };
+
     reachableNear(bot, target, cfg) {
         const map = bot.room.map, p = bot.player;
         const cx = Math.floor(target.x), cy = Math.floor(target.y), cz = Math.floor(target.z);
@@ -660,9 +701,9 @@ export class Plugin {
             cells.push({ x, y, z, d: Math.hypot(x + 0.5 - target.x, y - target.y, z + 0.5 - target.z) });
         };
         cells.sort((a, b) => a.d - b.d);
-        for (const c of cells) {
+        for (const c of cells.slice(0, 12)) { //(the closest few: a search that fails spends its whole budget)
             const goal = { x: c.x + 0.5, y: c.y, z: c.z + 0.5 };
-            const route = findPath(bot.room, p, goal, { maxExpansions: cfg.searchBudget });
+            const route = findPath(bot.room, p, goal, { maxExpansions: Math.min(cfg.searchBudget, 800) });
             if (route && !route.partial) return goal;
         };
         return null;

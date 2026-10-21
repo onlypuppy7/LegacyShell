@@ -54,7 +54,7 @@ if (isMainThread) {
         if (process.env.NOSWARM) zombies.pluginInstance.zombieMove = () => {}; //to compare with zombies that just wait
         const RoomConstructor = (await import('#rooms')).default;
         const Comm = (await import('#comm')).default;
-        const { GameType } = await import('#gametypes');
+        const { GameType, GameTypes } = await import('#gametypes');
         const { TickStep, iteratePlayers, ItemType } = await import('#constants');
         await sleep(100); //GameType is filled in by an async block
         unmute();
@@ -132,6 +132,12 @@ if (isMainThread) {
             assert('...a human can pick one up, and is healed', humanGot === true && H1.hp === 100, `${humanGot} ${H1.hp}`);
             assert('...the horde cannot, and the pack stays put', zombieGot === false && z0.hp === 50, `${zombieGot} ${z0.hp}`);
             z0.hp = 100;
+            const ammo = items.AllItems[items.ItemTypes.AMMO], grenade = items.AllItems[items.ItemTypes.GRENADE];
+            for (const p of [z0, H1]) { p.weapons[0].ammo.store = 0; p.grenadeCount = 0; };
+            const got = { ammoZ: ammo.collect(z0, 0), ammoH: ammo.collect(H1, 0), grenadeZ: grenade.collect(z0, 0), grenadeH: grenade.collect(H1, 0) };
+            assert('...nor ammo or grenades, which humans can', got.ammoZ === false && got.grenadeZ === false && got.ammoH === true && got.grenadeH === true, JSON.stringify(got));
+            assert('...and their stock does not change', z0.weapons[0].ammo.store === 0 && z0.grenadeCount === 0);
+            H1.grenadeCount = 0; H1.weapons[0].ammo.store = 0;
         };
         assert('zombies are on team 2', zs.every((p) => p.team === 2), zs.map((p) => p.team).join());
         const baseSpeeds = zs.map((p) => p.modifiers.speedModifier);
@@ -593,6 +599,17 @@ if (isMainThread) {
             for (const team of [2, 1]) for (const method of ['fire', 'pullTrigger']) { try { PlayerClass.prototype[method].call(shooter(team)); } catch { threw[team + method] = true; } }
             assert('the infected cannot fire or pull the trigger (the original code never runs)', !threw['2fire'] && !threw['2pullTrigger'], JSON.stringify(threw));
             assert('...and everyone else still can', threw['1fire'] && threw['1pullTrigger'], JSON.stringify(threw));
+        };
+
+        // ---- the maps ----
+        {
+            const insert = (map) => { zombies.pluginInstance.insertMaps({ map }); return map; };
+            const castle = insert({ name: 'Castle', modes: { FFA: true, Teams: true, Hiroshima: false } });
+            assert('the maps the mode is played on get the Zombies mode, and keep the rest', castle.modes.Zombies === true && castle.modes.FFA === true && castle.modes.Teams === true && castle.modes.Hiroshima === false, JSON.stringify(castle.modes));
+            assert('...including one with no modes of its own', JSON.stringify(insert({ name: 'Two Towers' }).modes) === JSON.stringify({ FFA: true, Teams: true, Zombies: true }));
+            const other = insert({ name: 'Flat', modes: { FFA: true, Teams: true } });
+            assert('other maps are left alone', other.modes.Zombies === undefined && Object.keys(other.modes).length === 2, JSON.stringify(other.modes));
+            assert('the gametype draws from that pool', GameType.zombies !== undefined && GameTypes.find((g) => g.codeName === 'zombies').mapPool === 'Zombies');
         };
 
         say(`\n${passed} passed, ${failed} failed`);
