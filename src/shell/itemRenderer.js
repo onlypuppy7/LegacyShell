@@ -24,8 +24,11 @@ export function ItemRenderer(onMeshesReady) {
     loadMaterials(this.scene);
     devlog("loading meshes for item renderer");
     var split = typeof splitGuns === "function" ? splitGuns(itemRendererBabylons) : { first: itemRendererBabylons, later: [] }; //the admin bundle has no splitGuns, just loads everything
-    loadMeshes(this.scene, split.first, null, onMeshesReady || function () {});
-    split.later.length && loadMeshesLater(this.scene, split.later);
+    split.later.length && markPending(this.scene, split.later);
+    loadMeshes(this.scene, split.first, null, split.later.length ? function () {
+        onMeshesReady && onMeshesReady();
+        loadMeshesLater(this.scene, split.later);
+    }.bind(this) : onMeshesReady || function () {});
     this.stampSprites = new BABYLON.SpriteManager("", "img/stamps.png?v=LEGACYSHELLSTAMPSPNG", 256000, stampSize, this.scene);
     this.camera = new BABYLON.ArcRotateCamera("", 0, 0, 0, new BABYLON.Vector3(0, 0, 0), this.scene);
     this.scene.activeCameras.push(this.camera);
