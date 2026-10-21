@@ -52,7 +52,7 @@ export default async function run () {
 
             app.listen(port);
 
-            const gzipped = gzipStatic([path.join(ss.currentDir, 'store', 'client-modified'), path.join(ss.currentDir, 'src', 'client-static')]);
+            const gzipped = gzipStatic([path.join(ss.currentDir, 'store', 'client-modified'), path.join(ss.currentDir, 'src', 'client-static')], { cacheDir: path.join(ss.currentDir, 'store', 'brotli-cache') });
             app.use(stampsWebp(path.join(ss.currentDir, 'store', 'client-modified', 'img', 'stamps.webp')));
             app.use(gzipped);
 
