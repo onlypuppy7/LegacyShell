@@ -464,8 +464,9 @@ export class RoomConstructor {
             // console.log(client.id, client.clientIsReady);
             // console.log("lastSeenDelta", client.lastSeenDelta, "lastPingDelta", client.lastPingDelta);
 
-            if ((client.lastPingDelta > 15e3) && !client.noConnectionTimeout) { // kick if over 15 secs since last connection
-                log.orange("closing ws with id", client.id, "due to 15s connection timeout");
+            var connectionTimeout = client.clientIsReady ? 15e3 : 45e3; //still loading (no clientReady yet) gets longer, a tab in the background can stall its map build
+            if ((client.lastPingDelta > connectionTimeout) && !client.noConnectionTimeout) { // kick if over 15 secs since last connection (45 while still loading)
+                log.orange("closing ws with id", client.id, `due to ${connectionTimeout / 1e3}s connection timeout`);
                 client.sendCloseToWs();
             };
             if (client.lastSeenDelta > 5 * 60e3) { // kick if idle for 5 mins
