@@ -85,6 +85,7 @@ class ClientConstructor {
         );
         await this.instantiatePlayer();
         // await this.applyLoadout();
+        info.joinStart && console.log(`[join] player instantiated, ${Date.now() - info.joinStart}ms since joinGame arrived`);
 
         this.room.registerPlayerClient(this);
 
@@ -103,6 +104,8 @@ class ClientConstructor {
 
         output.packVeryLongString(JSON.stringify(extraInfo));
         this.sendBuffer(output, "packGameJoined"); //buffer cause not clientReady
+        this.gameJoinedAt = Date.now();
+        info.joinStart && console.log(`[join] gameJoined sent, ${this.gameJoinedAt - info.joinStart}ms since joinGame arrived`);
 
         this.room.updateRoomDetails();
 
@@ -223,6 +226,7 @@ class ClientConstructor {
     async clientReady() {
         if (!this.clientIsReady) {
             this.clientIsReady = true;
+            this.gameJoinedAt && console.log(`[join] clientReady received, ${Date.now() - this.gameJoinedAt}ms after gameJoined was sent`);
 
             // console.log()
 

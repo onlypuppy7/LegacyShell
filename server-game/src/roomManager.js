@@ -24,6 +24,8 @@ const highestRoomID = Math.pow(36, id_length) - 1;
 
 export var gameInfo = {};
 
+const spareWorkerDelay = 6e3; //ms before the replacement spare worker starts loading
+
 class newRoomManager {
     constructor() {
         (Math);
@@ -174,9 +176,18 @@ class newRoomManager {
         };
     }
 
+    //the next spare spends seconds loading plugins and parsing the map, which is a lot to do on the same cpu while the player it was just taken for is joining.
+    //so it starts a bit later. if another room is made before then, that one makes its own worker like it always did when the spare wasnt ready
     getRoomWorker() {
+        if (!this.roomWorker) this.createRoomWorker();
         const oldRoom = this.roomWorker;
-        this.createRoomWorker();
+        this.roomWorker = null;
+
+        clearTimeout(this.spareTimer);
+        this.spareTimer = setTimeout(() => {
+            if (!this.roomWorker) this.createRoomWorker();
+        }, spareWorkerDelay);
+
         return oldRoom;
     };
 
@@ -337,7 +348,7 @@ class newRoomManager {
             //the worker uses this instead of asking services itself (null means it still will)
             const lookupStart = Date.now();
             msg.prefetchedUser = userLookup ? await userLookup : null;
-            console.log(`[join] services user ${msg.prefetchedUser ? "prefetched" : "not prefetched"}, waited ${Date.now() - lookupStart}ms for it`);
+            console.log(`[join] services user ${msg.prefetchedUser ? "prefetched" : "not prefetched"}, waited ${Date.now() - lookupStart}ms for it, ${Date.now() - msg.joinStart}ms since joinGame arrived`);
 
             room.worker.postMessage(["joinPlayer", msg]);
         };

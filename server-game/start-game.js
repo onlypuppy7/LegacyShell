@@ -96,6 +96,7 @@ export default async function run () {
 
                                     ss.config.verbose && console.log(msg, Comm.Convert(msg.joinType), Comm.Convert(msg.gameType));
 
+                                    msg.joinStart = Date.now(); //for the [join] timers
                                     const userLookup = getUser(msg.session); //starts now, while the room is found/made
 
                                     let roomFound = RoomManager.searchRooms(msg);
