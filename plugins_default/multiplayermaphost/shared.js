@@ -36,7 +36,7 @@ export const MultiplayerMapHost = {
             joinType = Comm.Code.createPrivateGame;
 
             try {
-                notify("Sending custom map...");
+                notify("Sending custom map...", 3000);
                 data.extraParams.customMinMap = JSON.parse(localStorage.getItem("mapBackup"));
                 console.log("derived custom minMap from localStorage, lets hope the best for the server!!");
             } catch (error) {
