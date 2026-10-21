@@ -26,6 +26,8 @@ export function ItemRenderer(onMeshesReady) {
     this.meshesStarted = false;
     this.meshesReady = false;
     this.waitingTiles = [];
+    this.meshesDone = false;
+    this.doneCallbacks = [];
     //the main client doesnt need any of the meshes until a tile is drawn, so they load once startup is done (or when a tile asks first). the admin passes a callback and wants them straight away
     if (onMeshesReady) this.loadMeshes();
     else devlog("item renderer meshes deferred, loading once startup is done or a tile needs them");
@@ -39,20 +41,37 @@ ItemRenderer.prototype.loadMeshes = function () {
     if (this.meshesStarted) return;
     this.meshesStarted = true;
 
-    devlog("loading meshes for item renderer");
-    var split = typeof splitGuns === "function" ? splitGuns(itemRendererBabylons) : { first: itemRendererBabylons, later: [] }; //the admin bundle has no splitGuns, just loads everything
-    split.later.length && markPending(this.scene, split.later);
-    loadMeshes(this.scene, split.first, null, function () {
-        devlog("item renderer meshes loaded, drawing", this.waitingTiles.length, "waiting tiles");
-        this.meshesReady = true;
-        this.onMeshesReady && this.onMeshesReady();
+    var start = function () {
+        devlog("loading meshes for item renderer");
+        var split = typeof splitGuns === "function" ? splitGuns(itemRendererBabylons) : { first: itemRendererBabylons, later: [] }; //the admin bundle has no splitGuns, just loads everything
+        split.later.length && markPending(this.scene, split.later);
+        loadMeshes(this.scene, split.first, null, function () {
+            devlog("item renderer meshes loaded, drawing", this.waitingTiles.length, "waiting tiles");
+            this.meshesReady = true;
+            this.onMeshesReady && this.onMeshesReady();
 
-        var waiting = this.waitingTiles;
-        this.waitingTiles = [];
-        waiting.forEach(function (render) { render() });
+            var waiting = this.waitingTiles;
+            this.waitingTiles = [];
+            waiting.forEach(function (render) { render() });
 
-        split.later.length && loadMeshesLater(this.scene, split.later);
-    }.bind(this));
+            if (split.later.length) loadMeshesLater(this.scene, split.later, this.finishMeshes.bind(this));
+            else this.finishMeshes();
+        }.bind(this));
+    }.bind(this);
+
+    if (this.beforeMeshes) this.beforeMeshes(start); //the main client uses this to let the customiser's own guns go first
+    else start();
+};
+ItemRenderer.prototype.finishMeshes = function () {
+    devlog("item renderer meshes all loaded");
+    this.meshesDone = true;
+    var callbacks = this.doneCallbacks;
+    this.doneCallbacks = [];
+    callbacks.forEach(function (callback) { callback() });
+};
+ItemRenderer.prototype.whenMeshesDone = function (callback) {
+    if (this.meshesDone) callback();
+    else this.doneCallbacks.push(callback);
 };
 ItemRenderer.prototype.renderToCanvas = function (meshName, destCanvas, cam) {
     if (!this.meshesReady) { //drawn once they are
