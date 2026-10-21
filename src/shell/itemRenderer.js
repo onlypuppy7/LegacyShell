@@ -22,20 +22,45 @@ export function ItemRenderer(onMeshesReady) {
         diffuse: new BABYLON.Color3.White()
     };
     loadMaterials(this.scene);
-    devlog("loading meshes for item renderer");
-    var split = typeof splitGuns === "function" ? splitGuns(itemRendererBabylons) : { first: itemRendererBabylons, later: [] }; //the admin bundle has no splitGuns, just loads everything
-    split.later.length && markPending(this.scene, split.later);
-    loadMeshes(this.scene, split.first, null, split.later.length ? function () {
-        onMeshesReady && onMeshesReady();
-        loadMeshesLater(this.scene, split.later);
-    }.bind(this) : onMeshesReady || function () {});
+    this.onMeshesReady = onMeshesReady;
+    this.meshesStarted = false;
+    this.meshesReady = false;
+    this.waitingTiles = [];
+    //the main client doesnt need any of the meshes until a tile is drawn, so they load once startup is done (or when a tile asks first). the admin passes a callback and wants them straight away
+    if (onMeshesReady) this.loadMeshes();
+    else devlog("item renderer meshes deferred, loading once startup is done or a tile needs them");
     this.camera = new BABYLON.ArcRotateCamera("", 0, 0, 0, new BABYLON.Vector3(0, 0, 0), this.scene);
     this.scene.activeCameras.push(this.camera);
     this.camera.fov = .5;
     this.camera.maxZ = 100;
     this.camera.minZ = .1;
 };
+ItemRenderer.prototype.loadMeshes = function () {
+    if (this.meshesStarted) return;
+    this.meshesStarted = true;
+
+    devlog("loading meshes for item renderer");
+    var split = typeof splitGuns === "function" ? splitGuns(itemRendererBabylons) : { first: itemRendererBabylons, later: [] }; //the admin bundle has no splitGuns, just loads everything
+    split.later.length && markPending(this.scene, split.later);
+    loadMeshes(this.scene, split.first, null, function () {
+        devlog("item renderer meshes loaded, drawing", this.waitingTiles.length, "waiting tiles");
+        this.meshesReady = true;
+        this.onMeshesReady && this.onMeshesReady();
+
+        var waiting = this.waitingTiles;
+        this.waitingTiles = [];
+        waiting.forEach(function (render) { render() });
+
+        split.later.length && loadMeshesLater(this.scene, split.later);
+    }.bind(this));
+};
 ItemRenderer.prototype.renderToCanvas = function (meshName, destCanvas, cam) {
+    if (!this.meshesReady) { //drawn once they are
+        this.waitingTiles.length || devlog("item renderer tile wanted before its meshes were loaded, starting them now:", meshName);
+        this.waitingTiles.push(() => this.renderToCanvas(meshName, destCanvas, cam));
+        return this.loadMeshes();
+    };
+
     this.engine.clear();
     this.camera.alpha = 0;
     this.camera.beta = Math.PI90;
@@ -68,6 +93,7 @@ ItemRenderer.prototype.renderToCanvas = function (meshName, destCanvas, cam) {
 };
 //the sheet is big to decode and upload, so it isnt loaded with everything else. kicked off once startup is done, or by the first stamp tile that needs it
 ItemRenderer.prototype.loadStampSheet = function () {
+    if (!this.stampSprites) devlog("loading stamp sheet for item renderer");
     if (!this.stampSprites) this.stampSprites = new BABYLON.SpriteManager("", "img/stamps.png?v=LEGACYSHELLSTAMPSPNG", 16, stampSize, this.scene);
     return this.stampSprites._spriteTexture;
 };
