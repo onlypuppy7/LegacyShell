@@ -23,7 +23,9 @@ export function ItemRenderer(onMeshesReady) {
     };
     loadMaterials(this.scene);
     devlog("loading meshes for item renderer");
-    loadMeshes(this.scene, itemRendererBabylons, null, onMeshesReady || function () {});
+    var split = typeof splitGuns === "function" ? splitGuns(itemRendererBabylons) : { first: itemRendererBabylons, later: [] }; //the admin bundle has no splitGuns, just loads everything
+    loadMeshes(this.scene, split.first, null, onMeshesReady || function () {});
+    split.later.length && loadMeshesLater(this.scene, split.later);
     this.stampSprites = new BABYLON.SpriteManager("", "img/stamps.png?v=LEGACYSHELLSTAMPSPNG", 256000, stampSize, this.scene);
     this.camera = new BABYLON.ArcRotateCamera("", 0, 0, 0, new BABYLON.Vector3(0, 0, 0), this.scene);
     this.scene.activeCameras.push(this.camera);
@@ -59,6 +61,7 @@ ItemRenderer.prototype.renderToCanvas = function (meshName, destCanvas, cam) {
         ctx.clearRect(0, 0, 256, 256), ctx.drawImage(this.canvas, 0, 0);
     } catch (error) {
         devlog("WARNING: the following mesh wasn't found!", meshName);
+        typeof waitForMesh === "function" && waitForMesh(this.scene, meshName, () => this.renderToCanvas(meshName, destCanvas, cam));
     };
 };
 ItemRenderer.prototype.renderStampToCanvas = function (stampItem, destCanvas) {
