@@ -202,8 +202,10 @@ export default async function run (runStart) {
                     
                     ss.config.verbose && msg.cmd !=="servicesInfo" && (log.dim("Received cmd: "+msg.cmd+"; type: "+cmdType), console.log(msg));
     
+                    ip = rawIp; //from rawIp, else it rehashes every message
                     if (ss.config.services.ratelimit.protect_ips)
-                        ip = crypto.createHash('md5').update(rawIp).digest('hex'); //from rawIp, else it rehashes every message
+                        ip = crypto.createHash('md5').update(rawIp).digest('hex');
+                    ip = (rawIp.includes(":") ? "6" : "4") + ip; //family prefix, sessions allow one ip per family
     
                     let isAccepted;
     

@@ -45,10 +45,17 @@ const exported = {
     
             ss.config.verbose && console.log(session, ip_address);
     
-            if (session.ip_address !== ip_address && !readOnly) {
-                ss.config.verbose && log.info("reason for session deletion: ip mismatch "+session_id);
-                await exported.deleteAllSessionsForUser(session.user_id);
-                return null;
+            const known = session.ip_address.split(",");
+            if (!known.includes(ip_address) && !readOnly) {
+                //dual stack clients hop between ipv4 and ipv6, so a session may bind one ip per family
+                if (known.length < 2 && known.every(k => k[0] !== ip_address[0])) {
+                    session.ip_address += "," + ip_address;
+                    await ss.runQuery(`UPDATE sessions SET ip_address = ? WHERE session_id = ?`, [session.ip_address, session_id]);
+                } else {
+                    ss.config.verbose && log.info("reason for session deletion: ip mismatch "+session_id);
+                    await exported.deleteAllSessionsForUser(session.user_id);
+                    return null;
+                };
             };
     
             log.green(`Session retrieved for session_id: ${session_id}`);
