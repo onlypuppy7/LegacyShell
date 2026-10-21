@@ -29,7 +29,6 @@ export function ItemRenderer(onMeshesReady) {
         onMeshesReady && onMeshesReady();
         loadMeshesLater(this.scene, split.later);
     }.bind(this) : onMeshesReady || function () {});
-    this.stampSprites = new BABYLON.SpriteManager("", "img/stamps.png?v=LEGACYSHELLSTAMPSPNG", 256000, stampSize, this.scene);
     this.camera = new BABYLON.ArcRotateCamera("", 0, 0, 0, new BABYLON.Vector3(0, 0, 0), this.scene);
     this.scene.activeCameras.push(this.camera);
     this.camera.fov = .5;
@@ -67,9 +66,17 @@ ItemRenderer.prototype.renderToCanvas = function (meshName, destCanvas, cam) {
         typeof waitForMesh === "function" && waitForMesh(this.scene, meshName, () => this.renderToCanvas(meshName, destCanvas, cam));
     };
 };
+//the sheet is big to decode and upload, so it isnt loaded with everything else. kicked off once startup is done, or by the first stamp tile that needs it
+ItemRenderer.prototype.loadStampSheet = function () {
+    if (!this.stampSprites) this.stampSprites = new BABYLON.SpriteManager("", "img/stamps.png?v=LEGACYSHELLSTAMPSPNG", 16, stampSize, this.scene);
+    return this.stampSprites._spriteTexture;
+};
 ItemRenderer.prototype.renderStampToCanvas = function (stampItem, destCanvas) {
+    var texture = this.loadStampSheet();
+    if (!texture.isReady() || !texture._texture.width) return texture.onLoadObservable.addOnce(() => this.renderStampToCanvas(stampItem, destCanvas));
+
     var s = new BABYLON.Sprite("", this.stampSprites);
-    var widthheight = this.stampSprites._spriteTexture._texture.width / stampSize
+    var widthheight = texture._texture.width / stampSize
     var x = stampItem.item_data.x;
     var y = stampItem.item_data.y;
 
