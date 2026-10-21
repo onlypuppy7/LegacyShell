@@ -295,7 +295,7 @@ class ClientConstructor {
 
                 if (msg.cmd !== Comm.Code.sync && msg.cmd !== Comm.Code.syncData && msg.cmd !== Comm.Code.ping) {
                     this.player.lastActivity = Date.now(); //excludes pings (ie idle for 5 mins)
-                    console.log(this.id, "received:", Comm.Convert(msg.cmd));
+                    // console.log(this.id, "received:", Comm.Convert(msg.cmd));
                 };
 
                 switch (msg.cmd) {
@@ -710,7 +710,7 @@ class ClientConstructor {
     };
 
     sendBuffer(output, debug) { // more direct operation, preferred to use this.room.sendToOne
-        if (!(debug.includes("sync") || debug.includes("ping") || debug.includes("dataSync"))) console.log(this.id, debug, output.idx);
+        // if (!(debug.includes("sync") || debug.includes("ping") || debug.includes("dataSync"))) console.log(this.id, debug, output.idx);
         this.sendMsgToWs(output.buffer);
     };
 

@@ -62,7 +62,7 @@ export default async function run () {
                         while (input.isMoreDataAvailable()) {
                             let msg = {};
                             msg.cmd = input.unPackInt8U();
-                            console.log(Comm.Convert(msg.cmd));
+                            // console.log(Comm.Convert(msg.cmd));
 
                             switch (msg.cmd) {
                                 case Comm.Code.joinGame:

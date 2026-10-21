@@ -508,7 +508,7 @@ class Player {
             this.setJumping(false);
             var pdy = out.dy;
             if (out.corrections) {
-                pdy += out.corrected.dy / 6;
+                pdy += out.corrected.dy / FramesBetweenSyncs;
                 out.corrections--
             };
             out.dy += .014 * out.ddy * out.delta;
@@ -543,9 +543,9 @@ class Player {
             var pdz = (pdy = out.dy, out.dz);
 
             if (out.corrections) {
-                pdx += out.corrected.dx / 6;
-                this.jumping || (pdy += out.corrected.dy / 6);
-                pdz += out.corrected.dz / 6, out.corrections--;
+                pdx += out.corrected.dx / FramesBetweenSyncs;
+                this.jumping || (pdy += out.corrected.dy / FramesBetweenSyncs);
+                pdz += out.corrected.dz / FramesBetweenSyncs, out.corrections--;
             };
 
             if (this.jumping && this.jumps === 0) {
