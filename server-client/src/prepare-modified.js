@@ -160,9 +160,6 @@ async function modifyFiles(babylonsDone) {
         };
         const housePromoPath = path.join(ss.currentDir, 'src', 'client-static', 'housePromo.json');
         const bakedHousePromo = fs.existsSync(housePromoPath) ? JSON.parse(fs.readFileSync(housePromoPath, 'utf8')) : null;
-        //most maps have no lightmap file, the client only asks (and blocks on it) for the ones that do
-        const mapsDir = path.join(ss.currentDir, 'src', 'client-static', 'maps');
-        const bakedLightmaps = fs.existsSync(mapsDir) ? fs.readdirSync(mapsDir).filter(file => file.endsWith('.lightmap')).map(file => file.replace(/\.lightmap$/, '')) : [];
 
         const replacementsBefore = [
             { pattern: /LEGACYSHELLPLUGINSBEFOREBEFORE/g, insertion: pluginInsertion.strings.beforebefore },
@@ -200,7 +197,6 @@ async function modifyFiles(babylonsDone) {
             { pattern: /LEGACYSHELLDISTRIBUTEDDATA/g, insertion: JSON.stringify(ss.distributed_data) },
             { pattern: /LEGACYSHELLMANIFESTS/g, insertion: JSON.stringify(bakedManifests) },
             { pattern: /LEGACYSHELLHOUSEPROMO/g, insertion: JSON.stringify(bakedHousePromo) },
-            { pattern: /LEGACYSHELLLIGHTMAPS/g, insertion: JSON.stringify(bakedLightmaps) },
 
             { pattern: /LEGACYSHELLMAPZIPTIMESTAMP/g, insertion: getLastSavedTimestamp(path.join(ss.currentDir, 'store', 'client-modified', 'models', 'map.zip')) },
             { pattern: /LEGACYSHELLSTAMPSPNG/g, insertion: getLastSavedTimestamp(path.join(ss.currentDir, 'store', 'client-modified', 'img', 'stamps.png')) },
