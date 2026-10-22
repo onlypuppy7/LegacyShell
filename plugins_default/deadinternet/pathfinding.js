@@ -1298,7 +1298,19 @@ function findPathUncached(room, start, goal, opts = {}) {
         if (landing) { sy = landing.y; } else if (isStandable(map, sx, sy - 1, sz, player)) { sy -= 1; };
     };
 
-    if (opts.snapGoal && inBounds(map, gx, gy, gz) && !isStandable(map, gx, gy, gz, player)) {
+    // A goal standing on a crate/half step isn't an integer-y cell at all: its feet sit at a
+    // fractional height inside the aabb's own cell, which isStandable (and a bare floor) reads as
+    // blocked or as mid-air. The graph already has a node for exactly that spot (same
+    // findAabbStandY call getNeighbors makes), so aim for it instead of giving up.
+    let goalOnStand = false;
+    if (player && inBounds(map, gx, gy, gz) && !isStandable(map, gx, gy, gz, player)) {
+        for (const checkY of [gy, gy - 1]) {
+            const stand = findAabbStandY(map, gx, checkY, gz, player);
+            if (stand !== null && Math.abs(stand.y - goal.y) <= 0.5) { gy = stand.y; goalOnStand = true; break; };
+        };
+    };
+
+    if (opts.snapGoal && inBounds(map, gx, gy, gz) && !goalOnStand && !isStandable(map, gx, gy, gz, player)) {
         const snapped = snapGoalCell(map, gx, gy, gz, player, sx, sz);
         if (snapped) { gx = snapped.x; gy = snapped.y; gz = snapped.z; };
     };
@@ -1312,7 +1324,7 @@ function findPathUncached(room, start, goal, opts = {}) {
     // full 2-level column, not 1) get treated as a legitimate "current" node, generating bogus
     // candidate edges from a position a real player could never actually occupy.
     if (!isStandable(map, sx, sy, sz, player)) return null;
-    if (!isStandable(map, gx, gy, gz, player)) return null;
+    if (!goalOnStand && !isStandable(map, gx, gy, gz, player)) return null;
 
     const startKey = key(sx, sy, sz);
     const goalKey = key(gx, gy, gz);
