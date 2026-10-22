@@ -35,6 +35,7 @@ export const ZombiesModeDefaults = {
     staggerSecs: 8,         //...and the horde spawns spread over this long, rather than all at once
     spawnClearRadius: 12,   //zombies only spawn at spawn points with no human within this many blocks (at most 40% of the map's size)
     searchBudget: 1500,     //how hard a zombie looks for a way to someone (a path search gives up after this many steps: a failed one spends all of them)
+    deadEndCap: 2,          //when there is no way to someone, the route ends as close as it got: once this many zombies are standing about there, the rest roam instead
     searchBudgetMs: 6,      //the whole horde's route searching stops for the tick after this many ms (the rest carry on with the route they have)
     zombieSpeed: 0.65,      //zombie bots' speed modifier (not much lower: how far a bot can jump depends on its speed, and a two block gap is too wide for 0.6)
     zombieResistance: 0.7,  //...and resistance (it divides damage taken: 1 is a normal player, 0.5 dies twice as fast)

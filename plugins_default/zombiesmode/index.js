@@ -2,7 +2,7 @@
 import path from 'node:path';
 //plugin: zombiesmode
 import { ZombiesModePlugin, ZombiesModeDefaults, ZombiesModeMaps } from './shared.js';
-import { DeadInternetBot, registerPreset, findPath, isStandable } from '../deadinternet/index.js';
+import { DeadInternetBot, registerPreset } from '../deadinternet/index.js';
 import { hasGroundAhead } from '../deadinternet/combat.js';
 import Player from '#player';
 //legacyshell
@@ -658,14 +658,13 @@ export class Plugin {
         bot.pathTo = (target, opts = {}) => {
             const search = { maxExpansions: cfg.searchBudget, ...opts };
             if (!opts.chase) return rawPathTo(target, search);
-            const now = Date.now(), near = bot.zAlt && Math.hypot(target.x - bot.zAlt.human.x, target.y - bot.zAlt.human.y, target.z - bot.zAlt.human.z) < 1.5;
-            if (near && bot.zAlt.cell && now < bot.zAlt.until) return pathTo(bot.zAlt.cell, search); //still going to the spot it chose
             const route = pathTo(target, search);
-            if (route && !route.partial) { bot.zAlt = null; return route; };
-            if (near && now < bot.zAlt.until) return route; //looked a moment ago and found nothing
-            const cell = this.cachedReachableNear(bot, target, cfg);
-            bot.zAlt = { human: { x: target.x, y: target.y, z: target.z }, cell, until: now + (cell ? 3000 : 2000) };
-            return cell ? pathTo(cell, { ...search, force: true }) : route;
+            if (!route?.partial || bot.zWander > 0) return route;
+            //no way to them, so the route ends at the closest it got and every zombie goes there: once enough are standing about at the end of it, the rest roam instead
+            const p = bot.player, end = route.length ? route[route.length - 1] : p;
+            const here = (o) => Math.hypot(o.x - end.x, o.z - end.z) < 2.5 && Math.abs(o.y - end.y) < 2;
+            if (here(p) && z.bots.filter((o) => o !== bot && o.player && o.player.playing && here(o.player)).length >= cfg.deadEndCap) this.roam(bot, 600, 6);
+            return route;
         };
         const applyCombat = bot.applyCombat.bind(bot);
         bot.applyCombat = (cmd, delta) => { this.zombieThink(bot, cmd); applyCombat(cmd, delta); this.zombieDrive(bot, cmd); };
@@ -674,39 +673,6 @@ export class Plugin {
             this.scheduleRespawn(z, bot, cfg.respawnSecs);
         };
         return bot;
-    };
-
-    // No way to someone (they are up somewhere nothing leads to): the blocks around them, in the 5x5 columns centred on theirs, are tried
-    // for one with a route, closest to them first, and the first that has one is where the zombie goes instead.
-    // The answer is the same for every zombie going after the same human, so it is worked out once per spot for a few seconds, for the whole
-    // room: each search is expensive (a failed one spends its whole budget), and a horde of them all doing it at once is what hangs a slow server.
-    cachedReachableNear(bot, target, cfg) {
-        const near = getState(bot.room).near ??= new Map();
-        const key = `${Math.floor(target.x)},${Math.floor(target.y)},${Math.floor(target.z)}`, now = Date.now();
-        const known = near.get(key);
-        if (known && now - known.at < 5000) return known.cell;
-        if (near.size > 50) near.clear();
-        const cell = this.reachableNear(bot, target, cfg);
-        near.set(key, { cell, at: now });
-        return cell;
-    };
-
-    reachableNear(bot, target, cfg) {
-        const map = bot.room.map, p = bot.player;
-        const cx = Math.floor(target.x), cy = Math.floor(target.y), cz = Math.floor(target.z);
-        const cells = [];
-        for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) for (let y = cy + 1; y >= cy - 3; y--) {
-            const x = cx + dx, z = cz + dz;
-            if ((!dx && !dz && y === cy) || x < 0 || z < 0 || x >= map.width || z >= map.depth || y < 0 || y >= map.height || !isStandable(map, x, y, z, p)) continue;
-            cells.push({ x, y, z, d: Math.hypot(x + 0.5 - target.x, y - target.y, z + 0.5 - target.z) });
-        };
-        cells.sort((a, b) => a.d - b.d);
-        for (const c of cells.slice(0, 12)) { //(the closest few: a search that fails spends its whole budget)
-            const goal = { x: c.x + 0.5, y: c.y, z: c.z + 0.5 };
-            const route = findPath(bot.room, p, goal, { maxExpansions: Math.min(cfg.searchBudget, 800) });
-            if (route && !route.partial) return goal;
-        };
-        return null;
     };
 
     // A ghost: white, in a ghost hat, slower than a zombie and biting less, and with noclip, so it goes straight through walls. It has no
@@ -776,7 +742,9 @@ export class Plugin {
         const p = bot.player;
 
         //Wandering (see zombieDrive): going to a random spot, until it gets there or the time is up.
-        if (bot.zWander > 0 && !cmd.engaged) {
+        const prey = cmd.engaged ? bot.combat?.target : null;
+        if (bot.zWander > 0 && !(prey && Math.abs(prey.y - p.y) < 1)) { //(not while someone is right there to bite, but a zombie that can see someone it cannot reach still goes)
+            cmd.engaged = false; cmd.fire = false;
             bot.zWander = Math.hypot(bot.zWanderTo.x - p.x, bot.zWanderTo.z - p.z) < 1 ? 0 : bot.zWander - 1;
             cmd.state = 'hunt';
             cmd.moveTo = bot.zWanderTo;
@@ -851,13 +819,17 @@ export class Plugin {
         //gets. Rather than stand about (or pile up with the rest of the horde on the one point), it wanders off to somewhere random nearby
         //for a while, then the route gets another go.
         if (bot.zWander > 0) return;
-        bot.zIdle = Math.hypot(p.dx, p.dz) < 0.004 ? (bot.zIdle ?? 0) + 1 : 0;
+        bot.zIdle = Math.hypot(p.dx, p.dz) < 0.004 && !p.climbing ? (bot.zIdle ?? 0) + 1 : 0; //(a ladder is not going anywhere sideways either)
         if (bot.zIdle < 20) return;
         bot.zIdle = 0;
         if (cmd.engaged) { bot.zPath = 150; return; }; //ticks (2.5s)
-        const angle = Math.random() * Math.PI * 2, radius = 3 + Math.random() * 5;
+        this.roam(bot, 180);
+    };
+
+    roam(bot, ticks, least = 3) {
+        const p = bot.player, angle = Math.random() * Math.PI * 2, radius = least + Math.random() * 5;
         bot.zWanderTo = { x: p.x + Math.sin(angle) * radius, y: p.y, z: p.z + Math.cos(angle) * radius };
-        bot.zWander = 180; //ticks (3s)
+        bot.zWander = ticks;
     };
 
     // Zombies (the bots and the infected) spawn at a random spawn point with no human near it, so the horde is spread out and does not
