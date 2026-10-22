@@ -45,7 +45,7 @@ export const LegacyWeatherPlugin = {
         if (isClient && typeof LegacySettings !== "undefined") {
             LegacySettings.addTab("Graphics", [1,1]);
             this.weatherQuality = LegacySettings.addOption("Graphics", {
-                type: "select", key: "weatherQuality", label: "Rain & Snow", default: "high",
+                type: "select", key: "weatherQuality", label: "Rain & Snow", default: "high", tooltip: "How many rain and snow particles are drawn. Lower it, or turn it off, if weather hurts your framerate.",
                 options: [
                     { value: "high", label: "High" },
                     { value: "low", label: "Low (fewer drops)" },

@@ -107,6 +107,7 @@ const LegacyThemesPlugin = {
             type: "list",
             key: "styleCurrentList",
             label: "Current Applied Style Packs:",
+            tooltip: "The style packs currently active. Reorder or remove them here.",
             labelAbove: true,
             items: [],
             reorderable: true,

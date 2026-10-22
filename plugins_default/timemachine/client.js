@@ -37,7 +37,8 @@ export const TimeMachinePlugin = {
         LegacySettings.addTab("Graphics", [1,1]);
         LegacySettings.addCategory("Graphics", 0, "Throwback Options", { defaultOpen: true, collapsible: false });
 
-        this.bulletHoles = LegacySettings.addOption("Graphics", { type: "select", key: "bulletHoles", label: "Bullet Holes", 
+        this.bulletHoles = LegacySettings.addOption("Graphics", { type: "select", key: "bulletHoles", label: "Bullet Holes", tooltip: "Leaves marks where bullets hit walls, as in older versions. The version is the style it had then; 0.17.0 (the version LegacyShell is based on) has none.",
+
             default: "0.17.0",
             options: [
                 { value: "0.17.0", label: "Disabled (0.17.0)" },
@@ -45,9 +46,9 @@ export const TimeMachinePlugin = {
                 { value: "0.1.0", label: "Enabled (0.1.0)" },
             ], 
         }, 0, "Throwback Options");
-        this.bulletSmoke = LegacySettings.addOption("Graphics", { type: "checkbox", key: "bulletSmoke", label: "Bullet Smoke", default: true }, 0, "Throwback Options");
-        this.classicDeath = LegacySettings.addOption("Graphics", { type: "checkbox", key: "classicDeath", label: "Classic Death Animation", default: false }, 0, "Throwback Options");
-        this.classicFrag = LegacySettings.addOption("Graphics", { type: "checkbox", key: "classicFrag", label: "Classic Frag Particles", default: false }, 0, "Throwback Options");
+        this.bulletSmoke = LegacySettings.addOption("Graphics", { type: "checkbox", key: "bulletSmoke", label: "Bullet Smoke", default: true, tooltip: "The puff of smoke where a bullet hits. Turn off to remove it." }, 0, "Throwback Options");
+        this.classicDeath = LegacySettings.addOption("Graphics", { type: "checkbox", key: "classicDeath", label: "Classic Death Animation", default: false, tooltip: "Eggs burst apart with the older death animation." }, 0, "Throwback Options");
+        this.classicFrag = LegacySettings.addOption("Graphics", { type: "checkbox", key: "classicFrag", label: "Classic Frag Particles", default: false, tooltip: "Uses the older shell fragment particles when an egg is hurt or dies." }, 0, "Throwback Options");
     },
 
     onMapCompleteBeforeSetup: function (data) {

@@ -58,10 +58,11 @@ const LegacyShellCoreSettings = {
         this.updateDetailVisibility();
     },
 
-    checkbox: function (tab, panel, category, id, label) {
+    checkbox: function (tab, panel, category, id, label, tooltip) {
         return LegacySettings.addOption(tab, {
             type: "checkbox",
             key: id,
+            tooltip,
             get label() { return typeof label === "function" ? label() : label; },
             getValue: () => id === "mouseInvert" ? settings.mouseInvert === -1 : !!settings[id],
             setValue: (val) => LegacyShellCoreSettings.checkOption(id, val),
@@ -80,10 +81,14 @@ const LegacyShellCoreSettings = {
 
         //controls: bindings on the left, mouse on the right
         LegacySettings.addCategory("Controls", 0, "Control Bindings");
+        const bindTooltips = {
+            unfocus: "Releases your mouse from the game so you can click outside it (chat, other windows). Press again to grab the mouse back.",
+        };
         for (const control of settingsKeyNames) {
             LegacySettings.addOption("Controls", {
                 type: "bind",
                 key: "bind_" + control,
+                tooltip: bindTooltips[control],
                 get label() { return loc("ui_settings_bind_" + control, control); },
                 getValue: () => LegacyShellCoreSettings.getBind(control),
                 setValue: (key) => LegacyShellCoreSettings.setBind(control, key),
@@ -103,6 +108,7 @@ const LegacyShellCoreSettings = {
             type: "slider",
             key: "scopeSensitivity",
             label: "Scoped Sensitivity",
+            tooltip: "Multiplier on your mouse speed while aiming down sights. Lower is slower and steadier.",
             min: 0.05, max: 1.5, step: 0.05, showNumber: true, //a multiplier on mouse speed while scoped, the original is a fixed 0.3
             getValue: () => settings.scopeSensitivity ?? 0.3,
             setValue: (val) => {
@@ -112,8 +118,8 @@ const LegacyShellCoreSettings = {
         }, 1, "Mouse & Aiming");
         settings.scopeSensitivity = LegacySettings.get("scopeSensitivity"); //restore the saved value
         this.checkbox("Controls", 1, "Mouse & Aiming", "mouseInvert", () => loc("ui_settings_invertmouse", "Invert Mouse"));
-        this.checkbox("Controls", 1, "Mouse & Aiming", "fastPollMouse", () => loc("ui_settings_fastPollMouse", "Fix Mouse Glitch"));
-        this.checkbox("Controls", 1, "Mouse & Aiming", "holdToAim", () => loc("ui_settings_holdtoaim", "Hold To Aim"));
+        this.checkbox("Controls", 1, "Mouse & Aiming", "fastPollMouse", () => loc("ui_settings_fastPollMouse", "Fix Mouse Glitch"), "Uses raw, unaccelerated mouse input. Try this if your mouse jumps, lags or feels inconsistent.");
+        this.checkbox("Controls", 1, "Mouse & Aiming", "holdToAim", () => loc("ui_settings_holdtoaim", "Hold To Aim"), "On: you only aim while the aim key is held. Off: pressing it toggles aiming.");
 
         //general: sound, chat, reset
         LegacySettings.addCategory("General", 0, "Sound");
@@ -128,7 +134,7 @@ const LegacyShellCoreSettings = {
 
         LegacySettings.addCategory("General", 0, "Chat");
         this.checkbox("General", 0, "Chat", "enableChat", () => loc("ui_settings_chat", "Enable chat"));
-        this.checkbox("General", 0, "Chat", "enable18Chat", "Allow 18+ chat");
+        this.checkbox("General", 0, "Chat", "enable18Chat", "Allow 18+ chat", "Turns off the profanity filter, so you will see uncensored messages from other players.");
 
         LegacySettings.addCategory("General", 0, "Defaults");
         LegacySettings.addOption("General", {
@@ -155,9 +161,9 @@ const LegacyShellCoreSettings = {
 
         //graphics: one detail group
         LegacySettings.addCategory("Graphics", 1, "Detail");
-        this.checkbox("Graphics", 1, "Detail", "autoDetail", () => loc("ui_settings_autodetail", "Auto Detail"));
-        this.shadowsOption = this.checkbox("Graphics", 1, "Detail", "shadowsEnabled", "Shadows & Weather");
-        this.highResOption = this.checkbox("Graphics", 1, "Detail", "highRes", () => loc("ui_settings_highres", "High Resolution"));
+        this.checkbox("Graphics", 1, "Detail", "autoDetail", () => loc("ui_settings_autodetail", "Auto Detail"), "Lowers shadows and resolution on its own when your framerate drops. Turn off to choose the settings below yourself.");
+        this.shadowsOption = this.checkbox("Graphics", 1, "Detail", "shadowsEnabled", "Shadows & Weather", "Shadows, and the rain/snow effects that depend on them. Turning these off helps framerate.");
+        this.highResOption = this.checkbox("Graphics", 1, "Detail", "highRes", () => loc("ui_settings_highres", "High Resolution"), "Renders at your screen's full resolution. Off renders lower and scales up, which is faster but blurrier.");
 
         //once the menu has been built, apply the initial visibility
         plugins.on('game:waitForSetupAndAuthCompleteReady', () => this.updateDetailVisibility());

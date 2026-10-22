@@ -34,9 +34,9 @@ export const FancyItemsPlugin = {
         LegacySettings.addTab("Graphics", [1,1]);
         LegacySettings.addCategory("Graphics", 1, "Modern Options", { defaultOpen: true, collapsible: false });
 
-        this.fancyShadows = LegacySettings.addOption("Graphics", { type: "checkbox", key: "fancyShadows", label: "Fancy Shadows", default: false }, 1, "Modern Options");
-        this.fancyBullets = LegacySettings.addOption("Graphics", { type: "checkbox", key: "fancyBullets", label: "Fancy Bullets", default: false, tooltip: "Inspiration from Burnt" }, 1, "Modern Options");
-        this.fancyMuzzleFlash = LegacySettings.addOption("Graphics", { type: "checkbox", key: "fancyMuzzleFlash", label: "Fancy Muzzle Flash", default: false, tooltip: "Model by Burnt" }, 1, "Modern Options");
+        this.fancyShadows = LegacySettings.addOption("Graphics", { type: "checkbox", key: "fancyShadows", label: "Fancy Shadows", default: false, tooltip: "Higher resolution shadows, and guns and hands cast shadows too. Costs framerate. Applies from the next game." }, 1, "Modern Options");
+        this.fancyBullets = LegacySettings.addOption("Graphics", { type: "checkbox", key: "fancyBullets", label: "Fancy Bullets", default: false, tooltip: "Draws an outline around bullets. Inspiration from Burnt" }, 1, "Modern Options");
+        this.fancyMuzzleFlash = LegacySettings.addOption("Graphics", { type: "checkbox", key: "fancyMuzzleFlash", label: "Fancy Muzzle Flash", default: false, tooltip: "Replaces the muzzle flash with a nicer model. Model by Burnt" }, 1, "Modern Options");
     },
 
     playerActorShadowRenderList: function (data) {
