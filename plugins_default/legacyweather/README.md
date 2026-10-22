@@ -129,7 +129,7 @@ Eggs, hats, hands and guns all use the shared `standard` shader, so they get the
 
 ### Clouds
 
-The map's own skybox is always kept. Over it, a cloud dome (a sphere that follows the camera) draws procedural clouds that scroll with the wind, thicken with `storm.clouds`, are tinted by time of day, and fade into the horizon. `storm.skyTint` separately washes the skybox grey-blue.
+The map's own skybox is always kept. Over it, a cloud dome (a sphere that follows the camera) draws procedural clouds that drift with the wind (their position is accumulated frame by frame, so a change of wind only changes their speed, never makes them jump), thicken with `storm.clouds`, are tinted by time of day, and fade into the horizon. `storm.skyTint` separately washes the skybox grey-blue.
 
 ### Wet surfaces and puddles
 

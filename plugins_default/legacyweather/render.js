@@ -182,7 +182,7 @@ void main(void) {
 };
 
 // Cloud dome: a sphere following the camera, drawn over the map's own skybox. Its clouds are
-// procedural, scroll with the wind, thicken with storm.clouds and light up around lightning.
+// procedural, drift with the wind, thicken with storm.clouds and light up around lightning.
 const WeatherCloudShaders = {
     vertex: `
 precision highp float;
@@ -195,7 +195,6 @@ void main(void) {
 }`,
     fragment: `
 precision highp float;
-uniform float time;
 uniform float cover;
 uniform vec3 base;
 uniform vec2 wind;
@@ -212,7 +211,7 @@ float cNoise(vec2 p) {
 void main(void) {
     vec3 d = normalize(vDir);
     float horizon = smoothstep(0.02, 0.35, d.y);
-    vec2 uv = d.xz / (d.y + 0.25) * 1.6 + wind * time * 0.04;
+    vec2 uv = d.xz / (d.y + 0.25) * 1.6 + wind;
     float c = cNoise(uv) * 0.55 + cNoise(uv * 2.03) * 0.3 + cNoise(uv * 4.1) * 0.15;
     float t = mix(0.75, 0.15, cover);
     float dens = smoothstep(t, t + 0.3, c);
@@ -480,7 +479,7 @@ const WeatherRender = {
         if (self.bolt && self.boltMesh && (self.flashT >= 0 || self.boltMesh.mesh.isEnabled())) self.layoutBolt();
         self.updateFlashLight();
         self.updateSky();
-        self.updateClouds();
+        self.updateClouds(dt);
         self.updateSplashes(dt);
         self.updateRainSound();
     },
@@ -764,7 +763,7 @@ const WeatherRender = {
         mesh.isPickable = false;
         var mat = new BABYLON.ShaderMaterial("weatherClouds", gameScene, { vertex: "weatherClouds", fragment: "weatherClouds" }, {
             attributes: ["position"],
-            uniforms: ["worldViewProjection", "time", "cover", "base", "wind", "flash", "boltDir"],
+            uniforms: ["worldViewProjection", "cover", "base", "wind", "flash", "boltDir"],
             needAlphaBlending: true,
         });
         mat.backFaceCulling = false;
@@ -777,7 +776,7 @@ const WeatherRender = {
         this.clouds = { mesh, mat };
     },
 
-    updateClouds() {
+    updateClouds(dt) {
         var c = this.clouds;
         if (!c) return;
         if (this.camPos) c.mesh.position.copyFrom(this.camPos);
@@ -787,9 +786,10 @@ const WeatherRender = {
         if (!on) return;
         var tone = 1 - 0.45 * this.get("storm.darkness");
         c.mat.u.base.set(0.62 * this.get("sunR") * tone, 0.65 * this.get("sunG") * tone, 0.7 * this.get("sunB") * tone);
-        c.mat.u.wind.set(this.get("windX") + 0.15, this.get("windZ") + 0.05);
+        //how far the clouds have drifted so far, so a change in the wind only changes their speed (wind * time would jump them)
+        c.mat.u.wind.x += (this.get("windX") + 0.15) * 0.04 * dt;
+        c.mat.u.wind.y += (this.get("windZ") + 0.05) * 0.04 * dt;
         if (this.boltDir) c.mat.u.boltDir.copyFrom(this.boltDir);
-        c.mat.setFloat("time", (performance.now() / 1000) % 3600);
         c.mat.setFloat("cover", cover);
         c.mat.setFloat("flash", this.flash);
     },
