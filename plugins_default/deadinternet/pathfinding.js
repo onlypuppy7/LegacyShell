@@ -1345,6 +1345,8 @@ function findPathUncached(room, start, goal, opts = {}) {
         return route;
     }
 
+    const deadline = opts.maxMs ? performance.now() + opts.maxMs : Infinity; //(optional wall clock limit: on a slow server the expansions are the wrong thing to count)
+
     while (open.size) {
         const current = open.pop();
         if (current.verify) { current.verify(); continue; }
@@ -1357,7 +1359,7 @@ function findPathUncached(room, start, goal, opts = {}) {
         const currentDist = heuristic(current.x, current.y, current.z, gx, gy, gz);
         if (currentDist < closestDist) { closestDist = currentDist; closestNode = current; };
 
-        if (++expansions > maxExpansions) {
+        if (++expansions > maxExpansions || (deadline !== Infinity && !(expansions & 7) && performance.now() > deadline)) {
             lastSearch = { expansions, outcome: 'limit' };
             { const partial = partialRoute(); if (partial) { lastSearch.outcome = 'partial'; return partial; }; };
             console.log(`[deadinternet findPath] no path found (expansion limit) - closest reached: ${closestNode.x},${closestNode.y},${closestNode.z} (${closestDist.toFixed(1)} from goal ${gx},${gy},${gz})`);

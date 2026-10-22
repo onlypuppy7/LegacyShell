@@ -656,9 +656,14 @@ export class Plugin {
             return route;
         };
         bot.pathTo = (target, opts = {}) => {
-            const search = { maxExpansions: cfg.searchBudget, ...opts };
+            const search = { maxExpansions: cfg.searchBudget, maxMs: cfg.searchMaxMs, ...opts };
             if (!opts.chase) return rawPathTo(target, search);
+            //Nobody gets all the way to somewhere there is no way to, and a partial route does not back a bot off the way a failed search does, so a
+            //horde after someone out of reach would search for the same spot over and over: once one has come up short, the rest keep the route they have for a bit
+            const noWay = z.noWay ??= new Map(), key = `${Math.floor(target.x)},${Math.floor(target.y)},${Math.floor(target.z)}`, now = Date.now();
+            if (bot.currentPath && now < (noWay.get(key) ?? 0)) return bot.currentPath;
             const route = pathTo(target, search);
+            if (!route || route.partial) { if (noWay.size > 60) noWay.clear(); noWay.set(key, now + cfg.noWayMs); } else noWay.delete(key);
             if (!route?.partial || bot.zWander > 0) return route;
             //no way to them, so the route ends at the closest it got and every zombie goes there: once enough are standing about at the end of it, the rest roam instead
             const p = bot.player, end = route.length ? route[route.length - 1] : p;
@@ -667,7 +672,10 @@ export class Plugin {
             return route;
         };
         const applyCombat = bot.applyCombat.bind(bot);
-        bot.applyCombat = (cmd, delta) => { this.zombieThink(bot, cmd); applyCombat(cmd, delta); this.zombieDrive(bot, cmd); };
+        bot.applyCombat = (cmd, delta) => {
+            if (!z.active) { bot.stopPath(); return; }; //between rounds nobody is being chased: not worth the searches and the stuck replans of a horde with nowhere to go
+            this.zombieThink(bot, cmd); applyCombat(cmd, delta); this.zombieDrive(bot, cmd);
+        };
         bot.onDeath = () => { //replaces the default respawn so the delay can be cut short or cancelled with the round
             bot.combat?.reset();
             this.scheduleRespawn(z, bot, cfg.respawnSecs);
