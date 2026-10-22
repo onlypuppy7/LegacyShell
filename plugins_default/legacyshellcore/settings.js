@@ -45,6 +45,58 @@ const LegacyShellCoreSettings = {
         if (typeof camera !== "undefined" && camera) camera.fov = getDefaultFov(); //takes effect immediately when not scoped (scoping lerps toward the weapon's own fov)
     },
 
+    gunOffsets: { //where the viewmodel sits relative to the default, in head space
+        default: { x: 0, y: 0, z: 0, s: 1 },
+        classic: { x: -0.02, y: -0.04, z: -0.02, s: 1 },
+        minimal: { x: -0.06, y: -0.13, z: -0.04, s: 0.9 },
+    },
+
+    //the core eases gunContainer's own position/rotation every frame, so mirroring and lowering live on a parent node it knows nothing about
+    setupViewmodel: function () {
+        const self = this;
+        const update = PlayerActor.prototype.update;
+        PlayerActor.prototype.update = function (delta) {
+            if (this.player.id == meId) {
+                if (!this.gunOffsetNode || this.gunOffsetNode.isDisposed()) {
+                    this.gunOffsetNode = new BABYLON.TransformNode("gunOffset");
+                    this.gunOffsetNode.parent = this.head;
+                    this.gunContainer.parent = this.gunOffsetNode;
+                };
+                const target = (this.scope ? self.gunOffsets.default : self.gunOffsets[self.gunViewport]) || self.gunOffsets.default; //sights have to stay lined up when scoped
+                const mirror = self.mirrorGun ? -1 : 1;
+                const node = this.gunOffsetNode;
+                node.position.x += (target.x * mirror - node.position.x) / 3;
+                node.position.y += (target.y - node.position.y) / 3;
+                node.position.z += (target.z - node.position.z) / 3;
+                node.scaling.y += (target.s - node.scaling.y) / 3;
+                node.scaling.z = node.scaling.y;
+                node.scaling.x = mirror * node.scaling.y;
+            };
+            return update.call(this, delta);
+        };
+    },
+
+    hudParts: [
+        { id: "crosshair", label: "Crosshair", selector: "#reticleContainer" },
+        { id: "health", label: "Health", selector: "#health" },
+        { id: "weapon", label: "Weapon & Ammo", selector: "#weaponBox" },
+        { id: "chat", label: "Chat", selector: "#chatOut" },
+        { id: "killTicker", label: "Kill Feed", selector: "#killTicker" },
+        { id: "playerList", label: "Player List", selector: "#playerList" },
+        { id: "clock", label: "Game Clock", selector: "#gameClock, #bestStreak" },
+    ],
+
+    //the core flips these elements' inline display itself, so hide with a stylesheet instead of fighting it
+    applyHud: function () {
+        const all = LegacySettings.get("hudHideAll");
+        const selectors = this.hudParts.filter(part => all || LegacySettings.get("hud_" + part.id)).map(part => part.selector);
+        if (!this.hudStyle) {
+            this.hudStyle = document.createElement("style");
+            document.head.appendChild(this.hudStyle);
+        };
+        this.hudStyle.textContent = selectors.length ? `${selectors.join(", ")} { display: none !important; }` : "";
+    },
+
     resetToDefaults: function () {
         extern.clearSettings();
         LegacySettings.set("fovDegrees", undefined);
@@ -158,6 +210,34 @@ const LegacyShellCoreSettings = {
             },
         }, 0, "View");
         this.applyFov(LegacySettings.get("fovDegrees")); //restore the saved value
+        LegacySettings.addOption("Graphics", {
+            type: "checkbox",
+            key: "mirrorGun",
+            label: "Mirror Gun",
+            tooltip: "Holds the gun on the left side of the screen instead of the right.",
+            default: false,
+            onChange: (val) => this.mirrorGun = val,
+        }, 0, "View");
+        LegacySettings.addOption("Graphics", {
+            type: "select",
+            key: "gunViewport",
+            label: "Gun Position",
+            tooltip: "How low the gun sits on screen. Minimal keeps it mostly out of your view. Aiming down sights ignores this.",
+            default: "default",
+            options: [{ value: "default", label: "Default" }, { value: "classic", label: "Classic" }, { value: "minimal", label: "Minimal" }],
+            onChange: (val) => this.gunViewport = val,
+        }, 0, "View");
+        this.mirrorGun = !!LegacySettings.get("mirrorGun");
+        this.gunViewport = LegacySettings.get("gunViewport", "default");
+        this.setupViewmodel();
+
+        //graphics: hud parts, hidden by default
+        LegacySettings.addCategory("Graphics", 0, "Hide HUD", { collapsible: true, defaultOpen: false });
+        LegacySettings.addOption("Graphics", { type: "checkbox", key: "hudHideAll", label: "Hide Entire HUD", default: false, onChange: () => this.applyHud() }, 0, "Hide HUD");
+        for (const part of this.hudParts) {
+            LegacySettings.addOption("Graphics", { type: "checkbox", key: "hud_" + part.id, label: part.label, default: false, onChange: () => this.applyHud() }, 0, "Hide HUD");
+        };
+        this.applyHud();
 
         //graphics: one detail group
         LegacySettings.addCategory("Graphics", 1, "Detail");
