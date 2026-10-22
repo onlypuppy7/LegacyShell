@@ -104,7 +104,9 @@ export default async function run () {
 
                                     if (roomFound) {
                                         // console.log(roomFound.ready, roomFound.playerCount, roomFound.playerLimit);
-                                        if ((roomFound.ready) && roomFound.playerCount >= roomFound.playerLimit) {
+                                        const joinFound = { msg, room: roomFound, ws, skipFull: false };
+                                        await plugins.emit('joinGameFound', joinFound); //a plugin can let a join past a full room (something that joins without taking a player slot)
+                                        if ((roomFound.ready) && roomFound.playerCount >= roomFound.playerLimit && !joinFound.skipFull) {
                                             console.log("Comm.Close.gameFull");
                                             ws.close(Comm.Close.gameFull);
                                         } else {

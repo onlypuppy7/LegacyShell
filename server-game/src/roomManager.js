@@ -314,9 +314,12 @@ class newRoomManager {
         // list, game/banCache.js) - set plugins.cancel = true to reject, same convention as
         // everywhere else.
         plugins.cancel = false;
-        await plugins.emit('beforeJoinRoom', { room, msg, ws, ip });
+        const joinData = { room, msg, ws, ip, userLookup, handled: false };
+        await plugins.emit('beforeJoinRoom', joinData);
 
-        if (plugins.cancel) {
+        if (joinData.handled) {
+            //a plugin took the socket and the join (a caster, say), nothing more to do here
+        } else if (plugins.cancel) {
             ws.close(Comm.Close.booted);
         } else if (room.bootedIps.includes(ip)) {
             ws.close(Comm.Close.booted);

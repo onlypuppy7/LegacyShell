@@ -880,7 +880,7 @@ export class RoomConstructor {
         plugins.emit('packAllPlayers', {this: this, output});
         this.clients_by_id.forEach(client => {
             if (client?.clientIsReady) {
-                console.log("packing", client.id, client.player.name) // ayo
+                devlog("packing", client.id, client.player.name) // ayo
                 plugins.emit('packAllPlayersLoop', {this: this, output, client});
                 client.packPlayer(output);
             };

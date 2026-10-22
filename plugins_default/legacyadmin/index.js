@@ -133,7 +133,7 @@ export class Plugin {
         });
     };
 
-    onClientStartServer(data) {
+    async onClientStartServer(data) {
         // H4: defence-in-depth security headers on the whole /admin surface (the CSP meta tag in
         // index.html covers the document; these cover every asset response and add the headers a
         // meta tag can't set, e.g. frame-ancestors / X-Frame-Options).
@@ -145,6 +145,11 @@ export class Plugin {
             next();
         });
         data.app.use('/admin', express.static(path.join(this.thisDir, 'client')));
+        // other plugins add tabs by pushing { script: '/their/tab.js' } to data.tabs on adminTabs. the panel loads each after its own
+        const extra = { tabs: [] };
+        await this.plugins.emit('adminTabs', extra);
+        const tabs = extra.tabs.filter((t) => typeof t?.script === 'string' && /^\/[\w\-./]+\.js$/.test(t.script));
+        data.app.get('/admin/plugin-tabs.json', (req, res) => res.json({ tabs }));
         this.vendorDir = buildItemRendererBundle(ss.rootDir);
         data.app.use('/admin/vendor', express.static(this.vendorDir));
     };

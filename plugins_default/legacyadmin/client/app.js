@@ -286,6 +286,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         import('./logs-tab.js'),
     ]);
 
+    // tabs other plugins added (adminTabs in index.js). one that fails to load is skipped
+    try {
+        const { tabs: extra } = await (await fetch('/admin/plugin-tabs.json')).json();
+        for (const tab of extra || []) await import(tab.script).catch((e) => console.warn('LegacyAdmin: tab failed to load', tab.script, e));
+    } catch (e) { };
+
     updateAuthUI();
 
     if ($('servicesServer').value) AdminApp.connect();
