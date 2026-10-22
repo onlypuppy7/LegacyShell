@@ -205,19 +205,11 @@ if (isMainThread) {
         assert('...and is announced', notes.some((n) => n.includes('Human1') && n.includes('infected')), notes.join(' | '));
         assert('the last human left starts sudden death', room.gameOptions.plugins.time?.preset === 'night', JSON.stringify(room.gameOptions.plugins.time));
         assert('...in a downpour with lightning every second or two', room.gameOptions.plugins.weather?.storm?.lightning >= 3 && room.gameOptions.plugins.weather?.storm?.intensity === 1 && room.gameOptions.plugins.weather?.rain >= 0.8, JSON.stringify(room.gameOptions.plugins.weather));
-        assert('...and the horde is faster', zs.every((p) => Math.abs(p.modifiers.speedModifier - 0.9) < 1e-6), zs.map((p) => p.modifiers.speedModifier).join());
-        assert('...which includes the infected human', Math.abs(H1.modifiers.speedModifier - 0.9) < 1e-6, `${H1.modifiers.speedModifier}`);
+        assert('...and the horde is faster', zs.every((p) => Math.abs(p.modifiers.speedModifier - 1.15) < 1e-6), zs.map((p) => p.modifiers.speedModifier).join());
+        assert('...which includes the infected human', Math.abs(H1.modifiers.speedModifier - 1.15) < 1e-6, `${H1.modifiers.speedModifier}`);
         assert('...and says so', notes.some((n) => n.includes('SUDDEN DEATH')));
         assert('...the human left is quicker (1.1 to 1.3) and reloads faster (1.2 to 1.3)', Math.abs(H2.modifiers.speedModifier - 1.3) < 1e-9 && Math.abs(H2.modifiers.reloadSpeedModifier - 1.3) < 1e-9, JSON.stringify(H2.modifiers));
         assert('...and the browsers are told', room.gameOptions.plugins.zombiesSuddenDeath === true);
-
-        // ---- thunder ----
-        room.gameOptions.plugins.zombies.surgeSecs = 0.3;
-        const before = zs[0].modifiers.speedModifier;
-        mute(); await plugins.emit("thunderStrike", { room, distance: 50 }); unmute();
-        assert("a lightning strike in sudden death makes the horde surge", zs[0].modifiers.speedModifier > before * 1.4, `${before} -> ${zs[0].modifiers.speedModifier}`);
-        await sleep(450);
-        assert("...briefly", Math.abs(zs[0].modifiers.speedModifier - before) < 1e-9, `${zs[0].modifiers.speedModifier}`);
 
         // ---- the horde wins ----
         await killByZombie(H2);

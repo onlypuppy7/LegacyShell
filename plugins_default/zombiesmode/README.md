@@ -19,7 +19,7 @@ Needs the DeadInternet plugin (the zombies are its bots) and the Modern Shell Ha
 - Someone who first spawns more than `graceSecs` (30) into a round comes in as a zombie.
 - The round ends early when the last human is infected (the horde wins). Otherwise, when the timer runs out, the surviving humans win and are paid `winEggs` each. **When the humans win the whole horde (the bots and the infected) dies**, one after another `victoryGapMs` (100) apart, credited to a survivor in the kill feed but not scored; nothing bites or comes back while that happens, and the round ends `victoryHoldMs` (1500) after the last one goes. (The plugin takes over the room's round timer to be able to do this: the round ends through `roundTimeUp` in `index.js`.)
 - **The sky** (with legacyweather): a round starts as an ordinary day, and within about 45 seconds (`dayHoldSecs` 4, then `darkenSecs` 40) has turned into a dark, stormy dusk with rain, wind and the odd bolt. From there it slowly gets darker and the storm builds, reaching night and a heavy storm by the end of the round. The clients blend between the few states the server sends, so it is a smooth change rather than steps. It goes back to the room's own weather when the round ends. `weatherArc: false` leaves the weather alone.
-- **Sudden death** starts when one human is left of two or more, or for a player on their own when `suddenDeathSecs` (60) are left: it goes to full night in a downpour with lightning every second or two, and every zombie (the bots and the infected) goes up to `suddenDeathSpeed` (0.9). The humans get a little quicker too: `suddenDeathHumanSpeed` (+0.2, so 1.3) and a `suddenDeathReload` (1.3) reload, up from the 1.2 reload they have the rest of the round (`reloadSpeedModifier` in the gametype). Each lightning strike then also makes the horde lunge for `surgeSecs` (2) at `surgeSpeed` (1.5x), via legacyweather's `thunderStrike` event. 
+- **Sudden death** starts when one human is left of two or more, or for a player on their own when `suddenDeathSecs` (60) are left: it goes to full night in a downpour with lightning every second or two, and every zombie (the bots and the infected) goes up to `suddenDeathSpeed` (1.15). The humans get a little quicker too: `suddenDeathHumanSpeed` (+0.2, so 1.3) and a `suddenDeathReload` (1.3) reload, up from the 1.2 reload they have the rest of the round (`reloadSpeedModifier` in the gametype).
 - A new round cures everyone.
 - **Health packs** (from the healthpackitem plugin, when it is loaded) spawn in this gamemode, for the humans, at a quarter of the usual rate (one per 240 blocks of map, at least one). Health packs, ammo and grenades are for the humans only: the horde walks over them without taking anything.
 
@@ -67,10 +67,9 @@ Everything is in `gameOptions.plugins.zombies` (the gametype sets the defaults i
 | `eggCap` | 100 | most kill eggs one player can earn in a round |
 | `winEggs` | 20 | eggs for each survivor when the humans win |
 | `suddenDeathSecs` | 60 | when sudden death comes at the latest for a lone player |
-| `suddenDeathSpeed` | 0.9 | the zombies' speed in sudden death (the speed itself, for the bots and the infected alike) |
+| `suddenDeathSpeed` | 1.15 | the zombies' speed in sudden death (the speed itself, for the bots and the infected alike) |
 | `suddenDeathHumanSpeed` | 0.2 | added to the humans' speed in sudden death |
 | `suddenDeathReload` | 1.3 | the humans' reload speed modifier in sudden death |
-| `surgeSpeed` / `surgeSecs` | 1.5 / 2 | the lunge on each lightning strike in sudden death (1 = off) |
 
 The horde's team options (`damageModifier`, `contactDamage`, `contactCooldown`, `resistanceModifier` for the infected) are on the gametype too. The bots' own behaviour is the `zombie` preset, registered in `index.js` with DeadInternet's `registerPreset`, so it can be tried out anywhere with `/bots add 5 zombie`.
 
@@ -85,7 +84,7 @@ node plugins_default/zombiesmode/test-client-registration.js
 
 The cost of the mode is route searching (the zombies' AI is otherwise cheap): every search checks moves against the physics, and the first time a move is checked on a map it is expensive; the answers are then cached, per speed. On a cold cache a Pi 4 hangs for a second at a time while the horde works out its first routes; once the cache is warm it does not. So:
 
-- Fill the cache in advance, once per machine, for the zombies' speed (the bots' usual speed does not help, the cache is per speed): `node plugins_default/zombiesmode/warm-cache.js` (all the standard maps; or name some; `--searches N`, 2000 by default; a minute or two a map on a Pi). It does each speed a zombie is at (usual, sudden death, sudden death with a lightning surge), so it takes about three times as long. It is kept in `plugins_default/deadinternet/store/` and is thrown away whenever the physics or pathfinding code changes, so run it again after updating those. On a PC the worst tick in a test round went from about 1.3s to under 0.1s with it.
+- Fill the cache in advance, once per machine, for the zombies' speed (the bots' usual speed does not help, the cache is per speed): `node plugins_default/zombiesmode/warm-cache.js` (all the standard maps; or name some; `--searches N`, 2000 by default; a minute or two a map on a Pi). It does each speed a zombie is at (usual and sudden death), so it takes about twice as long. It is kept in `plugins_default/deadinternet/store/` and is thrown away whenever the physics or pathfinding code changes, so run it again after updating those. On a PC the worst tick in a test round went from about 1.3s to under 0.1s with it.
 - Fewer zombies cost proportionally less: `count` (20 by default; try 10-12 on a Pi 4).
 - The horde shares one route search budget per tick (`searchBudgetMs`), and the search for a way to someone out of reach is shared between them (and kept for a few seconds) instead of every zombie doing its own.
 

@@ -20,11 +20,9 @@ export const ZombiesModeDefaults = {
     eggCap: 100,            //most kill eggs one player can earn in a round
     winEggs: 20,            //eggs for each survivor when the humans win
     suddenDeathSecs: 60,    //a lone human (or a solo player) gets this long before sudden death at the latest
-    suddenDeathSpeed: 0.9,  //zombies' speed in sudden death (the speed itself, not a multiplier)
+    suddenDeathSpeed: 1.15, //zombies' speed in sudden death (the speed itself, not a multiplier)
     suddenDeathReload: 1.3, //the humans' reload speed modifier in sudden death (1.2 the rest of the time: reloadSpeedModifier in the gametype)
     suddenDeathHumanSpeed: 0.2, //...and how much faster they move then (added to their speed modifier)
-    surgeSpeed: 1.5,        //...and by this on top for surgeSecs after each lightning strike (needs legacyweather's storm; 1 = off)
-    surgeSecs: 2,
     weatherArc: true,       //the round plays out under a sky that darkens and a storm that builds (needs legacyweather; false leaves the weather alone)
     dayHoldSecs: 4,         //...it starts as an ordinary day for this long
     darkenSecs: 40,         //...and is a dark, stormy dusk this long after that

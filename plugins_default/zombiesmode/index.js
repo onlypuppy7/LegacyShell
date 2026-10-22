@@ -153,7 +153,6 @@ export class Plugin {
         this.plugins.on('game:requestRespawn', this.requestRespawn.bind(this));
         this.plugins.on('game:scoreKillEggs', this.scoreKillEggs.bind(this));
         this.plugins.on('game:roomDestroy', this.roomDestroy.bind(this));
-        this.plugins.on('game:thunderStrike', this.thunderStrike.bind(this));
         this.plugins.on('game:itemsLoaded', this.itemsLoaded.bind(this));
         this.plugins.on('game:packUpdateRoomParams', this.packUpdateRoomParams.bind(this));
     };
@@ -340,28 +339,6 @@ export class Plugin {
         killer.client.addEggsViaServices(cfg.killEggs);
     };
 
-    // In sudden death every lightning strike makes the horde lunge for a moment.
-    thunderStrike(data) {
-        const room = data.room;
-        if (!isZombieRoom(room)) return;
-        const z = getState(room);
-        const cfg = settings(room);
-        if (!z.active || !z.suddenDeath || cfg.surgeSpeed <= 1) return;
-
-        iteratePlayers((player) => {
-            if (player.team !== HORDE || player.zombieSurge || !player.playing) return;
-            player.zombieSurge = cfg.surgeSpeed;
-            player.changeModifiers({ speedModifier: player.modifiers.speedModifier * cfg.surgeSpeed });
-            setTimeout(() => this.endSurge(player), cfg.surgeSecs * 1e3);
-        });
-    };
-
-    endSurge(player) {
-        if (!player.zombieSurge) return;
-        player.changeModifiers({ speedModifier: player.modifiers.speedModifier / player.zombieSurge });
-        player.zombieSurge = 0;
-    };
-
     // Tells the browsers whether it is the gap between two rounds (in the room params, which everyone gets on joining and whenever they
     // change). The browser cannot work this out for itself reliably: what it knows about rounds depends on which packets it happened to be there for.
     packUpdateRoomParams(data) {
@@ -515,7 +492,7 @@ export class Plugin {
     };
 
     // Everyone on the horde goes to cfg.suddenDeathSpeed, whatever they were at (the bots and the infected differ). Remembered as the factor it
-    // took, so it can be taken off again (and a lightning surge on top of it, which is also a factor, comes off the same way).
+    // took, so it can be taken off again.
     // The humans get a little quicker on their feet and with a reload in sudden death (the reload is the player's reloadSpeedModifier).
     buffHuman(player, cfg, init = false) {
         if (player.zSuddenBuff) return;
@@ -531,7 +508,7 @@ export class Plugin {
 
     speedUp(player, cfg) {
         if (player.zombieSpeedUp) return;
-        const base = player.modifiers.speedModifier / (player.zombieSurge || 1);
+        const base = player.modifiers.speedModifier;
         player.zombieSpeedUp = cfg.suddenDeathSpeed * (isGhost(player) ? cfg.ghostSpeed / cfg.zombieSpeed : 1) / base; //(a ghost stays as much slower than a zombie)
         player.changeModifiers({ speedModifier: player.modifiers.speedModifier * player.zombieSpeedUp });
     };
@@ -578,7 +555,6 @@ export class Plugin {
         const cfg = settings(room);
         iteratePlayers((player) => {
             this.unbuffHuman(room, player, cfg);
-            this.endSurge(player);
             if (!player.zombieSpeedUp) return;
             player.changeModifiers({ speedModifier: player.modifiers.speedModifier / player.zombieSpeedUp });
             player.zombieSpeedUp = 0;
