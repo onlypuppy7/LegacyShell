@@ -35,7 +35,7 @@ export const ZombiesModeDefaults = {
     staggerSecs: 8,         //...and the horde spawns spread over this long, rather than all at once
     spawnClearRadius: 12,   //zombies only spawn at spawn points with no human within this many blocks (at most 40% of the map's size)
     searchBudget: 1500,     //how hard a zombie looks for a way to someone (a path search gives up after this many steps: a failed one spends all of them)
-    searchMaxMs: 20,        //one route search gives up (with the closest it got to) after this many ms, however many steps it has left
+    searchMaxMs: 0,        //one route search gives up (with the closest it got to) after this many ms, however many steps it has left (0 for no limit: a search cut short is a worse route, so only for a server that can't take the odd long one)
     noWayMs: 3000,          //after a search comes up short of someone, the other zombies keep the route they have rather than search for the same spot, for this long
     deadEndCap: 2,         //when there is no way to someone, the route ends as close as it got: once this many zombies are standing about there, the rest roam instead
     searchBudgetMs: 6,      //the whole horde's route searching stops for the tick after this many ms (the rest carry on with the route they have)

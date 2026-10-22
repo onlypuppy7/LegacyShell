@@ -662,7 +662,9 @@ export class Plugin {
             //horde after someone out of reach would search for the same spot over and over: once one has come up short, the rest keep the route they have for a bit
             const noWay = z.noWay ??= new Map(), key = `${Math.floor(target.x)},${Math.floor(target.y)},${Math.floor(target.z)}`, now = Date.now();
             if (bot.currentPath && now < (noWay.get(key) ?? 0)) return bot.currentPath;
+            const t0 = performance.now();
             const route = pathTo(target, search);
+            if (!route && cfg.searchMaxMs && performance.now() - t0 >= cfg.searchMaxMs * 0.9) { bot.pathFailUntil = 0; bot.pathFailCount = 0; return route; }; //(ran out of time, not out of ways: no backing off, the next go starts with what this one worked out)
             if (!route || route.partial) { if (noWay.size > 60) noWay.clear(); noWay.set(key, now + cfg.noWayMs); } else noWay.delete(key);
             if (!route?.partial || bot.zWander > 0) return route;
             //no way to them, so the route ends at the closest it got and every zombie goes there: once enough are standing about at the end of it, the rest roam instead
