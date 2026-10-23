@@ -31,6 +31,19 @@ export const TimeMachinePlugin = {
                 '/themes/classicshellbackground/img/classicbackground.png'
             ]
         });
+
+        LegacyThemesPlugin.soundPacks.push({
+            name: "Classic Grenade Sounds",
+            identifier: "classicgrenade",
+            description: "The first grenade sounds from 0.10.0 to 0.15.0.",
+            sounds: {
+                "grenade.explode": "/sounds/classicgrenade/grenade.mp3",
+                "grenade.beep": "/sounds/classicgrenade/grenadeBeep.mp3"
+            },
+            images: [
+                '/sounds/classicgrenade/classicgrenade.png'
+            ]
+        });
     },
 
     permissionsAfterSetup: function (data) {

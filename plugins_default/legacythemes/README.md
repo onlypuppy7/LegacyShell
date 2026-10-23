@@ -1,6 +1,6 @@
 # LegacyThemes
 
-A CSS theme-switching framework, parallel to [Legacy Settings](/plugins_default/legacysettings/README.md) - lets a player stack multiple named "style packs" (each just a CSS file plus some metadata) on top of the base theme, reorderable and removable, with the result persisted client-side.
+A CSS theme (and sound pack) switching framework, parallel to [Legacy Settings](/plugins_default/legacysettings/README.md) - lets a player stack multiple named "style packs" (each just a CSS file plus some metadata) on top of the base theme, reorderable and removable, with the result persisted client-side.
 
 ## Setup
 
@@ -11,6 +11,8 @@ Client-only. Its own `client.js` calls into `LegacySettings.addTab`/`addOption` 
 Other plugins register their own selectable theme by pushing onto `LegacyThemesPlugin.stylePacks` (an array, populated before `game:permissionsAfterSetup` finalizes the settings UI) - [FancyGraphics](/plugins_default/fancygraphics/README.md) is a real example. Three built-in packs (`[Default Theme]`, "Old LegacyShell Assets", "Shell Shockers Assets") are always present alongside whatever other plugins add.
 
 Selected packs' CSS is fetched and cached once (`cacheAllStyles`), then applied in reverse list order (later-added packs override earlier ones) by appending `<style>` elements to `<head>`. After applying, it reads back a fixed set of `--customizer-*` CSS custom properties to update the actual 3D scene's sky/ground colors (`Customizer.skyColor`/`diffuseColor`) - meaning a style pack can affect more than just UI chrome, it can genuinely retint the game world, by defining the right CSS variables.
+
+Sound packs work the same way, via `LegacyThemesPlugin.soundPacks`: each is `{ name, identifier, description, sounds, images }`, where `sounds` maps a sound name (as registered in `loadSounds`, e.g. `grenade.explode`) to a replacement file. Packs are swapped in during `game:loadSounds`, and re-loaded live when the list changes. A `[Default Sounds]` entry is always present; [TimeMachine](/plugins_default/timemachine/README.md) adds "Classic Grenade Sounds" as a real example.
 
 ## Notes
 

@@ -17,7 +17,7 @@ Adds a "Throwback Options" category under a shared "Graphics" settings tab (see 
 | Classic Death Animation | On cancels the default `playerDeathAnimation` and plays an egg-splatter (exploding shell/white/yolk mesh) animation instead. |
 | Classic Frag Particles | On cancels the default `shellFragBurstBefore` particle burst and substitutes an old-style one. |
 
-Also registers a "Classic Shell Background" entry in [Legacy Themes](/plugins_default/legacythemes/README.md)' style-pack list, alongside its graphics options.
+Also registers a "Classic Shell Background" entry in [Legacy Themes](/plugins_default/legacythemes/README.md)' style-pack list, alongside its graphics options. Likewise a "Classic Grenade Sounds" sound pack (the first grenade explosion and beep, 0.10.0 to 0.15.0).
 
 ## A genuinely useful example of conditional `plugins.cancel`
 

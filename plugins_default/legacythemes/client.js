@@ -8,9 +8,14 @@ const LegacyThemesPlugin = {
         
         this.plugins.on('game:permissionsAfterSetup', this.permissionsAfterSetup.bind(this));
         this.plugins.on('game:setupComplete', this.setupComplete.bind(this));
+        this.plugins.on('game:loadSounds', this.loadSounds.bind(this));
 
         this.stylePacks = [];
         this.styleCache = {};
+
+        this.soundPacks = [];
+        this.defaultSounds = {};
+        this.appliedSounds = {};
 
         this.initialApplied = false;
     },
@@ -120,10 +125,86 @@ const LegacyThemesPlugin = {
         if (this.cacheComplete) {
             this.applyStylesFromList(this.styleCurrentList.get());
         }
+
+        this.soundPacks.sort((a, b) => {
+            if (a.name < b.name) return -1;
+            if (a.name > b.name) return 1;
+            return 0;
+        });
+
+        this.soundPacks = [
+            {
+                name: "[Default Sounds]",
+                identifier: "defaultsounds",
+                description: "The default sounds of LegacyShell.",
+                sounds: {},
+                images: [
+                    '/img/noSound.png'
+                ]
+            },
+            ...this.soundPacks
+        ]
+
+        const soundOptions = this.soundPacks.map(pack => ({ value: pack.identifier, label: pack.name }));
+
+        this.soundSelect = LegacySettings.addOption("Theming", {
+            type: "select",
+            key: "soundSelect",
+            options: soundOptions,
+            default: this.soundPacks[0].identifier,
+            onChange: (val) => { this.updateSoundInfo(val); }
+        }, 1, "Sound Packs");
+        this.soundGallery = LegacySettings.addOption("Theming", {
+            type: "gallery",
+            key: "soundGallery",
+            label: "Selected Info:",
+            labelAbove: true,
+            images: []
+        }, 1, "Sound Packs");
+        this.soundInfo = LegacySettings.addOption("Theming", {
+            type: "info",
+            key: "soundInfo",
+            text: ""
+        }, 1, "Sound Packs");
+        this.soundAddButton = LegacySettings.addOption("Theming", {
+            type: "button",
+            key: "soundAddButton",
+            label: "Add This Sound Pack",
+            text: "‎ +‎ ‎ ",
+            onClick: () => {
+                this.addPackToCurrentList(this.soundSelect.get() ?? this.soundPacks[0].identifier, this.soundCurrentList, this.applySoundsFromList);
+            }
+        }, 1, "Sound Packs");
+        this.soundCurrentList = LegacySettings.addOption("Theming", {
+            type: "list",
+            key: "soundCurrentList",
+            label: "Current Applied Sound Packs:",
+            tooltip: "The sound packs currently active. Reorder or remove them here.",
+            labelAbove: true,
+            items: [],
+            reorderable: true,
+            removable: true,
+            onChange: (newList) => { this.applySoundsFromList(newList); }
+        }, 1, "Sound Packs");
+
+        this.updateSoundInfo(this.soundSelect.get() ?? this.soundPacks[0].identifier);
+
+        this.applySoundsFromList(this.soundCurrentList.get());
     },
 
     setupComplete: function () {
         this.updateStyleInfo(this.styleSelect.get());
+        this.updateSoundInfo(this.soundSelect.get() ?? this.soundPacks[0].identifier);
+    },
+
+    loadSounds: function (data) {
+        for (const sound of data.soundsList) this.defaultSounds[sound[1]] = sound;
+
+        const overrides = this.getSoundOverrides(this.soundCurrentList?.get() || []);
+        for (const sound of data.soundsList) {
+            if (overrides[sound[1]]) sound[0] = overrides[sound[1]];
+        }
+        this.appliedSounds = overrides;
     },
 
     updateStyleInfo: function (identifier) {
@@ -141,8 +222,20 @@ const LegacyThemesPlugin = {
         }
     },
 
-    addPackToCurrentList: function (identifier, listOption) {
-        if (identifier === "none") return;
+    updateSoundInfo: function (identifier) {
+        const pack = this.soundPacks.find(p => p.identifier === identifier);
+
+        if (pack) {
+            this.soundInfo.set(pack.description || "No description available.");
+            this.soundGallery.set(pack.images || ['/img/noSound.png']);
+        } else {
+            this.soundInfo.set("Selected sound pack not found.");
+            this.soundGallery.set(['/img/noSound.png']);
+        }
+    },
+
+    addPackToCurrentList: function (identifier, listOption, apply = this.applyStylesFromList) {
+        if (!identifier || identifier === "none") return;
 
         let currentItems = listOption.get();
         if (currentItems.find(i => i === identifier)) return;
@@ -150,7 +243,7 @@ const LegacyThemesPlugin = {
         currentItems = [identifier, ...currentItems];
         listOption.set(currentItems);
 
-        this.applyStylesFromList(currentItems);
+        apply.call(this, currentItems);
     },
 
     cacheAllStyles: async function () {
@@ -259,6 +352,33 @@ const LegacyThemesPlugin = {
         devlog("applied all themes, Final CSS Variables:", vars);
 
         this.updateThingsFromCSS(vars);
+    },
+
+    getSoundOverrides: function (list) {
+        const overrides = {};
+
+        for (const id of list.slice().reverse()) { //first in the list wins, like styles
+            const pack = this.soundPacks.find(p => p.identifier === id);
+            if (pack) Object.assign(overrides, pack.sounds);
+        }
+
+        return overrides;
+    },
+
+    applySoundsFromList: function (list) {
+        if (!soundsLoaded) return; //loadSounds picks the list up itself
+
+        const overrides = this.getSoundOverrides(list);
+
+        devlog("Applying sounds:", list, overrides);
+
+        for (const name of new Set([...Object.keys(this.appliedSounds), ...Object.keys(overrides)])) {
+            const src = overrides[name] || this.defaultSounds[name]?.[0];
+            if (!src || src === (this.appliedSounds[name] || this.defaultSounds[name]?.[0])) continue;
+            loadSound(src, name, () => {}, this.defaultSounds[name]?.[2]);
+        }
+
+        this.appliedSounds = overrides;
     },
 
     updateThingsFromCSS: function (vars = {}) {
