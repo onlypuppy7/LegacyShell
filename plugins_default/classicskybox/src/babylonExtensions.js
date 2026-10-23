@@ -15,7 +15,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 	else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
 	return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
-var BABYLON;
+
 (function (BABYLON) {
 	var SkyMaterialDefines = (function (_super) {
 		__extends(SkyMaterialDefines, _super);
@@ -219,7 +219,7 @@ var BABYLON;
 		BABYLON.serialize()
 	], SkyMaterial.prototype, "useSunPosition", void 0);
 	BABYLON.SkyMaterial = SkyMaterial;
-})(BABYLON || (BABYLON = {}));
+})(BABYLON);
 
 //# sourceMappingURL=babylon.skyMaterial.js.map
 
@@ -244,7 +244,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 	else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
 	return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
-var BABYLON;
+
 (function (BABYLON) {
 	var WaterMaterialDefines = (function (_super) {
 		__extends(WaterMaterialDefines, _super);
@@ -810,7 +810,7 @@ var BABYLON;
 		BABYLON.serialize()
 	], WaterMaterial.prototype, "useLogarithmicDepth", null);
 	BABYLON.WaterMaterial = WaterMaterial;
-})(BABYLON || (BABYLON = {}));
+})(BABYLON);
 
 //# sourceMappingURL=babylon.waterMaterial.js.map
 
@@ -829,7 +829,7 @@ var __extends = (this && this.__extends) || (function () {
 		d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 	};
 })();
-var BABYLON;
+
 (function (BABYLON) {
 	var CloudProceduralTexture = (function (_super) {
 		__extends(CloudProceduralTexture, _super);
@@ -869,7 +869,7 @@ var BABYLON;
 		return CloudProceduralTexture;
 	}(BABYLON.ProceduralTexture));
 	BABYLON.CloudProceduralTexture = CloudProceduralTexture;
-})(BABYLON || (BABYLON = {}));
+})(BABYLON);
 
 //# sourceMappingURL=babylon.cloudProceduralTexture.js.map
 

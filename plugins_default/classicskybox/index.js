@@ -8,9 +8,9 @@ import { ClassicSkyboxPlugin } from './shared.js';
 export const PluginMeta = {
     identifier: "classicskybox",
     name: 'Classic Skybox',
-    author: 'onlypuppy7',
+    author: 'onlypuppy7 (+Claude)', //initial work by onlypuppy7, finished by claude lol
     version: '1.0.0',
-    descriptionShort: 'Attempt at readding the skybox and mountains seen in alpha versions', //displayed when loading
+    descriptionShort: 'Adds the procedural "classic" and "classic-alpha" skyboxes from early versions', //displayed when loading
     descriptionLong: 'Attempt at readding the skybox and mountains seen in alpha versions',
     legacyShellVersion: 269, //legacy shell version, can be found in /versionEnum.txt, or just on the homescreen
 };
@@ -26,12 +26,22 @@ export class Plugin {
 
         ClassicSkyboxPlugin.registerListeners(this.plugins);
         this.plugins.on('client:pluginSourceInsertion', this.pluginSourceInsertion.bind(this));
+        this.plugins.on('client:doReplacements', this.doReplacements.bind(this));
         
         this.plugins.on('client:prepareBabylonBefore', this.prepareBabylonBefore.bind(this));
         this.plugins.on('game:prepareBabylonBefore', this.prepareBabylonBefore.bind(this));
 
         this.plugins.on('client:prepareBabylon', this.prepareBabylon.bind(this));
         this.plugins.on('game:prepareBabylon', this.prepareBabylon.bind(this));
+    };
+
+    doReplacements(data) { //adds the names to the map editor's skybox dropdown
+        for (var replacement of data.replacements) {
+            if (replacement.pattern?.source !== "LEGACYSHELLSKYBOXES") continue;
+            var skyboxes = new Set(JSON.parse(replacement.insertion));
+            skyboxes.add("classic").add("classic-alpha");
+            replacement.insertion = JSON.stringify([...skyboxes].sort());
+        };
     };
 
     pluginSourceInsertion(data) {
