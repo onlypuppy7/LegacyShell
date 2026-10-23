@@ -325,7 +325,7 @@ class Player {
                 ddy += 1;
             };
             this.jumpHeld = false;
-        } else if ((this.controlKeys & CONTROL.jump) && (0 < this.lastTouchedGround && Date.now() > this.lastTouchedGround + 100)) {
+        } else if (this.controlKeys & CONTROL.jump) {
             this.lastActivity = Date.now();
             if (!this.jumpHeld) {
                 this.jump();
@@ -433,6 +433,9 @@ class Player {
             this.stateBuffer[this.stateIdx].dx = this.dx;
             this.stateBuffer[this.stateIdx].dy = this.dy;
             this.stateBuffer[this.stateIdx].dz = this.dz;
+            this.stateBuffer[this.stateIdx].jumps = this.jumps;
+            this.stateBuffer[this.stateIdx].isFalling = this.isFalling;
+            this.stateBuffer[this.stateIdx].jumpHeld = this.jumpHeld;
             this.stateIdx = Math.mod(this.stateIdx + 1, stateBufferSize);
         };
         this.dx *= Math.pow(.8, delta);
@@ -647,6 +650,9 @@ class Player {
                 fire: false,
                 jump: false,
                 jumping: false,
+                jumps: 0,
+                isFalling: false,
+                jumpHeld: false,
                 climbing: false,
                 x: this.x,
                 y: this.y,
