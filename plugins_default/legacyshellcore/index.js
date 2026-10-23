@@ -155,12 +155,22 @@ export class Plugin {
         var baseBabylons = data.baseBabylons;
 
         const babylonPath = path.join(this.thisDir, 'models');
-        this.babylonFiles = fs.readdirSync(babylonPath);
+        this.babylonFiles = []; //{ name, filepath }, models/XXX.babylon or models/XXX/anything.babylon (counts as XXX.babylon)
 
-        for (var file of this.babylonFiles) {
-            if (!baseBabylons.includes(file)) {
-                console.log('new model', file, 'from', PluginMeta.identifier);
-                baseBabylons.push(file);
+        for (const entry of fs.readdirSync(babylonPath, { withFileTypes: true })) {
+            if (entry.isDirectory()) {
+                for (const file of fs.readdirSync(path.join(babylonPath, entry.name))) {
+                    if (file.endsWith(".babylon")) this.babylonFiles.push({ name: entry.name + ".babylon", filepath: path.join(babylonPath, entry.name, file) });
+                };
+            } else if (entry.name.endsWith(".babylon")) {
+                this.babylonFiles.push({ name: entry.name, filepath: path.join(babylonPath, entry.name) });
+            };
+        };
+
+        for (const { name } of this.babylonFiles) {
+            if (!baseBabylons.includes(name)) {
+                console.log('new model', name, 'from', PluginMeta.identifier);
+                baseBabylons.push(name);
             };
         };
     };
@@ -169,11 +179,11 @@ export class Plugin {
         var extraBabylons = data.extraBabylons;
 
         // console.log('prepareBabylon', data.filename);
-        for (const file of this.babylonFiles) {
-            if (data.filename + ".babylon" === file) {
-                console.log('found', file, 'from', PluginMeta.identifier);
+        for (const { name, filepath } of this.babylonFiles) {
+            if (data.filename + ".babylon" === name) {
+                console.log('found', filepath, 'from', PluginMeta.identifier);
                 extraBabylons.push({
-                    filepath: path.join(this.thisDir, 'models', file),
+                    filepath,
                     overwrite: false,
                     location: PluginMeta.identifier,
                 });

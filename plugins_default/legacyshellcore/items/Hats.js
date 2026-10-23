@@ -23,6 +23,18 @@ var items = {
             "meshName": "hat_legacyBeta",
             "tags": ["LegacyShell"]
         }
+    }, {
+        "meta_id": 10001,
+        "name": "Burnt Hat",
+        "is_available": false,
+        "price": 1,
+        "item_type_id": 1,
+        "item_type_name": "Hat",
+        "exclusive_for_class": null,
+        "item_data": {
+            "meshName": "hat_burnt",
+            "tags": ["LegacyShell"]
+        }
     }]
 };
 
