@@ -3,11 +3,12 @@
 //
 
 export const ReplayCamera = {
-    mode: "overview", //overview | first | chase | orbit | free | bullet (bullet is only ever set by a shot, see reel.js)
-    views: ["first", "pov", "chase", "shoulder", "side", "low", "top", "orbit", "security", "free"], //pov is first person with their hud on (ammo, grenades, health), as if it were their game
+    mode: "overview", //overview, or any view in views.js (the bullet ones are only ever set by a shot, see reel.js)
+    views: ReplayViews.pickable(), //pov is first person with their hud on (ammo, grenades, health), as if it were their game
     blendLength: 1600,
     blendStrength: 1,
-    following: ["chase", "shoulder", "side", "low", "top", "orbit", "security"], //the views that sit outside the player and are smoothed by aim
+    partnerId: null, //the second player for the duel view (a reel shot's victim), else the nearest
+    vs: {}, //what each view remembers (where its camera was put), wiped when the view changes
     target: null, //the player being watched
     targetId: null,
     keys: {},
@@ -40,6 +41,9 @@ export const ReplayCamera = {
         this.mode = "overview";
         this.keys = {};
         this.target = null;
+        this.wantedId = this.autoFree = null;
+        this.focusId = "map";
+        this.poiMap = this.poiList = this.lastPoi = null;
         this.pos = new BABYLON.Vector3(0, 0, 0);
         this.cur.pos = new BABYLON.Vector3(0, 0, 0);
         this.speedScale = 1;
@@ -87,8 +91,11 @@ export const ReplayCamera = {
         window.removeEventListener("pointerdown", this.onDown);
         window.removeEventListener("pointerup", this.onUp);
         window.removeEventListener("wheel", this.onWheel);
+        try { if (this.observer) gameScene.onBeforeRenderObservable.remove(this.observer) } catch (e) { };
+        this.observer = null;
         try { if (document.pointerLockElement) document.exitPointerLock() } catch (error) { };
         this.target = null;
+        this.leaveView(this.mode, "overview");
         this.mode = "overview";
         document.body.classList.remove("replayPov");
     },
@@ -135,9 +142,10 @@ export const ReplayCamera = {
     },
 
     //watch a player, in the current view (or first person if there wasnt one)
-    watch: function (id, view) {
+    watch: function (id, view, auto) {
         var player = players_by_id[id];
         if (!player || id === meId) return;
+        if (!auto) this.wantedId = id; //who was asked for stays wanted while the camera is moved off them (dead, not spawned, seeked back), and goes back to them when they are
         this.target = player;
         this.targetId = id;
         this.setView(view || (this.views.includes(this.mode) && this.mode !== "free" ? this.mode : "first"));
@@ -145,8 +153,10 @@ export const ReplayCamera = {
 
     setView: function (view) {
         this.stopBullet();
-        if (view !== "free") camera.fov = getDefaultFov(); //zoom is the free camera's, nothing else should inherit it
-        if (view !== "free" && !this.target) return this.cycle(1, view);
+        this.autoFree = null;
+        if (!this.autoMove && !ReplayViews.needsPlayer(view)) this.wantedId = null; //a free camera picked on purpose is not wanting anybody
+        if (view === "first" || view === "pov") camera.fov = getDefaultFov(); //the other views set their own lens and ease to it
+        if (ReplayViews.needsPlayer(view) && !this.target) return this.cycle(1, view);
         if (this.mode === view) return ReplayViewer.refresh();
 
         document.body.classList.toggle("replayPov", view === "pov");
@@ -170,7 +180,9 @@ export const ReplayCamera = {
         } else {
             this.adoptPose(); //the smoothing below then carries it from here to where the new view wants it
         };
+        this.leaveView(this.mode, view);
         this.mode = view;
+        this.vs = {};
         this.blendStart = performance.now();
         this.blendLength = this.smoothNext ? 3200 : 1600; //a shot marked smooth takes twice as long and starts twice as gently
         this.blendStrength = this.smoothNext ? 2 : 1;
@@ -180,6 +192,32 @@ export const ReplayCamera = {
 
     free: function () {
         this.setView("free");
+    },
+
+    //what a view puts on the screen beyond the camera: the cctv picture and look, the tilt-shift blur (which fx.js reads)
+    leaveView: function (from, to) {
+        if (from === "cctv" && to !== "cctv") {
+            if (this.cctvEl) { this.cctvEl.remove(); this.cctvEl = null };
+            if (this.cctvLook) { this.cctvLook = false; if (ReplayFx.name === "retro") ReplayFx.setLook(ReplayFx.base) };
+        };
+        if (to === "cctv" && from !== "cctv") {
+            if (this.cctvEl) this.cctvEl.remove();
+            this.cctvEl =ReplayViewer.el("div", { style: "position: fixed; inset: 0; z-index: 99989; pointer-events: none; font: bold 1.1em monospace; color: #e8e8e8; text-shadow: 0 0 3px #000; background: repeating-linear-gradient(0deg, rgba(0,0,0,0.18) 0px, rgba(0,0,0,0.18) 1px, transparent 1px, transparent 3px)" }, [
+                ReplayViewer.el("div", { class: "lrCctvA", style: "position: absolute; top: 0.7em; left: 0.9em" }),
+                ReplayViewer.el("div", { class: "lrCctvB", style: "position: absolute; bottom: 4.4em; right: 0.9em" }),
+            ]);
+            document.body.appendChild(this.cctvEl);
+            if (ReplayFx.name === "clean") { ReplayFx.setLook("retro"); this.cctvLook = true }; //a look picked on purpose is left alone
+        };
+        if (from === "tiltshift" && to !== "tiltshift") ReplayFx.tiltWanted = 0;
+    },
+
+    //the cctv text: a camera number from the player, and the replay's own date and time
+    cctvText: function () {
+        if (!this.cctvEl) return;
+        var when = new Date(ReplaySession.active ? (ReplaySession.header.startTime || 0) + ReplaySession.time : Date.now()), pad = (n) => String(n).padStart(2, "0");
+        this.cctvEl.querySelector(".lrCctvA").innerHTML = "CAM " + pad((this.targetId || 0) % 100) + " &nbsp; <span style='color:#f33'>&#9679;</span> REC";
+        this.cctvEl.querySelector(".lrCctvB").textContent = pad(when.getDate()) + "/" + pad(when.getMonth() + 1) + "/" + when.getFullYear() + " " + pad(when.getHours()) + ":" + pad(when.getMinutes()) + ":" + pad(when.getSeconds());
     },
 
     //put the player's gun and head back the way the game has them
@@ -196,11 +234,12 @@ export const ReplayCamera = {
     afterSeek: function () {
         this.firstPerson = null;
         var id = this.targetId, view = this.mode;
-        if (this.mode === "free" || this.mode === "overview" || this.mode === "bullet") return; //these dont hang on one player staying put
+        if (!ReplayViews.needsPlayer(this.mode) || this.mode === "overview" || ReplayViews.isBullet(this.mode)) return; //these dont hang on one player staying put
         this.target = null;
+        this.leaveView(this.mode, "overview");
         this.mode = "overview"; //so setView doesnt think nothing changed
-        if (id !== null && players_by_id[id]) this.watch(id, view);
-        else this.cycle(1, view);
+        if (id !== null && players_by_id[id]) this.watch(id, view, true);
+        else this.cycle(1, view, true);
     },
 
     //where the egg's eyes are, in the world
@@ -216,17 +255,18 @@ export const ReplayCamera = {
         if (this.target) this.targetId = this.target.id;
 
         //whoever is being watched has died (or was never playing): after a moment move on to someone who is, so the screen isnt stuck inside a dead egg
-        if (this.target && this.mode !== "free" && this.mode !== "overview" && this.mode !== "bullet") {
+        if (this.target && ReplayViews.needsPlayer(this.mode) && this.mode !== "overview" && !ReplayViews.isBullet(this.mode) && this.mode !== "auto") {
             if (!this.target.playing) {
                 this.lostFor = (this.lostFor || 0) + dt;
-                if (this.lostFor > 1.2) { this.lostFor = 0; this.cycle(1) };
+                if (this.lostFor > 1.2) { this.lostFor = 0; this.cycle(1, undefined, true) };
             } else this.lostFor = 0;
         };
+        this.returnToWanted();
 
         if (this.mode === "first" || this.mode === "pov") { this.frameFirst(); this.shortenOwnBullets() };
         if (this.mode === "pov") this.frameHud();
-        else if (this.following.includes(this.mode)) this.frameFollowing(dt);
-        else if (this.mode === "bullet") this.frameBullet(dt);
+        else if ((this.followSet || (this.followSet = new Set(ReplayViews.following()))).has(this.mode)) this.frameFollowing(dt);
+        else if (ReplayViews.isBullet(this.mode)) this.frameBullet(dt);
         else if (this.mode === "free") this.frameFree(dt);
     },
 
@@ -251,7 +291,7 @@ export const ReplayCamera = {
     frameHud: function () {
         var p = this.target, set = (id, f) => { var el = document.getElementById(id); if (el) f(el) };
         if (!p || !p.weapon || !p.weapon.ammo) return;
-        ReplaySession.settleReload(p, ReplaySession.time);
+        ReplaySession.settleReload(p, this.clock());
         set("weaponName", (el) => el.textContent = p.weapon.subClass.weaponName);
         set("ammo", (el) => { el.style.color = "#fff"; el.textContent = p.weapon.ammo.rounds + "/" + Math.min(p.weapon.ammo.store, p.weapon.ammo.storeMax) });
         for (var i = 1; i <= 3; i++) set("grenade" + i, (el) => { var src = "img/grenadeIcon" + (p.grenadeCount >= i ? "" : "Dark") + ".png?v=1"; if (!el.src.endsWith(src)) el.src = src });
@@ -266,8 +306,8 @@ export const ReplayCamera = {
 
         //kill streak and the banners for their kills and their death, which the game only shows for me
         set("bestStreak", (el) => { el.style.display = "block"; el.textContent = "BEST STREAK: " + (p.bestOverallStreak || 0) });
-        var t = ReplaySession.time, byThem = null, ofThem = null;
-        ReplaySession.kills.forEach((k) => { if (k.tMs <= t) { if (k.by === p.id && t - k.tMs < 4000) byThem = k; if (k.victim === p.id && t - k.tMs < 3000) ofThem = k } });
+        var t = this.clock(), byThem = null, ofThem = null;
+        this.killList().forEach((k) => { if (k.tMs <= t) { if (k.by === p.id && t - k.tMs < 4000) byThem = k; if (k.victim === p.id && t - k.tMs < 3000) ofThem = k } });
         var killBox = document.getElementById("killBox"), deathBox = document.getElementById("deathBox");
         if (killBox) {
             killBox.style.display = byThem ? "block" : "none";
@@ -283,48 +323,125 @@ export const ReplayCamera = {
         };
     },
 
-    frameFollowing: function (dt, kind) {
-        var player = this.target;
-        if (!player) return;
-        kind = kind || this.mode;
-        var eye = this.eye(player), want = new BABYLON.Vector3(), lookAt = new BABYLON.Vector3();
+    //the places to look at that are not a player, built from the map (spawns) and what is lying around (pickups, re-read every second as they come and go)
+    pois: function () {
+        var now = performance.now();
+        if (this.poiMap !== minMap) {
+            this.poiMap = minMap;
+            this.poiSpawns = [];
+            Object.keys((minMap && minMap.data) || {}).forEach((name) => {
+                var fields = name.split(".");
+                if (fields[0] !== "SPECIAL" || !String(fields[1]).startsWith("spawn")) return;
+                Object.values(minMap.data[name]).forEach((cell) => this.poiSpawns.push({ team: fields[1] === "spawn-blue" ? "blue" : fields[1] === "spawn-red" ? "red" : "free", x: cell.x, y: cell.y, z: cell.z }));
+            });
+            this.poiAt = 0;
+        };
+        if (now - (this.poiAt || 0) > 1000 || !this.poiList) {
+            this.poiAt = now;
+            var pickups = [];
+            try {
+                itemManager.pools.forEach((pool, kind) => pool.forEachActive((item) => {
+                    var at = item.mesh && item.mesh.position, name = AllItems[kind] ? AllItems[kind].codeName : "Item";
+                    if (at) pickups.push({ kind: name.charAt(0) + name.slice(1).toLowerCase(), x: at.x, y: at.y, z: at.z });
+                }));
+            } catch (e) { };
+            this.poiList = ReplayViews.pois({ map: minMap && minMap.width ? { width: minMap.width, height: minMap.height, depth: minMap.depth } : null, spawns: this.poiSpawns, pickups });
+        };
+        return this.poiList;
+    },
 
-        if (kind === "chase") {
-            var back = this.setting("replayChaseDistance", 3), height = this.setting("replayChaseHeight", 1.1);
-            var sy = Math.sin(player.yaw), cy = Math.cos(player.yaw);
-            want.set(eye.x - sy * back, eye.y + height, eye.z - cy * back);
-            lookAt.set(eye.x + sy * 3, eye.y + 0.1, eye.z + cy * 3); //a little ahead of them, where they are going
-        } else if (kind === "shoulder") {
-            var sy = Math.sin(player.yaw), cy = Math.cos(player.yaw);
-            want.set(eye.x - sy * 1.5 + cy * 0.75, eye.y + 0.45, eye.z - cy * 1.5 - sy * 0.75);
-            lookAt.set(eye.x + sy * 6, eye.y + 0.05, eye.z + cy * 6);
-        } else if (kind === "side") {
-            var sy = Math.sin(player.yaw), cy = Math.cos(player.yaw);
-            want.set(eye.x + cy * 3.5, eye.y + 0.4, eye.z - sy * 3.5);
-            lookAt.set(eye.x, eye.y, eye.z);
-        } else if (kind === "low") {
-            var sy = Math.sin(player.yaw), cy = Math.cos(player.yaw);
-            want.set(eye.x - sy * 2.6, player.y + 0.1, eye.z - cy * 2.6);
-            lookAt.set(eye.x + sy * 2, eye.y + 0.35, eye.z + cy * 2);
-        } else if (kind === "top") {
-            want.set(eye.x, eye.y + 9, eye.z - 0.01);
-            lookAt.set(eye.x, eye.y, eye.z);
-        } else if (kind === "security") { //a camera on a wall: it stays where it is and only turns, until they get too far away and it moves to a new spot
-            if (!this.securityAt || this.securityId !== player.id || BABYLON.Vector3.Distance(this.securityAt, eye) > 16) {
-                var a = player.yaw + 2.4;
-                this.securityId = player.id;
-                this.securityAt = new BABYLON.Vector3(eye.x + Math.sin(a) * 6, eye.y + 3.5, eye.z + Math.cos(a) * 6);
-            };
-            want.copyFrom(this.securityAt);
-            lookAt.set(eye.x, eye.y, eye.z);
-        } else {
-            this.orbitAngle += this.setting("replayOrbitSpeed", 25) * (Math.PI / 180) * dt;
-            var radius = this.setting("replayOrbitRadius", 3.5);
-            want.set(eye.x + Math.sin(this.orbitAngle) * radius, eye.y + 0.7, eye.z + Math.cos(this.orbitAngle) * radius);
-            lookAt.copyFrom(eye);
+    //the place being looked at. one that is gone (a pickup that was picked up) is stood in for by the last it was
+    focusPoi: function () {
+        var found = this.pois().find((p) => p.id === this.focusId);
+        if (found) this.lastPoi = found;
+        return found || this.lastPoi || this.pois()[0];
+    },
+
+    setFocus: function (id) {
+        this.focusId = id;
+        this.lastPoi = null;
+        if (this.mode !== "focus") this.setView("focus");
+        else ReplayViewer.refresh();
+    },
+
+    //the replay's time, or the real one when it is a live game being spectated; and the kills so far, which a live game has no record of
+    clock: function () {
+        return ReplaySession.active ? ReplaySession.time : performance.now();
+    },
+
+    killList: function () {
+        return ReplaySession.active ? ReplaySession.kills : [];
+    },
+
+    //everything a view may want to know about, in plain numbers (see views.js)
+    context: function (dt, kind, player) {
+        var scale = player.modifiers ? player.modifiers.scale : 1;
+        var plain = (q) => ({ id: q.id, x: q.x, y: q.y, z: q.z, yaw: q.yaw, pitch: q.pitch, scale: q.modifiers ? q.modifiers.scale : 1 });
+        var others = [];
+        iteratePlayers((q) => { if (q.id !== meId && q.id !== player.id && q.playing) others.push(plain(q)) });
+        var eye = this.eye(player), yaw = player.yaw, set = (key, def) => this.setting(key, def);
+
+        var partner = this.partnerId !== null && players_by_id[this.partnerId] && players_by_id[this.partnerId].playing ? plain(players_by_id[this.partnerId]) : null;
+        if (!partner && kind === "duel") { //nobody chosen: the nearest
+            var best = Infinity;
+            others.forEach((o) => { var d = Math.hypot(o.x - player.x, o.z - player.z); if (d < best && d < 30) { best = d; partner = o } });
         };
 
-        this.aim(dt, this.clearOfWalls(eye, want), lookAt, this.setting("replayFollowSmoothing", 0.3), this.setting("replayLookSmoothing", 0.05) + 0.1);
+        var proj = null;
+        if (kind === "grenade" || kind === "rocket") {
+            (kind === "grenade" ? [munitionsManager.grenadePool] : [munitionsManager.rocketPool]).forEach((pool) => pool.forEachActive((m) => { if (!proj && m.player === player) proj = m }));
+            if (proj && proj.actor && proj.actor.mesh && proj.actor.mesh.isEnabled()) { var at = proj.actor.mesh.position; proj = { x: at.x, y: at.y, z: at.z, dx: proj.dx, dy: proj.dy, dz: proj.dz } } //where it is drawn, which is smoothed when slowed down
+            else if (proj) proj = { x: proj.x, y: proj.y, z: proj.z, dx: proj.dx, dy: proj.dy, dz: proj.dz };
+        };
+
+        return {
+            p: plain(player), eye: { x: eye.x, y: eye.y, z: eye.z }, f: { x: Math.sin(yaw), z: Math.cos(yaw) }, r: { x: Math.cos(yaw), z: -Math.sin(yaw) },
+            t: this.clock(), dt, s: this.vs[kind] || (this.vs[kind] = {}),
+            opt: { tourDwell: set("replayTourDwell", 7), chaseDistance: set("replayChaseDistance", 3), chaseHeight: set("replayChaseHeight", 1.1), orbitSpeed: set("replayOrbitSpeed", 25), orbitRadius: set("replayOrbitRadius", 3.5) },
+            others, kills: this.killList(), partner, focus: kind === "focus" ? this.focusPoi() : null, pois: kind === "tour" ? this.pois() : null, proj, cam: { x: this.cur.pos.x, y: this.cur.pos.y, z: this.cur.pos.z },
+            map: typeof minMap !== "undefined" && minMap && minMap.width ? { width: minMap.width, height: minMap.height, depth: minMap.depth } : null,
+            posOf: (id) => { var q = players_by_id[id]; if (!q || !q.playing) return null; var e = this.eye(q); return { x: e.x, y: e.y, z: e.z } },
+            povOf: (id) => {
+                var q = players_by_id[id];
+                if (!q || !q.actor || !q.actor.mesh || !q.actor.head) return null;
+                var at = q.actor.mesh.position, sc = q.modifiers ? q.modifiers.scale : 1;
+                return { x: at.x, y: at.y + 0.4 * sc, z: at.z, yaw: q.actor.mesh.rotation.y, pitch: q.actor.head.rotation.x };
+            },
+        };
+    },
+
+    frameFollowing: function (dt, kind) {
+        kind = kind || this.mode;
+        var player = this.target;
+        if (!player) {
+            if (ReplayViews.needsPlayer(kind)) return;
+            player = { id: -1, x: 0, y: 0, z: 0, yaw: 0, pitch: 0, modifiers: { scale: 1 } }; //nothing is being watched, the arena and the places only need the map and the time
+        };
+
+        var answer = ReplayViews.compute(kind, this.context(dt, kind, player));
+        if (answer && answer.choose) { //auto: it picked who to film, which is a duel
+            var next = players_by_id[answer.choose.target];
+            if (next && next.id !== this.targetId) {
+                if (this.target && BABYLON.Vector3.Distance(this.eye(next), this.cur.pos) > 14) this.snapNext = true;
+                this.target = next;
+                this.targetId = next.id;
+                ReplayViewer.refresh();
+            };
+            this.partnerId = answer.choose.partner === this.targetId ? answer.choose.target : answer.choose.partner;
+            player = this.target || player;
+            answer = ReplayViews.compute("duel", this.context(dt, "duel", player));
+        };
+        if (!answer) answer = ReplayViews.compute("chase", this.context(dt, "chase", player)); //a view with nothing to show (nobody to duel, nothing thrown yet) is a chase meanwhile
+
+        var vec = (p) => new BABYLON.Vector3(p.x, p.y, p.z), want = vec(answer.want);
+        if (!answer.free) want = this.clearOfWalls(this.eye(player), want);
+        if (answer.cut) this.snapNext = true;
+        if (answer.cctv) this.cctvText();
+        ReplayFx.tiltWanted = answer.tilt ? 1 : 0;
+
+        var fovWanted = answer.fov === undefined ? getDefaultFov() : answer.fov;
+        camera.fov = this.snapNext ? fovWanted : camera.fov + (fovWanted - camera.fov) * this.smooth(dt, 0.3);
+        this.aim(dt, want, vec(answer.look), answer.moveTau === undefined ? this.setting("replayFollowSmoothing", 0.3) : answer.moveTau, answer.turnTau === undefined ? this.setting("replayLookSmoothing", 0.05) + 0.1 : answer.turnTau, answer.roll);
     },
 
     //the camera is a point, so it can end up inside a wall (the screen goes black). walk back from the thing being filmed towards where the camera wants to be, and stop just short of the first wall
@@ -341,7 +458,7 @@ export const ReplayCamera = {
     },
 
     //moves the camera towards where it wants to be and turns it towards what it wants to see, both smoothed. a cut (snapNext) skips the smoothing once
-    aim: function (dt, want, lookAt, moveTau, turnTau) {
+    aim: function (dt, want, lookAt, moveTau, turnTau, roll) {
         //just after a change of view the smoothing starts out heavy and eases off, so the camera sets off gently, swings across and settles (a plain exponential starts at full speed)
         var settled = this.blendStart ? Math.min(1, (performance.now() - this.blendStart) / this.blendLength) : 1;
         if (this.snapNext) settled = 1;
@@ -359,10 +476,11 @@ export const ReplayCamera = {
         var turn = this.smooth(dt, turnTau);
         this.cur.yaw += this.angleDiff(yaw, this.cur.yaw) * turn;
         this.cur.pitch += (pitch - this.cur.pitch) * turn;
-        if (this.snapNext) { this.cur.yaw = yaw; this.cur.pitch = pitch; this.snapNext = false };
+        this.cur.roll += ((roll || 0) - this.cur.roll) * turn;
+        if (this.snapNext) { this.cur.yaw = yaw; this.cur.pitch = pitch; this.cur.roll = roll || 0; this.snapNext = false };
 
         camera.position.copyFrom(this.cur.pos);
-        camera.rotationQuaternion = BABYLON.Quaternion.RotationYawPitchRoll(this.cur.yaw, this.cur.pitch, 0);
+        camera.rotationQuaternion = BABYLON.Quaternion.RotationYawPitchRoll(this.cur.yaw, this.cur.pitch, this.cur.roll);
     },
 
     //a cut: the next frame puts the camera where the view wants it, no travelling there
@@ -389,7 +507,9 @@ export const ReplayCamera = {
         this.target = players_by_id[shot.bullet.shooter] || null;
         this.targetId = shot.bullet.shooter;
         this.adoptPose();
-        this.mode = "bullet";
+        this.leaveView(this.mode, "bullet");
+        this.mode = ReplayViews.isBullet(shot.view) ? shot.view : "bullet";
+        ReplayFx.tiltWanted = 0;
         ReplayViewer.refresh();
     },
 
@@ -412,6 +532,10 @@ export const ReplayCamera = {
         if (!shooter || !victim) return;
 
         if (t < b.tFire) {
+            if (this.mode === "incoming") { //the one it is coming for, looking back the way it will come from
+                this.target = victim;
+                return this.aim(dt, new BABYLON.Vector3(this.eye(victim).x, this.eye(victim).y, this.eye(victim).z), this.eye(shooter), 0.3, 0.2);
+            };
             this.target = shooter;
             return this.frameFollowing(dt, "chase");
         };
@@ -444,6 +568,26 @@ export const ReplayCamera = {
         };
 
         var want = new BABYLON.Vector3(), lookAt = new BABYLON.Vector3(), moveTau = 0.12, turnTau = 0.08;
+        if (flying && this.mode !== "bullet") {
+            var across = BABYLON.Vector3.Cross(BABYLON.Vector3.Up(), dir).normalize();
+            if (this.mode === "bulletfront") { //out in front of it, looking back down the way it came
+                want.set(pos.x + dir.x * 1.5 + across.x * 0.2, pos.y + dir.y * 1.5 + 0.35, pos.z + dir.z * 1.5 + across.z * 0.2);
+                lookAt.set(pos.x - dir.x * 2.5, pos.y - dir.y * 2.5, pos.z - dir.z * 2.5);
+                moveTau = turnTau = 0.04;
+            } else if (this.mode === "bulletside") { //from the side, loose, so it streaks across the picture
+                want.set(pos.x + across.x * 3.2 - dir.x * 0.5, pos.y + 0.5, pos.z + across.z * 3.2 - dir.z * 0.5);
+                lookAt.copyFrom(pos);
+                moveTau = 0.12;
+                turnTau = 0.1;
+            } else { //incoming: from the eyes of the one it is going to, watching it come
+                var theirs = this.eye(victim);
+                want.set(theirs.x, theirs.y, theirs.z);
+                lookAt.copyFrom(pos);
+                moveTau = 0.2;
+                turnTau = 0.06;
+            };
+            return this.aim(dt, want, lookAt, moveTau, turnTau);
+        };
         if (flying) {
             //stuck to the bullet: no smoothing once it is going (it would be left behind), only the first moments blend in from the chase on the shooter
             var blend = Math.max(0, Math.min(1, (t - b.tFire) / 350));
@@ -505,16 +649,37 @@ export const ReplayCamera = {
     },
 
     //the player after (dir 1) or before (dir -1) the watched one, in id order. only ones that are playing, nobody to watch = free camera
-    cycle: function (dir, view) {
+    cycle: function (dir, view, auto) {
         var ids = [];
         iteratePlayers((player) => { if (player.id !== meId && player.playing) ids.push(player.id) });
-        if (!ids.length) return this.mode === "free" ? undefined : this.free();
+        if (!ids.length) {
+            if (this.mode === "free") return;
+            var was = this.mode;
+            this.autoMove = true;
+            this.free();
+            this.autoMove = false;
+            if (auto) this.autoFree = was; //nobody to watch for now, back to the view when somebody is
+            return;
+        };
         var at = ids.indexOf(this.target ? this.target.id : -1);
-        this.watch(ids[(at + dir + ids.length) % ids.length], view);
+        this.watch(ids[(at + dir + ids.length) % ids.length], view, auto);
     },
 
-    //first person -> chase -> orbit -> free -> first person
+    //the player that was asked for is playing again (respawned, back in the replay): the camera goes back to them, as long as nobody else has been picked since
+    returnToWanted: function () {
+        if (this.wantedId === null || this.wantedId === undefined || ReplayReel.active || ReplayViews.isBullet(this.mode)) return;
+        var player = players_by_id[this.wantedId];
+        if (!player || !player.playing || this.wantedId === meId) return;
+        if (this.mode === "free" ? !this.autoFree : this.target === player) return; //free on purpose, or already on them
+        var view = this.autoFree || (ReplayViews.needsPlayer(this.mode) && this.mode !== "overview" ? this.mode : "first");
+        this.leaveView(this.mode, "overview");
+        this.mode = "overview"; //so setView doesnt think nothing changed
+        this.watch(this.wantedId, view, true);
+    },
+
+    //through the views that sit on a player, one after another
     cycleView: function () {
-        this.setView(this.views[(this.views.indexOf(this.mode) + 1) % this.views.length]);
+        var list = ReplayViews.cycled().filter((view) => !(this.live && ReplaySpectate.hiddenViews.includes(view))); //spectating a live game has no recording behind it
+        this.setView(list[(list.indexOf(this.mode) + 1) % list.length]);
     },
 };

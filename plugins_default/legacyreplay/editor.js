@@ -97,7 +97,7 @@ export const ReplayEditor = {
                 el("button", { class: "ssbutton blue", text: "Export", title: "Save the reel as a file", onclick: () => this.exportFile() }), el("button", { class: "ssbutton green", text: "Video", title: "Record the reel as a video (mp4)", onclick: () => ReplayExport.open() }), el("button", { class: "ssbutton red", text: "Close", onclick: () => this.close() })]),
             this.fileInput,
         ]);
-        document.body.appendChild(this.panel);
+        ReplayViewer.host().appendChild(this.panel);
         await this.refreshSaved();
         this.render();
     },
@@ -137,9 +137,10 @@ export const ReplayEditor = {
 
     addHere: function () {
         var reel = this.ensureReel(), t = ReplaySession.time;
-        var mode = ReplayCamera.mode, view = ["first", "pov", "chase", "shoulder", "side", "low", "top", "orbit", "security", "free"].includes(mode) ? mode : "free";
+        var mode = ReplayCamera.mode, view = ReplayViews.pickable().includes(mode) ? mode : "free";
         var shot = ReplayDirector.makeShot(reel.shots, t, Math.min(ReplaySession.duration, t + 3000), view, ReplayCamera.targetId);
         if (shot.end - shot.start < 500) shot.start = Math.max(0, shot.end - 3000), shot.speed = [[shot.start, 1]];
+        if (view === "focus") shot.focus = ReplayCamera.focusId;
         reel.shots.push(shot);
         reel.shots.sort((a, b) => a.start - b.start);
         this.changed();
@@ -178,7 +179,7 @@ export const ReplayEditor = {
                 return input;
             };
 
-            var views = [["first", "First person"], ["pov", "Their view (hud)"], ["chase", "Chase"], ["shoulder", "Over the shoulder"], ["side", "Side on"], ["low", "Low angle"], ["top", "Top down"], ["orbit", "Orbit"], ["security", "Security camera"], ["free", "Free (fixed)"], ...(shot.bullet ? [["bullet", "Bullet"]] : [])];
+            var views = ReplayViews.pickable().map((id) => [id, id === "free" ? "Free (fixed)" : ReplayViews.names[id]]).concat(shot.bullet ? ReplayViews.bulletViews.map((id) => [id, ReplayViews.names[id]]) : []);
             var speeds = Object.keys(ReplayDirector.speedPresets).map((n) => [n, n]);
             var speedName = ReplayDirector.speedName(shot);
             if (speedName === "as made") speeds.push(["as made", "as made"]);

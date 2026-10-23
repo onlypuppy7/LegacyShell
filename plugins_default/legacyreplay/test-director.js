@@ -262,9 +262,9 @@ await test("bulletReason says why a moment had no bullet shot", async () => {
     });
     const moments = D.moments(D.index(records, header));
     assert.match(D.bulletReason(moments[0], "hype"), /wasn't found/);
-    const near = { kills: [{ fatal: { distance: 3 } }] };
-    assert.match(D.bulletReason(near, "hype"), /only 3 blocks, it needs 5/);
-    assert.match(D.bulletReason(near, "chill"), /it needs 8/);
+    const near = { kills: [{ fatal: { distance: 2 } }] };
+    assert.match(D.bulletReason(near, "hype"), /only 2 blocks, it needs 3/);
+    assert.match(D.bulletReason(near, "chill"), /it needs 5/);
     assert.equal(D.bulletReason({ kills: [{ fatal: { distance: 12 } }] }, "chill"), "");
     assert.equal(D.bulletReason({ marked: true, kills: [] }, "hype"), "");
 });
@@ -325,6 +325,23 @@ await test("cleanReel refuses anything that isnt a reel and clamps what it keeps
     assert.ok(ok.shots[0].speed.every(p => p[1] >= 0.05 && p[1] <= 8));
     assert.equal(ok.shots[0].fx, "");
     assert.ok(ok.shots[0].why.length <= 80 && ok.name.length <= 60);
+});
+
+await test("every camera view is accepted in a shot, and the bullet ones need their bullet", async () => {
+    const { header, reel } = sampleReel();
+    const plain = reel.shots.findIndex((s) => s.view !== "bullet"), withBullet = reel.shots.findIndex((s) => s.view === "bullet");
+    for (const view of D.views) {
+        const r = JSON.parse(JSON.stringify(reel));
+        r.shots[plain].view = view;
+        if (D.bulletViews === undefined && false) continue;
+        const needsBullet = ["bullet", "bulletfront", "bulletside", "incoming"].includes(view);
+        if (needsBullet) assert.throws(() => D.cleanReel(r, header), /bad bullet/, view);
+        else assert.equal(D.cleanReel(r, header).shots[plain].view, view);
+        const b = JSON.parse(JSON.stringify(reel));
+        b.shots[withBullet].view = view;
+        assert.equal(D.cleanReel(b, header).shots[withBullet].view, view); //a shot that has a bullet takes any of them
+    };
+    assert.ok(D.views.length === 42 && D.views.includes("killcam") && D.views.includes("incoming"));
 });
 
 await test("editing: fitSpeed keeps the curve inside the shot, relink marks the cuts, makeShot gets a new id", async () => {

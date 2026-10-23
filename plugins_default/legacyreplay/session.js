@@ -403,15 +403,15 @@ export const ReplaySession = {
         this.gunOriginals = { fire, reload };
         GunActor.prototype.fire = function () {
             var player = this.playerActor && this.playerActor.player;
-            if (session.active && player && player.id !== meId) { session.settleReload(player); if (this.gun.ammo.rounds > 0) { this.gun.ammo.rounds--; player.shotSpread += this.gun.subClass.shotSpreadIncrement } };
+            if (session.counting() && player && player.id !== meId) { session.settleReload(player); if (this.gun.ammo.rounds > 0) { this.gun.ammo.rounds--; player.shotSpread += this.gun.subClass.shotSpreadIncrement } };
             return fire.apply(this, arguments);
         };
         GunActor.prototype.reload = function () {
             var player = this.playerActor && this.playerActor.player, ammo = this.gun.ammo;
-            if (session.active && player && player.id !== meId) {
+            if (session.counting() && player && player.id !== meId) {
                 session.settleReload(player);
                 var ticks = ammo.rounds === 0 ? this.gun.longReloadTime : this.gun.shortReloadTime;
-                player.lrReload = { at: session.now + ticks / player.modifiers.reloadSpeedModifier * 1000 / ticksPerSecond, rounds: Math.max(0, Math.min(Math.min(ammo.capacity, ammo.reload) - ammo.rounds, ammo.store)), ammo };
+                player.lrReload = { at: session.clockNow() + ticks / player.modifiers.reloadSpeedModifier * 1000 / ticksPerSecond, rounds: Math.max(0, Math.min(Math.min(ammo.capacity, ammo.reload) - ammo.rounds, ammo.store)), ammo };
             };
             return reload.apply(this, arguments);
         };
@@ -441,10 +441,19 @@ export const ReplaySession = {
         this.gunOriginals = null;
     },
 
+    //other players' ammo is counted while a replay plays, and while spectating a live game (spectate.js), by the replay's time or the real one
+    counting: function () {
+        return this.active || (typeof ReplaySpectate !== "undefined" && ReplaySpectate.active);
+    },
+
+    clockNow: function () {
+        return this.active ? this.now : performance.now();
+    },
+
     //a reload counts once it has had time to finish
     settleReload: function (player, now) {
         var r = player.lrReload;
-        if (!r || (now === undefined ? this.now : now) < r.at) return;
+        if (!r || (now === undefined ? this.clockNow() : now) < r.at) return;
         player.lrReload = null;
         r.ammo.rounds += r.rounds;
         r.ammo.store -= r.rounds;

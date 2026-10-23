@@ -20,7 +20,7 @@ Clips are kept on your device (the browser's storage) and, signed in, on your ac
 
 | | |
 |---|---|
-| Camera views | first person, their view (the whole game hud as them: health, ammo, grenades, reticle, kill streak), chase, over the shoulder, side on, low angle, top down, orbit, security camera (fixed spot that only turns), free camera (C cycles, F is free) |
+| Camera views | 36 of them, grouped in the picker (C cycles the ones that sit on a player, F is the free camera), see below |
 | Players | pick from the list, or the left and right arrow keys |
 | Speed | 0.1x to 4x, [ and ] |
 | Timeline | drag to seek, red ticks are kills |
@@ -28,7 +28,19 @@ Clips are kept on your device (the browser's storage) and, signed in, on your ac
 | Space | play / pause |
 | J / L | back / forward 5 seconds |
 | H | hide the controls, G shows the game hud |
-| Pop out | moves the control bar into a window of its own, so the game window can be filmed clean. Closing it puts the bar back |
+| Pop out | moves all of the replay ui (control bar, highlights editor, dialogs, notes) into a window of its own, so the game window is only the game and its hud. Closing it puts everything back |
+
+### Camera views
+
+- **On the player:** first person, their view (the whole game hud as them), chase, over the shoulder (right and left), over the head, out in front (looking back at them), low angle, ground skim (low and wide, speed), helmet cam (on top of the head, very wide, a little shake), muzzle cam (at the gun), tilted chase.
+- **Alongside:** side on, telephoto side (far off with a narrow lens, it sits still and pans), orbit, drone (high, loose, drifting), crane (rises and draws back and comes down over 14 seconds), dolly zoom (pulls away while the lens tightens), fly-by (waits ahead, turns as they pass, then cuts to a new spot).
+- **Fixed:** top down (close, normal, telephoto), security camera (close, normal, high in the nearest corner of the map), CCTV (a security camera with the retro look, scanlines, a camera number and the replay's date and time on it), tilt-shift (high and angled with the top and bottom blurred so it looks like a model), arena overview (circles the whole map from above, needs no player).
+- **Places** (not a player, in replays and when spectating): focus on a place, picked from a second list that takes the player list's place (the whole map, its four corners, every spawn, every pickup lying around), and a fly tour that goes through a few of them, seven seconds each. The camera sets off from the bearing it is already on and glides from place to place, so nothing jumps. A pickup that is picked up is stood in for by where it was. A reel shot can be a place (it remembers which).
+- **Fights:** duel two-shot (both in the frame from the side, pulls back as they part), group (the middle of whoever is near them), killcam (through the eyes of whoever is about to die, the last second and a bit before a kill), kill chain (a chase that swings to the next person they are about to kill), auto (always on the closest fight, or the kill that is happening).
+- **Projectiles:** grenade cam and rocket cam ride the watched player's own grenade or rocket and circle where it went off. Until one is thrown they are a chase.
+- **Bullets** (from a reel shot that has one, or the editor): bullet cam (behind it), from the front, side on, and incoming (the victim's eyes, watching it come).
+
+A view with nothing to show yet (a duel with nobody near, a killcam with no kill coming) is a chase meanwhile. Every one is smoothed and stays out of walls, and any can be a shot in a reel.
 
 Free camera: click the view to look around (Esc lets go, or hold a mouse button and drag), W A S D to move, E and Q for up and down, Shift is fast, the wheel changes speed, Alt and the wheel zooms, Z and X roll, V puts the roll and zoom back. Every move is smoothed. **Feel** in the Replay settings picks raw, smooth, cinematic or drone (the drone leans into turns), or custom to use the sliders.
 
@@ -56,6 +68,8 @@ Sound: the game's sound goes dull while time is slowed (Settings -> Replay -> Mu
 
 **Video** in the Highlights panel records the reel into an mp4 (a webm on a browser that can't make mp4). Pick the shape (window, 16:9, 9:16 vertical, 1:1, 4:3, 21:9), the size (480p to 1440p, by the short side), the frame rate (24, 30 or 60), the quality (low to max, which sets the bitrate, the dialog shows the size it works out to) and whether to include sound. It plays the reel through once and records what is on screen: the game's picture with the look effects, the letterbox and the flashes, and the sound as mixed (the game, the muffle in slow motion, the music, the whoosh and thud). The game is drawn at the video's resolution while it records, so a 1080p video is sharp even in a small window.
 
+When it is done the file is in your downloads and a small dialog offers **YouTube**, **TikTok** and **X** (each opens that site's upload or post page, drag the file in), **Share** (the system share sheet, only where the browser can share files, such as a phone or Chrome and Edge on Windows) and **Save again**. Nothing is uploaded from the game, and nothing is sent without a click.
+
 It records live, so it takes as long as the reel plays for (slow motion included) and the tab has to stay in front, a hidden tab stops drawing and the video freezes. The game's hud isn't in the video (the camera views that show it, like Their view, will look bare). Nothing leaves the browser.
 
 ## Keeping replays on your account
@@ -77,6 +91,12 @@ A valid signature says where a file came from, not that it is harmless: every fi
 **Settings -> Replay -> Watch live**, then the game's code. The room sends its recording as it is made to a connection that doesn't take a player slot, and the viewer plays it a moment behind (the **LIVE** button goes back to the edge). Every camera, the timeline and the highlight tools work on what has arrived so far. Moderator and above, checked against the account services says the session is.
 
 This needed two small hooks in the game server (`joinGameFound`, and `userLookup` and `handled` on `beforeJoinRoom`), see `cast.js`.
+
+## Spectating (in a game you are in)
+
+The respawn menu has a **Spectate** button between CHANGE EQUIPMENT and PLAY. It hides the menu and puts the replay cameras on the live players, in the same scene, with the game still running (`spectate.js`). A bar at the bottom has the view and player pickers, **Pop out** (the bar goes to a window of its own, like the replay one), **Menu** (back to the menu, still out) and **PLAY** (back in at once). C, F and the arrow keys work as in a replay. The views that need a recording (the kills so far) and the tilt-shift look aren't offered. First person with their hud works: their ammo is counted from their shots and reloads, and your own hud is put back when you leave. (Kill banners aren't shown, there is no record of the kills.) If the game spawns you (a new round) you are taken back out of spectating.
+
+Whoever was picked in the player list stays wanted: when they die, haven't spawned yet, or the timeline is scrubbed to before they were there, the camera moves to someone else, and goes back to them as soon as they are playing again, unless somebody else (or the free camera) was picked in the meantime.
 
 ## Admin panel
 
@@ -103,13 +123,14 @@ With legacyadmin, a **Replays** tab lists everyone's replays on the server (owne
 
 ## Files and tests
 
-`format.js` is the file format, the reader (every file is treated as untrusted input) and signature checking. `recorder.js` runs in each room's worker. `tiers.js` has the limits by rank. `storage.js`, `signing.js` and `adminStorage.js` run on services, `cast.js` on the game's main thread. `session.js`, `cameras.js`, `viewer.js`, `editor.js`, `export.js` and `live.js` are the browser side.
+`format.js` is the file format, the reader (every file is treated as untrusted input) and signature checking. `recorder.js` runs in each room's worker. `tiers.js` has the limits by rank. `storage.js`, `signing.js` and `adminStorage.js` run on services, `cast.js` on the game's main thread. `session.js`, `cameras.js`, `views.js` (what each camera view does, plain numbers so it is tested without a game), `viewer.js`, `editor.js`, `export.js`, `live.js` and `spectate.js` are the browser side.
 
 ```
 node plugins_default/legacyreplay/test-format.js
 node plugins_default/legacyreplay/test-fuzz.js
 node plugins_default/legacyreplay/test-recorder.js
 node plugins_default/legacyreplay/test-session.js
+node plugins_default/legacyreplay/test-views.js
 node plugins_default/legacyreplay/test-signing.js
 node plugins_default/legacyreplay/test-cast.js
 node plugins_default/legacyreplay/bench-recorder.js

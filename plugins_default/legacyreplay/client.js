@@ -13,7 +13,7 @@ export const LegacyReplay = {
 
         if (typeof devmode !== "undefined" && devmode) { //the bundle is wrapped so nothing is reachable from the console, this is for testing
             window.LegacyReplay = this; window.LegacyReplaySession = () => ReplaySession;
-            window.LegacyReplayParts = () => ({ ReplaySession, ReplayCamera, ReplayReel, ReplayDirector, ReplayViewer, ReplayEditor, ReplayFx, ReplayAudio, ReplayExport, ReplayLive });
+            window.LegacyReplayParts = () => ({ ReplaySession, ReplayCamera, ReplayReel, ReplayDirector, ReplayViewer, ReplayEditor, ReplayFx, ReplayAudio, ReplayExport, ReplayLive, ReplayViews, ReplaySpectate });
         };
     },
 

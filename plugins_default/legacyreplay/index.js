@@ -44,7 +44,7 @@ export class Plugin {
 
     pluginSourceInsertion(data) {
         //order matters: the format first (pure), then the shared command, then the client bits that use them
-        var files = ['format.js', 'shared.js', 'client.js', 'director.js', 'session.js', 'cameras.js', 'reel.js', 'fx.js', 'audio.js', 'editor.js', 'export.js', 'live.js', 'viewer.js'];
+        var files = ['format.js', 'shared.js', 'client.js', 'views.js', 'director.js', 'session.js', 'cameras.js', 'reel.js', 'fx.js', 'audio.js', 'editor.js', 'export.js', 'live.js', 'spectate.js', 'viewer.js'];
         files.forEach((file, i) => {
             data.pluginInsertion.files.push({
                 insertBefore: i === 0 ? '\nconsole.log("inserting before... (LegacyReplay)");' : '',

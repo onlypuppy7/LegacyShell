@@ -3,6 +3,7 @@
 //the browser side that plays a reel is reel.js
 import Comm from "#comm";
 import { ReplayFormat } from "./format.js";
+import { ReplayViews } from "./views.js";
 //
 
 export const ReplayDirector = {
@@ -329,7 +330,7 @@ export const ReplayDirector = {
 
     //---- editing and saving. a reel is { v, name, options, shots }. the shots are plain data, so the editor changes them directly and these keep them valid
 
-    views: ["first", "pov", "chase", "shoulder", "side", "low", "top", "orbit", "security", "free", "bullet"],
+    views: ReplayViews.all(),
     looks: ["clean", "cinematic", "hype", "retro"],
 
     //how fast a shot plays, by name. "as made" keeps whatever curve the director gave it
@@ -398,7 +399,8 @@ export const ReplayDirector = {
             };
             if (!shot.speed.length) shot.speed = [[start, 1]];
             if (s.victim !== undefined) shot.victim = id8(s.victim);
-            if (s.view === "bullet") {
+            if (s.view === "focus" && typeof s.focus === "string") shot.focus = F.cleanString(s.focus, 40) ?? "map";
+            if (ReplayViews.isBullet(s.view)) {
                 const b = s.bullet;
                 if (!F.isPlainObject(b) || !Array.isArray(b.from) || b.from.length !== 3 || !b.from.every(Number.isFinite)) throw new Error("bad bullet in shot " + (i + 1));
                 shot.bullet = { shooter: id8(b.shooter), victim: id8(b.victim), tFire: num(b.tFire, 0, duration, start), tHit: num(b.tHit, 0, duration, end), from: b.from.map((n) => num(n, -1e4, 1e4, 0)), distance: num(b.distance, 0, 1e4, 0) };

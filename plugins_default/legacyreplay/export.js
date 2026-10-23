@@ -39,7 +39,7 @@ export const ReplayExport = {
     },
 
     open: function () {
-        if (this.running || document.getElementById("lrExportBack")) return;
+        if (this.running || ReplayViewer.host().ownerDocument.getElementById("lrExportBack")) return;
         if (!ReplayEditor.reel || !ReplayEditor.reel.shots.length) return ReplayViewer.toast("Make a reel first (Generate)");
         this.css();
         try { Object.assign(this.chosen, JSON.parse(localStorage.getItem("legacyreplayExport") || "{}")) } catch (e) { };
@@ -78,7 +78,7 @@ export const ReplayExport = {
             summary,
             el("div", { class: "lrRow" }, [el("div", { class: "info" }), go, el("button", { class: "ssbutton red", text: "Cancel", onclick: close })]),
         ]));
-        document.body.appendChild(back);
+        ReplayViewer.host().appendChild(back);
         update();
     },
 
@@ -96,6 +96,42 @@ export const ReplayExport = {
 
     bitrate: function (d, fps, quality) {
         return Math.max(1e6, Math.min(80e6, d.w * d.h * fps * this.qualities[quality][1]));
+    },
+
+    save: function (blob, filename) {
+        var a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = filename;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 6e4);
+    },
+
+    //where the video goes next. the file is already in the downloads. Share hands it to the system's share sheet where the browser can (a phone, or Chrome / Edge on Windows), the others open the
+    //site's upload or post page, where the file is dragged in. nothing is uploaded from here, and nothing is sent anywhere without a click
+    finished: function (blob, filename, info) {
+        var el = ReplayViewer.el.bind(ReplayViewer);
+        var back = el("div", { id: "lrShareBack", class: "lrBack" });
+        var close = () => back.remove();
+        back.onclick = (e) => { if (e.target === back) close() };
+
+        var file = typeof File !== "undefined" ? new File([blob], filename, { type: blob.type }) : null;
+        var canShare = !!(file && navigator.canShare && navigator.canShare({ files: [file] }));
+        var open = (url) => window.open(url, "_blank", "noopener");
+
+        var buttons = [
+            el("button", { class: "ssbutton red", text: "YouTube", title: "Opens YouTube's upload page, drag the file in", onclick: () => open("https://www.youtube.com/upload") }),
+            el("button", { class: "ssbutton blue", text: "TikTok", title: "Opens TikTok's upload page, drag the file in", onclick: () => open("https://www.tiktok.com/upload") }),
+            el("button", { class: "ssbutton blue", text: "X", title: "Opens a new post on X, attach the file", onclick: () => open("https://x.com/compose/post") }),
+        ];
+        if (canShare) buttons.push(el("button", { class: "ssbutton green", text: "Share", title: "Send it to another app", onclick: async () => { try { await navigator.share({ files: [file], title: filename }) } catch (e) { } } }));
+        buttons.push(el("button", { class: "ssbutton blue", text: "Save again", onclick: () => this.save(blob, filename) }), el("button", { class: "ssbutton red", text: "Close", onclick: close }));
+
+        back.appendChild(el("div", { class: "alert roundedBorder lrDialog" }, [
+            el("h1", { text: "Video saved" }),
+            el("div", { class: "sub", text: filename + " (" + info + "). It's in your downloads." }),
+            el("div", { class: "lrRow" }, buttons),
+        ]));
+        ReplayViewer.host().appendChild(back);
     },
 
     run: async function (options) {
@@ -123,7 +159,7 @@ export const ReplayExport = {
         var box = el("div", { class: "shadedPane textShadow lrExportBox" });
         var label = el("span", { text: "Getting ready..." }), fill = el("div"), bar = el("div", { class: "lrExportBar" }, [fill]);
         box.append(label, bar, el("button", { class: "ssbutton red", text: "Cancel", onclick: () => { this.cancelled = true; ReplayReel.stop() } }));
-        document.body.append(box);
+        ReplayViewer.host().append(box);
         document.body.classList.add("lrExporting");
 
         //every frame the game draws, the part that is kept goes onto the video's canvas with the letterbox and flash over it (those are page elements, so they are drawn here)
@@ -164,12 +200,10 @@ export const ReplayExport = {
                 this.running = false;
                 if (this.cancelled) return ReplayViewer.toast("Video cancelled");
                 if (!chunks.length) return ReplayViewer.toast("Nothing was recorded");
-                var a = document.createElement("a"), name = (ReplayEditor.reel.name || "reel").replace(/[^\w\- ]+/g, "").trim() || "reel";
-                a.href = URL.createObjectURL(new Blob(chunks, { type: format.type.split(";")[0] }));
-                a.download = name + "." + format.ext;
-                a.click();
-                setTimeout(() => URL.revokeObjectURL(a.href), 6e4);
-                ReplayViewer.toast("Saved " + a.download + " (" + d.w + " x " + d.h + ", " + (bytes / 1048576).toFixed(1) + "MB, " + frames + " frames)");
+                var name = (ReplayEditor.reel.name || "reel").replace(/[^\w\- ]+/g, "").trim() || "reel";
+                var blob = new Blob(chunks, { type: format.type.split(";")[0] });
+                this.save(blob, name + "." + format.ext);
+                this.finished(blob, name + "." + format.ext, d.w + " x " + d.h + ", " + (bytes / 1048576).toFixed(1) + "MB");
             };
             if (recorder.state !== "inactive") { recorder.onstop = done; recorder.stop() } else done();
         };

@@ -45,6 +45,7 @@ export const ReplayFx = {
         this.wanted = { ...this.looks.clean };
         this.name = this.base = "clean";
         this.kickAmount = 0;
+        this.tilt = this.tiltWanted = 0; //the tilt-shift blur, wanted by the camera view (cameras.js) rather than by a look
         this.broken = false;
         this.flags = {};
 
@@ -89,7 +90,7 @@ export const ReplayFx = {
         varying vec2 vUV;
         uniform sampler2D textureSampler;
         uniform vec2 screen;
-        uniform float vignette, grain, time, chroma, sharpen, contrast, saturation, brightness, sepia, tint;
+        uniform float vignette, grain, time, chroma, sharpen, contrast, saturation, brightness, sepia, tint, tilt;
         float rand(vec2 co) { return fract(sin(dot(co.xy, vec2(12.9898, 78.233))) * 43758.5453); }
         void main(void) {
             vec2 uv = vUV, centre = uv - 0.5;
@@ -99,6 +100,17 @@ export const ReplayFx = {
                 vec2 px = 1.0 / screen;
                 vec3 around = (texture2D(textureSampler, uv + vec2(px.x, 0.0)).rgb + texture2D(textureSampler, uv - vec2(px.x, 0.0)).rgb + texture2D(textureSampler, uv + vec2(0.0, px.y)).rgb + texture2D(textureSampler, uv - vec2(0.0, px.y)).rgb) * 0.25;
                 c += (c - around) * sharpen;
+            }
+            if (tilt > 0.003) { //the top and bottom go soft, like a tilt-shift lens, which makes things look like models
+                float band = smoothstep(0.1, 0.5, abs(uv.y - 0.5)) * tilt;
+                vec2 px = (1.0 / screen) * (1.0 + band * 6.0);
+                vec3 sum = c;
+                sum += texture2D(textureSampler, uv + vec2(px.x * 2.0, 0.0)).rgb + texture2D(textureSampler, uv - vec2(px.x * 2.0, 0.0)).rgb;
+                sum += texture2D(textureSampler, uv + vec2(0.0, px.y * 2.0)).rgb + texture2D(textureSampler, uv - vec2(0.0, px.y * 2.0)).rgb;
+                sum += texture2D(textureSampler, uv + px * 1.4).rgb + texture2D(textureSampler, uv - px * 1.4).rgb;
+                sum += texture2D(textureSampler, uv + vec2(px.x, -px.y) * 1.4).rgb + texture2D(textureSampler, uv - vec2(px.x, -px.y) * 1.4).rgb;
+                c = mix(c, sum / 9.0, clamp(band * 1.3, 0.0, 1.0));
+                c = mix(vec3(dot(c, vec3(0.299, 0.587, 0.114))), c, 1.0 + 0.3 * tilt);
             }
             float l = dot(c, vec3(0.299, 0.587, 0.114));
             c = mix(vec3(l), c, saturation);
@@ -117,7 +129,7 @@ export const ReplayFx = {
     ensurePost: function () {
         if (this.post) return;
         BABYLON.Effect.ShadersStore["replayLookFragmentShader"] = this.shader;
-        var post = new BABYLON.PostProcess("replayLook", "replayLook", ["screen", "vignette", "grain", "time", "chroma", "sharpen", "contrast", "saturation", "brightness", "sepia", "tint"], null, 1.0, camera);
+        var post = new BABYLON.PostProcess("replayLook", "replayLook", ["screen", "vignette", "grain", "time", "chroma", "sharpen", "contrast", "saturation", "brightness", "sepia", "tint", "tilt"], null, 1.0, camera);
         post.onApply = (effect) => {
             var s = this.state, kick = this.kickAmount;
             effect.setFloat2("screen", engine.getRenderWidth(), engine.getRenderHeight());
@@ -131,6 +143,7 @@ export const ReplayFx = {
             effect.setFloat("brightness", s.brightness);
             effect.setFloat("sepia", s.sepia);
             effect.setFloat("tint", s.tint);
+            effect.setFloat("tilt", this.tilt);
         };
         this.post = post;
     },
@@ -198,6 +211,7 @@ export const ReplayFx = {
         var k = 1 - Math.exp(-dt / 0.45);
         Object.keys(this.state).forEach((key) => this.state[key] += (this.wanted[key] - this.state[key]) * k);
         this.kickAmount *= Math.exp(-dt / 0.2);
+        this.tilt += (this.tiltWanted - this.tilt) * k;
         var s = this.state, w = this.wanted;
 
         //letterbox
@@ -206,7 +220,7 @@ export const ReplayFx = {
 
         //our pass: on while anything in it is not neutral, off (and freed) once everything has settled back
         var shaderKeys = ["vignette", "grain", "chroma", "sharpen", "tint", "sepia"];
-        var neutral = shaderKeys.every((key) => s[key] < 0.004) && Math.abs(s.contrast - 1) < 0.004 && Math.abs(s.saturation - 1) < 0.004 && Math.abs(s.brightness - 1) < 0.004 && this.kickAmount < 0.01;
+        var neutral = shaderKeys.every((key) => s[key] < 0.004) && Math.abs(s.contrast - 1) < 0.004 && Math.abs(s.saturation - 1) < 0.004 && Math.abs(s.brightness - 1) < 0.004 && this.kickAmount < 0.01 && this.tilt < 0.004;
         if (!neutral) this.ensurePost(); else if (this.post && Object.keys(w).every((key) => key === "bars" || key === "bloom" || key === "dof" || Math.abs(w[key] - this.looks.clean[key]) < 0.001)) this.disposePost();
 
         //bloom and soft background: only while the look and the settings want them

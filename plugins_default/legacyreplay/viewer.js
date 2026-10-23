@@ -6,7 +6,6 @@ export const ReplayViewer = {
     hidden: false,
     scrubbing: false,
     speeds: [0.1, 0.25, 0.5, 1, 2, 4],
-    viewNames: { first: "First person", pov: "Their view (hud)", chase: "Chase", shoulder: "Over the shoulder", side: "Side on", low: "Low angle", top: "Top down", orbit: "Orbit", security: "Security camera", free: "Free camera" },
 
     //the looks come from the game's own classes (shadedPane, textShadow, ssbutton, select, alert, roundedBorder), this is only layout
     css: `
@@ -66,6 +65,7 @@ export const ReplayViewer = {
         var style = document.createElement("style");
         style.textContent = this.css;
         document.head.appendChild(style);
+        ReplaySpectate.registerListeners(this.plugins);
 
         window.addEventListener("dragover", (e) => { if (!ReplaySession.active && e.dataTransfer && [...e.dataTransfer.types].includes("Files")) e.preventDefault() });
         window.addEventListener("drop", (e) => {
@@ -186,10 +186,16 @@ export const ReplayViewer = {
 
         this.timeLabel = el("span", { class: "lrTime", text: "0:00" });
         this.viewSelect = el("select", { title: "Camera view" });
-        Object.keys(this.viewNames).forEach((view) => this.viewSelect.appendChild(el("option", { value: view, text: this.viewNames[view] })));
+        ReplayViews.groups.forEach(([group, ids]) => {
+            var box = el("optgroup", { label: group });
+            ids.forEach((view) => box.appendChild(el("option", { value: view, text: ReplayViews.names[view] })));
+            this.viewSelect.appendChild(box);
+        });
         this.viewSelect.onchange = () => { ReplayReel.stop(); ReplayCamera.setView(this.viewSelect.value) };
         this.playerSelect = el("select", { title: "Player" });
         this.playerSelect.onchange = () => { ReplayReel.stop(); ReplayCamera.watch(Number(this.playerSelect.value)) };
+        this.focusSelect = el("select", { title: "Place", style: "display: none" }); //shown while the view is a place rather than a player
+        this.focusSelect.onchange = () => { ReplayReel.stop(); ReplayCamera.setFocus(this.focusSelect.value) };
         this.speedSelect = el("select", { title: "Speed" });
         this.speeds.forEach((speed) => this.speedSelect.appendChild(el("option", { value: String(speed), text: speed + "x" })));
         this.speedSelect.value = "1";
@@ -204,12 +210,12 @@ export const ReplayViewer = {
         this.popBtn = el("button", { class: "ssbutton blue", text: "Pop out", title: "Move these controls to their own window, so the game is all that is in this one", onclick: () => this.popOut() });
         this.exitBtn = el("button", { class: "ssbutton red", text: "Exit", onclick: () => showMainMenu() });
 
-        this.bar = el("div", { class: "shadedPane textShadow lrPanel lrBar" }, [this.playBtn, this.track, this.timeLabel, this.liveBtn, this.speedSelect, this.viewSelect, this.playerSelect, this.lookSelect, this.reelBtn, this.stopBtn, this.hudBtn, this.popBtn, this.exitBtn]);
+        this.bar = el("div", { class: "shadedPane textShadow lrPanel lrBar" }, [this.playBtn, this.track, this.timeLabel, this.liveBtn, this.speedSelect, this.viewSelect, this.playerSelect, this.focusSelect, this.lookSelect, this.reelBtn, this.stopBtn, this.hudBtn, this.popBtn, this.exitBtn]);
         this.hint = el("div", { class: "shadedPane textShadow lrPanel lrHint", text: "Click the view to look around (Esc lets go). W A S D move, E / Q up and down, Shift fast, wheel speed, Alt + wheel zoom, Z / X roll, V resets." });
-        document.body.appendChild(this.hint);
+        this.host().appendChild(this.hint);
         this.note = el("div", { class: "shadedPane textShadow lrPanel lrNote", text: this.baseNote() });
-        document.body.appendChild(this.bar);
-        document.body.appendChild(this.note);
+        this.host().appendChild(this.bar);
+        this.host().appendChild(this.note);
 
         this.timer = setInterval(() => this.tick(), 200);
         this.refresh();
@@ -229,29 +235,56 @@ export const ReplayViewer = {
 
     //the control bar in a window of its own (a second monitor, or so the game window can be captured clean). it is the same bar moved over, so everything on it works as before, and
     //the keys work from there too. closing the window puts it back
+    //where the replay ui goes: the pop out window if there is one, else the page
+    host: function () {
+        if (!this.popup || this.popup.closed) return document.body;
+        this.syncStyles();
+        return this.popup.document.body;
+    },
+
+    //styles the ui adds after the window opened (the editor's, the exporter's) are copied over as they appear
+    syncStyles: function () {
+        var head = this.popup.document.head;
+        document.querySelectorAll("link[rel=stylesheet], style").forEach((node) => {
+            if (node.lrCopy && node.lrCopy.ownerDocument === this.popup.document) return;
+            node.lrCopy = node.cloneNode(true);
+            head.insertBefore(node.lrCopy, head.querySelector("#lrPopStyle"));
+        });
+    },
+
     popOut: function () {
         if (this.popup && !this.popup.closed) return this.popup.focus();
-        var w = window.open("", "legacyreplayPanel", "popup=yes,width=980,height=160");
+        var w = window.open("", "legacyreplayPanel", "popup=yes,width=1100,height=720");
         if (!w) return this.toast("The browser blocked the new window");
         this.popup = w;
-        w.document.title = "Replay controls";
-        document.querySelectorAll("link[rel=stylesheet], style").forEach((node) => w.document.head.appendChild(node.cloneNode(true)));
+        w.document.open();
+        w.document.write("<!doctype html><title>Replay controls</title>");
+        w.document.close();
         var style = w.document.createElement("style");
-        style.textContent = "body { margin: 0; overflow: hidden; background: #ffe9c9 } .lrBar { position: static !important; transform: none !important; width: auto !important; margin: 0.4em }";
+        style.id = "lrPopStyle"; //the game sizes everything off the window height (2.2vh), which in a tall thin window is huge. here it goes off the width too
+        style.textContent = "body { margin: 0; overflow: hidden; background: #ffe9c9 } * { font-size: clamp(12px, min(2.2vh, 1.25vw), 22px) }";
         w.document.head.appendChild(style);
-        w.document.body.appendChild(this.bar);
-        this.popBtn.style.display = "none";
+        this.syncStyles();
+        [this.bar, ReplaySpectate.bar, this.note, this.hint, this.toastEl, ReplayEditor.panel, ...document.querySelectorAll(".lrBack")].forEach((node) => node && w.document.body.appendChild(node)); //all of it, the game keeps only its own hud. the spectating bar too, when that is what is open
+        this.popButtons().forEach((button) => button.style.display = "none");
         w.addEventListener("keydown", ReplayCamera.onKeyDown, true);
         w.addEventListener("keyup", ReplayCamera.onKeyUp, true);
+        if (ReplaySpectate.onKey) w.addEventListener("keydown", ReplaySpectate.onKey, true);
         w.addEventListener("pagehide", () => this.popIn());
+    },
+
+    //the pop out buttons there are: the replay bar's, and the spectating bar's
+    popButtons: function () {
+        return [this.bar && this.popBtn, ReplaySpectate.bar && ReplaySpectate.popBtn].filter(Boolean);
     },
 
     popIn: function () {
         if (!this.popup) return;
         var w = this.popup;
         this.popup = null;
-        if (this.bar) { document.body.appendChild(this.bar); this.popBtn.style.display = "" };
-        try { w.removeEventListener("keydown", ReplayCamera.onKeyDown, true); w.removeEventListener("keyup", ReplayCamera.onKeyUp, true); if (!w.closed) w.close() } catch (e) { };
+        try { [...w.document.body.children].forEach((node) => document.body.appendChild(node)) } catch (e) { };
+        this.popButtons().forEach((button) => button.style.display = "");
+        try { w.removeEventListener("keydown", ReplayCamera.onKeyDown, true); w.removeEventListener("keyup", ReplayCamera.onKeyUp, true); if (ReplaySpectate.onKey) w.removeEventListener("keydown", ReplaySpectate.onKey, true); if (!w.closed) w.close() } catch (e) { };
     },
 
     close: function () {
@@ -264,15 +297,17 @@ export const ReplayViewer = {
 
     //the pickers follow the room and the camera
     refresh: function () {
+        if (typeof ReplaySpectate !== "undefined") ReplaySpectate.refresh();
         if (!this.bar) return;
         var el = this.el.bind(this), select = this.playerSelect;
         select.innerHTML = "";
         iteratePlayers((player) => { if (player.id !== meId && player.playing) select.appendChild(el("option", { value: String(player.id), text: player.name || ("Player " + player.id) })) });
         if (ReplayCamera.target) select.value = String(ReplayCamera.target.id);
-        [...this.viewSelect.querySelectorAll("option[value=bullet]")].forEach((o) => o.remove());
-        if (ReplayCamera.mode === "bullet") this.viewSelect.appendChild(el("option", { value: "bullet", text: "Bullet cam" })); //only ever set by a reel shot
-        this.viewSelect.value = ReplayCamera.views.includes(ReplayCamera.mode) || ReplayCamera.mode === "bullet" ? ReplayCamera.mode : "free";
+        [...this.viewSelect.querySelectorAll(".lrShotView")].forEach((o) => o.remove());
+        if (ReplayViews.isBullet(ReplayCamera.mode)) this.viewSelect.appendChild(el("option", { value: ReplayCamera.mode, text: ReplayViews.names[ReplayCamera.mode], class: "lrShotView" })); //only ever set by a reel shot
+        this.viewSelect.value = ReplayCamera.views.includes(ReplayCamera.mode) || ReplayViews.isBullet(ReplayCamera.mode) ? ReplayCamera.mode : "free";
         this.speedSelect.value = String(this.speeds.includes(ReplaySession.speed) ? ReplaySession.speed : 1);
+        this.fillFocus(this.focusSelect, this.playerSelect);
         if (this.hint) this.hint.style.display = ReplayCamera.mode === "free" && !this.hidden ? "block" : "none";
     },
 
@@ -292,12 +327,32 @@ export const ReplayViewer = {
         };
         var ids = []; iteratePlayers((player) => { if (player.id !== meId && player.playing) ids.push(player.id) });
         if (ids.join() !== this.lastIds) { this.lastIds = ids.join(); this.refresh() };
+        if (ReplayCamera.mode === "focus") this.fillFocus(this.focusSelect, this.playerSelect); //pickups come and go
+    },
+
+    //the list of places, in the picker that takes the player picker's place while the view is a place. only rebuilt when the places change, so an open list isn't shut under the mouse
+    fillFocus: function (select, playerSelect) {
+        var focus = ReplayCamera.mode === "focus";
+        select.style.display = focus ? "" : "none";
+        if (playerSelect) playerSelect.style.display = focus || ReplayCamera.mode === "tour" ? "none" : "";
+        if (!focus) return;
+        var list = ReplayCamera.pois(), signature = list.map((p) => p.id).join("|");
+        if (select.signature !== signature) {
+            select.signature = signature;
+            select.innerHTML = "";
+            var box = null;
+            list.forEach((p) => {
+                if (!box || box.label !== p.group) { box = this.el("optgroup", { label: p.group }); select.appendChild(box) };
+                box.appendChild(this.el("option", { value: p.id, text: p.label }));
+            });
+        };
+        select.value = ReplayCamera.focusId;
     },
 
     //a line of feedback near the bottom (camera speed, zoom)
     toast: function (text) {
         if (!this.bar) return;
-        if (!this.toastEl) { this.toastEl = this.el("div", { class: "shadedPane textShadow lrPanel lrToast" }); document.body.appendChild(this.toastEl) };
+        if (!this.toastEl) { this.toastEl = this.el("div", { class: "shadedPane textShadow lrPanel lrToast" }); this.host().appendChild(this.toastEl) };
         this.toastEl.textContent = text;
         this.toastEl.style.opacity = "1";
         clearTimeout(this.toastTimer);

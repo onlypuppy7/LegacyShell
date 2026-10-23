@@ -71,7 +71,9 @@ export const ReplayReel = {
         ReplayCamera.smoothNext = !!shot.smooth;
         this.lastT = ReplaySession.time;
         ReplayFx.setLook(shot.fx || (this.look !== "clean" ? this.look : ReplayFx.base));
-        if (shot.view === "bullet") ReplayCamera.startBullet(shot);
+        ReplayCamera.partnerId = shot.victim === undefined ? null : shot.victim; //the second player of a duel shot
+        if (ReplayViews.isBullet(shot.view)) ReplayCamera.startBullet(shot);
+        else if (!ReplayViews.needsPlayer(shot.view) && shot.view !== "free") { if (shot.focus) ReplayCamera.focusId = shot.focus; ReplayCamera.lastPoi = null; ReplayCamera.setView(shot.view) }
         else if (shot.view === "free" || shot.target === null || !players_by_id[shot.target]) ReplayCamera.free();
         else ReplayCamera.watch(shot.target, shot.view);
         ReplayCamera.smoothNext = false;
