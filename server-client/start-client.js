@@ -1,6 +1,7 @@
 //basic
 import fs from 'node:fs';
 import path from 'node:path';
+import crypto from 'node:crypto';
 import yaml from 'js-yaml';
 //legacyshell: basic
 import misc from '#misc';
@@ -51,6 +52,16 @@ export default async function run () {
             const app = express();
 
             app.listen(port);
+
+            //the gate goes first, before any static/plugin mounts, or they'd all be served unauthenticated
+            if (ss.config.client.login?.enabled && !ss.config.client.closed) {
+                if (!ss.config.client.login.username || !ss.config.client.login.password) {
+                    log.error("client.login is enabled but username/password aren't both set, refusing to start unprotected.");
+                    process.exit(1);
+                };
+                log.info("Login enabled for user:", ss.config.client.login.username);
+                app.use(checkPassword);
+            };
 
             const gzipped = gzipStatic([], { cacheDir: path.join(ss.currentDir, 'store', 'brotli-cache') });
             gzipped.patch(express); //every express.static from here on, plugins included, is compressed where it is mounted
@@ -110,16 +121,6 @@ export default async function run () {
 
                 app.use(express.static(path.join(ss.currentDir, 'store', 'client-modified')));
                 app.use(express.static(path.join(ss.currentDir, 'src', 'client-static')));
-
-                try {
-                    if (ss.config.client.login.enabled) {
-                        console.log("Password enabled:", ss.config.client.login);
-                        app.use(checkPassword);
-                    };
-                } catch (error) {
-                    console.log("Starting client server failed:", error);
-                    // process.exit(1);
-                };
 
                 app.use((req, res, next) => {
                     console.log(req.path);
@@ -217,24 +218,37 @@ export default async function run () {
         });
     };
 
+    const safeEqual = (a, b) => crypto.timingSafeEqual( //hashed first so lengths always match
+        crypto.createHash('sha256').update(String(a)).digest(),
+        crypto.createHash('sha256').update(String(b)).digest(),
+    );
+
     const checkPassword = async (req, res, next) => {
         try {
             const auth = { login: ss.config.client.login.username, password: ss.config.client.login.password };
-        
-            const b64auth = (req.headers.authorization || '').split(' ')[1] || '';
-            const [login, password] = Buffer.from(b64auth, 'base64').toString().split(':');
+
+            const header = req.headers.authorization || '';
+            const [scheme, b64auth = ''] = header.split(' ');
+            let login, password;
+            if (/^basic$/i.test(scheme)) {
+                const decoded = Buffer.from(b64auth, 'base64').toString();
+                const split = decoded.indexOf(':'); //first colon only, passwords may contain them
+                if (split >= 0) [login, password] = [decoded.slice(0, split), decoded.slice(split + 1)];
+            };
 
             await plugins.emit('onCheckPassword', { ss, req, res, next, login, password, auth });
-        
-            // console.log(login, password, auth.login, auth.password);
+            if (plugins.cancel) return; //a plugin took over
 
-            if (login && password && login === auth.login && password === auth.password) {
+            if (login && password && auth.login && auth.password && safeEqual(login, auth.login) & safeEqual(password, auth.password)) {
                 return next();
             };
-        
-            res.set('WWW-Authenticate', 'Basic realm="Protected Area"');
+
+            res.set('WWW-Authenticate', 'Basic realm="Protected Area", charset="UTF-8"');
             res.status(401).send('Authentication required.');
-        } catch (error) { console.error(error) };
+        } catch (error) {
+            console.error(error);
+            if (!res.headersSent) res.status(500).send('Authentication failed.');
+        };
     };
 
     //all this is retrieving the config:
