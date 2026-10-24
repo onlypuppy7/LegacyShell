@@ -17,7 +17,7 @@ export const ReplayViewer = {
         .lrTrack input[type=range] { width: 100%; margin: 0; accent-color: #e82; }
         .lrTick { position: absolute; top: -0.15em; width: 3px; height: 0.5em; background: #e33; pointer-events: none; border-radius: 1px; }
         .lrTick.mark { background: #f7941d; height: 0.65em; }
-        .lrTime { font-variant-numeric: tabular-nums; min-width: 6em; text-align: center; font-weight: bold; }
+        .lrTime { font-variant-numeric: tabular-nums; min-width: 9em; text-align: center; font-weight: bold; }
         .lrNote { top: 0.8em; left: 0.8em; font-size: 0.9em; max-width: 24em; }
         .lrHint { top: 3.2em; left: 0.8em; font-size: 0.8em; max-width: 22em; opacity: 0.9; line-height: 1.35; display: none; }
         .lrToast { left: 50%; transform: translateX(-50%); bottom: 4.6em; opacity: 0; transition: opacity 0.25s; pointer-events: none; font-weight: bold; }
@@ -39,6 +39,7 @@ export const ReplayViewer = {
         body.replayMode #serverAndMapInfo, body.replayMode #myPlayer { display: none !important; }
         body.replayMode:not(.replayHud) #killTicker, body.replayMode:not(.replayHud) #playerList, body.replayMode:not(.replayHud) #chatOut, body.replayMode:not(.replayHud) #chatIn,
         body.replayMode:not(.replayHud) #readouts, body.replayMode:not(.replayHud) #corner { display: none !important; }
+        body.replayMode #readyBrackets:not(.ready):not(.notReady) { display: none; } /* with no size it is four corners on top of each other: a plus in the middle of the screen */
     `,
 
     el: function (tag, props, children) {
@@ -52,9 +53,9 @@ export const ReplayViewer = {
         return bytes >= 1073741824 ? (bytes / 1073741824).toFixed(1) + " GB" : (bytes / 1048576).toFixed(bytes < 10485760 ? 1 : 0) + " MB";
     },
 
-    time: function (ms) {
+    time: function (ms, tenths) {
         var s = Math.floor(ms / 1000);
-        return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
+        return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0") + (tenths ? "." + Math.floor(ms / 100) % 10 : "");
     },
 
     registerListeners: function (pluginManager) {
@@ -77,7 +78,7 @@ export const ReplayViewer = {
         window.addEventListener("keydown", (e) => {
             if (!inGame || ReplaySession.active || e.repeat || (e.target && e.target.tagName === "INPUT")) return;
             var name = e.key === " " ? "SPACE" : e.key.toUpperCase();
-            if (name === this.bound("replayKeyClip", "F8")) { e.preventDefault(); LegacyReplay.clip(); LegacyReplay.chat("Saving a clip of the last 30 seconds...") };
+            if (name === this.bound("replayKeyClip", "F8")) { e.preventDefault(); var seconds = Number(this.bound("replayClipSeconds", "30")) || 30; LegacyReplay.clip(seconds); LegacyReplay.chat("Saving a clip of the last " + seconds + " seconds...") };
         }, true);
     },
 
@@ -118,9 +119,11 @@ export const ReplayViewer = {
 
         LegacySettings.addCategory("Replay", 1, "Keys", { defaultOpen: true, collapsible: false });
         LegacySettings.addOption("Replay", { type: "bind", key: "replayKeyClip", label: "Save a clip (in a game)", default: "F8" }, 1, "Keys");
+        LegacySettings.addOption("Replay", { type: "select", key: "replayClipSeconds", label: "Clip length", default: "30", options: [10, 15, 30, 45, 60, 90, 120, 180].map((s) => ({ value: String(s), label: s + " seconds" })), tooltip: "How much the clip key saves. Your rank may allow less than the longest." }, 1, "Keys");
         LegacySettings.addOption("Replay", { type: "bind", key: "replayKeyHideUi", label: "Hide the replay controls", default: "H" }, 1, "Keys");
         LegacySettings.addOption("Replay", { type: "bind", key: "replayKeyPlayPause", label: "Play / pause", default: "SPACE" }, 1, "Keys");
         LegacySettings.addOption("Replay", { type: "bind", key: "replayKeyView", label: "Next camera view", default: "C" }, 1, "Keys");
+        LegacySettings.addOption("Replay", { type: "bind", key: "replayKeyOrbit", label: "Orbit (hold, move the mouse)", default: "MOUSE 1" }, 1, "Keys");
         LegacySettings.addOption("Replay", { type: "bind", key: "replayKeyFree", label: "Free camera", default: "F" }, 1, "Keys");
         LegacySettings.addOption("Replay", { type: "bind", key: "replayKeyNext", label: "Next player", default: "ARROWRIGHT" }, 1, "Keys");
         LegacySettings.addOption("Replay", { type: "bind", key: "replayKeyPrev", label: "Previous player", default: "ARROWLEFT" }, 1, "Keys");
@@ -129,7 +132,7 @@ export const ReplayViewer = {
         LegacySettings.addOption("Replay", { type: "bind", key: "replayKeySlower", label: "Slower", default: "[" }, 1, "Keys");
         LegacySettings.addOption("Replay", { type: "bind", key: "replayKeyFaster", label: "Faster", default: "]" }, 1, "Keys");
         LegacySettings.addOption("Replay", { type: "bind", key: "replayKeyHud", label: "Show the game hud", default: "G" }, 1, "Keys");
-        LegacySettings.addOption("Replay", { type: "info", key: "replayKeysInfo", text: "Free camera: click the view to look around (Esc lets go), W A S D move, E / Q up and down, Shift fast, wheel speed, Alt + wheel zoom, Z / X roll, V resets roll and zoom." }, 1, "Keys");
+        LegacySettings.addOption("Replay", { type: "info", key: "replayKeysInfo", text: "Orbit: hold the orbit button (the middle mouse button) and move the mouse to swing the camera round what it is looking at, or W A S D (A and D round, W and S up and down), the wheel in and out, V puts it back. In first person it looks round from their eyes. Free camera: click the view to look around (Esc lets go), W A S D move, E / Q up and down, Shift fast, wheel speed, Alt + wheel zoom, Z / X roll, V resets roll and zoom." }, 1, "Keys");
     },
 
     bound: function (key, def) {
@@ -178,32 +181,32 @@ export const ReplayViewer = {
 
         this.playBtn = el("button", { class: "ssbutton orange", text: "Pause", onclick: () => ReplaySession.toggle() });
         this.range = el("input", { type: "range", min: 0, max: ReplaySession.duration, step: 50, value: 0 });
-        this.range.oninput = () => { this.scrubbing = true; this.timeLabel.textContent = this.time(this.range.value) + " / " + this.time(ReplaySession.duration) };
+        this.range.oninput = () => { this.scrubbing = true; this.timeLabel.textContent = this.time(this.range.value, true) + " / " + this.time(ReplaySession.duration, true) };
         this.range.onchange = async () => { ReplayReel.stop(); await ReplaySession.seek(Number(this.range.value)); this.scrubbing = false };
         this.track = el("div", { class: "lrTrack" }, [this.range]);
         ReplaySession.kills.forEach((kill) => this.addTick(kill.tMs, "kill"));
         ReplaySession.markers.filter((marker) => marker.kind !== "kill").forEach((marker) => this.addTick(marker.tMs, "mark"));
 
-        this.timeLabel = el("span", { class: "lrTime", text: "0:00" });
+        this.timeLabel = el("span", { class: "lrTime", text: "0:00.0" });
         this.viewSelect = el("select", { title: "Camera view" });
         ReplayViews.groups.forEach(([group, ids]) => {
             var box = el("optgroup", { label: group });
             ids.forEach((view) => box.appendChild(el("option", { value: view, text: ReplayViews.names[view] })));
             this.viewSelect.appendChild(box);
         });
-        this.viewSelect.onchange = () => { ReplayReel.stop(); ReplayCamera.setView(this.viewSelect.value) };
+        this.viewSelect.onchange = () => { ReplayReel.stop(); ReplayCamera.setView(this.viewSelect.value); this.viewSelect.blur() }; //blurred, so the keys go back to the camera and not the list
         this.playerSelect = el("select", { title: "Player" });
-        this.playerSelect.onchange = () => { ReplayReel.stop(); ReplayCamera.watch(Number(this.playerSelect.value)) };
+        this.playerSelect.onchange = () => { ReplayReel.stop(); ReplayCamera.watch(Number(this.playerSelect.value)); this.playerSelect.blur() };
         this.focusSelect = el("select", { title: "Place", style: "display: none" }); //shown while the view is a place rather than a player
-        this.focusSelect.onchange = () => { ReplayReel.stop(); ReplayCamera.setFocus(this.focusSelect.value) };
+        this.focusSelect.onchange = () => { ReplayReel.stop(); ReplayCamera.setFocus(this.focusSelect.value); this.focusSelect.blur() };
         this.speedSelect = el("select", { title: "Speed" });
         this.speeds.forEach((speed) => this.speedSelect.appendChild(el("option", { value: String(speed), text: speed + "x" })));
         this.speedSelect.value = "1";
-        this.speedSelect.onchange = () => ReplaySession.setSpeed(Number(this.speedSelect.value));
+        this.speedSelect.onchange = () => { ReplaySession.setSpeed(Number(this.speedSelect.value)); this.speedSelect.blur() };
         this.reelBtn = el("button", { class: "ssbutton blue", text: "Highlights", title: "Make a highlight reel", onclick: () => this.openHighlights() });
         this.lookSelect = el("select", { title: "Look" });
         [["clean", "Clean"], ["cinematic", "Cinematic"], ["hype", "Hype"], ["retro", "Retro"]].forEach(([value, text]) => this.lookSelect.appendChild(el("option", { value, text })));
-        this.lookSelect.onchange = () => { ReplayFx.base = this.lookSelect.value; ReplayFx.setLook(ReplayFx.base) };
+        this.lookSelect.onchange = () => { ReplayFx.base = this.lookSelect.value; ReplayFx.setLook(ReplayFx.base); this.lookSelect.blur() };
         this.liveBtn = el("button", { class: "ssbutton red", text: "LIVE", title: "Back to the live edge", style: "display: none", onclick: () => ReplaySession.goLive() });
         this.stopBtn = el("button", { class: "ssbutton red", text: "Stop reel", style: "display: none", onclick: () => ReplayReel.stop() });
         this.hudBtn = el("button", { class: "ssbutton blue", text: "HUD", title: "Show the game hud", onclick: () => document.body.classList.toggle("replayHud") });
@@ -323,7 +326,7 @@ export const ReplayViewer = {
         };
         if (!this.scrubbing) {
             this.range.value = ReplaySession.time;
-            this.timeLabel.textContent = this.time(ReplaySession.time) + " / " + this.time(ReplaySession.duration);
+            this.timeLabel.textContent = this.time(ReplaySession.time, true) + " / " + this.time(ReplaySession.duration, true);
         };
         var ids = []; iteratePlayers((player) => { if (player.id !== meId && player.playing) ids.push(player.id) });
         if (ids.join() !== this.lastIds) { this.lastIds = ids.join(); this.refresh() };

@@ -352,16 +352,31 @@ export const ReplayViews = {
     projectile: function (c, kind, back, up, fov) {
         var s = c.s, p = c.proj;
         if (p) {
-            var speed = Math.hypot(p.dx, p.dy, p.dz), dir = speed > 0.001 ? vPt(p.dx / speed, p.dy / speed, p.dz / speed) : (s.dir || vPt(c.f.x, 0, c.f.z));
-            s.dir = dir;
+            //the way it is going, eased: a grenade bouncing or sliding along the ground turns round every few ticks, and the camera and what it looks at went with it
+            var speed = Math.hypot(p.dx, p.dy, p.dz), moving = speed > 0.05;
+            if (moving) {
+                var now = vPt(p.dx / speed, p.dy / speed, p.dz / speed), k = s.dir ? 1 - Math.exp(-(c.dt || 0.016) / 0.35) : 1;
+                var mix = s.dir ? vPt(s.dir.x + (now.x - s.dir.x) * k, s.dir.y + (now.y - s.dir.y) * k, s.dir.z + (now.z - s.dir.z) * k) : now, length = Math.hypot(mix.x, mix.y, mix.z) || 1;
+                s.dir = vPt(mix.x / length, mix.y / length, mix.z / length);
+            };
+            var dir = s.dir || vPt(c.f.x, 0, c.f.z);
             s.last = vPt(p.x, p.y, p.z);
             s.lastSeen = c.t;
             return { want: vPt(p.x - dir.x * back, p.y - dir.y * back + up, p.z - dir.z * back), look: vPt(p.x + dir.x, p.y + dir.y, p.z + dir.z), fov, moveTau: 0.15, turnTau: 0.1, free: true };
         };
-        //it went off: round and round where it was for a moment (the time is the replay's, so it also works going backwards)
+        //it went off: round and round where it was for a moment (the time is the replay's, so it also works going backwards). it starts from where the camera is, going the way round it already is,
+        //and eases in to the circle it settles on, instead of swinging across to a fixed place the moment the bang happens
         if (s.last && c.t >= s.lastSeen && c.t - s.lastSeen < 1800) {
-            var a = (c.t - s.lastSeen) / 1000 * 1.4 + 0.6;
-            return { want: vPt(s.last.x + Math.sin(a) * 4, s.last.y + 2.2, s.last.z + Math.cos(a) * 4), look: s.last, moveTau: 0.35 };
+            if (s.exitFor !== s.lastSeen) {
+                s.exitFor = s.lastSeen;
+                var cam = c.cam || vPt(s.last.x + 4, s.last.y + 2.2, s.last.z), dx = cam.x - s.last.x, dz = cam.z - s.last.z;
+                s.exitAngle = Math.atan2(dx, dz);
+                s.exitRadius = Math.max(1.5, Math.min(6, Math.hypot(dx, dz)));
+                s.exitHeight = cam.y - s.last.y;
+            };
+            var e = (c.t - s.lastSeen) / 1000, angle = s.exitAngle + e * 1.2, k = Math.min(1, e / 0.8);
+            var radius = s.exitRadius + (4 - s.exitRadius) * k, height = s.exitHeight + (2.2 - s.exitHeight) * k;
+            return { want: vPt(s.last.x + Math.sin(angle) * radius, s.last.y + height, s.last.z + Math.cos(angle) * radius), look: s.last, moveTau: 0.35 };
         };
         return null;
     },

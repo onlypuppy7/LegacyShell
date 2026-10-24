@@ -96,6 +96,46 @@ assert.equal(S.records.length, 4);
 S.active = false;
 console.log('ok    live records go on the end as they arrive');
 
+//a player drawn from the recorded syncs: smooth between them, held across a teleport, and the shortest way round when the aim wraps
+context.ReplayCamera.angleDiff = (to, from) => { var d = (to - from) % (2 * Math.PI); return d > Math.PI ? d - 2 * Math.PI : d < -Math.PI ? d + 2 * Math.PI : d };
+var frames = (yaw) => Array.from({ length: 6 }, (_, i) => yaw + i * 0.01);
+var path = { t: [0, 100, 200, 300, 400], x: [0, 1, 2, 50, 51], y: [0, 0, 0, 0, 0], z: [0, 0, 0, 0, 0], yaw: [frames(6.2), frames(6.2), frames(6.2), frames(0.1), frames(0.1)], pitch: [frames(0), frames(0), frames(0), frames(0), frames(0)] };
+var S2 = context.ReplaySession;
+assert.ok(Math.abs(S2.pathAt(path, 50).x - 0.5) < 1e-9, 'halfway between two syncs on a straight line');
+assert.ok(Math.abs(S2.pathAt(path, 150).x - 1.5) < 1e-9);
+assert.equal(S2.pathAt(path, 250).x, 2, 'a teleport is held at where they were until the sync it happens at');
+assert.ok(Math.abs(S2.pathAt(path, 350).x - 50.5) < 0.2, 'and on from there');
+assert.equal(S2.pathAt(path, -5), null, 'before the first sync there is nothing');
+var steps = [], last = null;
+for (var tm = 0; tm <= 190; tm += 5) { var p = S2.pathAt(path, tm).x; if (last !== null) steps.push(p - last); last = p };
+assert.ok(Math.max(...steps) - Math.min(...steps) < 1e-6, 'even steps along a straight line, no wobble every sync');
+var wrap = S2.pathAt(path, 299.9).yaw;
+assert.ok(wrap > 6.2 - 0.001, 'aim at the end of the gap before the wrap is where it was');
+var across = S2.pathAt({ ...path, t: [0, 100], x: [0, 0], y: [0, 0], z: [0, 0], yaw: [[6.2, 6.2, 6.2, 6.2, 6.2, 6.2], [0.1, 0.1, 0.1, 0.1, 0.1, 0.1]], pitch: [frames(0), frames(0)] }, 99.9).yaw;
+assert.ok(across > 6.2 || across < 0.2, 'turns through 0, not all the way back: ' + across);
+console.log('ok    paths from the syncs are smooth, held across teleports, and wrap the aim the short way');
+
+//bytes taken for commands: the rest of the record is dropped instead of run as commands, and it is said once where
+context.Comm = { Code: { gameJoined: 0, keyUp: 5, controlKeys: 4, chat: 3, sync: 6 } };
+var S3 = context.ReplaySession, said = [], realLog = context.console;
+context.console = { log: (...args) => said.push(args.join(' ')) };
+S3.plugins = { cancel: false };
+S3.current = { type: 5, tMs: 7118, data: new Uint8Array([6, 0, 90, 203, 2]) };
+S3.warned = false; S3.recent = [];
+var lostInput = { buffer: new Uint8Array(47), idx: 3 };
+S3.sanitize({ cmd: 6, cmdName: 'sync', input: lostInput });
+assert.equal(lostInput.idx, 3, 'a command the game knows is left alone');
+S3.sanitize({ cmd: 90, cmdName: 'unknownCode', input: lostInput });
+assert.equal(lostInput.idx, 47, 'an unknown command drops the rest');
+assert.equal(S3.plugins.cancel, true);
+var again = { buffer: new Uint8Array(47), idx: 5 };
+S3.sanitize({ cmd: 5, cmdName: 'keyUp', input: again });
+assert.equal(again.idx, 47, 'so does one that is never in a recording');
+assert.equal(said.length, 1, 'said once: ' + said.length);
+assert.ok(/7118 ms/.test(said[0]) && /command 90/.test(said[0]), said[0]);
+context.console = realLog;
+console.log('ok    bytes mistaken for commands are dropped, and said once');
+
 scene.dispose();
 engine.dispose();
 console.log('ok    repeated seeks preserve the rendering camera');

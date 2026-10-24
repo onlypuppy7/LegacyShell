@@ -52,6 +52,7 @@ export const ReplaySpectate = {
         document.getElementById("spectate").style.display = "none"; //the game's own spectator caption, the bar below says it
 
         this.saveHud();
+        this.smoother = gameScene.onBeforeRenderObservable.add(() => ReplaySession.interpolate(performance.now())); //the same smoothing between ticks as a replay has
         document.body.classList.add("lrSpectate");
         ReplaySession.wrapAmmo(); //their ammo is counted from their shots and reloads, the game only keeps it for me
         ReplayCamera.start();
@@ -81,11 +82,11 @@ export const ReplaySpectate = {
             ids.forEach((view) => box.appendChild(el("option", { value: view, text: ReplayViews.names[view] })));
             this.viewSelect.appendChild(box);
         });
-        this.viewSelect.onchange = () => ReplayCamera.setView(this.viewSelect.value);
+        this.viewSelect.onchange = () => { ReplayCamera.setView(this.viewSelect.value); this.viewSelect.blur() };
         this.playerSelect = el("select", { title: "Player" });
-        this.playerSelect.onchange = () => ReplayCamera.watch(Number(this.playerSelect.value));
+        this.playerSelect.onchange = () => { ReplayCamera.watch(Number(this.playerSelect.value)); this.playerSelect.blur() };
         this.focusSelect = el("select", { title: "Place", style: "display: none" });
-        this.focusSelect.onchange = () => ReplayCamera.setFocus(this.focusSelect.value);
+        this.focusSelect.onchange = () => { ReplayCamera.setFocus(this.focusSelect.value); this.focusSelect.blur() };
         this.bar = el("div", { class: "shadedPane textShadow lrPanel lrBar" }, [
             el("span", { text: "SPECTATING", style: "font-weight: bold" }), this.viewSelect, this.playerSelect, this.focusSelect,
             this.popBtn = el("button", { class: "ssbutton blue", text: "Pop out", title: "Move this bar to its own window, so the game is all that is in this one", onclick: () => ReplayViewer.popOut() }),
@@ -113,6 +114,9 @@ export const ReplaySpectate = {
         if (!this.active) return;
         this.active = false;
         ReplayViewer.popIn(); //the bar comes back from its window, which closes
+        try { if (this.smoother) gameScene.onBeforeRenderObservable.remove(this.smoother) } catch (e) { };
+        this.smoother = null;
+        ReplaySession.interp.clear();
         clearInterval(this.timer);
         window.removeEventListener("keydown", this.onKey, true);
         ReplayCamera.live = false;

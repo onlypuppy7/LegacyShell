@@ -20,6 +20,8 @@ export const ReplayCamera = {
     feels: { raw: { move: 0, look: 0, bank: 0 }, smooth: { move: 0.15, look: 0.05, bank: 0 }, cinematic: { move: 0.45, look: 0.18, bank: 0.3 }, drone: { move: 0.7, look: 0.12, bank: 0.8 } },
     orbitAngle: 0,
     dragging: false,
+    orbit: { yaw: 0, pitch: 0, zoom: 1 }, //where the camera has been swung to, round whatever the view is looking at (see swing)
+    orbiting: false,
 
     //slider values live in LegacySettings (Replay tab), these are the defaults when it isnt there
     setting: function (key, def) {
@@ -51,6 +53,10 @@ export const ReplayCamera = {
         this.onKeyUp = (e) => this.key(e, false);
         //looking around: click the view to capture the mouse (Esc lets go), or hold a button and drag where the mouse can't be captured. both turn the camera by the same amount
         this.onMove = (e) => {
+            if (this.orbiting && this.mode !== "free") { //the orbit button is held: the mouse swings the camera round
+                this.orbit.yaw += (e.movementX || 0) * 0.0045;
+                this.orbit.pitch = Math.max(-1.4, Math.min(1.4, this.orbit.pitch + (e.movementY || 0) * 0.0045));
+            };
             var canvas = engine.getRenderingCanvas();
             if (this.mode !== "free" || !(document.pointerLockElement === canvas || this.dragging)) return;
             var sensitivity = 0.0022 * this.setting("replayMouseSensitivity", 1);
@@ -58,13 +64,16 @@ export const ReplayCamera = {
             this.look.pitch = Math.max(-1.55, Math.min(1.55, this.look.pitch + (e.movementY || 0) * sensitivity));
         };
         this.onDown = (e) => {
+            if (this.mode !== "free" && !this.isUi(e.target) && this.orbitBound() === "MOUSE " + e.button) { this.orbiting = true; e.preventDefault(); return };
             if (this.mode !== "free" || this.isUi(e.target)) return;
             this.dragging = true;
             var canvas = engine.getRenderingCanvas();
             try { if (canvas.requestPointerLock && document.pointerLockElement !== canvas) canvas.requestPointerLock() } catch (error) { };
         };
-        this.onUp = () => this.dragging = false;
+        this.onUp = (e) => { this.dragging = false; if (e && this.orbitBound() === "MOUSE " + e.button) this.orbiting = false };
+        this.onMouseDown = (e) => { if (this.mode !== "free" && !this.isUi(e.target) && this.orbitBound() === "MOUSE " + e.button) e.preventDefault() }; //the middle button would scroll the page
         this.onWheel = (e) => {
+            if (this.mode !== "free" && !this.isUi(e.target) && !e.altKey) { this.orbit.zoom = Math.max(0.25, Math.min(6, this.orbit.zoom * (e.deltaY < 0 ? 0.92 : 1 / 0.92))); return };
             if (this.mode !== "free" || this.isUi(e.target)) return;
             if (e.altKey) { //zoom
                 this.fovWanted = Math.max(0.3, Math.min(2.2, this.fovWanted * (e.deltaY < 0 ? 0.93 : 1 / 0.93)));
@@ -79,9 +88,14 @@ export const ReplayCamera = {
         window.addEventListener("pointermove", this.onMove);
         window.addEventListener("pointerdown", this.onDown);
         window.addEventListener("pointerup", this.onUp);
+        window.addEventListener("mousedown", this.onMouseDown);
         window.addEventListener("wheel", this.onWheel, { passive: true });
         this.observer = gameScene.onBeforeRenderObservable.add(() => this.frame());
         this.last = performance.now();
+        if (!this.reticleUpdate) { //the game draws the reticle every tick from its own player, which in a replay is nobody, and the pov view draws it every frame from theirs: they took turns
+            this.reticleUpdate = Reticle.prototype.update;
+            Reticle.prototype.update = function (delta) { if (ReplayCamera.mode !== "pov") return ReplayCamera.reticleUpdate.call(this, delta) };
+        };
     },
 
     stop: function (keepLock) {
@@ -90,9 +104,12 @@ export const ReplayCamera = {
         window.removeEventListener("pointermove", this.onMove);
         window.removeEventListener("pointerdown", this.onDown);
         window.removeEventListener("pointerup", this.onUp);
+        window.removeEventListener("mousedown", this.onMouseDown);
         window.removeEventListener("wheel", this.onWheel);
+        this.orbiting = false;
         try { if (this.observer) gameScene.onBeforeRenderObservable.remove(this.observer) } catch (e) { };
         this.observer = null;
+        if (this.reticleUpdate) { Reticle.prototype.update = this.reticleUpdate; this.reticleUpdate = null };
         try { if (document.pointerLockElement && !keepLock) document.exitPointerLock() } catch (error) { };
         this.target = null;
         this.leaveView(this.mode, "overview");
@@ -104,7 +121,30 @@ export const ReplayCamera = {
         if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "SELECT") && e.target.type !== "range") return;
         var name = e.key === " " ? "SPACE" : e.key.toUpperCase();
         this.keys[name] = down;
+        if (name === this.orbitBound()) this.orbiting = down;
+        if (down && name === "V" && this.mode !== "free") this.resetOrbit();
         if (down) ReplayViewer.onKey(name, e);
+    },
+
+    //what the orbit button is: a setting, the middle mouse button to start with (mouse buttons count from 0, so that is MOUSE 1)
+    orbitBound: function () {
+        return this.setting("replayKeyOrbit", "MOUSE 1");
+    },
+
+    resetOrbit: function () {
+        this.orbit.yaw = this.orbit.pitch = 0;
+        this.orbit.zoom = 1;
+    },
+
+    //the swing: the camera goes round the point the view is looking at, by how far the orbit has been turned (A and D go round, W and S up and down, the wheel in and out)
+    swing: function (want, look, dt) {
+        var o = this.orbit, k = this.keys;
+        if (k.A || k.D) o.yaw += ((k.D ? 1 : 0) - (k.A ? 1 : 0)) * 1.6 * dt;
+        if (k.W || k.S) o.pitch = Math.max(-1.4, Math.min(1.4, o.pitch + ((k.S ? 1 : 0) - (k.W ? 1 : 0)) * 1.2 * dt));
+        if (!o.yaw && !o.pitch && o.zoom === 1) return want;
+        var v = want.subtract(look), flat = Math.hypot(v.x, v.z), r = Math.hypot(flat, v.y) * o.zoom;
+        var yaw = Math.atan2(v.x, v.z) + o.yaw, pitch = Math.max(-1.45, Math.min(1.45, Math.atan2(v.y, flat) + o.pitch));
+        return new BABYLON.Vector3(look.x + Math.sin(yaw) * Math.cos(pitch) * r, look.y + Math.sin(pitch) * r, look.z + Math.cos(yaw) * Math.cos(pitch) * r);
     },
 
     //exponential smoothing: the same result at any framerate. tau is how long it takes to close ~63% of the gap, 0 = instant
@@ -153,6 +193,7 @@ export const ReplayCamera = {
 
     setView: function (view) {
         this.stopBullet();
+        if (view !== this.mode) this.resetOrbit();
         this.autoFree = null;
         if (!this.autoMove && !ReplayViews.needsPlayer(view)) this.wantedId = null; //a free camera picked on purpose is not wanting anybody
         if (view === "first" || view === "pov") camera.fov = getDefaultFov(); //the other views set their own lens and ease to it
@@ -226,7 +267,7 @@ export const ReplayCamera = {
         this.firstPerson = null;
         if (!player || !player.actor || !player.actor.hands) return;
         player.actor.hands.setRenderingGroupId(0);
-        if (player.weapon && player.weapon.actor) player.weapon.actor.gunMesh.setRenderingGroupId(0);
+        (player.weapons || []).forEach((weapon) => { if (weapon && weapon.actor && weapon.actor.gunMesh) weapon.actor.gunMesh.setRenderingGroupId(0) });
         if (player.actor.hat) player.actor.hat.setEnabled(true);
     },
 
@@ -249,7 +290,7 @@ export const ReplayCamera = {
 
     frame: function () {
         var now = performance.now();
-        var dt = Math.min((now - this.last) / 1000, 0.1);
+        var dt = Math.max(0, Math.min((now - this.last) / 1000, 0.1)); //(a clock that was swapped for another and back can be behind)
         this.last = now;
 
         if (this.target) this.targetId = this.target.id;
@@ -270,21 +311,46 @@ export const ReplayCamera = {
         else if (this.mode === "free") this.frameFree(dt);
     },
 
-    //their eyes, looking where they look. read from what is drawn (the actor's mesh and head, which the interpolation moves when slowed down). the eye node itself is not used:
-    //nothing renders it, so its world position is not kept up to date (it sat at 0,0,0 once the camera was no longer parented to it)
+    //their eyes, looking where they look: the eye node the game parents its own camera to, worked out by hand every frame (not parented, the camera went stale when the world was rebuilt).
+    //it is what is drawn (the actor's mesh and head, which the interpolation moves when slowed down) and has the recoil and hit kick on it, so the gun in front of the camera never moves against it
     frameFirst: function () {
         var actor = this.target && this.target.actor;
-        if (!actor || !actor.mesh || !actor.head) return;
-        var scale = this.target.modifiers ? this.target.modifiers.scale : 1;
+        if (!actor || !actor.mesh || !actor.head || !actor.eye) return;
         camera.parent = null;
-        camera.position.set(actor.mesh.position.x, actor.mesh.position.y + 0.4 * scale, actor.mesh.position.z);
-        camera.rotationQuaternion = BABYLON.Quaternion.RotationYawPitchRoll(actor.mesh.rotation.y, actor.head.rotation.x, 0);
+        this.eyeAt = this.eyeAt || { scale: new BABYLON.Vector3(), rotation: new BABYLON.Quaternion(), position: new BABYLON.Vector3() };
+        actor.mesh.computeWorldMatrix(true);
+        actor.head.computeWorldMatrix(true);
+        actor.eye.computeWorldMatrix(true);
+        actor.eye.getWorldMatrix().decompose(this.eyeAt.scale, this.eyeAt.rotation, this.eyeAt.position);
+        var at = this.eyeAt, q = at.rotation;
+        if (![at.position.x, at.position.y, at.position.z, q.x, q.y, q.z, q.w].every(Number.isFinite)) return; //(a player drawn at nothing, scaled to nothing)
+        camera.position.copyFrom(this.eyeAt.position);
+        var o = this.orbit, k = this.keys, dt = Math.min(0.1, (performance.now() - (this.lastFirst || performance.now())) / 1000);
+        this.lastFirst = performance.now();
+        if (k.A || k.D) o.yaw += ((k.D ? 1 : 0) - (k.A ? 1 : 0)) * 1.6 * dt;
+        if (k.W || k.S) o.pitch = Math.max(-1.4, Math.min(1.4, o.pitch + ((k.S ? 1 : 0) - (k.W ? 1 : 0)) * 1.2 * dt));
+        camera.rotationQuaternion = o.yaw || o.pitch ? this.eyeAt.rotation.multiply(BABYLON.Quaternion.RotationYawPitchRoll(o.yaw, o.pitch, 0)) : this.eyeAt.rotation.clone(); //from the inside, orbiting is looking round
+        this.layers(this.target);
+    },
+
+    //their gun is drawn over the world, as the game draws yours: the one in their hands, not the one they put away (the game gives a gun swapped to a mesh of its own) and not for long after they've changed
+    layers: function (player) {
+        if (!player || !player.actor || !player.actor.hands) return;
+        if (player.actor.hands.renderingGroupId !== 1) player.actor.hands.setRenderingGroupId(1);
+        (player.weapons || []).forEach((weapon) => {
+            var gun = weapon && weapon.actor && weapon.actor.gunMesh, wanted = weapon === player.weapon ? 1 : 0;
+            if (gun && gun.renderingGroupId !== wanted) gun.setRenderingGroupId(wanted);
+        });
     },
 
     //the game only stretches other players' bullets into streaks, your own stay short. from the eyes of the player being watched their bullets are their own, and a streak flying away from the camera is a cross in the middle of the screen
     shortenOwnBullets: function () {
         var target = this.target;
-        munitionsManager.bulletPool.forEachActive((m) => { if (m.player === target && m.actor && m.actor.mesh) m.actor.mesh.scaling.z = 0.5 });
+        munitionsManager.bulletPool.forEachActive((m) => {
+            if (m.player !== target || !m.actor || !m.actor.mesh) return;
+            var near = BABYLON.Vector3.DistanceSquared(m.actor.mesh.position, camera.position) < 9; //just left the gun: end on, it is a cross filling the middle of the screen
+            m.actor.mesh.scaling.set(near ? 0.001 : 1, near ? 0.001 : 1, near ? 0.001 : 0.5);
+        });
     },
 
     //the game only ever draws its ammo and grenades for me, so for them it is done here
@@ -299,6 +365,11 @@ export const ReplayCamera = {
 
         //the reticle, with the spread they have
         set("reticleContainer", (el) => el.className = p.playing ? "" : "hideme");
+        set("readyBrackets", (el) => { //the corner brackets scopes and snipers have, as the game sets them for me
+            var gun = p.weapon.subClass, cls = !gun.readySpread ? "hideme" : p.shotSpread + gun.accuracy <= 5 * gun.accuracy ? "ready" : "notReady";
+            if (el.className !== cls) el.className = cls;
+            if (gun.readySpread) el.style.width = el.style.height = .069 * gun.readySpread * 10 + "em";
+        });
         if (typeof reticle !== "undefined" && reticle.crosshairs) {
             var size = (p.shotSpread + p.weapon.subClass.accuracy) * (1.25 / camera.fov);
             reticle.crosshairs.forEach((c, i) => c.style.transform = "rotate(" + 90 * i + "deg) translateY(" + (.069 * size + .12) + "em)");
@@ -434,6 +505,7 @@ export const ReplayCamera = {
         if (!answer) answer = ReplayViews.compute("chase", this.context(dt, "chase", player)); //a view with nothing to show (nobody to duel, nothing thrown yet) is a chase meanwhile
 
         var vec = (p) => new BABYLON.Vector3(p.x, p.y, p.z), want = vec(answer.want);
+        want = this.swing(want, vec(answer.look), dt);
         if (!answer.free) want = this.clearOfWalls(this.eye(player), want);
         if (answer.cut) this.snapNext = true;
         if (answer.cctv) this.cctvText();
@@ -514,6 +586,7 @@ export const ReplayCamera = {
     },
 
     stopBullet: function () {
+        this.landed = null;
         this.bulletShot = null;
         this.tracked = null;
         this.hadBullet = false;
@@ -541,6 +614,9 @@ export const ReplayCamera = {
         };
 
         var origin = new BABYLON.Vector3(b.from[0], b.from[1], b.from[2]), end = this.eye(victim);
+        //once it has landed they are dying, and where they are goes up in steps (the game's death), so the camera is held where it landed
+        if (t > b.tHit + 80) end = this.landed || (this.landed = end.clone());
+        else this.landed = null;
         var line = end.subtract(origin), length = line.length() || 1;
         var dir = line.scale(1 / length);
         var progress = Math.max(0, Math.min(1, (t - b.tFire) / Math.max(1, b.tHit - b.tFire)));

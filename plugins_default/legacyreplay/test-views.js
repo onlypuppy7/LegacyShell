@@ -350,3 +350,26 @@ test("a corner is filmed from the corner, looking at the middle", () => {
 });
 
 console.log(passed + " passed");
+
+test("the grenade camera does not whip round when the grenade bounces about", () => {
+    const s = {}, steps = [];
+    let last = null;
+    for (let i = 0; i < 240; i++) {
+        const flip = i % 7 < 3 ? 1 : -1, wobble = Math.sin(i * 1.3) * 0.4; //bouncing and sliding: the way it is going keeps changing
+        const proj = { x: 10 + i * 0.01, y: 1, z: 10, dx: 0.12 * flip, dy: wobble * 0.1, dz: 0.09 * -flip };
+        const a = V.compute("grenade", { ...context({ s }), proj, dt: 1 / 60 });
+        if (last) steps.push(Math.hypot(a.look.x - last.look.x, a.look.z - last.look.z));
+        last = a;
+    };
+    assert.ok(Math.max(...steps.slice(20)) < 0.25, "the look point jumped " + Math.max(...steps.slice(20)));
+});
+
+test("when the grenade goes off the camera carries on from where it was, and does not swing across to a fixed place", () => {
+    const s = {}, cam = { x: 12, y: 2.8, z: 10 }, proj = { x: 10, y: 2, z: 10, dx: 0.1, dy: 0, dz: 0 };
+    V.compute("grenade", { ...context({ s, cam, t: 1000 }), proj, dt: 1 / 60 });
+    const first = V.compute("grenade", { ...context({ s, cam, t: 1016 }), proj: null, dt: 1 / 60 });
+    assert.ok(dist(first.want, cam) < 0.3, "first frame after the bang is where the camera was: " + dist(first.want, cam));
+    let last = first.want, worst = 0;
+    for (let t = 1032; t < 2700; t += 16) { const a = V.compute("grenade", { ...context({ s, cam, t }), proj: null, dt: 1 / 60 }); worst = Math.max(worst, dist(a.want, last)); last = a.want };
+    assert.ok(worst < 0.2, "no jump along the way: " + worst);
+});

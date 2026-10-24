@@ -26,7 +26,26 @@ export const ReplaySession = {
     },
 
     //a replay can carry any text, and the game puts chat and notifications into html. the server turns < into ( before it sends, so a replay gets the same treatment, in place (same length, nothing shifts)
+    //a command the game doesn't know, or one that is never in a recording, can only be bytes that were mistaken for a command (the one before it took less than it should have), and what the game does with the
+    //rest of them is run them as commands: remove players, say a game was joined. so the rest of that record is dropped, and said where, once
+    lost: function (data) {
+        var recent = this.recent || (this.recent = []);
+        recent.push(data.cmd);
+        if (recent.length > 6) recent.shift();
+        var strays = [Comm.Code.gameJoined, Comm.Code.keyUp, Comm.Code.controlKeys];
+        if (data.cmdName !== "unknownCode" && !strays.includes(data.cmd)) return false;
+        var record = this.current;
+        if (record && !this.warned) {
+            this.warned = true;
+            console.log("[legacyreplay] a record went out of step and the rest of it was dropped: command " + data.cmd + " (" + data.cmdName + ") at byte " + (data.input.idx - 1) + " of a " + record.data.length + " byte record of type " + record.type + " at " + Math.round(record.tMs) + " ms, the commands before it " + recent.slice(0, -1).join(",") + ", the record starts " + Array.from(record.data.slice(0, 24)).join(","));
+        };
+        data.input.idx = data.input.buffer.length;
+        this.plugins.cancel = true;
+        return true;
+    },
+
     sanitize: function (data) {
+        if (this.lost(data)) return;
         var input = data.input, buffer = input.buffer, at = input.idx, chars, from;
 
         if (data.cmd === Comm.Code.chat) { //u8 type, u8 id, u16 length, chars
@@ -89,6 +108,7 @@ export const ReplaySession = {
         this.idx = 0;
         this.time = this.now = 0;
         this.errors = 0;
+        this.warned = false;
         this.playing = false;
         this.active = true;
 
@@ -158,6 +178,7 @@ export const ReplaySession = {
 
         this.wrapSounds();
         this.wrapAmmo();
+        if (typeof WeatherRender !== "undefined" && !this.weatherClock) { this.weatherClock = WeatherRender.clock; WeatherRender.clock = () => ReplaySession.worldClock() }; //the sun and the weather go by the replay's time
         this.wrapPlayerList();
         this.wrapAddPlayer();
         ReplayAudio.start();
@@ -166,9 +187,16 @@ export const ReplaySession = {
         ReplayCamera.start();
         ReplayViewer.open();
 
+        await this.warmUp();
         await this.seek(0);
-        ReplayCamera.cycle(1, "first");
+        //their view with their hud, it is what it was like to be them. whoever got the most kills, since a clip is usually of them, and if they haven't spawned yet the camera waits and goes to them
+        var score = {}, star = null;
+        this.kills.forEach((k) => score[k.by] = (score[k.by] || 0) + 1);
+        Object.keys(score).forEach((id) => { if (star === null || score[id] > score[star]) star = Number(id) });
+        ReplayCamera.cycle(1, "pov");
+        if (star !== null && players_by_id[star] && players_by_id[star].playing && ReplayCamera.targetId !== star) ReplayCamera.watch(star, "pov");
         if (ReplayCamera.mode === "overview") ReplayCamera.free();
+        if (star !== null && ReplayCamera.mode === "free") { ReplayCamera.wantedId = star; ReplayCamera.autoFree = "pov" };
         this.play();
     },
 
@@ -184,6 +212,8 @@ export const ReplaySession = {
         this.speed = 1;
         this.unwrapSounds();
         this.unwrapAmmo();
+        if (typeof WeatherRender !== "undefined" && this.weatherClock) { WeatherRender.clock = this.weatherClock; this.weatherClock = null };
+        this.paths = null;
         this.unwrapPlayerList();
         this.unwrapAddPlayer();
         this.unmergeItems();
@@ -223,7 +253,7 @@ export const ReplaySession = {
     frame: function () {
         if (!this.active || this.seeking) return;
         var now = performance.now();
-        var dt = Math.min(now - (this.lastFrame || now), 100); //a hitch (or a slow machine) must not skip ahead through a slow motion stretch
+        var dt = Math.max(0, Math.min(now - (this.lastFrame || now), this.maxStep || 100)); //a hitch (or a slow machine) must not skip ahead through a slow motion stretch
         this.lastFrame = now;
         this.interpolate(now);
         this.sweepNameSprites();
@@ -245,9 +275,13 @@ export const ReplaySession = {
 
     //a player who stops playing without the game hiding their name (it only does when it runs the death itself) leaves the name hanging in the air
     sweepNameSprites: function () {
+        var kept = new Set();
         iteratePlayers((player) => {
             if (player.actor && player.actor.nameSprite && (!player.playing || !player.actor.mesh.isEnabled())) player.actor.hideNameSprite();
+            if (player.actor && player.actor.nameSprite) kept.add(player.actor.nameSprite);
         });
+        //a player made again (everyone is at a seek, and a keyframe makes them all, a respawn can) leaves the old one's tag hanging in the air, with nothing to take it down: any tag that is nobody's goes
+        if (typeof nameSprites !== "undefined" && nameSprites && nameSprites.sprites) nameSprites.sprites.slice().forEach((sprite) => { if (!kept.has(sprite)) sprite.dispose() });
     },
 
     liveDelay: 1500,
@@ -295,6 +329,7 @@ export const ReplaySession = {
             };
         } finally {
             this.feeding = false;
+            this.flushPlayerList();
         };
     },
 
@@ -303,10 +338,54 @@ export const ReplaySession = {
         if (record.type !== T.packets && record.type !== T.sync && record.type !== T.keyframe) return;
         this.now = record.tMs; //when it is, for what only counts from the packets
         try {
+            this.beforePacket(record);
+            this.current = record;
+            this.recent = [];
             await LegacyShellOnMessage({ data: await LegacyReplay.prepareRecord(record, this.header) });
+            this.afterPacket(record);
         } catch (e) {
             if (++this.errors <= 5) console.log("[legacyreplay] record failed:", e);
         };
+    },
+
+    //the first of anything the game draws costs a stutter (a shader compiled, a mesh built): the first grenade thrown, the first explosion, and so the first bang of a reel, and a video of it, had one.
+    //so one of each is drawn before it starts, far too small to see
+    warmUp: async function () {
+        var made = [], at = camera.getForwardRay(3).origin.add(camera.getForwardRay(3).direction.scale(3));
+        try {
+            ["bullet", "rocket"].forEach((name) => { var mesh = gameScene.getMeshByName(name); if (mesh) made.push(mesh.createInstance("")) });
+            if (gameScene.cloneMesh) made.push(gameScene.cloneMesh("grenade"));
+            made.forEach((mesh) => { mesh.position.copyFrom(at); mesh.scaling.set(0.001, 0.001, 0.001); mesh.setEnabled(true) });
+            addExplosionSprite(explosionSmokeManager, 1, at.x, at.y, at.z, 0, 0, 0, 0.001, false);
+            addExplosionSprite(explosionFireManager, 1, at.x, at.y, at.z, 0, 0, 0, 0.001, false);
+        } catch (e) { console.log("[legacyreplay] warm up failed:", e) };
+        await new Promise((resolve) => { var done = () => { clearTimeout(timer); resolve() }, timer = setTimeout(done, 700); requestAnimationFrame(() => requestAnimationFrame(done)) }); //(a page nobody is looking at doesn't draw, so it can't wait for that)
+        made.forEach((mesh) => { try { mesh.dispose() } catch (e) { } });
+    },
+
+    //the replay's own time, for anything that keeps a clock (the sun). while records are being run it is the time of the one being run, which a seek goes through at once
+    worldClock: function () {
+        return 1e6 + (this.active ? (this.feeding || this.seeking ? this.now : this.time) : performance.now());
+    },
+
+    //what the game only does for me, done for everyone here (a record is one packet when it is one of these, they go out on their own)
+    //a thrown grenade: the game freezes the hand for the throw when it is me winding up, nobody else's, so the throw animation was overwritten every tick
+    beforePacket: function (record) {
+        var d = record.data;
+        if (record.type !== ReplayFormat.Type.packets || d[0] !== Comm.Code.throwGrenade || d.length !== 14) return;
+        var player = players_by_id[d[1]];
+        if (player && player.id !== meId && player.actor && player.actor.gripBone) { player.actor.throwingGrenade = true; player.actor.gripBone._frozen = true }; //the throw animation puts them back when it ends
+    },
+
+    //picking up ammo or a grenade: the game gives it to me alone (it is the only one it ever tracks), and plays the sound for me
+    afterPacket: function (record) {
+        var d = record.data;
+        if (record.type !== ReplayFormat.Type.packets || d[0] !== Comm.Code.collectItem || d.length !== 6) return;
+        var player = players_by_id[d[1]];
+        if (!player || player.id === meId || !player.weapons) return;
+        this.quiet = !(ReplayCamera.target === player && (ReplayCamera.mode === "first" || ReplayCamera.mode === "pov")); //only heard from the one being watched
+        try { player.collectItem(d[2], d[3]) } catch (e) { if (++this.errors <= 5) console.log("[legacyreplay] pickup failed:", e) };
+        this.quiet = false;
     },
 
     //the world as it was at tMs: clear everything, load the keyframe at or before, then run the packets up to there with the sound off
@@ -323,6 +402,7 @@ export const ReplaySession = {
             if (onward) this.clearMunitions();
             else {
                 this.resetWorld();
+                if (typeof WeatherRender !== "undefined") WeatherRender.snapNext = true;
 
                 var k = ReplayFormat.findKeyframe(this.records, tMs);
                 if (k < 0) k = this.records.findIndex((r) => r.type === ReplayFormat.Type.keyframe); //asked for before the first one
@@ -334,9 +414,11 @@ export const ReplaySession = {
                 if (record.type !== ReplayFormat.Type.keyframe) await this.feed(record);
             };
             this.feeding = false;
+            this.flushPlayerList();
 
             if (onward) this.snapPlayers();
             this.time = tMs;
+            if (typeof WeatherRender !== "undefined" && WeatherRender.refresh) WeatherRender.refresh(); //the state as of now, in place at once
             ReplayCamera.afterSeek();
         } finally {
             this.feeding = false;
@@ -348,11 +430,63 @@ export const ReplaySession = {
         };
     },
 
-    //at normal speed the game's own smoothing is enough. slowed down, the game only moves things on its ticks (a tenth speed is 6 ticks a second), and its smoothing closes the gap in a
-    //couple of frames, so everything steps. so below normal speed what is drawn is worked out here instead: between where a thing was at the last tick and where it is now, by how far
-    //through the tick it is (measured from how long the last tick really took)
+    //where everyone was and which way they looked, from the recorded syncs (about ten a second, with the six ticks of aim that follow each), as paths in time: a player is drawn at a point on their path,
+    //not wherever the game has got to by guessing between syncs (which is what is wrong every tenth of a second, and a wobble from inside someone's head). a recording is all there, so the point can be
+    //between this sync and the next. a live one isn't, and goes by the ticks
+    buildPaths: function () {
+        var size = ReplayFormat.syncEntrySize(this.header.syncFrames), frames = this.header.syncFrames, paths = new Map();
+        this.records.forEach((record, i) => {
+            if (record.type !== ReplayFormat.Type.sync) return;
+            var d = record.data, view = new DataView(d.buffer, d.byteOffset, d.byteLength);
+            for (var b = 0; b + size <= d.length; b += size) {
+                var id = d[b + 1], path = paths.get(id);
+                if (!path) paths.set(id, path = { t: [], x: [], y: [], z: [], yaw: [], pitch: [] });
+                path.t.push(record.tMs);
+                path.x.push(view.getInt16(b + 3, true) / 300); path.y.push(view.getInt16(b + 5, true) / 300); path.z.push(view.getInt16(b + 7, true) / 300);
+                var yaws = [], pitches = [];
+                for (var f = 0; f < frames; f++) { var at = b + 17 + f * 5; yaws.push(view.getUint16(at + 1, true) / 1e4); pitches.push(view.getUint16(at + 3, true) / 1e4 - Math.PI) };
+                path.yaw.push(yaws); path.pitch.push(pitches);
+            };
+        });
+        return paths;
+    },
+
+    //a point on a path: position by a smooth curve through the syncs (a teleport, a respawn, is not smoothed over), aim by the tick it is nearest
+    pathAt: function (path, t) {
+        var ts = path.t, n = ts.length;
+        if (!n || t < ts[0]) return null;
+        var lo = 0, hi = n - 1;
+        while (lo < hi) { var mid = (lo + hi + 1) >> 1; if (ts[mid] <= t) lo = mid; else hi = mid - 1 };
+        var k = lo, next = Math.min(n - 1, k + 1), gap = ts[next] - ts[k], u = gap > 0 ? Math.max(0, Math.min(1, (t - ts[k]) / gap)) : 0;
+        var at = (key) => path[key][k] + (path[key][next] - path[key][k]) * u, out = {};
+        var jump = (a, b) => Math.hypot(path.x[a] - path.x[b], path.z[a] - path.z[b]) > 3 || Math.abs(path.y[a] - path.y[b]) > 3; //far in a tenth of a second is a respawn
+        if (next === k || gap > 400 || jump(k, next)) { out.x = path.x[k]; out.y = path.y[k]; out.z = path.z[k] }
+        else {
+            var before = jump(Math.max(0, k - 1), k) ? k : Math.max(0, k - 1), after = jump(next, Math.min(n - 1, next + 1)) ? next : Math.min(n - 1, next + 1);
+            ["x", "y", "z"].forEach((axis) => { //a Catmull-Rom curve through the points either side, by time
+                var p = path[axis], m0 = (p[next] - p[before]) / Math.max(1, ts[next] - ts[before]) * gap, m1 = (p[after] - p[k]) / Math.max(1, ts[after] - ts[k]) * gap;
+                var u2 = u * u, u3 = u2 * u;
+                out[axis] = (2 * u3 - 3 * u2 + 1) * p[k] + (u3 - 2 * u2 + u) * m0 + (-2 * u3 + 3 * u2) * p[next] + (u3 - u2) * m1;
+            });
+        };
+        //aim: the six ticks after each sync, laid out across the gap to the next
+        var frames = path.yaw[k].length, tick = Math.min(frames - 1, Math.floor(u * frames)), nextTick = tick + 1;
+        var yawA = path.yaw[k][tick], pitchA = path.pitch[k][tick], yawB, pitchB;
+        if (nextTick < frames) { yawB = path.yaw[k][nextTick]; pitchB = path.pitch[k][nextTick] } else { yawB = path.yaw[next][0]; pitchB = path.pitch[next][0] };
+        var v = Math.max(0, Math.min(1, u * frames - tick));
+        out.yaw = yawA + ReplayCamera.angleDiff(yawB, yawA) * v;
+        out.pitch = pitchA + (pitchB - pitchA) * v;
+        return out;
+    },
+
+    //the game only moves things on its ticks (60 a second) and its smoothing closes the gap in a couple of frames, so everything steps: on a screen that draws more than that, every frame
+    //the same as the last or a whole tick on, which from inside someone's head (or on a grenade) is a shake. slowed down it is worse (a tenth speed is 6 ticks a second). so what is drawn is
+    //worked out here instead: between where a thing was at the last tick and where it is now, by how far through the tick it is (measured from how long the last tick really took).
+    //sped up far enough there is more than a tick in a frame and nothing to fill in
     interpolate: function (now) {
-        if (this.speed >= 0.9) return this.interp.size && this.interp.clear();
+        if (!this.live && !this.paths && this.header) this.paths = this.buildPaths();
+        var ticks = this.speed < 3 && !this.paths; //with the paths there is nothing to fill in for players, whatever the speed
+        if (this.speed >= 3 || this.paths) this.interp.size && this.interp.clear();
 
         var turn = (to, from) => ReplayCamera.angleDiff(to, from);
         var step = (key, mesh, head, cur, minGap) => {
@@ -375,8 +509,14 @@ export const ReplaySession = {
 
         iteratePlayers((player) => {
             if (player.id === meId || !player.playing || !player.actor || !player.actor.mesh) return;
-            step(player, player.actor.mesh, player.actor.head, [player.x, player.y, player.z, player.yaw, player.pitch], 8);
+            var path = this.paths && this.paths.get(player.id), at = path && this.pathAt(path, this.time);
+            if (at && Math.hypot(at.x - player.x, at.z - player.z) < 6) { //where the game has the player is where they are, give or take a guess: further off is a seek or a respawn the path hasn't got to
+                player.actor.mesh.position.set(at.x, at.y, at.z);
+                player.actor.mesh.rotation.y = at.yaw;
+                if (player.actor.head) player.actor.head.rotation.x = at.pitch;
+            } else if (this.speed < 3) step(player, player.actor.mesh, player.actor.head, [player.x, player.y, player.z, player.yaw, player.pitch], 8);
         });
+        if (this.speed >= 3) return;
         [munitionsManager.bulletPool, munitionsManager.rocketPool, munitionsManager.grenadePool].forEach((pool) => pool.forEachActive((m) => {
             if (m.actor && m.actor.mesh) step(m, m.actor.mesh, null, [m.x, m.y, m.z, 0, 0], 8);
         }));
@@ -392,7 +532,7 @@ export const ReplaySession = {
             return { ...params, rate: Math.max(0.5, Math.min(4, rate)), vol: (params.vol === undefined ? 1 : params.vol) * (this.speed < 0.5 ? Math.max(0.2, this.speed * 2) : 1) };
         };
         playSoundIndependent = (name, params) => this.seeking ? undefined : this.soundOriginals.three(name, scale(params)); //what happens while catching up to a seek was already heard
-        playSoundIndependent2D = (name, params) => this.seeking ? undefined : this.soundOriginals.two(name, scale(params));
+        playSoundIndependent2D = (name, params) => this.seeking || this.quiet ? undefined : this.soundOriginals.two(name, scale(params));
     },
 
     //the game only counts down its own ammo, other players' shots and reloads are only ever animations, so for the hud theirs are counted here. it can only start from full
@@ -421,11 +561,19 @@ export const ReplaySession = {
     wrapPlayerList: function () {
         if (this.listOriginal) return;
         this.listOriginal = rebuildPlayerList;
+        //every kill rebuilds the list (twice), and a grenade that kills six in one go rebuilt it twelve times in one frame, which was the stutter. while records are being run it is only marked, and done once after
         rebuildPlayerList = (...args) => {
+            if (this.feeding) return this.listDirty = true;
             var result = this.listOriginal(...args);
-            [...document.getElementById("playerList").children].forEach((row) => { if (/^\s*undefined\s/.test(row.innerText)) row.style.display = "none" });
+            [...document.getElementById("playerList").children].forEach((row) => { if (/^\s*undefined\s/.test(row.textContent)) row.style.display = "none" }); //(innerText makes the page lay itself out for every row)
             return result;
         };
+    },
+
+    flushPlayerList: function () {
+        if (!this.listDirty || this.feeding) return;
+        this.listDirty = false;
+        if (this.listOriginal) rebuildPlayerList();
     },
 
     unwrapPlayerList: function () {

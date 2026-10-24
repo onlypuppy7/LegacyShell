@@ -12,7 +12,7 @@ export const LegacyReplay = {
         this.plugins.on('game:LegacyShellOnMessage', this.onMessage.bind(this));
 
         if (typeof devmode !== "undefined" && devmode) { //the bundle is wrapped so nothing is reachable from the console, this is for testing
-            window.LegacyReplay = this; window.LegacyReplaySession = () => ReplaySession;
+            window.LegacyReplay = this; window.LegacyReplaySession = () => ReplaySession; window.LegacyReplayEval = (code) => eval(code);
             window.LegacyReplayParts = () => ({ ReplaySession, ReplayCamera, ReplayReel, ReplayDirector, ReplayViewer, ReplayEditor, ReplayFx, ReplayAudio, ReplayExport, ReplayLive, ReplayViews, ReplaySpectate });
         };
     },

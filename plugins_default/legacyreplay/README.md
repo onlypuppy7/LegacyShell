@@ -6,7 +6,7 @@ See [DESIGN.md](DESIGN.md) for where it is going.
 
 ## Saving a clip, or a whole game
 
-In a game, press **F8** (rebindable in settings, Replay tab) or type `/replay clip [seconds]` to keep the last 30 seconds (or that many, up to your limit). Public rooms need a signed in account to clip, private rooms don't. One clip every 20 seconds.
+In a game, press **F8** (rebindable in settings, Replay tab) or type `/replay clip [seconds]` to keep the last 30 seconds (the Replay tab has a clip length dropdown, 10 to 180 seconds, up to your limit). Public rooms need a signed in account to clip, private rooms don't. One clip every 20 seconds.
 
 `/replay record` records the whole game from that moment, with a red **REC** in the corner, and `/replay stop` saves it. It stops by itself at your limit and saves what it has. Only whoever started it can stop it, and one recording at a time per room.
 
@@ -40,6 +40,12 @@ Clips are kept on your device (the browser's storage) and, signed in, on your ac
 - **Projectiles:** grenade cam and rocket cam ride the watched player's own grenade or rocket and circle where it went off. Until one is thrown they are a chase.
 - **Bullets** (from a reel shot that has one, or the editor): bullet cam (behind it), from the front, side on, and incoming (the victim's eyes, watching it come).
 
+In a replay everyone is drawn from the recorded syncs as paths through time (a smooth curve through the points, the aim from the six ticks after each), not from the game's guess between syncs, so first person is as smooth as it was. A live game being spectated goes by the ticks. The sun and the weather go by the replay's time, so skipping ahead or slowing down moves them, and a seek puts them where they were. The egg colours plugins set are in every keyframe.
+
+Orbit: hold the orbit button (middle mouse by default, bindable in the Replay tab) and move the mouse to swing the camera round whatever it is looking at, or use W A S D (A and D round, W and S up and down), the wheel for in and out, V to put it back. In first person it looks round from their eyes.
+
+A replay opens on their view (hud) of whoever got the most kills, and waits for them if they haven't spawned. Everything is drawn between the game's ticks, so a screen faster than 60Hz is not a row of 60Hz steps; first person is the game's own eye, recoil and all. What the game only does for me is done for them: picking up ammo and grenades (and the sound, if they are who you're watching), and the grenade throw animation. Ammo pickups aren't counted when spectating a live game.
+
 A view with nothing to show yet (a duel with nobody near, a killcam with no kill coming) is a chase meanwhile. Every one is smoothed and stays out of walls, and any can be a shot in a reel.
 
 Free camera: click the view to look around (Esc lets go, or hold a mouse button and drag), W A S D to move, E and Q for up and down, Shift is fast, the wheel changes speed, Alt and the wheel zooms, Z and X roll, V puts the roll and zoom back. Every move is smoothed. **Feel** in the Replay settings picks raw, smooth, cinematic or drone (the drone leans into turns), or custom to use the sliders.
@@ -68,9 +74,9 @@ Sound: the game's sound goes dull while time is slowed (Settings -> Replay -> Mu
 
 **Video** in the Highlights panel records the reel into an mp4 (a webm on a browser that can't make mp4). Pick the shape (window, 16:9, 9:16 vertical, 1:1, 4:3, 21:9), the size (480p to 1440p, by the short side), the frame rate (24, 30 or 60), the quality (low to max, which sets the bitrate, the dialog shows the size it works out to) and whether to include sound. It plays the reel through once and records what is on screen: the game's picture with the look effects, the letterbox and the flashes, and the sound as mixed (the game, the muffle in slow motion, the music, the whoosh and thud). The game is drawn at the video's resolution while it records, so a 1080p video is sharp even in a small window.
 
-When it is done the file is in your downloads and a small dialog offers **YouTube**, **TikTok** and **X** (each opens that site's upload or post page, drag the file in), **Share** (the system share sheet, only where the browser can share files, such as a phone or Chrome and Edge on Windows) and **Save again**. Nothing is uploaded from the game, and nothing is sent without a click.
+When it is done the video plays in a dialog in the game, and nothing is saved until you press **Download**. The dialog also offers **YouTube**, **TikTok** and **X** (each opens that site's upload or post page, drag the file in), **Share** (the system share sheet, only where the browser can share files, such as a phone or Chrome and Edge on Windows) and **Save again**. Nothing is uploaded from the game, and nothing is sent without a click.
 
-It records live, so it takes as long as the reel plays for (slow motion included) and the tab has to stay in front, a hidden tab stops drawing and the video freezes. The game's hud isn't in the video (the camera views that show it, like Their view, will look bare). Nothing leaves the browser.
+**Smooth** (on by default) makes the video so that nothing about how the game happened to run can get into it. The game's clock is made the video's, so every frame it draws is exactly one frame of the video later however long drawing it took, and each frame goes straight into the browser's own video encoder with the time it is for; the sound is recorded once, live, and encoded the same way; and `mux.js` puts both into an mp4. Frame times in the file are exact (checked: every gap in a 60 fps file was 16.67 ms), nothing is played back in real time to make it, and a slow encoder holds the game's clock still instead of being outrun. It needs a browser with the video encoder (Chrome and Edge, on `localhost` or https) and AAC; where it isn't there the same three goes are done by recording a playback of the pictures, which can lose frames on a slow machine. Without Smooth the reel is filmed live as it plays, which takes as long as the reel plays for (slow motion included) and carries every hitch of the machine into the file. The video is drawn with your graphics settings, so the costly ones (Fancy Shadows draws a 5120 px shadow map every frame, it took a test from 13 ms to about 70 ms a frame) make it slower; the progress shows about how long is left, and the browser console says how long frames took and what it was drawing at (lines starting [legacyreplay]). The export keeps going when the window isn't the one in use or the tab isn't showing (it is driven by a worker's clock, not the page's frames, which a hidden tab doesn't get). The game's hud isn't in the video (the camera views that show it, like Their view, will look bare). Nothing leaves the browser.
 
 ## Keeping replays on your account
 
@@ -123,7 +129,7 @@ With legacyadmin, a **Replays** tab lists everyone's replays on the server (owne
 
 ## Files and tests
 
-`format.js` is the file format, the reader (every file is treated as untrusted input) and signature checking. `recorder.js` runs in each room's worker. `tiers.js` has the limits by rank. `storage.js`, `signing.js` and `adminStorage.js` run on services, `cast.js` on the game's main thread. `session.js`, `cameras.js`, `views.js` (what each camera view does, plain numbers so it is tested without a game), `viewer.js`, `editor.js`, `export.js`, `live.js` and `spectate.js` are the browser side.
+`format.js` is the file format, the reader (every file is treated as untrusted input) and signature checking. `recorder.js` runs in each room's worker. `tiers.js` has the limits by rank. `storage.js`, `signing.js` and `adminStorage.js` run on services, `cast.js` on the game's main thread. `session.js`, `cameras.js`, `views.js` (what each camera view does, plain numbers so it is tested without a game), `viewer.js`, `editor.js`, `mux.js` (the mp4 writer, also tested in node), `export.js`, `live.js` and `spectate.js` are the browser side.
 
 ```
 node plugins_default/legacyreplay/test-format.js

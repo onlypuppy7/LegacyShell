@@ -134,9 +134,10 @@ export class RoomRecorder {
     };
 
     addOutput(output, type = ReplayFormat.Type.packets) {
-        if (!output.idx) return;
+        var bare = ArrayBuffer.isView(output); //reload and swapWeapon go out as a bare buffer, already the right size, with no idx
+        if (bare ? !output.length : !output.idx) return;
         var t0 = settings.profile ? performance.now() : 0;
-        this.add(type, output.buffer.slice(0, output.idx)); //copy, the output is free to change after this
+        this.add(type, bare ? new Uint8Array(output) : output.buffer.slice(0, output.idx)); //copy, the output is free to change after this
         if (settings.profile) this.time('add', performance.now() - t0);
     };
 
@@ -182,6 +183,10 @@ export class RoomRecorder {
         room.packAllItems(output);
         room.packUpdateRoomParams(output);
         room.packRoundUpdate(output);
+        if (Comm.Code.setEggColor) room.clients_by_id.forEach((client) => {
+            var color = client?.clientIsReady && client.player?.eggColor;
+            if (color) { output.packInt8U(Comm.Code.setEggColor); output.packInt8U(client.id); output.packInt8U(1); output.packInt8U(color[0]); output.packInt8U(color[1]); output.packInt8U(color[2]) };
+        });
         plugins.cancel = cancel;
 
         this.lastKeyframe = this.now();
@@ -412,6 +417,11 @@ export const Recorder = {
 
         this.plugins.on('game:roomInitEnd', async (data) => { //the recorder is made here (not lazily mid game) so claiming a type can't happen in the middle of anything else
             await this.plugins.emit('replayRecorderCreated', { this: data.this, recorder: RoomRecorder.get(data.this) });
+        });
+
+        //the packet only carries 8 modifiers, in tenths. a replay predicts everyone between syncs, so it needs the rest (physics speed, reload...) and the exact values
+        this.plugins.on('game:packModifiers', (data) => {
+            if (settings.enabled) Object.assign(data.extra, data.this.player.modifiers);
         });
 
         this.plugins.on('game:sendToAll', (data) => {

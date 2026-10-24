@@ -47,7 +47,13 @@ await test("keyframes, packets, and a clip that parses", async () => {
     rec.keyframe();
     for (let i = 0; i < 50; i++) rec.addOutput(packet(Comm.Code.sync));
     rec.addOutput(new Comm.Out()); //empty outputs are skipped
-    assert.equal(rec.records.length, 51);
+    var before = rec.records.length;
+    rec.addOutput(new Uint8Array([Comm.Code.reload, 3])); //a bare buffer, like reload and swapWeapon send
+    assert.equal(rec.records.length, before + 1, "a bare buffer is recorded");
+    assert.deepEqual([...rec.records[rec.records.length - 1].data], [Comm.Code.reload, 3]);
+    rec.addOutput(new Uint8Array(0));
+    assert.equal(rec.records.length, before + 1, "an empty bare buffer is skipped");
+    assert.equal(rec.records.length, 52);
 
     const file = await rec.makeClip(30);
     const res = F.parse(await F.unpack(file));
@@ -58,7 +64,7 @@ await test("keyframes, packets, and a clip that parses", async () => {
     assert.deepEqual(res.header.players.map(p => p.name), ["player0", "player1"]);
     assert.equal(res.records[0].type, F.Type.keyframe);
     assert.equal(res.records[0].tMs, 0);
-    assert.equal(res.records.length, 51);
+    assert.equal(res.records.length, 52);
     assert.equal(res.records[1].data[0], Comm.Code.sync);
 });
 
@@ -455,3 +461,16 @@ await test("public rooms want a signed in account for a clip or a recording, pri
 });
 
 console.log(passed + " passed");
+
+await test("a keyframe carries the egg colours that were set, or a clip starting after them has plain eggs", async () => {
+    Comm.Add("setEggColor");
+    const room = fakeRoom();
+    room.clients_by_id[1].player = { eggColor: [88, 109, 62] };
+    const rec = new RoomRecorder(room);
+    rec.startTime = Date.now() - 5e3;
+    rec.keyframe();
+    const data = [...rec.records.find((r) => r.type === F.Type.keyframe).data];
+    const at = data.length - 6;
+    assert.deepEqual(data.slice(at), [Comm.Code.setEggColor, 1, 1, 88, 109, 62], "their colour, last in the keyframe");
+    assert.equal(data.filter((b, i) => b === Comm.Code.setEggColor && i < at && data[i + 2] === 1 && data[i + 3] === 88).length, 0, "and only theirs");
+});
