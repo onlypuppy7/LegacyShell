@@ -586,7 +586,9 @@ class ClientConstructor {
         //unsigned
         output.packInt8U(this.player.modifiers.noclip ? 1 : 0); //0 or 1
 
-        output.packLongString("{}"); //this is for in the future when i cant be fucked with this stupid packet shit any more
+        var extra = {};
+        plugins.emit('packModifiers', { this: this, extra }); //listeners have to fill extra synchronously, this isnt awaited
+        output.packLongString(JSON.stringify(extra)); //this is for in the future when i cant be fucked with this stupid packet shit any more
     };
 
     async packSync(output) {
