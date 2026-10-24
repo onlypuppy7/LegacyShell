@@ -360,7 +360,7 @@ the AI at 96% of tick time. Four things keep that in check (all in `pathfinding.
   (7MB of JSON for Castle); loading holds the game loop for about 100ms once, a save about 120ms (building and
   stringifying the JSON - gzipping runs off-thread). Fill it in advance, offline, with
   `node plugins_default/deadinternet/bench-pathfinding.js <map> --store --warm 3000`;
-  `/botsdebug cache [stats|save|clear]` manages it in-game.
+  `/botsdebug cache [stats|save|clear]` manages it in-game. A game server also fills it itself when it has had no rooms for 20s (`idlewarm.js`, in a worker thread that is killed when a room is made); other plugins say what to warm by pushing `{ maps, modifiers, searches, priority }` to `data.jobs` in the `idleWarmJobs` event.
 - **Searching less.** `pathTo()` reuses a route while the goal hasn't moved further than a tolerance that
   grows with distance, keeps a route through a fight (suspended, then resumed) instead of discarding it,
   waits ~0.5s between searches for a moving target, and backs off exponentially after a failed search

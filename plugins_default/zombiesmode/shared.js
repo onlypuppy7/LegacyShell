@@ -46,7 +46,7 @@ export const ZombiesModeDefaults = {
     ghostResistance: 0.7,   //...and its resistance
     brutishRatio: 0.1,      //the share of the horde that are brutish: slow, tough, hit hard, big hands
     brutishPhysics: 0.7,    //...their physicsSpeedModifier (not speedModifier: that would throw the pathfinding off)
-    brutishResistance: 2.1, //...and resistance (3x the zombies')
+    brutishResistance: 3.5, //...and resistance (5x the zombies')
     brutishDamage: 1.25,    //...and how much more their bite takes than the team's contactDamage
     brutishHat: 50029,      //Axe-in-head (modernshellhats; 0 for none)
     brutishColor: [108, 101, 79], //egg colour (rgb, hands too)

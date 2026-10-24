@@ -10,6 +10,7 @@ import { findPath, lastFindPathStats, isStandable, isLadderCell, EDGE_TYPE, MOVE
 import { perf } from './perf.js';
 import { loadGeometryCache, saveGeometryCache, geometryStoreStats, clearGeometryStore, setStoreEnabled, setStoreCompression, isStoreEnabled } from './geometryStore.js';
 import { CombatController, resolveCombatOptions, parseCombatArgs, listPresets, registerPreset, COMBAT_OPTIONS, DIFFICULTY_PRESETS, hasLineOfSight, weaponProfile, setClassProvider, resolveClassIndex, listClasses, parseSkill, SoundTracker, SKILL_CURVES, resolveShellColor, SHELL_COLORS } from './combat.js';
+import { startIdleWarm } from './idlewarm.js';
 import { simulateEdge, canSimulate, JUMP_RUNUP_BACKAWAY_SECONDS, ladderCatchTarget } from './physicsSimulation.js';
 //
 
@@ -30,7 +31,7 @@ export const PluginMeta = {
     identifier: "deadinternet",
     name: 'DeadInternet',
     author: 'onlypuppy7 (+Claude)', //NOTE! most of this plugin is VIBECODED.
-    version: '1.0.0',
+    version: '1.1.0',
     descriptionShort: 'Adds bot players that walk the map and fight, at any skill level', //displayed when loading
     descriptionLong: 'Adds bot players that walk the map and fight (aim, strafe, take cover, throw grenades, hear gunfire), from target dummies to nightmare skill, with ready-made fields of bots - plus a general A* pathfinding engine other plugins can use.',
     legacyShellVersion: 459, //legacy shell version, can be found in /versionEnum.txt, or just on the homescreen
@@ -46,6 +47,7 @@ export class Plugin {
         pluginInstance = this;
 
         DeadInternetPlugin.registerListeners(this.plugins);
+        startIdleWarm(); //fills the pathfinding cache while a game server has no rooms
         this.plugins.on('client:pluginSourceInsertion', this.pluginSourceInsertion.bind(this));
 
         this.plugins.on('game:metaLoop', this.metaLoopHook.bind(this));

@@ -17,7 +17,7 @@ export const PluginMeta = {
     identifier: "zombiesmode",
     name: 'ZombiesMode',
     author: 'onlypuppy7 (+Claude)', //NOTE! most of this plugin is VIBECODED.
-    version: '1.2.3',
+    version: '1.2.5',
     descriptionShort: 'Adds the zombies gamemode: survive the horde, the infected join it', //displayed when loading
     descriptionLong: 'Adds the Zombies gamemode. A horde of slow DeadInternet bots walks at the humans and bites them; a human who dies (or leaves the fight through the menu) is infected and joins the horde. Last human standing wins, or the humans win by outlasting the round.',
     legacyShellVersion: 613, //legacy shell version, can be found in /versionEnum.txt, or just on the homescreen
@@ -151,6 +151,7 @@ export class Plugin {
         ZombiesModePlugin.blockFire(Player);
         this.plugins.on('client:pluginSourceInsertion', this.pluginSourceInsertion.bind(this));
         this.plugins.on('client:shaderSources', this.shaderSources.bind(this));
+        this.plugins.on('game:idleWarmJobs', this.idleWarmJobs.bind(this));
         this.plugins.on('services:insertMaps', this.insertMaps.bind(this));
 
         this.plugins.on('game:metaLoop', this.metaLoop.bind(this));
@@ -686,6 +687,16 @@ export class Plugin {
         player.changeModifiers({ ...mods, contactDamage: biteOf(player, room) });
         LegacyShellCorePlugin.setEggColor(player, ...color);
         return this.giveHat(bot, variant === 'brutish' ? cfg.brutishHat : cfg.smallHat);
+    };
+
+    // What deadinternet warms its pathfinding cache for when a game server is idle: every physics profile a zombie is at, usual speed and
+    // sudden death, plain and each variant, on the maps the mode is played on (the cache is per profile, so the bots' usual one does not help).
+    idleWarmJobs(data) {
+        const d = ZombiesModeDefaults;
+        const variants = [{}, { physicsSpeedModifier: d.brutishPhysics }, { physicsSpeedModifier: d.smallPhysics, scale: d.smallScale }];
+        for (const speedModifier of [d.zombieSpeed, d.suddenDeathSpeed]) for (const variant of variants) {
+            data.jobs.push({ maps: ZombiesModeMaps, modifiers: { speedModifier, ...variant }, searches: 2000, priority: 0 });
+        };
     };
 
     // A ghost: white, in a ghost hat, slower than a zombie and biting less, and with noclip, so it goes straight through walls. It has no
