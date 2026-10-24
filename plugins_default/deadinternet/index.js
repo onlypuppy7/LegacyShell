@@ -4,7 +4,7 @@ import path from 'node:path';
 //plugin: samplecommand
 import { DeadInternetPlugin } from './shared.js';
 import Comm from '#comm';
-import { CONTROL, classes, devlog, iteratePlayers, ticksPerSecond } from '#constants';
+import { CONTROL, ItemType, classes, devlog, iteratePlayers, ticksPerSecond } from '#constants';
 import { AllItems } from '#items';
 import { findPath, lastFindPathStats, isStandable, isLadderCell, EDGE_TYPE, MOVEMENT_PROFILE } from './pathfinding.js';
 import { perf } from './perf.js';
@@ -31,7 +31,7 @@ export const PluginMeta = {
     identifier: "deadinternet",
     name: 'DeadInternet',
     author: 'onlypuppy7 (+Claude)', //NOTE! most of this plugin is VIBECODED.
-    version: '1.1.2',
+    version: '1.1.3',
     descriptionShort: 'Adds bot players that walk the map and fight, at any skill level', //displayed when loading
     descriptionLong: 'Adds bot players that walk the map and fight (aim, strafe, take cover, throw grenades, hear gunfire), from target dummies to nightmare skill, with ready-made fields of bots - plus a general A* pathfinding engine other plugins can use.',
     legacyShellVersion: 459, //legacy shell version, can be found in /versionEnum.txt, or just on the homescreen
@@ -83,7 +83,7 @@ export class Plugin {
     };
 
     clientInit(data) {
-        // console.log("clientInit", PluginMeta.identifier, data.info);
+        data.this.botLoadout = data.info.botLoadout; //(bots only: see init())
     }
 
     joinPlayer(data) {
@@ -94,8 +94,15 @@ export class Plugin {
         // console.log("clientInstantiatePlayer loadout", PluginMeta.identifier, data.this.loadout);
     }
 
+    // A bot's colour and hat go in with the first loadout, before anyone is told about it (they used to follow in a second loadout change,
+    // which rebuilt both guns for every client). The game only lets subscribers pick colours 7-13 and accounts that own a hat wear it, so
+    // this sets them directly.
     clientUpdateLoadoutEnd(data) {
-        // console.log("clientUpdateLoadoutEnd loadout", PluginMeta.identifier, data.this.loadout);
+        const client = data.this, loadout = client.botLoadout;
+        if (!loadout) return;
+        if (loadout.colorIdx !== null) client.colorIdx = loadout.colorIdx;
+        const hat = loadout.hatId && client.catalog.findItemById(loadout.hatId);
+        if (hat) client.loadout[ItemType.Hat] = hat;
     }
 
     async onPlayerDeath(data) {
@@ -245,6 +252,7 @@ export class DeadInternetBot {
             primary_item_id: 0,
             secondary_item_id: 0,
             useOOBid: true,
+            botLoadout: { colorIdx: resolveShellColor(this.combatResolved.options.color), hatId: this.hatId }, //hatId: an item id, set by whatever makes the bot, before init()
         });
 
         this.client.noConnectionTimeout = true;
@@ -257,7 +265,6 @@ export class DeadInternetBot {
         console.log("client.room ??", !!this.client?.room);
 
         await this.client.clientReady();
-        await this.applyShellColor();
         await this.respawn();
 
         // Pick up what earlier runs learned about this map (once per room; a missing or stale file just
@@ -267,17 +274,6 @@ export class DeadInternetBot {
         else if (store.reason && store.reason !== 'disabled' && store.reason !== 'no file yet') console.log(`[deadinternet] pathfinding cache not used: ${store.reason}`);
 
         this.setupCombat();
-    }
-
-    // Sets the bot's egg colour (the `color` option) and tells everyone already in the room. The game only
-    // lets subscribers pick colours 7-13 (Client.setColorIdx clamps everyone else to 0-6, which includes
-    // every bot), so this sets the colour on the client directly and then applies the loadout, which
-    // broadcasts the change. Players joining later get it from the client when it is announced to them.
-    async applyShellColor() {
-        const index = resolveShellColor(this.combatResolved.options.color);
-        if (index === null) return;
-        this.client.colorIdx = index;
-        await this.client.applyLoadout();
     }
 
     // Builds the CombatController and applies the options that live on the Player itself (team,
@@ -586,6 +582,7 @@ export class DeadInternetBot {
         this.pathIndex0NeedsGroundWait = true;
         this.pathGoalKey = goalKey;
         this.pathTargetPos = { x: target.x, y: target.y, z: target.z }; // so followPath()'s own stuck-recovery can re-path without the caller having to call pathTo() every tick too
+        this.pathStart = { x: this.player.x, y: this.player.y, z: this.player.z }; // where the route leaves from: what comes before path[0] (see followPath()'s JUMP branch)
         this.pathLastFailed = !path;
         // The floor between searches is spread +-30% per search: bots that all start at the same instant
         // (a freshly spawned field) would otherwise all come due again on the very same tick and search
@@ -950,6 +947,12 @@ export class DeadInternetBot {
             this.control(CONTROL.up);
         } else if (waypoint.type === EDGE_TYPE.JUMP) {
             const prevWp = this.currentPath[this.pathIndex - 1];
+            // Whether this jump leaves from a ladder. For path[0] there is no waypoint before it, so it is wherever the route was searched
+            // from: a bot that searches while climbing (a zombie chasing someone who moved) gets a route that starts with the jump off the
+            // ladder, and reading that as "not off a ladder" left it hanging there, pressing nothing, until a stuck replan.
+            const departure = prevWp ?? (this.pathIndex === 0 ? this.pathStart : null);
+            const departureCell = departure && this.room.map.data[Math.floor(departure.x)]?.[Math.floor(departure.y)]?.[Math.floor(departure.z)];
+            const offLadder = prevWp?.type === EDGE_TYPE.LADDER || isLadderCell(departureCell);
             // Don't start a FRESH run-up/jump sequence while still airborne from whatever the
             // player was just doing (typically a big previous jump that overshot its own target
             // waypoint's arrival tolerance and is still rising or falling when THIS waypoint
@@ -1017,8 +1020,7 @@ export class DeadInternetBot {
                 // cell via a JUMP-type edge; the NEXT jump departing from that same waypoint has
                 // prevWp.type reading JUMP, not LADDER, which silently skipped this branch for
                 // exactly that case before).
-                const prevCell = prevWp && this.room.map.data[Math.floor(prevWp.x)]?.[Math.floor(prevWp.y)]?.[Math.floor(prevWp.z)];
-                if (prevWp?.type === EDGE_TYPE.LADDER || isLadderCell(prevCell)) this.player.jump();
+                if (offLadder) this.player.jump();
             } else if (this.jumpRunupWaypointIndex !== this.pathIndex && (this.player.jumping || this.player.isFalling)) {
                 // Only keep walking toward the target while waiting to settle if there's actually
                 // solid ground ahead to walk onto - blindly holding forward here (the original
@@ -1056,7 +1058,7 @@ export class DeadInternetBot {
                 // the "walked off a ledge" failure mode the ground-ahead check guards against can't
                 // happen here, since the player is already airborne off the ladder, not standing on
                 // a platform that might not extend as far as assumed.
-                if (this.player.Collider.playerCollidesWithMap(this.player, aheadPos) || prevWp?.type === EDGE_TYPE.LADDER) this.control(CONTROL.up);
+                if (this.player.Collider.playerCollidesWithMap(this.player, aheadPos) || offLadder) this.control(CONTROL.up);
             } else {
             if (this.jumpRunupWaypointIndex !== this.pathIndex) {
                 this.jumpRunupWaypointIndex = this.pathIndex;

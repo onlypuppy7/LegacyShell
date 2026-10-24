@@ -6,9 +6,7 @@ import { DeadInternetBot, registerPreset } from '../deadinternet/index.js';
 import { hasGroundAhead } from '../deadinternet/combat.js';
 import Player from '#player';
 //legacyshell
-import { iteratePlayers, CONTROL, ItemType } from '#constants';
-import { ss } from '#misc';
-import * as catalogModule from '#catalog';
+import { iteratePlayers, CONTROL } from '#constants';
 import Comm from '#comm';
 import { LegacyShellCorePlugin } from '../legacyshellcore/shared.js';
 //
@@ -17,7 +15,7 @@ export const PluginMeta = {
     identifier: "zombiesmode",
     name: 'ZombiesMode',
     author: 'onlypuppy7 (+Claude)', //NOTE! most of this plugin is VIBECODED.
-    version: '1.2.12',
+    version: '1.2.13',
     descriptionShort: 'Adds the zombies gamemode: survive the horde, the infected join it', //displayed when loading
     descriptionLong: 'Adds the Zombies gamemode. A horde of slow DeadInternet bots walks at the humans and bites them; a human who dies (or leaves the fight through the menu) is infected and joins the horde. Last human standing wins, or the humans win by outlasting the round.',
     legacyShellVersion: 613, //legacy shell version, can be found in /versionEnum.txt, or just on the homescreen
@@ -622,6 +620,7 @@ export class Plugin {
 
     async spawnZombie(room, z, cfg, variant) {
         const bot = new DeadInternetBot(room, { combat: { difficulty: 'zombie', speed: cfg.zombieSpeed, resistance: cfg.zombieResistance } });
+        if (variant) bot.hatId = variant === 'brutish' ? cfg.brutishHat : cfg.smallHat;
         await bot.init();
         bot.startCombatAI(); //(this is what applies the bot's combat speed, damage and resistance to the player)
         //exactly the zombie speed: the bots each get a few percent either way, which is within the same pathfinding speed bucket, so the
@@ -687,7 +686,6 @@ export class Plugin {
         player.changeModifiers({ ...mods, contactDamage: biteOf(player, room) });
         if (variant === 'small') bot.pathAs = { scale: 1 }; //takes the plain zombies' routes, and their cache: a few of them would never warm one of their own
         LegacyShellCorePlugin.setEggColor(player, ...color);
-        return this.giveHat(bot, variant === 'brutish' ? cfg.brutishHat : cfg.smallHat);
     };
 
     // What deadinternet warms its pathfinding cache for when a game server is idle: the zombies' usual speed and sudden death, on the maps the
@@ -704,26 +702,12 @@ export class Plugin {
     // combat AI or route finding: ghostThink just points it at whoever is nearest every tick.
     async spawnGhost(room, z, cfg) {
         const bot = new DeadInternetBot(room, { combat: { difficulty: 'zombie', nickname: 'Ghost', color: 'white', speed: cfg.ghostSpeed, resistance: cfg.ghostResistance } });
+        bot.hatId = cfg.ghostHat;
         await bot.init();
         bot.zGhost = true;
         bot.player.changeModifiers({ noclip: 1, speedModifier: cfg.ghostSpeed, resistanceModifier: cfg.ghostResistance, contactDamage: cfg.ghostBite });
         bot.onDeath = () => this.scheduleRespawn(z, bot, cfg.respawnSecs);
-        await this.giveHat(bot, cfg.ghostHat);
         return bot;
-    };
-
-    // Puts a hat on a bot (the game only lets accounts that own one wear it, so this bypasses that and tells the room).
-    async giveHat(bot, itemId) {
-        if (!itemId) return;
-        try {
-            this.catalog ??= new (catalogModule.CatalogConstructor ?? catalogModule.default)(ss.items);
-            const hat = this.catalog.findItemById(itemId);
-            if (!hat) return;
-            bot.client.loadout[ItemType.Hat] = hat;
-            await bot.client.applyLoadout();
-        } catch (error) {
-            console.error('[zombiesmode] could not give a hat:', error);
-        };
     };
 
     // Every tick, before the game moves a ghost: its velocity is a straight line at whoever is nearest, in all three axes, at the pace of
@@ -852,6 +836,7 @@ export class Plugin {
     };
 
     roam(bot, ticks, least = 3) {
+        if (bot.player.climbing) return; //(a spot level with someone halfway up a ladder is in the air: no route there, so it would hang on the ladder backing off)
         const p = bot.player, angle = Math.random() * Math.PI * 2, radius = least + Math.random() * 5;
         bot.zWanderTo = { x: p.x + Math.sin(angle) * radius, y: p.y, z: p.z + Math.cos(angle) * radius };
         bot.zWander = ticks;

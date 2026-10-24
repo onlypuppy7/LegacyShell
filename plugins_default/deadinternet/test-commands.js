@@ -71,20 +71,20 @@ assert('reset works', /cleared/.test((await run('botsdebug perf', 'reset'))[0]))
 
 console.log('Test: bots wear their egg colour');
 {
-    const make = (color) => {
-        const bot = new DeadInternetBot({}, { combat: color === undefined ? {} : { color } });
-        const calls = [];
-        bot.client = { colorIdx: 0, applyLoadout: async () => { calls.push(bot.client.colorIdx); } };
-        return { bot, calls };
+    //what the bot asks the room for when it joins: the colour (and hat) go in with its first loadout, past the game's non-subscriber clamp (see clientUpdateLoadoutEnd)
+    const joinWith = async (color, hatId) => {
+        let info = null;
+        const bot = new DeadInternetBot({ joinPlayer: async (given) => { info = given; throw new Error('stop here'); } }, { combat: color === undefined ? {} : { color } });
+        if (hatId) bot.hatId = hatId;
+        await bot.init().catch(() => { });
+        return info.botLoadout;
     };
-    const blue = make('blue'); await blue.bot.applyShellColor();
-    assert('blue is set on the client directly (past the game\'s non-subscriber clamp) and then applied', blue.bot.client.colorIdx === 11 && blue.calls.length === 1 && blue.calls[0] === 11);
-    const red = make('red'); await red.bot.applyShellColor();
-    assert('red likewise', red.bot.client.colorIdx === 7 && red.calls[0] === 7);
-    const plain = make(undefined); await plain.bot.applyShellColor();
-    assert('with no colour it touches nothing', plain.bot.client.colorIdx === 0 && plain.calls.length === 0);
-    const rnd = make('random'); await rnd.bot.applyShellColor();
-    assert('random picks one of the 14', rnd.bot.client.colorIdx >= 0 && rnd.bot.client.colorIdx <= 13 && rnd.calls.length === 1);
+    assert('blue goes in with the join', (await joinWith('blue')).colorIdx === 11);
+    assert('red likewise', (await joinWith('red')).colorIdx === 7);
+    assert('with no colour it asks for none', (await joinWith(undefined)).colorIdx === null);
+    const rnd = (await joinWith('random')).colorIdx;
+    assert('random picks one of the 14', rnd >= 0 && rnd <= 13);
+    assert('a hat goes in with the join too', (await joinWith('red', 50031)).hatId === 50031);
     DeadInternetBots.length = 0;
     assert('/bots options color lists the colours', /white\(0\)|white/.test((await run('bots options', 'color'))[0]) || /color/.test((await run('bots options', 'color'))[0]));
 }

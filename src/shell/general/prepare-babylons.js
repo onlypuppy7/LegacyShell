@@ -18,9 +18,6 @@ import { getLastSavedTimestamp } from 'puppymisc';
 
 var debuggingLogs = false;
 
-//what the originals' materials look like, minus the colour (that is in the vertex colours): no specular, so nothing shines
-var defaultMaterial = { name: "legacyshell.default", id: "legacyshell.default", ambient: [0.5, 0.5, 0.5], diffuse: [0.4, 0.4, 0.4], specular: [0, 0, 0], emissive: [0, 0, 0], specularPower: 103, alpha: 1, backFaceCulling: true, checkReadyOnlyOnce: false, maxSimultaneousLights: 4 };
-
 //the classic guns (old.*) in egg.babylon were made for the hands skeleton, but the game gives them the skeleton of the modern gun. so their bones are renamed to the modern equivalents
 var classicGunBones = {
     gunBody: "body",
@@ -258,14 +255,6 @@ export async function prepareBabylons(endBabylonsDir = path.join(ss.rootDir, 'st
                                 }
                             });
                         });
-                    };
-
-                    //meshes exported without a material would get babylon's default one, which is glossy. they get a matte one like the originals
-                    const unmatted = extraBabylonData.meshes.filter(mesh => mesh.positions && !mesh.materialId && !mesh.materialUniqueId);
-                    if (unmatted.length) {
-                        if (!baseBabylon.materials.some(mat => mat.id === defaultMaterial.id)) baseBabylon.materials.push({ ...defaultMaterial });
-                        unmatted.forEach(mesh => mesh.materialId = defaultMaterial.id);
-                        debuggingLogs && console.log("Gave the default material to", unmatted.map(mesh => mesh.name).join(", "));
                     };
 
                     if (item.overwrite) {

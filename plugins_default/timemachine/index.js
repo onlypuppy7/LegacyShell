@@ -9,7 +9,7 @@ export const PluginMeta = {
     identifier: "timemachine",
     name: 'TimeMachine',
     author: 'onlypuppy7',
-    version: '1.0.2-wip',
+    version: '1.0.3-wip',
     descriptionShort: 'Readds old stuff from bygone versions of the game', //displayed when loading
     descriptionLong: 'Readds old stuff from bygone versions of the game',
     legacyShellVersion: 561, //legacy shell version, can be found in /versionEnum.txt, or just on the homescreen

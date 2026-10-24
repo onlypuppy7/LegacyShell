@@ -42,20 +42,20 @@ export const ZombiesModeDefaults = {
     zombieColor: [88, 109, 62], //egg colour of the plain zombie bots (rgb, hands too)
     ghostRatio: 1 / 6,      //the share of the horde (1 in 6) that are ghosts instead: they float straight through walls at whoever is nearest
     ghostSpeed: 0.5,        //a ghost's speed modifier (1 is the pace of a walking player), under the zombies'
-    ghostBite: 8,           //hp a ghost's touch takes (a zombie's is the team's contactDamage)
+    ghostBite: 6,           //hp a ghost's touch takes (a zombie's is the team's contactDamage)
     ghostResistance: 0.7,   //...and its resistance
     brutishRatio: 0.1,      //the share of the horde that are brutish: slow, tough, hit hard, big hands
     brutishPhysics: 0.7,    //...their physicsSpeedModifier (not speedModifier: that would throw the pathfinding off)
     brutishResistance: 3.5, //...and resistance (5x the zombies')
     brutishDamage: 1.25,    //...and how much more their bite takes than the team's contactDamage
-    brutishHat: 50029,      //Axe-in-head (modernshellhats; 0 for none)
-    brutishColor: [108, 101, 79], //egg colour (rgb, hands too)
+    brutishHat: 60002,      //Zombie Eggshell (legacyshellcore; 0 for none)
+    brutishColor: [120, 107, 62], //egg colour (rgb, hands too)
     smallRatio: 0.15,       //the share of the horde that are small: quick and fragile
     smallPhysics: 1.25,     //...their physicsSpeedModifier
     smallDamage: 0.5,       //...and how much less their bite takes
     smallScale: 0.5,        //...and scale (damage taken is divided by it, so this is half the health too)
     smallHat: 50031,        //Devil Horns
-    smallColor: [122, 104, 108],
+    smallColor: [140, 100, 114],
     ghostHat: 50244,        //the item id of the hat a ghost wears (Ghost Hat, from modernshellhats; 0 for none)
 };
 
@@ -185,7 +185,7 @@ export const ZombiesModePlugin = {
                 speedModifier: [1, 1.1, 1], //the humans are a little faster than normal (and than the horde)
                 reloadSpeedModifier: [1.2, 1.2, 1.2], //...and reload a little faster
                 damageModifier: [1, 1, 0],
-                contactDamage: [0, 0, 15],
+                contactDamage: [0, 0, 12],
                 contactCooldown: 500,
                 resistanceModifier: [1, 1, 0.6], //infected humans have about 60 hp: faster and cleverer than the bots, so they break more easily
                 knockbackModifier: [0, 0, 0],

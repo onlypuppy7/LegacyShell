@@ -12,7 +12,6 @@ export const TimeMachinePlugin = {
         this.plugins.on('game:bulletHitAfter', this.bulletHitAfter.bind(this));
 
         this.plugins.on('game:afterBullshit', this.afterBullshit.bind(this));
-        this.plugins.on('game:playerActorBodyMeshCreated', this.playerActorBodyMeshCreated.bind(this));
         this.plugins.on('game:playerDeathAnimation', this.playerDeathAnimation.bind(this));
         this.plugins.on('game:playerActorRestoreToPlay', this.playerActorRestoreToPlay.bind(this));
         this.plugins.on('game:playerActorRemoveFromPlay', this.playerActorRemoveFromPlay.bind(this));
@@ -143,10 +142,10 @@ export const TimeMachinePlugin = {
         // this.normalBackfaceMaterial.twoSidedLighting = true;
     },
 
-    playerActorBodyMeshCreated(data) {
-        const { playerActor, player } = data;
-
-        const scene = player.scene;
+    //only made when the classic death animation first plays: cloning eggExplode costs about 26ms, which every egg joining used to pay
+    createExplodeMeshes(playerActor) {
+        if (playerActor.explodeMesh) return;
+        const scene = playerActor.player.scene;
         this.createMaterials(scene);
 
         playerActor.explodeMesh = scene.cloneMesh("eggExplode", playerActor.mesh);
@@ -179,6 +178,7 @@ export const TimeMachinePlugin = {
 
         const { killedPlayer } = data;
 
+        this.createExplodeMeshes(killedPlayer.actor);
         killedPlayer.actor.explodeMesh.setEnabled(true);
         killedPlayer.actor.whiteMesh.setEnabled(true);
         killedPlayer.actor.yolkMesh.setEnabled(true);
@@ -191,9 +191,11 @@ export const TimeMachinePlugin = {
 
     playerActorRestoreToPlay: function (data) {
         const { playerActor } = data;
-        playerActor.explodeMesh.setEnabled(false);
-        playerActor.whiteMesh.setEnabled(false);
-        playerActor.yolkMesh.setEnabled(false);
+        if (playerActor.explodeMesh) {
+            playerActor.explodeMesh.setEnabled(false);
+            playerActor.whiteMesh.setEnabled(false);
+            playerActor.yolkMesh.setEnabled(false);
+        };
         playerActor.bodyMesh.setEnabled(true);
         playerActor.head.setEnabled(true);
         playerActor.eye.setEnabled(true);

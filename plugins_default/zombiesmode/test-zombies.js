@@ -144,7 +144,7 @@ if (isMainThread) {
         assert('zombies are all exactly the zombie speed', baseSpeeds.every((v) => Math.abs(v - room.gameOptions.plugins.zombies.zombieSpeed) < 1e-9), baseSpeeds.join());
         assert('humans are a little faster than normal', Math.abs(H2.modifiers.speedModifier - 1.1) < 1e-9, `${H2.modifiers.speedModifier}`);
         assert('zombies are slow and have about 70 hp', zs.every((p) => Math.abs(p.modifiers.resistanceModifier - 0.7) < 1e-9 && p.modifiers.speedModifier < 0.9), JSON.stringify(zs[0].modifiers));
-        assert('zombies bite', zs.every((p) => p.modifiers.contactDamage === 15));
+        assert('zombies bite', zs.every((p) => p.modifiers.contactDamage === 12));
         assert('zombies cannot shoot', zs.every((p) => p.modifiers.damageModifier === 0));
 
         // ---- spawn points ----
@@ -201,7 +201,7 @@ if (isMainThread) {
         await see(H1, H2); await meta();
         await killByZombie(H1);
         assert('a human who dies joins the horde', H1.team === 2, `${H1.team}`);
-        assert('...and gets the horde\'s modifiers: bites, no gun, about 60 hp', H1.modifiers.contactDamage === 15 && H1.modifiers.damageModifier === 0 && Math.abs(H1.modifiers.resistanceModifier - 0.6) < 1e-9, JSON.stringify(H1.modifiers));
+        assert('...and gets the horde\'s modifiers: bites, no gun, about 60 hp', H1.modifiers.contactDamage === 12 && H1.modifiers.damageModifier === 0 && Math.abs(H1.modifiers.resistanceModifier - 0.6) < 1e-9, JSON.stringify(H1.modifiers));
         assert('...and is announced', notes.some((n) => n.includes('Human1') && n.includes('infected')), notes.join(' | '));
         assert('the last human left starts sudden death', room.gameOptions.plugins.time?.preset === 'night', JSON.stringify(room.gameOptions.plugins.time));
         assert('...in a downpour with lightning every second or two', room.gameOptions.plugins.weather?.storm?.lightning >= 3 && room.gameOptions.plugins.weather?.storm?.intensity === 1 && room.gameOptions.plugins.weather?.rain >= 0.8, JSON.stringify(room.gameOptions.plugins.weather));
@@ -277,7 +277,7 @@ if (isMainThread) {
         // ---- leaving through the menu ----
         mute(); notes.length = 0; clearTimeout(room.roundTimeout); room.setRoundTimeout(); unmute();
         await sleep(150); await see(H1, H2); await meta(); await see(H1, H2);
-        assert("the next round gives the horde its bite back after the victory", zs.every((p) => p.modifiers.contactDamage === 15), zs.map((p) => p.modifiers.contactDamage).join());
+        assert("the next round gives the horde its bite back after the victory", zs.every((p) => p.modifiers.contactDamage === 12), zs.map((p) => p.modifiers.contactDamage).join());
         mute(); H1.removeFromPlay(); unmute(); //what the game does a few seconds after escape is pressed
         await see(H1);
         assert("dropping out of play without dying infects you", H1.team === 2, `${H1.team}`);
@@ -518,8 +518,8 @@ if (isMainThread) {
             assert('the horde has ghosts among it, spread by the ratio', ghosts.length === 2 && normal.length === 4, `${ghosts.length} ghosts, ${normal.length} others`);
             const g = ghosts[0], gp = g.player;
             assert('a ghost is white, named Ghost, in the ghost hat', g.client.colorIdx === 0 && g.client.nickname === 'Ghost' && g.client.loadout[ItemType.Hat]?.id === 50244, `${g.client.colorIdx} ${g.client.nickname} ${g.client.loadout[ItemType.Hat]?.id}`);
-            assert('...has noclip, bites for ghostBite and moves at ghostSpeed', gp.modifiers.noclip === 1 && gp.modifiers.contactDamage === 8 && Math.abs(gp.modifiers.speedModifier - 0.5) < 1e-9 && Math.abs(gp.modifiers.resistanceModifier - 0.7) < 1e-9, JSON.stringify(gp.modifiers));
-            assert('...and the zombies do not', normal.every((b) => !b.player.modifiers.noclip && b.player.modifiers.contactDamage === 15));
+            assert('...has noclip, bites for ghostBite and moves at ghostSpeed', gp.modifiers.noclip === 1 && gp.modifiers.contactDamage === 6 && Math.abs(gp.modifiers.speedModifier - 0.5) < 1e-9 && Math.abs(gp.modifiers.resistanceModifier - 0.7) < 1e-9, JSON.stringify(gp.modifiers));
+            assert('...and the zombies do not', normal.every((b) => !b.player.modifiers.noclip && b.player.modifiers.contactDamage === 12));
 
             //everything else out of the way: just this ghost and one human, with solid ground between them
             for (const b of bots()) if (b !== g) { mute(); b.player.removeFromPlay(); clearTimeout(b.zombieTimer); unmute(); };
@@ -561,7 +561,7 @@ if (isMainThread) {
                 say(`  (a ghost ${distance.toFixed(1)} blocks from a human with a wall between: arrived after ${arrived === null ? 'never' : arrived.toFixed(1) + 's'}, bitten after ${bitten === null ? 'never' : bitten.toFixed(1) + 's'}, ${inWall.length} ticks inside solid blocks on the way)`);
                 assert('a ghost goes straight at a human at a constant speed in all three axes', steps.length > 20 && steps.every((s) => Math.abs(s - expected) < expected * 0.1), `${Math.min(...steps).toFixed(4)} to ${Math.max(...steps).toFixed(4)}, expected ${expected.toFixed(4)}`);
                 assert('...through the wall', inWall.length > 0 && bitten !== null, `${inWall.length} ticks in solid, bitten ${bitten}`);
-                assert('...and takes ghostBite off them, not a zombie\'s bite', H1.hp === 92, `${H1.hp}`);
+                assert('...and takes ghostBite off them, not a zombie\'s bite', H1.hp === 94, `${H1.hp}`);
             };
         };
 

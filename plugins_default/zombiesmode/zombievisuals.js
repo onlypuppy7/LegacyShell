@@ -143,8 +143,12 @@ const ZombieVisuals = {
         var weapons = actor.player.weapons || [];
         for (var i = 0; i < weapons.length; i++) if (weapons[i].actor && weapons[i].actor.gunMesh) weapons[i].actor.gunMesh.setEnabled(false); //the game shows the one in hand again whenever it is equipped
 
+        this.prewarm(actor);
         this.ghostly(actor, this.isGhost(actor));
-        if (this.isGhost(actor)) return this.float(actor); //(no stumble: it does not walk)
+        if (this.isGhost(actor)) {
+            this.glow(actor);
+            return this.float(actor); //(no stumble: it does not walk)
+        };
 
         //How far through the stumble it is. The game's own walk cycle (player.bobble) is no use for this: it wraps at a full turn, and anything
         //that is not a whole number of beats per turn jumps there (which is what made the first stumble lean one way). This keeps counting, at
@@ -152,6 +156,13 @@ const ZombieVisuals = {
         actor.zPhase = (actor.zPhase || 0) + (delta || 1) * 7 * actor.bobbleIntensity * 0.7;
 
         this.stumble(actor);
+    },
+
+    // A faint cold light around a ghost, when fancygraphics' Fancy Glow is on (and legacyweather is there to draw it).
+    glow(actor) {
+        if (typeof WeatherRender === "undefined" || typeof FancyItemsPlugin === "undefined" || !FancyItemsPlugin.fancyGlow || !FancyItemsPlugin.fancyGlow.get()) return;
+        var p = actor.bodyMesh.getAbsolutePosition();
+        WeatherRender.glowAt(actor, { x: p.x, y: p.y + 0.3, z: p.z, color: [0.45, 0.7, 1], radius: 3, intensity: 0.3, minDark: 0.3 });
     },
 
     // A ghost is see-through: its body, hands and hat get a copy of their material with the GHOSTALPHA define (the pixel shader gives that
@@ -177,6 +188,23 @@ const ZombieVisuals = {
                 mesh.zOriginalMaterial = null;
             };
         };
+    },
+
+    // The ghost shaders are compiled the first time a ghost is drawn, which is a stall of about 160ms right when the first ghost spawns. The
+    // first zombie to show up (which is before the first ghost) has them compiled ahead of time instead, in the background where the browser can.
+    prewarm(actor) {
+        if (this.warmed) return;
+        this.warmed = true;
+        try {
+            var meshes = [[actor.bodyMesh, 0.65], [actor.zombieHands, 0.65]];
+            if (actor.hat) meshes.push([actor.hat, 0.55]);
+            for (var i = 0; i < meshes.length; i++) {
+                var mesh = meshes[i][0], original = mesh && (mesh.zOriginalMaterial || mesh.material);
+                if (!original || !original._options) continue;
+                var made = this.ghostMaterial(original, meshes[i][1]);
+                if (made.forceCompilationAsync) made.forceCompilationAsync(mesh).catch(function () { });
+            };
+        } catch (e) { };
     },
 
     ghostMaterial(original, alpha) {
