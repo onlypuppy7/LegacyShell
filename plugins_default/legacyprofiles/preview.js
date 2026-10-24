@@ -4,12 +4,13 @@ export class LegacyProfilePreview {
         this.canvas = canvas;
         this.dead = false;
         try {
-            this.engine = new BABYLON.Engine(canvas, true, { alpha: true }, false);
+            this.engine = engine;
+            this.context = canvas.getContext('2d');
             //new actors still use Babylon's default scene, keep that pointing at the game
-            const engines = BABYLON.Engine.Instances;
-            if (engines.length > 1) engines.unshift(engines.splice(engines.indexOf(this.engine), 1)[0]);
-            this.engine.setHardwareScalingLevel(Math.max(1, (window.devicePixelRatio || 1) / 1.5));
             this.scene = new BABYLON.Scene(this.engine);
+            this.engine.scenes.unshift(this.engine.scenes.pop());
+            this.scene.renderTargetsEnabled = false;
+            this.scene.postProcessesEnabled = false;
             this.scene.clearColor = new BABYLON.Color4(0, 0, 0, 0);
             this.scene.sunLight = { direction: new BABYLON.Vector3(.2, 1, .1), diffuse: BABYLON.Color3.White() };
             this.camera = new BABYLON.ArcRotateCamera('profileCamera', 1.2, 1.3, 2.7, new BABYLON.Vector3(0, .42, 0), this.scene);
@@ -20,11 +21,13 @@ export class LegacyProfilePreview {
             this.camera.lowerBetaLimit = .5;
             this.camera.upperBetaLimit = 2;
             this.camera.panningSensibility = 0;
-            this.scene.attachControl(); //the game's Babylon does not attach scene inputs automatically
-            this.camera.attachControl(canvas, true);
-            this.camera.inputs.removeByType('ArcRotateCameraKeyboardMoveInput');
+            this.camera.inertia = 0;
+            this.camera.angularSensibilityX = 100;
+            this.camera.angularSensibilityY = 150;
+            this.controls();
             this.materials();
-            this.resize = new ResizeObserver(() => { if (!this.dead) this.engine.resize(); });
+            this.target = new BABYLON.RenderTargetTexture('profileRender', { width: 1, height: 1 }, this.scene, false);
+            this.resize = new ResizeObserver(() => { if (!this.dead) this.resizeTarget(); });
             this.resize.observe(canvas.parentElement);
             this.visible = true;
             this.visibility = new IntersectionObserver(entries => { this.visible = entries[0].isIntersecting; });
@@ -32,20 +35,98 @@ export class LegacyProfilePreview {
             this.ready = this.load(profile);
             this.ready.then(() => {
                 if (this.dead) return;
-                this.engine.resize();
-                this.engine.runRenderLoop(() => {
+                this.resizeTarget();
+                this.renderFrame = () => {
                     const now = performance.now();
-                    if (document.hidden || !this.visible || now - (this.lastFrame || 0) < 32) return;
+                    if (document.hidden || !this.visible) return;
+                    if (!this.dirty && now - (this.lastFrame || 0) < 32) return;
                     this.lastFrame = now;
-                    if (this.actor?.skeleton) PlayerActor.prototype.handsToWeaponSkeleton.call(this.actor);
-                    this.scene.render();
-                });
+                    this.dirty = false;
+                    try {
+                        if (this.actor?.skeleton) PlayerActor.prototype.handsToWeaponSkeleton.call(this.actor);
+                        this.render();
+                    } catch (error) { this.dispose(); onError(error); };
+                };
+                this.engine.runRenderLoop(this.renderFrame);
                 onReady();
             }).catch(error => { if (!this.dead) { this.dispose(); onError(error); }; });
         } catch (error) {
             this.dispose();
             onError(error);
         };
+    };
+
+    controls() {
+        const canvas = this.canvas;
+        const camera = this.camera;
+        this.listeners = [];
+        const listen = (name, callback, options) => {
+            canvas.addEventListener(name, callback, options);
+            this.listeners.push([name, callback, options]);
+        };
+        listen('pointerdown', event => {
+            if (event.button !== 0 || this.pointer) return;
+            event.preventDefault();
+            canvas.setPointerCapture(event.pointerId);
+            this.pointer = { id: event.pointerId, x: event.clientX, y: event.clientY };
+        });
+        listen('pointermove', event => {
+            const pointer = this.pointer;
+            if (!pointer || pointer.id !== event.pointerId) return;
+            camera.alpha -= (event.clientX - pointer.x) / camera.angularSensibilityX;
+            camera.beta = Math.max(camera.lowerBetaLimit, Math.min(camera.upperBetaLimit, camera.beta - (event.clientY - pointer.y) / camera.angularSensibilityY));
+            pointer.x = event.clientX;
+            pointer.y = event.clientY;
+            this.dirty = true;
+        });
+        const release = event => {
+            if (this.pointer?.id !== event.pointerId) return;
+            this.pointer = null;
+            if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+        };
+        for (const name of ['pointerup', 'pointercancel', 'lostpointercapture']) listen(name, release);
+        listen('wheel', event => {
+            event.preventDefault();
+            camera.radius = Math.max(camera.lowerRadiusLimit, Math.min(camera.upperRadiusLimit, camera.radius + Math.sign(event.deltaY) * .2));
+            this.dirty = true;
+        }, { passive: false });
+    };
+
+    resizeTarget() {
+        const bounds = this.canvas.getBoundingClientRect();
+        const scale = Math.min(window.devicePixelRatio || 1, 1.5, 512 / Math.max(bounds.width, bounds.height, 1));
+        const width = Math.max(1, Math.round(bounds.width * scale));
+        const height = Math.max(1, Math.round(bounds.height * scale));
+        if (this.image?.width === width && this.image.height === height) return;
+        this.canvas.width = width;
+        this.canvas.height = height;
+        this.target.resize({ width, height });
+        this.image = this.context.createImageData(width, height);
+        this.pixels = new Uint8Array(this.image.data.buffer);
+        this.row = new Uint8Array(width * 4);
+        this.dirty = true;
+    };
+
+    render() {
+        const viewport = this.engine.currentViewport;
+        const texture = this.target.getInternalTexture();
+        try {
+            this.engine.bindFramebuffer(texture);
+            this.scene.render();
+            this.target.readPixels(0, 0, this.pixels);
+        } finally {
+            this.engine.unBindFramebuffer(texture);
+            if (viewport) this.engine.setViewport(viewport);
+        };
+        const stride = this.image.width * 4;
+        for (let y = 0; y < Math.floor(this.image.height / 2); y++) {
+            const top = y * stride;
+            const bottom = (this.image.height - y - 1) * stride;
+            this.row.set(this.pixels.subarray(top, top + stride));
+            this.pixels.copyWithin(top, bottom, bottom + stride);
+            this.pixels.set(this.row, bottom);
+        };
+        this.context.putImageData(this.image, 0, 0);
     };
 
     materials() {
@@ -196,8 +277,10 @@ export class LegacyProfilePreview {
         (this.timers || []).forEach(clearTimeout);
         this.resize?.disconnect();
         this.visibility?.disconnect();
-        this.engine?.stopRenderLoop();
+        for (const [name, callback, options] of this.listeners || []) this.canvas.removeEventListener(name, callback, options);
+        if (this.pointer && this.canvas.hasPointerCapture(this.pointer.id)) this.canvas.releasePointerCapture(this.pointer.id);
+        this.pointer = null;
+        if (this.renderFrame) this.engine.stopRenderLoop(this.renderFrame);
         this.scene?.dispose();
-        this.engine?.dispose();
     };
 };

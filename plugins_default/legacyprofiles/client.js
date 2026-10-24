@@ -82,7 +82,7 @@ export const LegacyProfiles = {
         this.dialog.addEventListener('keydown', event => event.stopPropagation());
         this.dialog.addEventListener('keyup', event => event.stopPropagation());
         const bar = this.element('div', 'lp-bar', undefined, this.dialog);
-        this.element('span', 'lp-eyebrow', 'PLAYER PROFILE', bar);
+        this.element('span', 'lp-eyebrow', 'Player Profile', bar);
         this.closeButton = this.button('Close', 'red', () => this.close(), bar);
         this.actions = this.element('div', 'lp-actions', undefined, this.dialog);
         this.renderActions();
@@ -209,7 +209,7 @@ export const LegacyProfiles = {
         const previewMessage = this.element('span', 'lp-preview-message', 'Loading egg...', stage);
         this.element('span', 'lp-stage-hint', 'Drag to rotate', stage);
         const summary = this.element('div', 'lp-summary', undefined, hero);
-        this.element('span', 'lp-eyebrow', this.target ? 'IN THIS GAME' : 'YOUR ACCOUNT', summary);
+        this.element('span', 'lp-eyebrow', this.target ? 'In This Game' : 'Your Account', summary);
         const nickname = this.target?.player.name || document.getElementById('nickname')?.value || profile.username;
         this.element('h1', '', nickname, summary);
         this.element('p', 'lp-username', profile.username ? '@' + profile.username : 'Guest player', summary);

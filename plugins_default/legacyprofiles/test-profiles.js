@@ -82,40 +82,91 @@ test('the build hook replaces the old player popup once and browser files minify
     assert.equal(result.error, undefined, result.error?.message);
 });
 
-test('opening and disposing a preview preserves the game default scene and releases its engine', async () => {
+test('preview reuses the game engine, restores rendering state and only removes its own callback', async () => {
     const gameEngine = new BABYLON.NullEngine();
     const gameScene = new BABYLON.Scene(gameEngine);
     const before = BABYLON.Engine.Instances.length;
-    class PreviewEngine extends BABYLON.NullEngine {
-        constructor() { super({ renderWidth: 256, renderHeight: 256, textureSize: 256 }); }
-        resize() {}
-        runRenderLoop() {}
+    const loops = new Set([() => {}]);
+    const originalLoop = [...loops][0];
+    const events = [];
+    gameEngine.runRenderLoop = callback => loops.add(callback);
+    gameEngine.stopRenderLoop = callback => { assert.ok(callback); loops.delete(callback); };
+    gameEngine.bindFramebuffer = () => events.push('bind');
+    gameEngine.unBindFramebuffer = () => events.push('unbind');
+    const viewport = new BABYLON.Viewport(.1, .2, .7, .8);
+    gameEngine.setViewport(viewport);
+    class Target {
+        constructor(name, size, scene) { scene.onDisposeObservable.add(() => { this.disposed = true; }); }
+        resize(size) { this.size = size; }
+        getInternalTexture() { return this; }
+        readPixels(face, level, buffer) { buffer.fill(8); }
     };
-    class PreviewCamera extends BABYLON.ArcRotateCamera { attachControl() {} };
-    class PreviewScene extends BABYLON.Scene { attachControl() { this.inputAttachments = (this.inputAttachments || 0) + 1; } };
     class Observer { observe() {} disconnect() {} };
+    let clock = 40;
+    const listeners = new Map();
+    let captured;
+    const canvas = {
+        parentElement: {},
+        getBoundingClientRect: () => ({ width: 250, height: 210 }),
+        getContext: () => ({ createImageData: (width, height) => ({ width, height, data: new Uint8ClampedArray(width * height * 4) }), putImageData() {} }),
+        addEventListener: (name, callback) => listeners.set(name, callback),
+        removeEventListener: name => listeners.delete(name),
+        setPointerCapture: id => { captured = id; },
+        hasPointerCapture: id => captured === id,
+        releasePointerCapture: () => { captured = null; },
+    };
     const context = vm.createContext({
-        BABYLON: { ...BABYLON, Engine: PreviewEngine, Scene: PreviewScene, ArcRotateCamera: PreviewCamera },
+        BABYLON: { ...BABYLON, RenderTargetTexture: Target }, engine: gameEngine,
         ResizeObserver: Observer, IntersectionObserver: Observer,
-        window: { devicePixelRatio: 1 }, document: { hidden: false }, performance, setTimeout, clearTimeout,
+        window: { devicePixelRatio: 1 }, document: { hidden: false }, performance: { now: () => clock }, setTimeout, clearTimeout,
     });
     const source = misc.prepareForClient(fs.readFileSync(new URL('preview.js', import.meta.url), 'utf8'));
     vm.runInContext(source + '\nglobalThis.Preview = LegacyProfilePreview;', context);
-    context.Preview.prototype.materials = () => {}; //NullEngine has no texture uploads
+    context.Preview.prototype.materials = () => {};
     context.Preview.prototype.load = async () => {};
     let preview;
     try {
-        await new Promise((resolve, reject) => { preview = new context.Preview({ parentElement: {} }, {}, resolve, reject); });
-        assert.equal(preview.scene.inputAttachments, 1);
-        assert.equal(BABYLON.Engine.LastCreatedScene, gameScene);
-        const actor = new BABYLON.TransformNode('new actor');
-        assert.equal(actor.getScene(), gameScene);
-        assert.equal(BABYLON.Engine.Instances.length, before + 1);
-        preview.dispose();
-        preview.dispose();
+        await new Promise((resolve, reject) => { preview = new context.Preview(canvas, {}, resolve, reject); });
+        assert.equal(preview.engine, gameEngine);
         assert.equal(BABYLON.Engine.Instances.length, before);
         assert.equal(BABYLON.Engine.LastCreatedScene, gameScene);
-    } finally { preview?.dispose(); gameEngine.dispose(); };
+        assert.equal(new BABYLON.TransformNode('new actor').getScene(), gameScene);
+        assert.equal(preview.camera.inertia, 0);
+        assert.equal(preview.scene.renderTargetsEnabled, false);
+        let frames = 0;
+        preview.scene.render = () => { events.push('render'); frames++; };
+        preview.renderFrame();
+        assert.deepEqual(events, ['bind', 'render', 'unbind']);
+        assert.equal(gameEngine.currentViewport, viewport);
+        clock += 8;
+        preview.renderFrame();
+        assert.equal(frames, 1);
+        const alpha = preview.camera.alpha;
+        listeners.get('pointerdown')({ button: 0, pointerId: 1, clientX: 10, clientY: 10, preventDefault() {} });
+        listeners.get('pointermove')({ pointerId: 1, clientX: 110, clientY: 10 });
+        preview.renderFrame();
+        assert.equal(frames, 2); //dragging bypasses idle throttling
+        assert.equal(preview.camera.alpha, alpha - 1);
+        preview.camera._checkInputs();
+        assert.equal(preview.camera.alpha, alpha - 1);
+        preview.scene.render = () => { throw new Error('failed frame'); };
+        assert.throws(() => preview.render(), /failed frame/);
+        assert.equal(events.at(-1), 'unbind');
+        assert.equal(gameEngine.currentViewport, viewport);
+        clock += 40;
+        assert.doesNotThrow(() => preview.renderFrame());
+        assert.equal(preview.dead, true); //a failed preview must not stop the game's frame loop
+        preview.dispose();
+        preview.dispose();
+        assert.equal(captured, null);
+        assert.equal(listeners.size, 0);
+        assert.equal(preview.target.disposed, true);
+        assert.equal(preview.scene.isDisposed, true);
+        assert.equal(loops.size, 1);
+        assert.equal(loops.has(originalLoop), true);
+        assert.equal(BABYLON.Engine.Instances.length, before);
+        assert.equal(BABYLON.Engine.LastCreatedScene, gameScene);
+    } finally { preview?.dispose(); gameEngine.stopRenderLoop = BABYLON.Engine.prototype.stopRenderLoop; gameEngine.dispose(); };
 });
 
 test('inventory supports broad categories and individual weapons with name search', () => {
