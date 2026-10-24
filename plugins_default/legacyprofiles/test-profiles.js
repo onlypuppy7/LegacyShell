@@ -82,7 +82,7 @@ test('the build hook replaces the old player popup once and browser files minify
     assert.equal(result.error, undefined, result.error?.message);
 });
 
-test('preview reuses the game engine, restores rendering state and only removes its own callback', async () => {
+test('preview reuses the game engine, switches backdrops and preserves game rendering', async () => {
     const gameEngine = new BABYLON.NullEngine();
     const gameScene = new BABYLON.Scene(gameEngine);
     const before = BABYLON.Engine.Instances.length;
@@ -101,7 +101,12 @@ test('preview reuses the game engine, restores rendering state and only removes 
         getInternalTexture() { return this; }
         readPixels(face, level, buffer) { buffer.fill(8); }
     };
-    class Observer { observe() {} disconnect() {} };
+    class Observer {
+        constructor(callback) { this.callback = callback; }
+        observe() {}
+        disconnect() { this.disconnected = true; }
+    };
+    let backdrop = '';
     let clock = 40;
     const listeners = new Map();
     let captured;
@@ -118,8 +123,9 @@ test('preview reuses the game engine, restores rendering state and only removes 
     const context = vm.createContext({
         BABYLON: { ...BABYLON, RenderTargetTexture: Target }, engine: gameEngine,
         Customizer: { skyColor: new BABYLON.Color3(.35, .65, .8), diffuseColor: new BABYLON.Color3(.35, .5, .6) },
-        ResizeObserver: Observer, IntersectionObserver: Observer,
-        window: { devicePixelRatio: 1 }, document: { hidden: false }, performance: { now: () => clock }, setTimeout, clearTimeout,
+        ResizeObserver: Observer, IntersectionObserver: Observer, MutationObserver: Observer,
+        getComputedStyle: () => ({ getPropertyValue: () => backdrop }),
+        window: { devicePixelRatio: 1 }, document: { hidden: false, head: {} }, performance: { now: () => clock }, setTimeout, clearTimeout,
     });
     const source = misc.prepareForClient(fs.readFileSync(new URL('preview.js', import.meta.url), 'utf8'));
     vm.runInContext(source + '\nglobalThis.Preview = LegacyProfilePreview;', context);
@@ -173,6 +179,22 @@ test('preview reuses the game engine, restores rendering state and only removes 
         assert.equal(preview.pitch, Math.PI / 3);
         assert.equal(preview.camera.alpha, alpha);
         assert.equal(preview.camera.beta, beta);
+        const pose = preview.root.rotationQuaternion.clone();
+        backdrop = 'blue';
+        preview.themeObserver.callback();
+        assert.equal(preview.ground.isEnabled(), false);
+        assert.equal(preview.scene.clearColor.a, 0);
+        assert.equal(preview.root.rotationQuaternion.equals(pose), true);
+        events.length = 0;
+        clock += 40;
+        preview.renderFrame();
+        assert.deepEqual(events, ['bind', 'render', 'unbind']);
+        backdrop = '';
+        preview.themeObserver.callback();
+        assert.equal(preview.ground.isEnabled(), true);
+        assert.equal(preview.scene.clearColor, context.Customizer.skyColor);
+        assert.equal(preview.camera.alpha, alpha);
+        assert.equal(preview.camera.beta, beta);
         preview.scene.render = () => { throw new Error('failed frame'); };
         assert.throws(() => preview.render(), /failed frame/);
         assert.equal(events.at(-1), 'unbind');
@@ -185,12 +207,30 @@ test('preview reuses the game engine, restores rendering state and only removes 
         assert.equal(captured, null);
         assert.equal(listeners.size, 0);
         assert.equal(preview.target.disposed, true);
+        assert.equal(preview.themeObserver.disconnected, true);
         assert.equal(preview.scene.isDisposed, true);
         assert.equal(loops.size, 1);
         assert.equal(loops.has(originalLoop), true);
         assert.equal(BABYLON.Engine.Instances.length, before);
         assert.equal(BABYLON.Engine.LastCreatedScene, gameScene);
     } finally { preview?.dispose(); gameEngine.stopRenderLoop = BABYLON.Engine.prototype.stopRenderLoop; gameEngine.dispose(); };
+});
+
+test('the original profile style pack registers only when LegacyThemes is available', () => {
+    const source = misc.prepareForClient(fs.readFileSync(new URL('client.js', import.meta.url), 'utf8'));
+    for (const themes of [undefined, { stylePacks: [] }]) {
+        const context = vm.createContext({ isClient: true, plugins: { on() {} } });
+        if (themes) context.LegacyThemesPlugin = themes;
+        assert.doesNotThrow(() => vm.runInContext(source, context));
+        if (themes) {
+            assert.equal(themes.stylePacks.length, 1);
+            const pack = themes.stylePacks[0];
+            assert.equal(pack.identifier, 'legacyprofilesblue');
+            assert.equal(pack.name, 'Player Profiles (Alt)');
+            assert.equal(pack.cssFile, '/legacyprofiles/themes/blue/profiles.css');
+            assert.equal(fs.existsSync(new URL('client/themes/blue/profiles.css', import.meta.url)), true);
+        };
+    };
 });
 
 test('inventory supports broad categories and individual weapons with name search', () => {

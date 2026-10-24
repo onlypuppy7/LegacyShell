@@ -4,6 +4,13 @@ export const LegacyProfiles = {
 
     registerListeners(pluginManager) {
         this.plugins = pluginManager;
+        if (typeof LegacyThemesPlugin !== 'undefined') LegacyThemesPlugin.stylePacks.push({
+            name: 'Player Profiles (Alt)',
+            identifier: 'legacyprofilesblue',
+            description: 'An alternate blue design for LegacyProfiles.',
+            cssFile: '/legacyprofiles/themes/blue/profiles.css',
+            author: 'onlypuppy7',
+        });
         pluginManager.on('game:onPageLoadedEnd', () => this.setup());
         pluginManager.on('game:setupComplete', () => this.setup());
         pluginManager.on('game:leaveGame', () => this.close());

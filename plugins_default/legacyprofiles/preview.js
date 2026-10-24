@@ -31,6 +31,9 @@ export class LegacyProfilePreview {
             this.target = new BABYLON.RenderTargetTexture('profileRender', { width: 1, height: 1 }, this.scene, false);
             this.resize = new ResizeObserver(() => { if (!this.dead) this.resizeTarget(); });
             this.resize.observe(canvas.parentElement);
+            this.theme();
+            this.themeObserver = new MutationObserver(() => this.theme());
+            this.themeObserver.observe(document.head, { childList: true });
             this.visible = true;
             this.visibility = new IntersectionObserver(entries => { this.visible = entries[0].isIntersecting; });
             this.visibility.observe(canvas);
@@ -78,11 +81,18 @@ export class LegacyProfilePreview {
         const material = new BABYLON.StandardMaterial('profileGround', scene);
         material.diffuseColor = Customizer.diffuseColor;
         material.specularColor = BABYLON.Color3.Black();
-        const ground = BABYLON.Mesh.CreatePlane('profileGround', 100, scene);
+        const ground = this.ground = BABYLON.Mesh.CreatePlane('profileGround', 100, scene);
         ground.rotation.x = Math.PI / 2;
         ground.material = material;
         ground.receiveShadows = true;
         ground.isPickable = false;
+    };
+
+    theme() {
+        this.blueBackdrop = getComputedStyle(this.canvas).getPropertyValue('--lp-preview-backdrop').trim() === 'blue';
+        this.ground.setEnabled(!this.blueBackdrop);
+        this.scene.clearColor = this.blueBackdrop ? new BABYLON.Color4(0, 0, 0, 0) : Customizer.skyColor;
+        this.dirty = true;
     };
 
     controls() {
@@ -142,10 +152,12 @@ export class LegacyProfilePreview {
         const viewport = this.engine.currentViewport;
         const texture = this.target.getInternalTexture();
         try {
-            this.scene.incrementRenderId();
-            for (const mesh of this.shadow.getShadowMap().renderList) mesh.computeWorldMatrix(true);
-            this.scene.updateTransformMatrix(true);
-            this.shadow.getShadowMap().render(false);
+            if (!this.blueBackdrop) {
+                this.scene.incrementRenderId();
+                for (const mesh of this.shadow.getShadowMap().renderList) mesh.computeWorldMatrix(true);
+                this.scene.updateTransformMatrix(true);
+                this.shadow.getShadowMap().render(false);
+            };
             this.engine.bindFramebuffer(texture);
             this.scene.render();
             this.target.readPixels(0, 0, this.pixels);
@@ -313,6 +325,7 @@ export class LegacyProfilePreview {
         this.dead = true;
         (this.timers || []).forEach(clearTimeout);
         this.resize?.disconnect();
+        this.themeObserver?.disconnect();
         this.visibility?.disconnect();
         for (const [name, callback, options] of this.listeners || []) this.canvas.removeEventListener(name, callback, options);
         if (this.pointer && this.canvas.hasPointerCapture(this.pointer.id)) this.canvas.releasePointerCapture(this.pointer.id);

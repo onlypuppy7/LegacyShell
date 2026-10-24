@@ -1,0 +1,27 @@
+html .lp-overlay { background: rgba(0, 28, 45, .72); }
+html .lp-overlay * { scrollbar-color: var(--ss-blue4) var(--ss-blue1); }
+html .lp-overlay *::-webkit-scrollbar-track { background: var(--ss-blue1); border-radius: .4em; }
+html .lp-overlay *::-webkit-scrollbar-thumb { background: var(--ss-blue4); border-color: var(--ss-blue1); border-radius: .4em; }
+html .lp-overlay *::-webkit-scrollbar-thumb:hover { background: var(--ss-blue3); }
+.lp-overlay .lp-dialog { border: .18em solid var(--ss-blue4); border-radius: .65em; background: var(--ss-blue2); color: var(--ss-white0); box-shadow: 0 .7em 2em rgba(0, 0, 0, .3); }
+.lp-overlay .lp-bar { padding: .8em 1.2em; background: var(--ss-blue4); border-bottom: 0; }
+.lp-overlay .lp-stage { --lp-preview-backdrop: blue; border: 0; border-radius: .5em; background: radial-gradient(ellipse at 50% 40%, var(--ss-blue1), var(--ss-blue3)); }
+.lp-overlay .lp-stage::after { content: ''; position: absolute; bottom: 1.8em; left: 25%; width: 50%; height: 1em; border-radius: 50%; background: rgba(0, 40, 60, .12); pointer-events: none; }
+.lp-overlay .lp-stage-hint { color: var(--ss-white0); }
+.lp-overlay .lp-summary h1 { text-shadow: 0 .06em 0 var(--ss-blue4); }
+.lp-overlay .lp-username { color: var(--ss-blue4); }
+.lp-overlay .lp-tags { gap: .4em; }
+.lp-overlay .lp-tag { padding: .25em .65em; border-radius: .25em; background: var(--ss-blue4); color: var(--ss-white0); font-size: .8em; }
+.lp-overlay .lp-vip { color: var(--egg-brown); background: var(--egg-tan); }
+.lp-overlay .lp-stat { border: 0; border-radius: .35em; background: rgba(255, 255, 255, .18); }
+.lp-overlay .lp-tabs { border-color: var(--ss-blue4); }
+.lp-overlay .lp-tab { height: auto; min-width: 0; border: 0; border-radius: .3em; padding: .5em 1em; color: var(--ss-blue4); background: var(--ss-blue1) !important; text-shadow: none; box-shadow: none; }
+.lp-overlay .lp-tab[aria-selected="true"] { color: var(--ss-white0); background: var(--ss-blue4) !important; }
+.lp-overlay .lp-loadout-divider { background: var(--ss-blue4); }
+.lp-overlay .lp-item { background: rgba(255, 255, 255, .2); border: .1em solid rgba(255, 255, 255, .25); border-radius: .4em; color: var(--ss-white0); box-shadow: none; }
+.lp-overlay .lp-item.itemButtonSelected { background: rgba(255, 255, 255, .2); border: .1em solid rgba(255, 255, 255, .25); }
+.lp-overlay .lp-item-type { color: var(--ss-blue4); }
+.lp-overlay .lp-equipped { color: var(--ss-white0); background: var(--ss-blue4); }
+.lp-overlay .lp-inventory-controls input, .lp-overlay .lp-inventory-controls select { border-color: var(--ss-blue4); border-radius: .3em; }
+.lp-overlay .lp-actions { background: var(--ss-blue3); border-bottom: 0; }
+html .lp-overlay button:focus-visible, html .lp-overlay input:focus-visible, html .lp-overlay select:focus-visible { outline-color: var(--egg-tan); }

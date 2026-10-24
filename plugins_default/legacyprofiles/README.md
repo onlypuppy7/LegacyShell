@@ -10,6 +10,8 @@ Arrows beside the loadout heading cycle through the account's saved weapon class
 
 Runs on **client and services**, with no game-server component or dependencies on other plugins. Restart those two roles after installing. Disable by prefixing the folder with `_`, like other plugins. No core source changes, database migrations or account writes.
 
+With LegacyThemes enabled, add **Player Profiles (Alt)** under Settings → Theming → Style Packs for the alternate blue design. It only styles profiles; remove it from the active list to return to the classic menus. The style pack, preview backdrop support and CSS all live in LegacyProfiles. LegacyThemes is optional.
+
 `legacyprofilesGet` is a public services command taking a positive `account_id`. It returns only the explicit public fields in `profiles.js`; passwords, auth tokens, sessions and moderation records never enter the response. Normal services rate limiting applies. Inventory and egg balances are public while this plugin is enabled.
 
 ## Adding more later

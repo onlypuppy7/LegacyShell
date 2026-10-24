@@ -8,7 +8,7 @@ export const PluginMeta = {
     identifier: "legacyprofiles",
     name: 'LegacyProfiles',
     author: 'onlypuppy7',
-    version: '1.0.12',
+    version: '1.0.14',
     descriptionShort: 'Have a look at who you are cracking',
     descriptionLong: 'Player profiles, loadouts, inventories and stats',
     legacyShellVersion: 561,
