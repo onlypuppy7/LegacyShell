@@ -9,7 +9,7 @@ export const PluginMeta = {
     identifier: "fancygraphics",
     name: 'FancyGraphics',
     author: 'onlypuppy7 & Burnt',
-    version: '1.0.0-wip',
+    version: '1.1.0-wip',
     descriptionShort: 'Readds old stuff and also some new fancy options', //displayed when loading
     descriptionLong: 'Readds old stuff and also some new fancy options',
     legacyShellVersion: 561, //legacy shell version, can be found in /versionEnum.txt, or just on the homescreen

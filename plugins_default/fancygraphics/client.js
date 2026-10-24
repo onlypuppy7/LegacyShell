@@ -13,6 +13,8 @@ export const FancyItemsPlugin = {
         this.plugins.on('game:onBalanceUpdated', this.onBalanceUpdated.bind(this));
 
         this.plugins.on('game:bulletActorFired', this.bulletActorFired.bind(this));
+        this.plugins.on('game:explosionFx', this.explosionFx.bind(this));
+        this.plugins.on('game:gunActorFired', this.gunActorFired.bind(this));
 
         this.createTheme();
     },
@@ -37,6 +39,23 @@ export const FancyItemsPlugin = {
         this.fancyShadows = LegacySettings.addOption("Graphics", { type: "checkbox", key: "fancyShadows", label: "Fancy Shadows", default: false, tooltip: "Higher resolution shadows, and guns and hands cast shadows too. Costs framerate. Applies from the next game." }, 1, "Modern Options");
         this.fancyBullets = LegacySettings.addOption("Graphics", { type: "checkbox", key: "fancyBullets", label: "Fancy Bullets", default: false, tooltip: "Draws an outline around bullets. Inspiration from Burnt" }, 1, "Modern Options");
         this.fancyMuzzleFlash = LegacySettings.addOption("Graphics", { type: "checkbox", key: "fancyMuzzleFlash", label: "Fancy Muzzle Flash", default: false, tooltip: "Replaces the muzzle flash with a nicer model. Model by Burnt" }, 1, "Modern Options");
+        this.fancyGlow = LegacySettings.addOption("Graphics", { type: "checkbox", key: "fancyGlow", label: "Fancy Glow", default: false, tooltip: "Explosions and gunfire light up their surroundings. Mostly visible at night and in storms (needs LegacyWeather)" }, 1, "Modern Options");
+    },
+
+    explosionFx: function (data) {
+        if (!this.fancyGlow.get() || typeof WeatherRender === "undefined") return;
+
+        WeatherRender.addGlow({ x: data.x, y: data.y, z: data.z, color: [1, 0.55, 0.2], radius: 4 + (data.radius || 3) * 2, intensity: 1.2, duration: 0.45 });
+    },
+
+    gunActorFired: function (data) {
+        if (!this.fancyGlow.get() || typeof WeatherRender === "undefined") return;
+
+        var mesh = data.gunActor.muzzleFlash || data.gunActor.playerActor.gunContainer;
+        if (!mesh) return;
+        mesh.computeWorldMatrix(true); //the flash mesh is hidden between shots, so its position is stale otherwise
+        var pos = mesh.getAbsolutePosition();
+        WeatherRender.addGlow({ x: pos.x, y: pos.y, z: pos.z, color: [1, 0.8, 0.45], radius: 3, intensity: 0.9, duration: 0.12, minDark: 0.4 });
     },
 
     playerActorShadowRenderList: function (data) {

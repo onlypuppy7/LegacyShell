@@ -8,7 +8,8 @@
 // transitions can't fight each other like the old per-branch if/else did.
 
 // uniforms/sampler the wet-surface + flash GLSL (weatherShader.js) adds to every material that uses the shared "standard" shader
-const WET_UNIFORMS = ["wetness", "wetPuddles", "wetTime", "wetSky", "wetCam", "wetMap", "wetHS", "flashDir", "flashAmount", "wetRipple"];
+const WET_UNIFORMS = ["wetness", "wetPuddles", "wetTime", "wetSky", "wetCam", "wetMap", "wetHS", "flashDir", "flashAmount", "wetRipple", "glowCount", "glowPos", "glowCol", "glowRad"];
+const MAX_GLOWS = 8;
 
 // GPU rain/snow. One fixed mesh of pre-randomised quads per effect; the vertex shader places every
 // drop each frame from time + its random numbers, wrapped around the camera so the field is endless.
@@ -264,7 +265,12 @@ const WeatherRender = {
     thunderSounds: [],  // thunder currently playing, so it can be faded out if the storm ends
     thunderTimers: [],  // thunder waiting for its delay to pass
     lastFlashUniform: 0,
-    clouds: null,       // cloud dome mesh + material
+    glows: [],          // short lived point lights from addGlow(): explosions, muzzle flashes
+    glowPos: new Float32Array(MAX_GLOWS * 3),
+    glowCol: new Float32Array(MAX_GLOWS * 3),
+    glowRad: new Float32Array(MAX_GLOWS),
+    lastGlowCount: 0,
+    clouds: null,      // cloud dome mesh + material
     sky: null,          // stars + the colour of the sky at dawn/sunrise/sunset/dusk
     auto: null,         // the running automatic day: { minutes, phase at the anchor, at (ms), seq }
     autoStart: 0,       // when it started, to blend in from whatever the sky was
@@ -298,6 +304,7 @@ const WeatherRender = {
         this.busy = false;
         this.flash = 0;
         this.flashT = -1;
+        this.glows.length = 0;
         this.snapNext = true;
         this.wetLevel = null;
         this.wetPuddle = 0;
@@ -478,6 +485,7 @@ const WeatherRender = {
         self.updateWetness(dt);
         if (self.bolt && self.boltMesh && (self.flashT >= 0 || self.boltMesh.mesh.isEnabled())) self.layoutBolt();
         self.updateFlashLight();
+        self.updateGlows(dt);
         self.updateSky();
         self.updateClouds(dt);
         self.updateSplashes(dt);
@@ -838,7 +846,63 @@ const WeatherRender = {
             m.setFloat("wetRipple", 0);
             m.setFloat("flashAmount", 0);
             m.setVector3("flashDir", new BABYLON.Vector3(0, 1, 0));
+            m.setFloat("glowCount", 0);
+            m.setFloats("glowPos", this.glowPos);
+            m.setFloats("glowCol", this.glowCol);
+            m.setFloats("glowRad", this.glowRad);
         });
+        this.lastGlowCount = 0;
+    },
+
+    // A short lived point light, for other plugins to call (explosions, muzzle flashes, flares).
+    // color is r,g,b 0-1, radius in blocks, duration in seconds. Scaled by how dark the sun is, so it
+    // barely shows in daylight and is at full strength at night or in a storm. minDark (0-1) is how dark
+    // it has to be before it shows at all: fast repeating glows (gunfire) strobe in half light without it.
+    addGlow(o) {
+        if (!this.wetMats.length || !(o.duration > 0)) return;
+        var glow = { x: o.x, y: o.y, z: o.z, color: o.color || [1, 0.6, 0.25], radius: o.radius || 6, intensity: o.intensity === undefined ? 1 : o.intensity, minDark: o.minDark || 0, dur: o.duration, age: 0 };
+        if (this.glows.length >= MAX_GLOWS) this.glows.shift(); //oldest goes
+        this.glows.push(glow);
+    },
+
+    // 0 in full sun, up to 1 when it's dark; the same sunlight colour the shader multiplies everything by
+    glowDarkness() {
+        if (typeof gameScene === "undefined" || !gameScene || !gameScene.sunLight) return 0;
+        var s = gameScene.sunLight.diffuse;
+        var lum = 0.3 * s.r + 0.59 * s.g + 0.11 * s.b;
+        return Math.max(0, Math.min(1, (1 - lum) * 1.4 - 0.1));
+    },
+
+    updateGlows(dt) {
+        if (!this.glows.length && !this.lastGlowCount) return;
+        var dark = this.glowDarkness();
+        var n = 0;
+        for (var i = this.glows.length - 1; i >= 0; i--) {
+            var g = this.glows[i];
+            g.age += dt;
+            if (g.age >= g.dur) { this.glows.splice(i, 1); continue; };
+        };
+        for (var i = 0; i < this.glows.length; i++) {
+            var g = this.glows[i];
+            var fade = 1 - g.age / g.dur;
+            var d = g.minDark ? Math.max(0, (dark - g.minDark) / (1 - g.minDark)) : dark;
+            if (g.minDark) d = d * d * (3 - 2 * d);
+            var k = fade * fade * g.intensity * d;
+            this.glowPos[n * 3] = g.x; this.glowPos[n * 3 + 1] = g.y; this.glowPos[n * 3 + 2] = g.z;
+            this.glowCol[n * 3] = g.color[0] * k; this.glowCol[n * 3 + 1] = g.color[1] * k; this.glowCol[n * 3 + 2] = g.color[2] * k;
+            this.glowRad[n] = g.radius;
+            n++;
+        };
+        this.lastGlowCount = n;
+        for (var i = 0; i < this.wetMats.length; i++) {
+            var m = this.wetMats[i];
+            m.setFloat("glowCount", n);
+            if (n) {
+                m.setFloats("glowPos", this.glowPos);
+                m.setFloats("glowCol", this.glowCol);
+                m.setFloats("glowRad", this.glowRad);
+            };
+        };
     },
 
     updateWetness(dt) {

@@ -33,6 +33,10 @@ uniform float wetHS;      // height texture byte -> blocks divisor
 uniform sampler2D heightSampler;
 uniform vec3 flashDir;
 uniform float flashAmount;
+uniform float glowCount;
+uniform float glowPos[24];
+uniform float glowCol[24];
+uniform float glowRad[8];
 varying vec3 vWeatherWorld;
 
 WP float wHash(WP vec2 p) {
@@ -87,6 +91,19 @@ const pixelPreFog = `
     if (flashAmount > 0.001) {
         float facing = max(dot(vNormal, flashDir), 0.0);
         color.rgb += vec3(0.7, 0.78, 1.0) * flashAmount * (0.15 + 0.85 * facing);
+    }
+
+    if (glowCount > 0.5) {
+        for (int i = 0; i < 8; i++) {
+            if (float(i) < glowCount) {
+                vec3 gp = vec3(glowPos[i * 3], glowPos[i * 3 + 1], glowPos[i * 3 + 2]);
+                vec3 gd = gp - vWeatherWorld;
+                float gl = length(gd);
+                float fall = 1.0 - smoothstep(0.0, glowRad[i], gl);
+                float face = 0.35 + 0.65 * max(dot(vNormal, gd / max(gl, 0.001)), 0.0);
+                color.rgb += vec3(glowCol[i * 3], glowCol[i * 3 + 1], glowCol[i * 3 + 2]) * fall * fall * face;
+            }
+        }
     }
 
     if (wetness > 0.001) {
