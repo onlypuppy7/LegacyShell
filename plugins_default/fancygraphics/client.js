@@ -15,6 +15,9 @@ export const FancyItemsPlugin = {
         this.plugins.on('game:bulletActorFired', this.bulletActorFired.bind(this));
         this.plugins.on('game:explosionFx', this.explosionFx.bind(this));
         this.plugins.on('game:gunActorFired', this.gunActorFired.bind(this));
+        this.plugins.on('game:grenadeActorFlashing', this.grenadeActorFlashing.bind(this));
+        this.plugins.on('game:rocketActorFlying', this.rocketActorFlying.bind(this));
+        this.plugins.on('game:bulletHitEffect', this.bulletHitEffect.bind(this));
 
         this.createTheme();
     },
@@ -45,7 +48,7 @@ export const FancyItemsPlugin = {
     explosionFx: function (data) {
         if (!this.fancyGlow.get() || typeof WeatherRender === "undefined") return;
 
-        WeatherRender.addGlow({ x: data.x, y: data.y, z: data.z, color: [1, 0.55, 0.2], radius: 4 + (data.radius || 3) * 2, intensity: 1.2, duration: 0.45 });
+        WeatherRender.addGlow({ x: data.x, y: data.y, z: data.z, color: [1, 0.55, 0.2], radius: 4 + (data.radius || 3) * 2, intensity: 1.2, duration: 0.45, floor: 0.25 });
     },
 
     gunActorFired: function (data) {
@@ -56,6 +59,27 @@ export const FancyItemsPlugin = {
         mesh.computeWorldMatrix(true); //the flash mesh is hidden between shots, so its position is stale otherwise
         var pos = mesh.getAbsolutePosition();
         WeatherRender.addGlow({ x: pos.x, y: pos.y, z: pos.z, color: [1, 0.8, 0.45], radius: 3, intensity: 0.9, duration: 0.12, minDark: 0.4 });
+    },
+
+    grenadeActorFlashing: function (data) {
+        if (!this.fancyGlow.get() || typeof WeatherRender === "undefined") return;
+
+        var actor = data.grenadeActor, c = actor.flashColor || { r: 1, g: 0.3, b: 0.2 }, m = actor.mesh.position;
+        WeatherRender.glowAt(actor, { x: m.x, y: m.y + 0.1, z: m.z, color: [c.r, c.g, c.b], radius: 3.5, intensity: 0.7, minDark: 0.3 });
+    },
+
+    rocketActorFlying: function (data) {
+        if (!this.fancyGlow.get() || typeof WeatherRender === "undefined") return;
+
+        var actor = data.rocketActor, m = actor.mesh.position;
+        WeatherRender.glowAt(actor, { x: m.x, y: m.y, z: m.z, color: [1, 0.55, 0.2], radius: 5, intensity: 0.8, minDark: 0.2 });
+    },
+
+    bulletHitEffect: function (data) {
+        if (!this.fancyGlow.get() || typeof WeatherRender === "undefined") return;
+
+        //(dx,dy,dz is a small step back off the wall, so the light sits just in front of it instead of in it)
+        WeatherRender.addGlow({ x: data.x + data.dx * 3, y: data.y + data.dy * 3, z: data.z + data.dz * 3, color: [1, 0.85, 0.55], radius: 1.5, intensity: 0.5, duration: 0.12, minDark: 0.4 });
     },
 
     playerActorShadowRenderList: function (data) {

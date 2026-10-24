@@ -269,6 +269,8 @@ const WeatherRender = {
     glowPos: new Float32Array(MAX_GLOWS * 3),
     glowCol: new Float32Array(MAX_GLOWS * 3),
     glowRad: new Float32Array(MAX_GLOWS),
+    leases: new Map(),  // lights held by glowAt(): key -> { position, level, seen }
+    glowFrame: 0,
     lastGlowCount: 0,
     clouds: null,      // cloud dome mesh + material
     sky: null,          // stars + the colour of the sky at dawn/sunrise/sunset/dusk
@@ -305,6 +307,7 @@ const WeatherRender = {
         this.flash = 0;
         this.flashT = -1;
         this.glows.length = 0;
+        this.leases.clear();
         this.snapNext = true;
         this.wetLevel = null;
         this.wetPuddle = 0;
@@ -328,11 +331,16 @@ const WeatherRender = {
         return { r: 0.5, g: 0.55, b: 0.6, density: 0.01 };
     },
 
+    // the clock the automatic day runs on (ms), a replay hands it its own so seeking and slowing down move the sun
+    clock() {
+        return performance.now();
+    },
+
     // where we are in the automatic day (0-1), by our own clock since the last sync
     autoPhaseNow() {
         var a = this.auto;
         if (!a) return 0.5;
-        return (((a.phase + (performance.now() - a.at) / (a.minutes * 60000)) % 1) + 1) % 1;
+        return (((a.phase + (this.clock() - a.at) / (a.minutes * 60000)) % 1) + 1) % 1;
     },
 
     channelsFor(time, weather) {
@@ -370,7 +378,7 @@ const WeatherRender = {
         this.weather = weather;
 
         // the automatic day keeps its own clock; a sync only re-aims it if it's new or we've drifted
-        var now = performance.now();
+        var now = this.clock();
         if (time.auto) {
             var a = time.auto, mine = this.auto ? this.autoPhaseNow() : null;
             var diff = mine === null ? 1 : Math.abs((((a.phase - mine + 0.5) % 1) + 1) % 1 - 0.5);
@@ -452,7 +460,7 @@ const WeatherRender = {
         self.lastFrame = now;
         var changed = false;
 
-        if (self.time && self.time.auto && self.auto) { self.driveAutoTime(now); changed = true; };
+        if (self.time && self.time.auto && self.auto) { self.driveAutoTime(self.clock()); changed = true; };
 
         if (self.busy) {
             var stillBusy = false;
@@ -858,9 +866,10 @@ const WeatherRender = {
     // color is r,g,b 0-1, radius in blocks, duration in seconds. Scaled by how dark the sun is, so it
     // barely shows in daylight and is at full strength at night or in a storm. minDark (0-1) is how dark
     // it has to be before it shows at all: fast repeating glows (gunfire) strobe in half light without it.
+    // floor (0-1) is the opposite: the least of its strength it keeps in full daylight.
     addGlow(o) {
         if (!this.wetMats.length || !(o.duration > 0)) return;
-        var glow = { x: o.x, y: o.y, z: o.z, color: o.color || [1, 0.6, 0.25], radius: o.radius || 6, intensity: o.intensity === undefined ? 1 : o.intensity, minDark: o.minDark || 0, dur: o.duration, age: 0 };
+        var glow = { x: o.x, y: o.y, z: o.z, color: o.color || [1, 0.6, 0.25], radius: o.radius || 6, intensity: o.intensity === undefined ? 1 : o.intensity, minDark: o.minDark || 0, floor: o.floor || 0, dur: o.duration, age: 0 };
         if (this.glows.length >= MAX_GLOWS) this.glows.shift(); //oldest goes
         this.glows.push(glow);
     },
@@ -873,8 +882,28 @@ const WeatherRender = {
         return Math.max(0, Math.min(1, (1 - lum) * 1.4 - 0.1));
     },
 
+    // A light that follows something (a ghost, a grenade, a rocket): call it every frame the light should
+    // be on, with the same key each time (any object or string). It eases in, and eases out when the calls
+    // stop. Same options as addGlow without the duration. If there are more than fit, the nearest win.
+    glowAt(key, o) {
+        if (!this.wetMats.length) return;
+        var g = this.leases.get(key);
+        if (!g) this.leases.set(key, g = { level: 0 });
+        g.x = o.x; g.y = o.y; g.z = o.z;
+        g.color = o.color || [1, 0.6, 0.25];
+        g.radius = o.radius || 6;
+        g.intensity = o.intensity === undefined ? 1 : o.intensity;
+        g.minDark = o.minDark || 0;
+        g.seen = this.glowFrame;
+    },
+
+    glowDarkScale(g, dark) {
+        var d = g.minDark ? Math.max(0, (dark - g.minDark) / (1 - g.minDark)) : dark;
+        return Math.max(g.floor || 0, g.minDark ? d * d * (3 - 2 * d) : d);
+    },
+
     updateGlows(dt) {
-        if (!this.glows.length && !this.lastGlowCount) return;
+        if (!this.glows.length && !this.leases.size && !this.lastGlowCount) return;
         var dark = this.glowDarkness();
         var n = 0;
         for (var i = this.glows.length - 1; i >= 0; i--) {
@@ -885,14 +914,37 @@ const WeatherRender = {
         for (var i = 0; i < this.glows.length; i++) {
             var g = this.glows[i];
             var fade = 1 - g.age / g.dur;
-            var d = g.minDark ? Math.max(0, (dark - g.minDark) / (1 - g.minDark)) : dark;
-            if (g.minDark) d = d * d * (3 - 2 * d);
-            var k = fade * fade * g.intensity * d;
+            var k = fade * fade * g.intensity * this.glowDarkScale(g, dark);
             this.glowPos[n * 3] = g.x; this.glowPos[n * 3 + 1] = g.y; this.glowPos[n * 3 + 2] = g.z;
             this.glowCol[n * 3] = g.color[0] * k; this.glowCol[n * 3 + 1] = g.color[1] * k; this.glowCol[n * 3 + 2] = g.color[2] * k;
             this.glowRad[n] = g.radius;
             n++;
         };
+
+        //held lights take what slots the short ones left, nearest first
+        var live = [];
+        this.leases.forEach((g, key) => {
+            g.on = g.seen === this.glowFrame;
+            if (!g.on && g.level <= 0) return this.leases.delete(key);
+            var c = this.camPos;
+            g.dist = c ? (g.x - c.x) * (g.x - c.x) + (g.y - c.y) * (g.y - c.y) + (g.z - c.z) * (g.z - c.z) : 0;
+            live.push(g);
+        });
+        live.sort((a, b) => a.dist - b.dist);
+        var room = MAX_GLOWS - n, taken = 0;
+        for (var i = 0; i < live.length; i++) {
+            var g = live[i];
+            var want = g.on && taken < room;
+            if (want) taken++;
+            g.level = Math.max(0, Math.min(1, g.level + (want ? 1 : -1) * dt * 4));
+            if (g.level <= 0.001 || n >= MAX_GLOWS) continue;
+            var k = g.level * g.intensity * this.glowDarkScale(g, dark);
+            this.glowPos[n * 3] = g.x; this.glowPos[n * 3 + 1] = g.y; this.glowPos[n * 3 + 2] = g.z;
+            this.glowCol[n * 3] = g.color[0] * k; this.glowCol[n * 3 + 1] = g.color[1] * k; this.glowCol[n * 3 + 2] = g.color[2] * k;
+            this.glowRad[n] = g.radius;
+            n++;
+        };
+        this.glowFrame++;
         this.lastGlowCount = n;
         for (var i = 0; i < this.wetMats.length; i++) {
             var m = this.wetMats[i];
