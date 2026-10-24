@@ -61,6 +61,7 @@ const LegacyShellCoreSettings = {
                     this.gunOffsetNode = new BABYLON.TransformNode("gunOffset");
                     this.gunOffsetNode.parent = this.head;
                     this.gunContainer.parent = this.gunOffsetNode;
+                    this.hands.alwaysSelectAsActiveMesh = true; //skinned, so its bounds stay where the rest pose is and the hands get culled once the gun is moved off it
                 };
                 const target = (this.scope ? self.gunOffsets.default : self.gunOffsets[self.gunViewport]) || self.gunOffsets.default; //sights have to stay lined up when scoped
                 const mirror = self.mirrorGun ? -1 : 1;

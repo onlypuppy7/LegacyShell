@@ -102,14 +102,14 @@ export const ReplaySpectate = {
     //leaving puts the game's own camera back. play goes on to respawn at once
     exit: function (play) {
         if (!this.active) return;
-        this.close();
+        this.close(play && (respawnTime == null || respawnTime < 0)); //play keeps the mouse it already has: letting go and asking again in the same tick leaves you with no mouse, and no movement
         if (inGame && me && !me.playing) doMapOverviewCamera(); //the game's menu camera, until the spawn puts the camera on the player
         var menu = document.getElementById("gameMenu");
         if (menu && inGame && me && !me.playing) menu.style.display = this.menuDisplay || "block"; //with play too, the spawn closes it like it does for the play button
         if (play) extern.respawn();
     },
 
-    close: function () {
+    close: function (keepLock) {
         if (!this.active) return;
         this.active = false;
         ReplayViewer.popIn(); //the bar comes back from its window, which closes
@@ -122,8 +122,8 @@ export const ReplaySpectate = {
         this.restoreHud();
         ReplayCamera.releaseFirstPerson();
         //the game's handler goes back now, so that play (which takes the mouse and has the game close its menu) is heard. only if the mouse is still held here, which ReplayCamera.stop lets go of and the game would hear as a pause, it goes back a moment later
-        var handler = this.lockHandler, held = !!document.pointerLockElement;
-        ReplayCamera.stop();
+        var handler = this.lockHandler, held = !!document.pointerLockElement && !keepLock;
+        ReplayCamera.stop(keepLock);
         if (held) setTimeout(() => { if (!this.active) document.onpointerlockchange = handler }, 200);
         else document.onpointerlockchange = handler;
         if (this.bar) this.bar.remove();

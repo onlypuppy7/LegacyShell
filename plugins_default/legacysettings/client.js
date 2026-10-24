@@ -410,7 +410,7 @@ class LegacySettingsOptionClass {
 
     get() {
         if (this.opt.getValue) return this.opt.getValue();
-        return this.opt.key ? this.parent.get(this.opt.key) : undefined;
+        return this.opt.key ? this.parent.get(this.opt.key, this.opt.default) : undefined;
     }
     set(val) {
         if (this.opt.setValue) this.opt.setValue(val);

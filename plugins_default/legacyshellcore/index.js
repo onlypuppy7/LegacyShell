@@ -13,7 +13,7 @@ export const PluginMeta = {
     identifier: "legacyshellcore",
     name: 'LegacyShellCore',
     author: 'onlypuppy7',
-    version: '1.0.4',
+    version: '1.0.5',
     descriptionShort: 'Used in the public instance', //displayed when loading
     descriptionLong: 'Used in the public instance',
     legacyShellVersion: 269, //legacy shell version, can be found in /versionEnum.txt, or just on the homescreen

@@ -84,7 +84,7 @@ export const ReplayCamera = {
         this.last = performance.now();
     },
 
-    stop: function () {
+    stop: function (keepLock) {
         window.removeEventListener("keydown", this.onKeyDown, true);
         window.removeEventListener("keyup", this.onKeyUp, true);
         window.removeEventListener("pointermove", this.onMove);
@@ -93,7 +93,7 @@ export const ReplayCamera = {
         window.removeEventListener("wheel", this.onWheel);
         try { if (this.observer) gameScene.onBeforeRenderObservable.remove(this.observer) } catch (e) { };
         this.observer = null;
-        try { if (document.pointerLockElement) document.exitPointerLock() } catch (error) { };
+        try { if (document.pointerLockElement && !keepLock) document.exitPointerLock() } catch (error) { };
         this.target = null;
         this.leaveView(this.mode, "overview");
         this.mode = "overview";

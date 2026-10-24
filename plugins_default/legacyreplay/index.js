@@ -11,7 +11,7 @@ export const PluginMeta = {
     identifier: "legacyreplay",
     name: 'LegacyReplay',
     author: 'onlypuppy7 (+Claude)', //NOTE! this plugin is VIBECODED.
-    version: '0.1.0',
+    version: '0.1.1',
     descriptionShort: 'Replays, camera angles and highlight reels', //displayed when loading
     descriptionLong: 'Records rooms on the game server, /clip saves the last bit as a replay. See DESIGN.md for where it is going.',
     legacyShellVersion: 656, //legacy shell version, can be found in /versionEnum.txt, or just on the homescreen
