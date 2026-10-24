@@ -48,7 +48,7 @@ export const AdminApp = {
         const creds = {};
         if (session) creds.session = session;
         if (sqlPw && (needsSql || routing || !session)) creds.sqlPassword = sqlPw;
-        if (authKey && (needsSql || routing)) creds.auth_key = authKey;
+        if (authKey) creds.auth_key = authKey; //always, it's the ratelimit bypass
 
         if (routing) {
             // Credentials go ONLY on the wrapper - services authorizes the operator here. The

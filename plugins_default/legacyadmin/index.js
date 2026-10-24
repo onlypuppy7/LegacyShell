@@ -25,7 +25,7 @@ export const PluginMeta = {
     identifier: "legacyadmin",
     name: 'LegacyAdmin',
     author: 'onlypuppy7 (+Claude)', //NOTE! most of this plugin is VIBECODED.
-    version: '1.4.0',
+    version: '1.4.2',
     descriptionShort: 'Unified admin panel - config editor, SQL/table editor, account manager, item browser, codes, moderation, live room/chat monitoring, audit log',
     descriptionLong: 'Serves /admin (client role) - a single admin panel covering: config-file editing + instance restart (the original scope of this plugin), the SQL/table editor absorbed from /sql, an item-catalog tile browser, code creation, moderation tools (kick/ban/mute), and live room/player/chat monitoring. Two auth tiers: a real per-account login (adminRoles >= Moderator) exposes the moderator-relevant slice of the panel; sqlPassword + auth_key unlocks everything, same as before - auth_key alone stays low-privilege, unrelated to which instance is being managed. Runs on all three roles: services handles its own auth and most admin commands directly (it holds the real password hash and the users/sessions/moderation tables); game/client relay password/session checks to services over #wsrequest and no longer run a dedicated admin WS port of their own - instead, admin commands aimed at a specific game/client instance are routed through services\' existing persistent connection to that instance (see services/registry.js), keyed by a lightweight per-connection ID assigned on connect, not by auth_key.',
     legacyShellVersion: 609,

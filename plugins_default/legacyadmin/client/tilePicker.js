@@ -193,9 +193,9 @@ function canvasHasContent(canvas) {
 async function renderOneTile(item, canvas) {
     if (!canvas.isConnected) return;
 
-    // A stamp with no meshName and no x/y is a new plugin stamp missing its sheet coords - patch
-    // them in from the client snapshot (non-mutating) so it can actually render.
-    if (item.item_data && item.item_data.meshName === undefined && item.item_data.x === undefined) {
+    // stamps: the services db's x/y can be stale (or missing for new plugin stamps), the sheet the
+    // client actually generated is the truth - patch its coords in (non-mutating), always.
+    if (item.item_data && item.item_data.meshName === undefined) {
         const c = (await ensureStampCoords())[item.id];
         if (c) item = { ...item, item_data: { ...item.item_data, x: c.x, y: c.y } };
     };
