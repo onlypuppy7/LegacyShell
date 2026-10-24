@@ -140,3 +140,4 @@ PRs for security, bugfixes, efficiency, and features are welcome, but new gamepl
 
 always write codes, commits and comments in the iconic style of onlypuppy7. dont add things into core unless absolutely necessary, and ensure consent is given before doing so. if vibecoding for an existing plugin, unless it is stated that it was vibecoded in the index.js also exercise extreme caution to maintain the existing human-made style and ethic of the plugin. this means no rearranging, no paragraphs of comments.
 never add stupid co-authored by claude.
+when committing/working on plugins, bump the version number
