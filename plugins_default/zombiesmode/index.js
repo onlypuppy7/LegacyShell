@@ -10,13 +10,14 @@ import { iteratePlayers, CONTROL, ItemType } from '#constants';
 import { ss } from '#misc';
 import * as catalogModule from '#catalog';
 import Comm from '#comm';
+import { LegacyShellCorePlugin } from '../legacyshellcore/shared.js';
 //
 
 export const PluginMeta = {
     identifier: "zombiesmode",
     name: 'ZombiesMode',
     author: 'onlypuppy7 (+Claude)', //NOTE! most of this plugin is VIBECODED.
-    version: '1.1.0',
+    version: '1.2.3',
     descriptionShort: 'Adds the zombies gamemode: survive the horde, the infected join it', //displayed when loading
     descriptionLong: 'Adds the Zombies gamemode. A horde of slow DeadInternet bots walks at the humans and bites them; a human who dies (or leaves the fight through the menu) is infected and joins the horde. Last human standing wins, or the humans win by outlasting the round.',
     legacyShellVersion: 613, //legacy shell version, can be found in /versionEnum.txt, or just on the homescreen
@@ -66,6 +67,14 @@ const WALK_PACE = 0.0315; //how far a player at speed 1 goes in a tick walking (
 
 // Ghosts are the horde's players with noclip (nothing else turns it on in this gamemode), which is also how the browsers tell them apart.
 const isGhost = (player) => !!player.modifiers.noclip;
+
+// What a horde player's touch takes: the team's contactDamage, a ghost's own, or a brutish one's bit harder, a small one's less.
+const biteOf = (player, room) => {
+    const cfg = settings(room);
+    if (isGhost(player)) return cfg.ghostBite;
+    const bite = room.gameOptions.contactDamage[HORDE];
+    return Math.round(bite * (player.zVariant === 'brutish' ? cfg.brutishDamage : player.zVariant === 'small' ? cfg.smallDamage : 1));
+};
 
 // One per room (a worker only has one, but the plugin is also loaded on the main thread, which has none).
 const states = new WeakMap();
@@ -385,7 +394,7 @@ export class Plugin {
         z.neverSpawned = false;
         room.updateRoomParamsForClients(); //(the interim is over)
         iteratePlayers((player) => { //the last round's victory switched the bite off for whoever was left
-            if (player.team === HORDE) player.changeModifiers({ contactDamage: isGhost(player) ? settings(room).ghostBite : room.gameOptions.contactDamage[HORDE] });
+            if (player.team === HORDE) player.changeModifiers({ contactDamage: biteOf(player, room) });
         });
 
         const cfg = settings(room);
@@ -596,7 +605,10 @@ export class Plugin {
 
                 //a share of them are ghosts (evenly through the horde: with 1 in 6, the 6th, the 12th...)
                 const ghosts = z.bots.filter((bot) => bot.zGhost).length;
-                const bot = ghosts < Math.floor((z.bots.length + 1) * cfg.ghostRatio + 1e-9) ? await this.spawnGhost(room, z, cfg) : await this.spawnZombie(room, z, cfg);
+                //...and of the rest, some are brutish or small, the same way
+                const brutes = z.bots.filter((bot) => bot.zVariant === 'brutish').length, smalls = z.bots.filter((bot) => bot.zVariant === 'small').length;
+                const variant = brutes < Math.floor((z.bots.length + 1) * cfg.brutishRatio + 1e-9) ? 'brutish' : smalls < Math.floor((z.bots.length + 1) * cfg.smallRatio + 1e-9) ? 'small' : null;
+                const bot = ghosts < Math.floor((z.bots.length + 1) * cfg.ghostRatio + 1e-9) ? await this.spawnGhost(room, z, cfg) : await this.spawnZombie(room, z, cfg, variant);
                 z.bots.push(bot);
                 if (cfg.staggerSecs > 0) await sleep(cfg.staggerSecs * 1e3 / cfg.count);
             };
@@ -607,13 +619,15 @@ export class Plugin {
         };
     };
 
-    async spawnZombie(room, z, cfg) {
+    async spawnZombie(room, z, cfg, variant) {
         const bot = new DeadInternetBot(room, { combat: { difficulty: 'zombie', speed: cfg.zombieSpeed, resistance: cfg.zombieResistance } });
         await bot.init();
         bot.startCombatAI(); //(this is what applies the bot's combat speed, damage and resistance to the player)
         //exactly the zombie speed: the bots each get a few percent either way, which is within the same pathfinding speed bucket, so the
         //jumps it has verified for the one are not quite right for the other, and the slower of the two lands short of a wide gap
         bot.player.changeModifiers({ speedModifier: cfg.zombieSpeed });
+        if (variant) await this.applyVariant(room, bot, cfg, variant);
+        else LegacyShellCorePlugin.setEggColor(bot.player, ...cfg.zombieColor);
         //when there is no way to someone, the route it settles for is the closest point the search got to, so a bigger search budget than the
         //bots' default (which is sized for a target that can be reached) gets it a lot closer
         const rawPathTo = bot.pathTo.bind(bot);
@@ -659,6 +673,19 @@ export class Plugin {
             this.scheduleRespawn(z, bot, cfg.respawnSecs);
         };
         return bot;
+    };
+
+    // The brutish are slow, tough and hit hard; the small are quick and fragile (scale divides damage taken). Physics speed rather than speed,
+    // so the pathfinding (which works from the bot's real physics) follows it. The egg's colour goes out through legacyshellcore.
+    async applyVariant(room, bot, cfg, variant) {
+        const player = bot.player;
+        bot.zVariant = player.zVariant = variant;
+        const [color, mods] = variant === 'brutish'
+            ? [cfg.brutishColor, { physicsSpeedModifier: cfg.brutishPhysics, resistanceModifier: cfg.brutishResistance }]
+            : [cfg.smallColor, { physicsSpeedModifier: cfg.smallPhysics, scale: cfg.smallScale }];
+        player.changeModifiers({ ...mods, contactDamage: biteOf(player, room) });
+        LegacyShellCorePlugin.setEggColor(player, ...color);
+        return this.giveHat(bot, variant === 'brutish' ? cfg.brutishHat : cfg.smallHat);
     };
 
     // A ghost: white, in a ghost hat, slower than a zombie and biting less, and with noclip, so it goes straight through walls. It has no

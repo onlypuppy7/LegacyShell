@@ -39,10 +39,23 @@ export const ZombiesModeDefaults = {
     searchBudgetMs: 6,      //the whole horde's route searching stops for the tick after this many ms (the rest carry on with the route they have)
     zombieSpeed: 0.65,      //zombie bots' speed modifier (not much lower: how far a bot can jump depends on its speed, and a two block gap is too wide for 0.6)
     zombieResistance: 0.7,  //...and resistance (it divides damage taken: 1 is a normal player, 0.5 dies twice as fast)
+    zombieColor: [88, 109, 62], //egg colour of the plain zombie bots (rgb, hands too)
     ghostRatio: 1 / 6,      //the share of the horde (1 in 6) that are ghosts instead: they float straight through walls at whoever is nearest
     ghostSpeed: 0.5,        //a ghost's speed modifier (1 is the pace of a walking player), under the zombies'
     ghostBite: 8,           //hp a ghost's touch takes (a zombie's is the team's contactDamage)
     ghostResistance: 0.7,   //...and its resistance
+    brutishRatio: 0.1,      //the share of the horde that are brutish: slow, tough, hit hard, big hands
+    brutishPhysics: 0.7,    //...their physicsSpeedModifier (not speedModifier: that would throw the pathfinding off)
+    brutishResistance: 2.1, //...and resistance (3x the zombies')
+    brutishDamage: 1.25,    //...and how much more their bite takes than the team's contactDamage
+    brutishHat: 50029,      //Axe-in-head (modernshellhats; 0 for none)
+    brutishColor: [108, 101, 79], //egg colour (rgb, hands too)
+    smallRatio: 0.15,       //the share of the horde that are small: quick and fragile
+    smallPhysics: 1.25,     //...their physicsSpeedModifier
+    smallDamage: 0.5,       //...and how much less their bite takes
+    smallScale: 0.5,        //...and scale (damage taken is divided by it, so this is half the health too)
+    smallHat: 50031,        //Devil Horns
+    smallColor: [122, 104, 108],
     ghostHat: 50244,        //the item id of the hat a ghost wears (Ghost Hat, from modernshellhats; 0 for none)
 };
 

@@ -100,7 +100,8 @@ const ZombieVisuals = {
             this.square = frame.transpose().multiply(target);
         };
         var turn = this.square.multiply(M.RotationY(pose.yaw || 0)).multiply(M.RotationX(pose.droop || 0));
-        var G = M.Translation(-this.centre.x, -this.centre.y, -this.centre.z).multiply(turn).multiply(M.Translation(pose.x, pose.y, pose.z));
+        var size = pose.size || 1;
+        var G = M.Translation(-this.centre.x, -this.centre.y, -this.centre.z).multiply(M.Scaling(size, size, size)).multiply(turn).multiply(M.Translation(pose.x, pose.y, pose.z));
         var S = M.Scaling(-1, 1, 1);
         var left = this.bind.fore.multiply(G);
         var right = this.bind.grip.multiply(S).multiply(G).multiply(S);
@@ -118,6 +119,11 @@ const ZombieVisuals = {
     // Ghosts are the horde's players with noclip (the server sets it on them and nothing else in the gamemode: the modifier is synced to everyone).
     isGhost(actor) {
         return !!actor.player.modifiers.noclip;
+    },
+
+    // The brutish have the resistance to show it (nothing else on the horde has more than 1, and it is synced like the scale), the small are small.
+    isBrutish(actor) {
+        return actor.player.modifiers.resistanceModifier > 1.05 && !this.isGhost(actor);
     },
 
     // Called after each of the actor's updates for a zombie: the open mirrored hands in place of the model's, no gun, the stumble.
@@ -219,6 +225,7 @@ const ZombieVisuals = {
     poseArms(actor) {
         var ph = actor.zPhase || 0, k = this.gait(actor);
         var pose = Object.assign({}, this.pose);
+        if (this.isBrutish(actor)) pose.size = 1.6;
         if (this.isGhost(actor)) {
             pose.y += 0.02 * Math.sin(Date.now() / 1000 * 2.2 + actor.player.id + 0.5);
             return this.poseBones(actor.hands.skeleton, this.template(actor.scene), pose);

@@ -1,5 +1,5 @@
 //legacyshell: basic
-import { devlog, isClient, isServer } from "#constants";
+import { devlog, isClient, isServer, iteratePlayers } from "#constants";
 import Comm from "#comm";
 import { Rocket } from "#bullets";
 import { RPEGG } from "#guns";
@@ -19,6 +19,78 @@ export const LegacyShellCorePlugin = {
         this.plugins.on('game:fireCluck9mm', this.fireCluck9mm.bind(this));
 
         this.plugins.on('game:permissionsAfterSetup', this.registerSampleCommand.bind(this));
+
+        this.plugins.on('game:LegacyShellOnMessage', this.LegacyShellOnMessage.bind(this));
+        this.plugins.on('game:clientGameJoinedExtraInfos', this.clientGameJoinedExtraInfos.bind(this));
+        this.plugins.on('game:clientOnExtraGameInfo', this.clientOnExtraGameInfo.bind(this));
+        this.plugins.on('game:onPageLoadedEnd', this.onPageLoadedEnd.bind(this));
+    },
+
+    eggColors: {}, //client: colours that came before their player did
+
+    //server: sets a player's egg to an exact rgb (0-255), no arguments goes back to their loadout colour
+    setEggColor: function (player, r, g, b) {
+        var reset = r === undefined;
+        player.eggColor = reset ? null : [r, g, b];
+
+        var output = new Comm.Out();
+        output.packInt8U(Comm.Code.setEggColor);
+        output.packInt8U(player.id);
+        output.packInt8U(reset ? 0 : 1);
+        output.packInt8U(reset ? 0 : r);
+        output.packInt8U(reset ? 0 : g);
+        output.packInt8U(reset ? 0 : b);
+        player.client.room.sendToAll(output, null, "setEggColor");
+    },
+
+    applyEggColor(id, rgb) {
+        var player = players_by_id[id];
+        if (!player) return this.eggColors[id] = rgb;
+        player.eggColor = rgb;
+        if (player.actor) player.actor.setShellColor(player.shellColor);
+    },
+
+    LegacyShellOnMessage(data) {
+        if (isServer) return;
+        if (data.cmd !== Comm.Code.setEggColor) return;
+        var input = data.input;
+        var id = input.unPackInt8U();
+        var set = input.unPackInt8U();
+        var rgb = [input.unPackInt8U(), input.unPackInt8U(), input.unPackInt8U()];
+        this.applyEggColor(id, set ? rgb : null);
+        plugins.cancel = true;
+    },
+
+    clientGameJoinedExtraInfos(data) {
+        var colors = {};
+        iteratePlayers((player) => { if (player.eggColor) colors[player.id] = player.eggColor });
+        if (Object.keys(colors).length) data.extraInfo.eggColors = colors;
+    },
+
+    clientOnExtraGameInfo(data) {
+        var colors = data.extraInfo.eggColors || {};
+        for (var id in colors) this.applyEggColor(Number(id), colors[id]);
+    },
+
+    onPageLoadedEnd() {
+        if (!isClient || this.eggColorPatched) return;
+        this.eggColorPatched = true;
+
+        var setShellColor = PlayerActor.prototype.setShellColor;
+        PlayerActor.prototype.setShellColor = function () {
+            var result = setShellColor.apply(this, arguments);
+            var player = this.player;
+            if (LegacyShellCorePlugin.eggColors[player.id]) {
+                player.eggColor = LegacyShellCorePlugin.eggColors[player.id];
+                delete LegacyShellCorePlugin.eggColors[player.id];
+            };
+            if (player.eggColor) {
+                var color = new BABYLON.Color3(player.eggColor[0] / 255, player.eggColor[1] / 255, player.eggColor[2] / 255);
+                this.bodyMesh.colorMult = color;
+                this.hands.colorMult = color;
+            };
+            return result;
+        };
     },
 
     fireCluck9mm(data) {
@@ -182,6 +254,7 @@ export const LegacyShellCorePlugin = {
     },
     
     registerSampleCommand: function (data) {
+        Comm.Add("setEggColor");
         console.log("registering sample command... (sample plugin)");
         var ctx = data.this;
 
