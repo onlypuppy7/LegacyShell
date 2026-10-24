@@ -861,6 +861,9 @@ https://www.youtube.com/watch?v=pATHiYbGYuo (version in title)
 
 ## [0.15.4a](https://web.archive.org/web/20181128155828/https://shellshock.io/) | 27 - 30 Nov 2018
 
+> - MAP SELECTOR for your private games. That is all.
+> - Well, maybe some server stuff, too.
+
 ## [0.15.4d](https://web.archive.org/web/20181206030710/https://shellshock.io/) | 6 - 14 Dec 2018
 
 > - Golden Chicken Pass! More shell colors! No ads! Buy now!
