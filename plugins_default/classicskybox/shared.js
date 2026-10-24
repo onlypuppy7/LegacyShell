@@ -26,7 +26,7 @@ export const ClassicSkyboxPlugin = {
         if (this.meshes) this.meshes.forEach(mesh => mesh.dispose());
         this.meshes = [];
 
-        var variant = this.variants[minMap.skybox];
+        var variant = this.variants[this.override || minMap.skybox]; //override: set by other plugins (timemachine)
         if (!variant) return;
 
         if (skybox) skybox.setEnabled(false); //the cubemap one

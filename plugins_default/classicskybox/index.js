@@ -9,7 +9,7 @@ export const PluginMeta = {
     identifier: "classicskybox",
     name: 'Classic Skybox',
     author: 'onlypuppy7 (+Claude)', //initial work by onlypuppy7, finished by claude lol
-    version: '1.0.0',
+    version: '1.0.1',
     descriptionShort: 'Adds the procedural "classic" and "classic-alpha" skyboxes from early versions', //displayed when loading
     descriptionLong: 'Attempt at readding the skybox and mountains seen in alpha versions',
     legacyShellVersion: 269, //legacy shell version, can be found in /versionEnum.txt, or just on the homescreen

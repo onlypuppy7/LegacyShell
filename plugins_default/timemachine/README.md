@@ -13,8 +13,9 @@ Adds a "Throwback Options" category under a shared "Graphics" settings tab (see 
 | Option | Effect when set |
 |---|---|
 | Bullet Holes | `0.17.0` (default, i.e. off), `0.9.0`, or `0.1.0` - reimplements the old sprite-based bullet-hole decal system for the two non-default choices, using an original comment's own note that "0.17.0 removed them entirely." |
+| Map Skybox | `classic-alpha` (0.0.4), `classic` (0.1.0) or `skyboxes` (0.14.4+, default, each map's own) - sets `ClassicSkyboxPlugin.override`, so it needs [Classic Skybox](/plugins_default/classicskybox/index.js). |
 | Bullet Smoke | Off cancels the default `bulletHitEffect` behavior entirely (`plugins.cancel = !this.bulletSmoke.get()`). |
-| Classic Death Animation | On cancels the default `playerDeathAnimation` and plays an egg-splatter (exploding shell/white/yolk mesh) animation instead. |
+| Death Animation | `0.15.4d` (default, current) or `0.4.2` (classic egg-splatter: exploding shell, white and yolk). Anything but current cancels the default `playerDeathAnimation`. |
 | Classic Frag Particles | On cancels the default `shellFragBurstBefore` particle burst and substitutes an old-style one. |
 
 Also registers a "Classic Shell Background" entry in [Legacy Themes](/plugins_default/legacythemes/README.md)' style-pack list, alongside its graphics options. Likewise a "Classic Grenade Sounds" sound pack (the first grenade explosion and beep, 0.10.0 to 0.15.0).

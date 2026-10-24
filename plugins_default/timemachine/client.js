@@ -59,12 +59,30 @@ export const TimeMachinePlugin = {
                 { value: "0.1.0", label: "Enabled (0.1.0)" },
             ], 
         }, 0, "Throwback Options");
+        this.mapSkybox = LegacySettings.addOption("Graphics", { type: "select", key: "mapSkybox", label: "Map Skybox", tooltip: "Replaces the skybox of every map with an older one. Skyboxes leaves each map's own.",
+            default: "skyboxes",
+            options: [
+                { value: "classic-alpha", label: "Alpha (0.0.4)" },
+                { value: "classic", label: "Classic (0.1.0)" },
+                { value: "skyboxes", label: "Skyboxes (0.14.4+)" },
+            ],
+        }, 0, "Throwback Options");
         this.bulletSmoke = LegacySettings.addOption("Graphics", { type: "checkbox", key: "bulletSmoke", label: "Bullet Smoke", default: true, tooltip: "The puff of smoke where a bullet hits. Turn off to remove it." }, 0, "Throwback Options");
-        this.classicDeath = LegacySettings.addOption("Graphics", { type: "checkbox", key: "classicDeath", label: "Classic Death Animation", default: false, tooltip: "Eggs burst apart with the older death animation." }, 0, "Throwback Options");
+        //alpha (0.0.4) isn't here: its pieces fell through the floor
+        //todo: pre-yolk classic (0.1.1), only the egg breaking with no white or yolk, needs the right animation first
+        this.deathAnimation = LegacySettings.addOption("Graphics", { type: "select", key: "deathAnimation", label: "Death Animation", tooltip: "How eggs burst apart when they die.",
+            default: "0.15.4d",
+            options: [
+                { value: "0.4.2", label: "Classic (0.4.2)" },
+                { value: "0.15.4d", label: "Current (0.15.4d)" },
+            ],
+        }, 0, "Throwback Options");
         this.classicFrag = LegacySettings.addOption("Graphics", { type: "checkbox", key: "classicFrag", label: "Classic Frag Particles", default: false, tooltip: "Uses the older shell fragment particles when an egg is hurt or dies." }, 0, "Throwback Options");
     },
 
     onMapCompleteBeforeSetup: function (data) {
+        ClassicSkyboxPlugin.override = this.mapSkybox.get() === "skyboxes" ? null : this.mapSkybox.get();
+
         //from older shell js's
         bulletHoleManager = new BABYLON.SpriteManager("bulletHoleManager", "img/bulletHoles.png?v=1", 1e3, 32, gameScene);
         bulletHoleManager.fogEnabled = true;
@@ -155,7 +173,8 @@ export const TimeMachinePlugin = {
     },
 
     playerDeathAnimation(data) {
-        if (!this.classicDeath.get()) return;
+        const death = this.deathAnimation.get();
+        if (death === "0.15.4d") return;
         plugins.cancel = true;
 
         const { killedPlayer } = data;
