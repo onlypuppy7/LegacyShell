@@ -75,7 +75,7 @@ export const LegacyProfiles = {
         closeAlertDialog();
         this.overlay = this.element('div', 'lp-overlay', undefined, document.body);
         this.overlay.addEventListener('click', event => { if (event.target === this.overlay) this.close(); });
-        this.dialog = this.element('section', 'lp-dialog', undefined, this.overlay);
+        this.dialog = this.element('section', 'lp-dialog roundedBorder', undefined, this.overlay);
         this.dialog.setAttribute('role', 'dialog');
         this.dialog.setAttribute('aria-modal', 'true');
         this.dialog.setAttribute('aria-label', 'Player profile');
@@ -261,7 +261,7 @@ export const LegacyProfiles = {
 
     tab(label, id, render) {
         const button = this.button(label, '', () => this.selectTab(id), this.tabs);
-        button.className = 'lp-tab';
+        button.className = 'ssbutton blue lp-tab';
         button.dataset.section = id;
         button.id = 'lp-tab-' + id;
         button.setAttribute('role', 'tab');
@@ -283,6 +283,8 @@ export const LegacyProfiles = {
         this.tileGeneration = (this.tileGeneration || 0) + 1;
         for (const button of this.tabs.children) {
             const active = button.dataset.section === id;
+            button.classList.toggle('orange', active);
+            button.classList.toggle('blue', !active);
             button.setAttribute('aria-selected', String(active));
             button.tabIndex = active ? 0 : -1;
             if (active) {
@@ -366,7 +368,7 @@ export const LegacyProfiles = {
     },
 
     itemCard(item, label, parent) {
-        const card = this.element('div', 'lp-item', undefined, parent);
+        const card = this.element('div', 'lp-item itemButton', undefined, parent);
         if (label) this.element('span', 'lp-item-type', label, card);
         if (item) {
             card.title = item.name;
@@ -382,7 +384,10 @@ export const LegacyProfiles = {
                 } catch (error) { console.warn('LegacyProfiles item:', error); };
             });
             this.element('span', 'lp-item-name', item.name, card);
-            if (!label && this.equippedIds().includes(item.id)) this.element('span', 'lp-equipped', 'Equipped', card);
+            if (!label && this.equippedIds().includes(item.id)) {
+                card.classList.add('itemButtonSelected');
+                this.element('span', 'lp-equipped', 'Equipped', card);
+            };
         } else {
             this.element('span', 'lp-no-item', '—', card);
             this.element('span', 'lp-item-name', 'None', card);
@@ -392,7 +397,7 @@ export const LegacyProfiles = {
     renderInventory(container) {
         const items = this.profile.inventory.map(id => catalog.findItemById(id)).filter(Boolean);
         const controls = this.element('div', 'lp-inventory-controls', undefined, container);
-        const search = this.element('input', '', undefined, controls);
+        const search = this.element('input', 'textInput', undefined, controls);
         search.type = 'search'; search.placeholder = 'Find an item...'; search.setAttribute('aria-label', 'Search inventory');
         const filter = this.element('select', 'ss_select', undefined, controls);
         filter.setAttribute('aria-label', 'Inventory category');

@@ -27,7 +27,7 @@ LegacyProfiles.registerSection('achievements', {
 
 `game:legacyprofilesViewed` receives `{ profile, container }` after the viewer is drawn. This uses the usual browser `game:` namespace. Nothing needs to be added to the layout just to support a new tab. XP, badges, achievements, friends and profile editing are not implemented here.
 
-The preview reuses the game's engine, with its own scene, offscreen render texture and stamp texture. Closing it releases those resources and its own render callback. The game canvas, resolution and render callbacks stay in place. Dragging rotates immediately, without inertia; idle rendering is limited to 30 FPS. Inventory thumbnails reuse the game's item renderer, with at most 24 items on a page.
+The preview reuses the game's engine, with its own scene, offscreen render texture and stamp texture. Closing it releases those resources and its own render callback. The game canvas, resolution and render callbacks stay in place. The backdrop and blurred ground shadow use the home screen's settings. Dragging turns and tilts just the egg and its loadout immediately, without inertia; the camera angle and horizon stay fixed. Idle rendering is limited to 30 FPS. Inventory thumbnails reuse the game's item renderer, with at most 24 items on a page.
 
 ## Checking it
 

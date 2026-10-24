@@ -117,13 +117,14 @@ test('preview reuses the game engine, restores rendering state and only removes 
     };
     const context = vm.createContext({
         BABYLON: { ...BABYLON, RenderTargetTexture: Target }, engine: gameEngine,
+        Customizer: { skyColor: new BABYLON.Color3(.35, .65, .8), diffuseColor: new BABYLON.Color3(.35, .5, .6) },
         ResizeObserver: Observer, IntersectionObserver: Observer,
         window: { devicePixelRatio: 1 }, document: { hidden: false }, performance: { now: () => clock }, setTimeout, clearTimeout,
     });
     const source = misc.prepareForClient(fs.readFileSync(new URL('preview.js', import.meta.url), 'utf8'));
     vm.runInContext(source + '\nglobalThis.Preview = LegacyProfilePreview;', context);
     context.Preview.prototype.materials = () => {};
-    context.Preview.prototype.load = async () => {};
+    context.Preview.prototype.load = async function () { this.root = new BABYLON.TransformNode('test avatar', this.scene); };
     let preview;
     try {
         await new Promise((resolve, reject) => { preview = new context.Preview(canvas, {}, resolve, reject); });
@@ -133,22 +134,45 @@ test('preview reuses the game engine, restores rendering state and only removes 
         assert.equal(new BABYLON.TransformNode('new actor').getScene(), gameScene);
         assert.equal(preview.camera.inertia, 0);
         assert.equal(preview.scene.renderTargetsEnabled, false);
+        assert.equal(preview.scene.clearColor, context.Customizer.skyColor);
+        assert.equal(preview.scene.fogColor, context.Customizer.skyColor);
+        assert.equal(preview.scene.fogDensity, .06);
+        assert.equal(preview.scene.getMeshByName('profileGround').material.diffuseColor, context.Customizer.diffuseColor);
+        assert.equal(preview.scene.getMeshByName('profileGround').receiveShadows, true);
+        assert.equal(preview.shadow.useBlurExponentialShadowMap, true);
+        assert.equal(preview.shadow.blurScale, 2);
+        preview.shadow.getShadowMap().render = () => events.push('shadow');
         let frames = 0;
         preview.scene.render = () => { events.push('render'); frames++; };
         preview.renderFrame();
-        assert.deepEqual(events, ['bind', 'render', 'unbind']);
+        assert.deepEqual(events, ['shadow', 'bind', 'render', 'unbind']);
         assert.equal(gameEngine.currentViewport, viewport);
         clock += 8;
         preview.renderFrame();
         assert.equal(frames, 1);
         const alpha = preview.camera.alpha;
+        const beta = preview.camera.beta;
         listeners.get('pointerdown')({ button: 0, pointerId: 1, clientX: 10, clientY: 10, preventDefault() {} });
-        listeners.get('pointermove')({ pointerId: 1, clientX: 110, clientY: 10 });
+        listeners.get('pointermove')({ pointerId: 1, clientX: 110, clientY: 90 });
         preview.renderFrame();
         assert.equal(frames, 2); //dragging bypasses idle throttling
-        assert.equal(preview.camera.alpha, alpha - 1);
+        assert.equal(preview.yaw, -1);
+        assert.equal(preview.pitch, 80 / 150);
+        const rotation = preview.root.rotationQuaternion.clone();
+        assert.equal(preview.camera.alpha, alpha);
+        assert.equal(preview.camera.beta, beta);
         preview.camera._checkInputs();
-        assert.equal(preview.camera.alpha, alpha - 1);
+        assert.equal(preview.root.rotationQuaternion.equals(rotation), true);
+        assert.equal(preview.camera.alpha, alpha);
+        assert.equal(preview.camera.beta, beta);
+        listeners.get('pointermove')({ pointerId: 1, clientX: 10, clientY: 10 });
+        assert.equal(preview.yaw, 0);
+        assert.equal(preview.pitch, 0);
+        assert.equal(preview.root.rotationQuaternion.equals(BABYLON.Quaternion.Identity()), true);
+        listeners.get('pointermove')({ pointerId: 1, clientX: 10, clientY: 1000 });
+        assert.equal(preview.pitch, Math.PI / 3);
+        assert.equal(preview.camera.alpha, alpha);
+        assert.equal(preview.camera.beta, beta);
         preview.scene.render = () => { throw new Error('failed frame'); };
         assert.throws(() => preview.render(), /failed frame/);
         assert.equal(events.at(-1), 'unbind');

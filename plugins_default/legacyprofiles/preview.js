@@ -3,6 +3,7 @@ export class LegacyProfilePreview {
     constructor(canvas, profile, onReady, onError) {
         this.canvas = canvas;
         this.dead = false;
+        this.yaw = this.pitch = 0;
         try {
             this.engine = engine;
             this.context = canvas.getContext('2d');
@@ -11,15 +12,16 @@ export class LegacyProfilePreview {
             this.engine.scenes.unshift(this.engine.scenes.pop());
             this.scene.renderTargetsEnabled = false;
             this.scene.postProcessesEnabled = false;
-            this.scene.clearColor = new BABYLON.Color4(0, 0, 0, 0);
             this.scene.sunLight = { direction: new BABYLON.Vector3(.2, 1, .1), diffuse: BABYLON.Color3.White() };
-            this.camera = new BABYLON.ArcRotateCamera('profileCamera', 1.2, 1.3, 2.7, new BABYLON.Vector3(0, .42, 0), this.scene);
+            this.background();
+            this.camera = new BABYLON.ArcRotateCamera('profileCamera', Math.PI / 2, 1.5, 2.7, new BABYLON.Vector3(0, .4, 0), this.scene);
             this.camera.fov = .5;
             this.camera.minZ = .1;
+            this.camera.maxZ = 100;
             this.camera.lowerRadiusLimit = 2;
             this.camera.upperRadiusLimit = 6;
-            this.camera.lowerBetaLimit = .5;
-            this.camera.upperBetaLimit = 2;
+            this.camera.lowerAlphaLimit = this.camera.upperAlphaLimit = Math.PI / 2;
+            this.camera.lowerBetaLimit = this.camera.upperBetaLimit = 1.5;
             this.camera.panningSensibility = 0;
             this.camera.inertia = 0;
             this.camera.angularSensibilityX = 100;
@@ -56,6 +58,33 @@ export class LegacyProfilePreview {
         };
     };
 
+    background() {
+        const scene = this.scene;
+        scene.clearColor = scene.fogColor = Customizer.skyColor;
+        scene.fogMode = BABYLON.Scene.FOGMODE_EXP2;
+        scene.fogDensity = .06;
+        const top = new BABYLON.DirectionalLight('profileTop', new BABYLON.Vector3(0, -1, 0), scene);
+        top.intensity = 1;
+        this.shadow = new BABYLON.ShadowGenerator(1024, top);
+        this.shadow.useBlurExponentialShadowMap = true;
+        this.shadow.frustumEdgeFalloff = 1;
+        this.shadow.blurScale = 2;
+        this.shadow.blurBoxOffset = 1;
+        const sky = new BABYLON.HemisphericLight('profileSky', new BABYLON.Vector3(.25, 1, -.5), scene);
+        sky.intensity = .8;
+        const bounce = new BABYLON.HemisphericLight('profileBounce', new BABYLON.Vector3(0, -1, 0), scene);
+        bounce.intensity = .5;
+        bounce.diffuse = new BABYLON.Color3(.6, .8, 1);
+        const material = new BABYLON.StandardMaterial('profileGround', scene);
+        material.diffuseColor = Customizer.diffuseColor;
+        material.specularColor = BABYLON.Color3.Black();
+        const ground = BABYLON.Mesh.CreatePlane('profileGround', 100, scene);
+        ground.rotation.x = Math.PI / 2;
+        ground.material = material;
+        ground.receiveShadows = true;
+        ground.isPickable = false;
+    };
+
     controls() {
         const canvas = this.canvas;
         const camera = this.camera;
@@ -72,9 +101,11 @@ export class LegacyProfilePreview {
         });
         listen('pointermove', event => {
             const pointer = this.pointer;
-            if (!pointer || pointer.id !== event.pointerId) return;
-            camera.alpha -= (event.clientX - pointer.x) / camera.angularSensibilityX;
-            camera.beta = Math.max(camera.lowerBetaLimit, Math.min(camera.upperBetaLimit, camera.beta - (event.clientY - pointer.y) / camera.angularSensibilityY));
+            if (!pointer || pointer.id !== event.pointerId || !this.root) return;
+            this.yaw -= (event.clientX - pointer.x) / camera.angularSensibilityX;
+            this.pitch = Math.max(-Math.PI / 3, Math.min(Math.PI / 3, this.pitch + (event.clientY - pointer.y) / camera.angularSensibilityY));
+            this.root.rotationQuaternion = BABYLON.Quaternion.RotationAxis(BABYLON.Vector3.Right(), this.pitch)
+                .multiply(BABYLON.Quaternion.RotationAxis(BABYLON.Vector3.Up(), this.yaw));
             pointer.x = event.clientX;
             pointer.y = event.clientY;
             this.dirty = true;
@@ -111,6 +142,10 @@ export class LegacyProfilePreview {
         const viewport = this.engine.currentViewport;
         const texture = this.target.getInternalTexture();
         try {
+            this.scene.incrementRenderId();
+            for (const mesh of this.shadow.getShadowMap().renderList) mesh.computeWorldMatrix(true);
+            this.scene.updateTransformMatrix(true);
+            this.shadow.getShadowMap().render(false);
             this.engine.bindFramebuffer(texture);
             this.scene.render();
             this.target.readPixels(0, 0, this.pixels);
@@ -209,9 +244,11 @@ export class LegacyProfilePreview {
 
         const scene = this.scene;
         this.root = new BABYLON.TransformNode('profileAvatar', scene);
+        this.root.setPivotPoint(new BABYLON.Vector3(0, .32, 0));
         const body = this.clone('egg', this.root);
         body.position.y = .32;
         body.material = this.eggMaterial;
+        this.shadow.getShadowMap().renderList.push(body);
         const color = BABYLON.Color3.FromHexString(shellColors[loadout.colorIdx] || shellColors[0]);
         this.shellColor = color;
         body.colorMult = color;
@@ -281,6 +318,7 @@ export class LegacyProfilePreview {
         if (this.pointer && this.canvas.hasPointerCapture(this.pointer.id)) this.canvas.releasePointerCapture(this.pointer.id);
         this.pointer = null;
         if (this.renderFrame) this.engine.stopRenderLoop(this.renderFrame);
+        this.shadow?.dispose();
         this.scene?.dispose();
     };
 };
