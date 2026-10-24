@@ -17,7 +17,7 @@ export const PluginMeta = {
     identifier: "zombiesmode",
     name: 'ZombiesMode',
     author: 'onlypuppy7 (+Claude)', //NOTE! most of this plugin is VIBECODED.
-    version: '1.2.5',
+    version: '1.2.12',
     descriptionShort: 'Adds the zombies gamemode: survive the horde, the infected join it', //displayed when loading
     descriptionLong: 'Adds the Zombies gamemode. A horde of slow DeadInternet bots walks at the humans and bites them; a human who dies (or leaves the fight through the menu) is infected and joins the horde. Last human standing wins, or the humans win by outlasting the round.',
     legacyShellVersion: 613, //legacy shell version, can be found in /versionEnum.txt, or just on the homescreen
@@ -685,17 +685,18 @@ export class Plugin {
             ? [cfg.brutishColor, { physicsSpeedModifier: cfg.brutishPhysics, resistanceModifier: cfg.brutishResistance }]
             : [cfg.smallColor, { physicsSpeedModifier: cfg.smallPhysics, scale: cfg.smallScale }];
         player.changeModifiers({ ...mods, contactDamage: biteOf(player, room) });
+        if (variant === 'small') bot.pathAs = { scale: 1 }; //takes the plain zombies' routes, and their cache: a few of them would never warm one of their own
         LegacyShellCorePlugin.setEggColor(player, ...color);
         return this.giveHat(bot, variant === 'brutish' ? cfg.brutishHat : cfg.smallHat);
     };
 
-    // What deadinternet warms its pathfinding cache for when a game server is idle: every physics profile a zombie is at, usual speed and
-    // sudden death, plain and each variant, on the maps the mode is played on (the cache is per profile, so the bots' usual one does not help).
+    // What deadinternet warms its pathfinding cache for when a game server is idle: the zombies' usual speed and sudden death, on the maps the
+    // mode is played on (the cache is per profile, so the bots' usual one does not help). The variants share them: physics speed is not part of
+    // a profile, and the small ones search as plain.
     idleWarmJobs(data) {
         const d = ZombiesModeDefaults;
-        const variants = [{}, { physicsSpeedModifier: d.brutishPhysics }, { physicsSpeedModifier: d.smallPhysics, scale: d.smallScale }];
-        for (const speedModifier of [d.zombieSpeed, d.suddenDeathSpeed]) for (const variant of variants) {
-            data.jobs.push({ maps: ZombiesModeMaps, modifiers: { speedModifier, ...variant }, searches: 2000, priority: 0 });
+        for (const speedModifier of [d.zombieSpeed, d.suddenDeathSpeed]) {
+            data.jobs.push({ maps: ZombiesModeMaps, modifiers: { speedModifier }, searches: 2000, priority: 0 });
         };
     };
 

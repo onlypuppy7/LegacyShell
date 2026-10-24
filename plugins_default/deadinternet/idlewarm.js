@@ -4,7 +4,7 @@
 // next quiet spell carries on instead of starting over.
 //
 // Other plugins add what to warm through the `idleWarmJobs` event: push { maps: ['Castle'] (or null for every map), modifiers: { speedModifier: 0.65, ... }, searches: 1000, priority: 0 }
-// (lower priority goes first) to data.jobs. The physics profile is the cache key: speed (to 0.1), gravity, jumpBoost, physicsSpeed and scale.
+// (lower priority goes first) to data.jobs. The physics profile is the cache key: speed (to 0.1), gravity, jumpBoost and scale.
 import { Worker, isMainThread } from 'node:worker_threads';
 import { ss } from '#misc';
 import { plugins } from '#plugins';

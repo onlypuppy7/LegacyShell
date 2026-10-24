@@ -1984,12 +1984,27 @@ export function clearGeometryCaches(room) {
 
 // A search is synchronous. geometryQuery() results live in the room-lifetime cache above
 // (every query's arguments - including the player's scale - are part of its key).
+// opts.as: modifiers to search with in place of the player's own (e.g. { scale: 1 }: a bot that should take the routes of a differently
+// sized one, and share its cache rather than have a cold one of its own). They are only on the player for the length of the search.
 let geometryQueries = null;
 export function findPath(room, start, goal, opts = {}) {
     const previous = geometryQueries;
     geometryQueries = canSimulate(start) && start.Collider ? cacheFor(geometryCaches, start.Collider) : null;
+    const undress = opts.as && start?.modifiers ? wearBody(start, opts.as) : null;
     try { return findPathUncached(room, start, goal, opts); }
-    finally { geometryQueries = previous; }
+    finally { geometryQueries = previous; undress?.(); }
+}
+// The collider makes a new collision box whenever the scale changes, so the one made for the borrowed body is kept on the player for next time.
+function wearBody(player, mods) {
+    const own = {}, ownMesh = player.playerCollisionMesh;
+    for (const key in mods) own[key] = player.modifiers[key];
+    Object.assign(player.modifiers, mods);
+    if (player.pathBodyMesh) player.playerCollisionMesh = player.pathBodyMesh;
+    return () => {
+        player.pathBodyMesh = player.playerCollisionMesh;
+        Object.assign(player.modifiers, own);
+        player.playerCollisionMesh = ownMesh;
+    };
 }
 function geometryQuery(name, args, compute) {
     if (!geometryQueries) return compute();

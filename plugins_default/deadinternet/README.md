@@ -352,7 +352,8 @@ the AI at 96% of tick time. Four things keep that in check (all in `pathfinding.
 - **Whether a move works depends on the bot's speed**, gravity, jump boost and size, so physics verdicts are
   cached per physics profile (speed rounded to 0.1). They used to be shared across all bots, which let the
   first bot to verify an edge decide it for everyone (at speed 1.0 only 14 of 40 Castle routes matched
-  the speed-0.6 ones).
+  the speed-0.6 ones). Physics speed is not part of it (it only changes how fast time passes, not the arc),
+  and a bot can search as another body (`bot.pathAs`, e.g. `{ scale: 1 }`) to share that body's routes and cache.
 - **The cache survives restarts** (`store/<map>-<fingerprint>.json.gz`, gitignored): loaded when the first
   bot joins, saved every 30s while it is still learning. The file is only used if the map and the
   collision/physics/pathfinding code are byte-for-byte what produced it; anything else is ignored (so after

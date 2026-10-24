@@ -31,7 +31,7 @@ export const PluginMeta = {
     identifier: "deadinternet",
     name: 'DeadInternet',
     author: 'onlypuppy7 (+Claude)', //NOTE! most of this plugin is VIBECODED.
-    version: '1.1.0',
+    version: '1.1.2',
     descriptionShort: 'Adds bot players that walk the map and fight, at any skill level', //displayed when loading
     descriptionLong: 'Adds bot players that walk the map and fight (aim, strafe, take cover, throw grenades, hear gunfire), from target dummies to nightmare skill, with ready-made fields of bots - plus a general A* pathfinding engine other plugins can use.',
     legacyShellVersion: 459, //legacy shell version, can be found in /versionEnum.txt, or just on the homescreen
@@ -216,6 +216,7 @@ export class DeadInternetBot {
         this.pathFailGoal = null;   // where the last failed search was headed
         this.pathReplanBy = 0;      // even a good route is re-checked after this
         this.pathSuspended = false; // route kept while the bot fights - see suspendPath()
+        this.pathAs = null;         // modifiers its searches use in place of its own (findPath's opts.as), e.g. { scale: 1 } to take a normal sized bot's routes
         this.stuckEventCount = 0; // total checkStuck() replans since the last real progress, regardless of position - see checkStuck()
         // Lifetime counter, deliberately NEVER auto-reset (unlike stuckEventCount above, which
         // resets on real progress for ITS OWN purpose) - a test harness snapshots this before and
@@ -526,7 +527,7 @@ export class DeadInternetBot {
         const chaseBudget = () => Math.round(Math.max(400, Math.min(2500, 200 + 40 * Math.hypot(target.x - this.player.x, target.z - this.player.z))));
         const searchOpts = opts.chase ? { snapGoal: true, allowPartial: true, maxExpansions: chaseBudget() } : {};
         const fpt0 = perf.now();
-        let path = findPath(this.room, this.player, target, { avoidEdges: this.pathAvoidedEdges, ...searchOpts, ...opts });
+        let path = findPath(this.room, this.player, target, { avoidEdges: this.pathAvoidedEdges, as: this.pathAs, ...searchOpts, ...opts });
         perf.add('findPath', fpt0);
         if (!path) perf.count('findPath.none');
         if (perf.enabled) {

@@ -635,13 +635,15 @@ export function importEdgeCache(room, entries) {
 
 // Whether an edge can be traversed depends on HOW the bot moves, not just on the two points: the
 // speed modifier scales how far each tick carries it (and so which jumps clear), and gravity, jump
-// boost, physics speed and body scale matter likewise. The cache used to ignore all of this, so the
+// boost and body scale matter likewise. The cache used to ignore all of this, so the
 // first bot to verify an edge decided it for every other bot in the room (measured: at speed 1.0
 // only 14 of 40 Castle routes matched the speed-0.6 ones). Speed is bucketed to 0.1 so bots with
 // slightly different variance-jittered speeds still share results.
+// Physics speed is not in it: it only scales each tick's delta, and the integration (trapezoid steps, constant gravity, drag as .8^delta)
+// gives the same arc at any delta - walking pace differs by about 0.2% between 0.7 and 1.25. So every verdict is simulated at 1 and shared.
 function physicsProfileKey(player) {
     const m = player?.modifiers ?? {};
-    return [Math.round((m.speedModifier ?? 1) * 10) / 10, m.gravityModifier ?? 1, m.jumpBoostModifier ?? 1, m.physicsSpeedModifier ?? 1, m.scale ?? 1];
+    return [Math.round((m.speedModifier ?? 1) * 10) / 10, m.gravityModifier ?? 1, m.jumpBoostModifier ?? 1, m.scale ?? 1];
 }
 
 export function simulateEdgeCached(room, player, fromKey, toKey, from, to, opts = {}) {
@@ -659,7 +661,11 @@ export function simulateEdgeCached(room, player, fromKey, toKey, from, to, opts 
     const cached = cache.get(cacheKey);
     if (cached) return cached;
 
-    const result = simulateEdge(player, from, to, opts);
+    const physicsSpeed = player?.modifiers?.physicsSpeedModifier;
+    if (physicsSpeed !== undefined) player.modifiers.physicsSpeedModifier = 1; //(see physicsProfileKey)
+    let result;
+    try { result = simulateEdge(player, from, to, opts); }
+    finally { if (physicsSpeed !== undefined) player.modifiers.physicsSpeedModifier = physicsSpeed; }
     cache.set(cacheKey, result);
     edgeCacheWriteCount++;
     return result;

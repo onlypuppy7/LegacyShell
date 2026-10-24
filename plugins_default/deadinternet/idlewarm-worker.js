@@ -39,14 +39,14 @@ async function open(map) {
         await bot.init();
         stopLoops(room);
         const spawns = (room.spawnPoints || []).flat().filter(Boolean).map((s) => ({ x: Math.floor(s.x) + 0.5, y: s.y, z: Math.floor(s.z) + 0.5 }));
-        current = { map, room, player: bot.player, spawns };
+        current = { map, room, player: bot.player, spawns, base: { ...bot.player.modifiers } };
         return true;
     });
 }
 
 for (const item of work) {
     if (current?.map !== item.map && !(await open(item.map))) continue;
-    const { room, player, spawns } = current;
+    const { room, player, spawns, base } = current;
     const standable = () => {
         for (let attempt = 0; attempt < 60; attempt++) {
             const x = Math.floor(rng() * room.map.width), z = Math.floor(rng() * room.map.depth);
@@ -63,7 +63,7 @@ for (const item of work) {
                 const from = pick(i), to = pick(i + (i % 3));
                 player.respawn(from);
                 Object.assign(player, { x: from.x, y: from.y, z: from.z, dx: 0, dy: 0, dz: 0 });
-                Object.assign(player.modifiers, item.modifiers);
+                Object.assign(player.modifiers, base, item.modifiers); //(from the bot's own each time: a job only names what it changes, and the last job's scale used to stay on)
                 pathfinding.findPath(room, player, to, { snapGoal: true, allowPartial: true, maxExpansions: 2500 });
             }
             await saveGeometryCache(room, { force: true });
