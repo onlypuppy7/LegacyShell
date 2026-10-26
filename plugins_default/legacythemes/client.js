@@ -15,7 +15,16 @@ const LegacyThemesPlugin = {
 
         this.soundPacks = [];
         this.defaultSounds = {};
+        this.defaultCues = {};
         this.appliedSounds = {};
+        this.cueGeneration = 0;
+
+        loadCue = (name, srcs) => {
+            this.defaultCues[name] = srcs.slice();
+            const overrides = this.getSoundOverrides(this.soundCurrentList?.get() || []);
+            const src = overrides[name] || srcs;
+            this.loadSoundCue(name, Array.isArray(src) ? src : [src]);
+        };
 
         this.initialApplied = false;
     },
@@ -198,11 +207,15 @@ const LegacyThemesPlugin = {
     },
 
     loadSounds: function (data) {
-        for (const sound of data.soundsList) this.defaultSounds[sound[1]] = sound;
+        for (const sound of data.soundsList) this.defaultSounds[sound[1]] = sound.slice();
 
         const overrides = this.getSoundOverrides(this.soundCurrentList?.get() || []);
-        for (const sound of data.soundsList) {
-            if (overrides[sound[1]]) sound[0] = overrides[sound[1]];
+        for (const sound of data.soundsList.slice()) {
+            const src = overrides[sound[1]];
+            if (Array.isArray(src)) {
+                this.loadSoundCue(sound[1], src);
+                data.soundsList.splice(data.soundsList.indexOf(sound), 1);
+            } else if (src) sound[0] = src;
         }
         this.appliedSounds = overrides;
     },
@@ -365,6 +378,28 @@ const LegacyThemesPlugin = {
         return overrides;
     },
 
+    loadSoundCue: function (name, srcs) {
+        const cue = new Cue(name);
+        const generation = ++this.cueGeneration;
+        const members = srcs.map((src, i) => `CUE.${name}.legacythemes.${generation}.${i}`);
+        const remove = member => {
+            sounds[member]?.unload();
+            delete sounds[member];
+        };
+        cue.unload = () => {
+            cue.dead = true;
+            members.forEach(remove);
+        };
+        setSound(name, cue);
+        srcs.forEach((src, i) => {
+            cue.sounds[i] = 'RESERVED';
+            loadSound(src, members[i], () => {
+                if (cue.dead) remove(members[i]);
+                else cue.sounds[i] = members[i];
+            });
+        });
+    },
+
     applySoundsFromList: function (list) {
         if (!soundsLoaded) return; //loadSounds picks the list up itself
 
@@ -373,9 +408,12 @@ const LegacyThemesPlugin = {
         devlog("Applying sounds:", list, overrides);
 
         for (const name of new Set([...Object.keys(this.appliedSounds), ...Object.keys(overrides)])) {
-            const src = overrides[name] || this.defaultSounds[name]?.[0];
-            if (!src || src === (this.appliedSounds[name] || this.defaultSounds[name]?.[0])) continue;
-            loadSound(src, name, () => {}, this.defaultSounds[name]?.[2]);
+            const fallback = this.defaultCues[name] || this.defaultSounds[name]?.[0];
+            const src = overrides[name] || fallback;
+            if (!src || src === (this.appliedSounds[name] || fallback)) continue;
+            if (Array.isArray(src) || this.defaultCues[name]) {
+                this.loadSoundCue(name, Array.isArray(src) ? src : [src]);
+            } else loadSound(src, name, () => {}, this.defaultSounds[name]?.[2]);
         }
 
         this.appliedSounds = overrides;
