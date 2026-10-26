@@ -10,6 +10,12 @@ The flagship content-pack plugin - custom maps, items, stamps, a baseline shop p
 - **A permanent baseline shop pool**: registers a synthetic seasonal event (`services:eventsInit`) named `_legacyshellcore` that starts `01-01` and lasts `999w` - functionally "always active" - defining `tier1pool`/`tier2pool`/`tier3pool` item-tag lists (`tier2count: 3`, `tier3count: 8`). This is the real mechanism the public instance uses to give the [weekly shop rotation](/wiki/docs/05-Codebase%20Reference/catalog-and-items.md#the-weekly-shop-rotation-algorithm-setupshopavailable) a permanent pool to draw from, expressed as an ordinary (if unusually long) seasonal event rather than a separate system.
 - **A map tag tweak via `insertMaps`**: adds a `Hiroshima` gamemode flag to the "Ruins" and "Shipyard" maps specifically (the source comment: "better than modifying the maps directly") - a real example of adjusting default map data from a plugin instead of hand-editing the shipped map JSON.
 
+## Sound packs
+
+With LegacyThemes enabled, **Minecraft** is available under Settings → Theming → Sound Packs. It replaces 27 weapon, grenade, pickup and hit sounds plus all ten randomized death screams, including Crackshot sounds when that plugin is enabled. Files use the original LegacyShell sound filenames under `client/sounds/minecraft/`.
+
+Unused extracted sounds remain in `store/minecraft/`, including sounds for newer weapons and modes, UI sounds and the duplicate OGG.
+
 ## Two gameplay easter eggs
 
 Both gated behind a room's `gameOptions.glitchyRoom1`/`glitchyRoom2` flags (not exposed through any normal command in this plugin itself - something else would need to set them):
