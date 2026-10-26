@@ -9,4 +9,5 @@ export const dependencies = {
     legacyanalytics: "plugin",
     healthpackitem: "plugin",
     legacysettings: "plugin",
+    legacythemes: "plugin",
 };

@@ -1,0 +1,36 @@
+* {
+    --customizer-skyColor: #5b3f7d;
+    --customizer-diffuseColor: #7a3410;
+
+    /* blue is now murky purple */
+    --ss-blue0: #e2c8f2;
+    --ss-blue1: #a56fc8;
+    --ss-blue2: #703a96;
+    --ss-blue3: #4a2068;
+    --ss-blue4: #2c0f44;
+
+    --ss-white0: #ffd9b0;
+    --ss-yellow0: #ff9d1c;
+
+    --ss-orange1: #e0832a;
+    --ss-orange2: #c2610f;
+    --ss-orange4: #8f3d00;
+    --ss-orange6: #5a2300;
+
+    --itemButton-gradient-start: #c2610f;
+    --itemButton-gradient-end: #4a2068;
+}
+
+h1 {
+    color: #b57be0;
+    text-shadow: 0 0 10px #7a2fb0;
+}
+
+#logo img {
+    filter: drop-shadow(0 0 10px #a56fc8);
+}
+
+#serverName, #classWeapon, .statLabel, #customGame h3, #footerlinks, #footerlinks a {
+    color: #f3e3ff;
+    text-shadow: 0 0 6px rgba(0, 0, 0, 0.7);
+}

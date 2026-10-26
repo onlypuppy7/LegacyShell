@@ -1,0 +1,94 @@
+* {
+    --customizer-skyColor: #000000; /* the scene is black, so the screen blend below lets the html bands through */
+    --customizer-diffuseColor: #000000;
+
+    --bg-white: #ffffff;
+    --bg-green: #00966e;
+    --bg-red: #d62612;
+    --bg-bands-h: linear-gradient(to bottom, var(--bg-white) 0 33.34%, var(--bg-green) 33.34% 66.67%, var(--bg-red) 66.67% 100%);
+    --bg-bands-v: linear-gradient(to right, var(--bg-white) 0 33.34%, var(--bg-green) 33.34% 66.67%, var(--bg-red) 66.67% 100%);
+
+    /* blue is now green */
+    --ss-blue0: #e3f5ea;
+    --ss-blue1: #9fd8b4;
+    --ss-blue2: #4fae74;
+    --ss-blue3: #00966e;
+    --ss-blue4: #006b4e;
+
+    --ss-orange1: #e8553f;
+    --ss-orange2: #d62612;
+    --ss-orange4: #a31a0b;
+    --ss-orange6: #6e1208;
+
+    --ss-yellow0: #ffffff;
+
+    --itemButton-gradient-start: #ffffff;
+    --itemButton-gradient-end: #00966e;
+}
+
+html {
+    background: var(--bg-bands-h) fixed;
+}
+
+body:has(#game[style*="display: none"]) #canvas { /* menus only, the game itself stays untouched */
+    mix-blend-mode: screen;
+    filter: brightness(1.55) contrast(1.15); /* keeps the egg solid instead of see-through */
+}
+
+#showItemTemplate { /* sat behind the canvas until now */
+    visibility: hidden;
+}
+
+/* text sits on the band behind it: dark on white, light on green and red */
+#serverName {
+    color: #006b4e;
+}
+
+#classWeapon, .statLabel, #customGame h3, #footerlinks, #footerlinks a {
+    color: #fff;
+    text-shadow: 0 0 6px rgba(0, 0, 0, 0.6);
+}
+
+#footerlinks {
+    translate: 0 -8px;
+}
+
+#logo img {
+    filter: drop-shadow(0 0 10px #00966e);
+}
+
+#cornerButtons img {
+    filter: drop-shadow(0 0 3px #006b4e) drop-shadow(0 0 1px #006b4e);
+}
+
+/* buttons: the flag as the fill, the old colour kept for the border */
+button.ssbutton {
+    /* !important to override legacythemes' own !important fill */
+    background: linear-gradient(to bottom, var(--bg-white) 0 33.34%, var(--bg-green) 33.34% 66.67%, var(--bg-red) 66.67% 100%) !important;
+    border: 3px solid #a31a0b;
+    text-shadow: 0 0 3px #000, 1px 1px 0 #000;
+}
+
+button.ssbutton:is(.blue, .green) {
+    border-color: #006b4e;
+}
+
+button.ssbutton.purple {
+    border-color: #cc3399;
+}
+
+.textInput, select {
+    border-bottom: 4px solid transparent;
+    border-image: var(--bg-bands-v) 0 0 1 0 / 0 0 4px 0 stretch;
+}
+
+/* menus: white on top, red on the bottom, the flag running down the sides */
+.ssMenuOverlay > div {
+    border: 0 solid transparent;
+    border-top: 12px solid var(--bg-white);
+    border-bottom: 12px solid var(--bg-red);
+    background-image: var(--bg-bands-h), var(--bg-bands-h);
+    background-size: 10px 100%, 10px 100%;
+    background-position: left, right;
+    background-repeat: no-repeat;
+}
