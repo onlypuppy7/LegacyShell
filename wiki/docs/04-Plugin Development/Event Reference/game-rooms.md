@@ -12,84 +12,84 @@ Every `plugins.emit(...)` call site found in the files below, extracted directly
 | `roomInit` | `server-game/src/rooms.js:35` | `{this: this}` | A room is being constructed. |
 | `roomSetSS` | `server-game/src/rooms.js:39` | `{ss}` | The room worker's local `ss` is being seeded with `{maps, items, permissions, config}` from the main thread. |
 | `roomInitGameOptions` | `server-game/src/rooms.js:61` | `{this: this}` | `gameOptions` is being initialized for the room. |
-| `roomBeforeMapBuild` | `server-game/src/rooms.js:94` | `{this: this, info: info}` | Before the map is built — a listener can rewrite `this.minMap` to substitute a custom map. |
-| `roomInitEnd` | `server-game/src/rooms.js:168` | `{ this: this }` | Room construction finished; the room is ready to accept players. |
-| `roomWsMessage` | `server-game/src/rooms.js:185` | `{this: this, client, type, content}` | A raw, not-yet-decoded websocket message arrived for a client in this room (relayed from the main thread) — a plugin can decode it itself with `new Comm.In(data.content)` to react to a custom opcode. |
-| `packRoundEnd` | `server-game/src/rooms.js:255` | `{this: this, output}` | Building the "round end" network packet — fires before the packet body is assembled. |
-| `packRoundEndEnd` | `server-game/src/rooms.js:258` | `{this: this, output}` | Building the "round end" network packet — fires after the packet body is assembled. |
-| `packRoundUpdate` | `server-game/src/rooms.js:262` | `{this: this, output}` | Building the "round update" (timer) network packet — fires before the packet body is assembled. |
-| `packRoundUpdateEnd` | `server-game/src/rooms.js:267` | `{this: this, output}` | Building the "round update" (timer) network packet — fires after the packet body is assembled. |
-| `resetGamePlayer` | `server-game/src/rooms.js:284` | `{this: this, player}` | A player's round-scoped state (score, etc.) is being reset. |
-| `roomDetailsUpdated` | `server-game/src/rooms.js:294` | `{this: this, details: this.details}` | Room metadata (name, options, etc.) is changing — fires before the change is applied. |
-| `roomDetailsUpdatedEnd` | `server-game/src/rooms.js:322` | `{this: this, details: this.details}` | Room metadata (name, options, etc.) has changed — fires after the change is applied. |
-| `packUpdateRoomParams` | `server-game/src/rooms.js:332` | `{this: this, output}` | Building the room-params sync packet sent to clients — fires before the packet body is assembled. |
-| `packUpdateRoomParamsEnd` | `server-game/src/rooms.js:342` | `{this: this, output}` | Building the room-params sync packet sent to clients — fires after the packet body is assembled. |
-| `roomUpdate` | `server-game/src/rooms.js:397` | `{this: this, delta, currentTimeStamp}` | Top of the 60Hz simulation tick, before per-player updates run. |
-| `playerUpdate` | `server-game/src/rooms.js:406` | `{this: this, player, delta, currentTimeStamp}` | Per-player, per-tick update within the main tick loop. |
-| `playerStateUpdate` | `server-game/src/rooms.js:412` | `{this: this, player, delta, currentTimeStamp}` | Per-player state-buffer replay/prediction step within the main tick loop. |
-| `roomStateUpdate` | `server-game/src/rooms.js:424` | `{this: this, delta, currentTimeStamp}` | End of the per-tick player loop. |
-| `roomSync` | `server-game/src/rooms.js:431` | `{this: this}` | The ~10Hz full-state sync is about to run (every `FramesBetweenSyncs` ticks). |
-| `dataSyncLoop` | `server-game/src/rooms.js:440` | `{this: this, delta, output}` | The ~1000ms "data sync" loop (less time-critical per-client data) is running. |
-| `clientDataSync` | `server-game/src/rooms.js:443` | `{this: this, client, delta, output}` | Per-client step within the data-sync loop. |
-| `roomDataSync` | `server-game/src/rooms.js:447` | `{this: this, delta, output}` | End of the data-sync loop. |
-| `metaLoop` | `server-game/src/rooms.js:453` | `{this: this, fromDisconnect}` | The ~2000ms "meta" loop (idle-kick, weather triggers, empty-room destroy) is running. |
-| `metaLoopClients` | `server-game/src/rooms.js:459` | `{this: this, client, fromDisconnect}` | Per-client step within the meta loop. |
-| `roomDestroy` | `server-game/src/rooms.js:483` | `{this: this}` | The room is being torn down. |
-| `clientSync` | `server-game/src/rooms.js:508` | `{this: this, output}` | Building the full-state sync packet — fires once, before the per-client loop below. |
-| `clientSyncLoop` | `server-game/src/rooms.js:511` | `{ this: this, client, output }` | Building the full-state sync packet — fires once per client; a plugin can set `plugins.cancel` here to replace the default position data with its own (e.g. occlusion-based visibility filtering). |
-| `clientSyncEnd` | `server-game/src/rooms.js:517` | `{this: this, output}` | Building the full-state sync packet — fires once at the end, after every client has been packed. |
-| `joinPlayer` | `server-game/src/rooms.js:523` | `{this: this, info}` | A player is joining this room. |
-| `registerPlayerClient` | `server-game/src/rooms.js:538` | `{this: this, client}` | The new `ClientConstructor` is registered into the room's player list. |
-| `disconnectClient` | `server-game/src/rooms.js:544` | `{this: this, client}` | A player is leaving/disconnecting — the closest real equivalent to a "leave" hook (there is no separate `leavePlayer` event, despite the naming symmetry you might expect with `joinPlayer`). |
-| `getPlayerCountLoop` | `server-game/src/rooms.js:577` | `{this: this, count, uuids, usernames, sessions, player, extraDetails}` | Computing the room's live player count/roster — fires once per player being counted. |
-| `getPlayerCount` | `server-game/src/rooms.js:581` | `{this: this, count, uuids, usernames, sessions, extraDetails}` | Computing the room's live player count/roster — fires once with the final tally. |
-| `getOldestClientLoop` | `server-game/src/rooms.js:592` | `{this: this, client, oldestClient, oldestTime}` | Finding the longest-connected client (used for game-owner fallback) — fires once per client being checked. |
-| `getOldestClient` | `server-game/src/rooms.js:599` | `{this: this, oldestClient}` | Finding the longest-connected client (used for game-owner fallback) — fires once with the result. |
-| `packSetGameOwner` | `server-game/src/rooms.js:604` | `{this: this, output}` | Building the "game owner" packet — fires before the packet body is assembled. |
-| `packSetGameOwnerFound` | `server-game/src/rooms.js:606` | `{this: this, output}` | Building the "game owner" packet — fires once an owner has actually been found. |
-| `setGameOwner` | `server-game/src/rooms.js:614` | `{this: this}` | Game-owner assignment/reassignment is starting (private rooms only have an owner). |
-| `setGameOwnerPrivate` | `server-game/src/rooms.js:616` | `{this: this}` | Game-owner assignment is proceeding, specifically for a private room. |
-| `setGameOwnerNew` | `server-game/src/rooms.js:622` | `{this: this, newOwner}` | A new game owner has been chosen. |
-| `getRandomSpawn` | `server-game/src/rooms.js:640` | `{this: this, player, list, pos}` | A random spawn point is being picked for a player. |
-| `getBestSpawn` | `server-game/src/rooms.js:653` | `{this: this, player}` | The "furthest from enemies" best-spawn algorithm is starting for a player. |
-| `getBestSpawnLoop` | `server-game/src/rooms.js:663` | `{this: this, player, spwn, spawnPos, smallestDistance}` | The "furthest from enemies" best-spawn algorithm — fires once per candidate spawn point being scored. |
-| `getBestSpawnEnd` | `server-game/src/rooms.js:681` | `{this: this, player, best, bestDistance}` | The "furthest from enemies" best-spawn algorithm — fires once with the chosen spawn point. |
-| `getValidItemSpawns` | `server-game/src/rooms.js:697` | `{this: this, data}` | Scanning the map for valid item-spawn cells — fires before the scan starts. |
-| `getValidItemSpawnsLoop` | `server-game/src/rooms.js:705` | `{this: this, x, y, z}` | Scanning the map for valid item-spawn cells — fires once per cell being checked. |
-| `getValidItemSpawnsEnd` | `server-game/src/rooms.js:716` | `{this: this}` | Scanning the map for valid item-spawn cells — fires once the scan is complete. |
-| `notify` | `server-game/src/rooms.js:724` | `{this: this, client, text, timeoutTime}` | A toast/notification is being sent to one client, as part of a room-wide `room.notify(text, timeoutTime)` broadcast. |
-| `packChat` | `server-game/src/rooms.js:731` | `{this: this, output, text, id, chatType}` | Building a chat-message packet — fires before the packet body is assembled (runs after `censor.js` filtering has already happened). |
-| `packChatEnd` | `server-game/src/rooms.js:736` | `{this: this, output, text, id, chatType}` | Building a chat-message packet — fires after the packet body is assembled. |
-| `packSpawnItemPacket` | `server-game/src/rooms.js:740` | `{this: this, output, id, kind, x, y, z}` | Building an item-spawn packet — fires before the packet body is assembled. |
-| `packSpawnItemPacketEnd` | `server-game/src/rooms.js:747` | `{this: this, output, id, kind, x, y, z}` | Building an item-spawn packet — fires after the packet body is assembled. |
-| `packCollectItemPacket` | `server-game/src/rooms.js:751` | `{this: this, output, playerId, kind, index, id}` | Building an item-collected packet — fires before the packet body is assembled. |
-| `packCollectItemPacketEnd` | `server-game/src/rooms.js:757` | `{this: this, output, playerId, kind, index, id}` | Building an item-collected packet — fires after the packet body is assembled. |
-| `packAllItems` | `server-game/src/rooms.js:762` | `{this: this, output, pools}` | Building the full item-state packet sent on join — fires before the per-pool loop below. |
-| `packAllItemsLoop` | `server-game/src/rooms.js:767` | `{this: this, output, item, i}` | Building the full item-state packet sent on join — fires once per item being packed. |
-| `spawnItems` | `server-game/src/rooms.js:777` | `{this: this, pools, output}` | The periodic item-spawning algorithm is starting for this pass. |
-| `spawnItemsLoop` | `server-game/src/rooms.js:789` | `{this: this, pool, i, maximum, output}` | The item-spawning algorithm — fires once per item pool being processed. |
-| `spawnItemsLoopSpawn` | `server-game/src/rooms.js:798` | `{this: this, pool, i, maximum, output, x, y, z}` | The item-spawning algorithm — fires immediately before an individual item is actually spawned. |
-| `spawnItemsLoopSpawnEnd` | `server-game/src/rooms.js:805` | `{this: this, pool, i, maximum, output, x, y, z, item}` | The item-spawning algorithm — fires immediately after an individual item has been spawned. |
-| `spawnItemsEnd` | `server-game/src/rooms.js:811` | `{this: this, pools, output}` | The periodic item-spawning algorithm has finished this pass. |
-| `getItemSpawnFromQueue` | `server-game/src/rooms.js:819` | `{this: this, pos}` | Pulling the next queued spawn position — fires before the position is resolved. |
-| `getItemSpawnFromQueueEnd` | `server-game/src/rooms.js:823` | `{this: this, pos}` | Pulling the next queued spawn position — fires with the resolved position. |
-| `getUnusedPlayerId` | `server-game/src/rooms.js:829` | `{this: this}` | Allocating a free numeric player-id slot — fires before the scan starts. |
-| `getUnusedPlayerIdLoop` | `server-game/src/rooms.js:839` | `{this: this, i, client, player}` | Allocating a free numeric player-id slot — fires once per candidate id being checked. |
-| `getPreferredTeam` | `server-game/src/rooms.js:851` | `{this: this}` | Team-balancing logic for a joining player — fires before team counts are tallied. |
-| `getPreferredTeamEnd` | `server-game/src/rooms.js:859` | `{this: this, team1Count, team2Count}` | Team-balancing logic for a joining player — fires with the chosen team. |
-| `getPlayerClient` | `server-game/src/rooms.js:868` | `{this: this, client, player}` | Resolving a `Player` back to its owning `ClientConstructor`. |
-| `packAllPlayers` | `server-game/src/rooms.js:874` | `{this: this, output}` | Building the full player-roster packet sent on join — fires before the per-client loop below. |
-| `packAllPlayersLoop` | `server-game/src/rooms.js:878` | `{this: this, output, client}` | Building the full player-roster packet sent on join — fires once per player being packed. |
-| `sendToOne` | `server-game/src/rooms.js:887` | `{this: this, output, fromId, toId, debug}` | Unicast send to one client — fires before the target is resolved. |
-| `sendToOneFound` | `server-game/src/rooms.js:889` | `{this: this, output, fromId, toId, debug}` | Unicast send to one client — fires once the target client has been found. |
-| `sendToOthers` | `server-game/src/rooms.js:900` | `{this: this, output, fromId, debug}` | Broadcast to all clients but one — fires before the per-client loop below. |
-| `sendToOthersLoop` | `server-game/src/rooms.js:902` | `{this: this, client, output, fromId, debug}` | Broadcast to all clients but one — fires once per client being considered. |
-| `sendToOthersLoopFound` | `server-game/src/rooms.js:904` | `{this: this, client, output, fromId, debug}` | Broadcast to all clients but one — fires once for each client that actually receives the packet. |
-| `sendToAll` | `server-game/src/rooms.js:911` | `{this: this, output, fromId, debug}` | Broadcast to every client — fires before the per-client loop below; a plugin can set `plugins.cancel` here to replace default fan-out with custom per-client visibility filtering. |
-| `sendToAllLoop` | `server-game/src/rooms.js:913` | `{this: this, client, output, fromId, debug}` | Broadcast to every client — fires once per client being considered. |
-| `sendToAllLoopFound` | `server-game/src/rooms.js:915` | `{this: this, client, output, fromId, debug}` | Broadcast to every client — fires once for each client that actually receives the packet. |
-| `roomLoaded` | `server-game/src/rooms.js:922` | `{RoomConstructor}` | Module load, once — hands out the room class itself. |
-| `adminCommand` | `server-game/src/worker.js:51` | `{ payload: message }` | Main thread relayed an admin action into THIS specific room worker (e.g. a kick - see `roomManager.js`'s admin dispatch and legacyadmin's `game/moderationWorker.js`/`game/roomBridge.js`). Only meaningful once `ss.room` exists. |
+| `roomBeforeMapBuild` | `server-game/src/rooms.js:96` | `{this: this, info: info}` | Before the map is built — a listener can rewrite `this.minMap` to substitute a custom map. |
+| `roomInitEnd` | `server-game/src/rooms.js:173` | `{ this: this }` | Room construction finished; the room is ready to accept players. |
+| `roomWsMessage` | `server-game/src/rooms.js:190` | `{this: this, client, type, content}` | A raw, not-yet-decoded websocket message arrived for a client in this room (relayed from the main thread) — a plugin can decode it itself with `new Comm.In(data.content)` to react to a custom opcode. |
+| `packRoundEnd` | `server-game/src/rooms.js:260` | `{this: this, output}` | Building the "round end" network packet — fires before the packet body is assembled. |
+| `packRoundEndEnd` | `server-game/src/rooms.js:263` | `{this: this, output}` | Building the "round end" network packet — fires after the packet body is assembled. |
+| `packRoundUpdate` | `server-game/src/rooms.js:267` | `{this: this, output}` | Building the "round update" (timer) network packet — fires before the packet body is assembled. |
+| `packRoundUpdateEnd` | `server-game/src/rooms.js:272` | `{this: this, output}` | Building the "round update" (timer) network packet — fires after the packet body is assembled. |
+| `resetGamePlayer` | `server-game/src/rooms.js:289` | `{this: this, player}` | A player's round-scoped state (score, etc.) is being reset. |
+| `roomDetailsUpdated` | `server-game/src/rooms.js:299` | `{this: this, details: this.details}` | Room metadata (name, options, etc.) is changing — fires before the change is applied. |
+| `roomDetailsUpdatedEnd` | `server-game/src/rooms.js:327` | `{this: this, details: this.details}` | Room metadata (name, options, etc.) has changed — fires after the change is applied. |
+| `packUpdateRoomParams` | `server-game/src/rooms.js:337` | `{this: this, output}` | Building the room-params sync packet sent to clients — fires before the packet body is assembled. |
+| `packUpdateRoomParamsEnd` | `server-game/src/rooms.js:347` | `{this: this, output}` | Building the room-params sync packet sent to clients — fires after the packet body is assembled. |
+| `roomUpdate` | `server-game/src/rooms.js:402` | `{this: this, delta, currentTimeStamp}` | Top of the 60Hz simulation tick, before per-player updates run. |
+| `playerUpdate` | `server-game/src/rooms.js:411` | `{this: this, player, delta, currentTimeStamp}` | Per-player, per-tick update within the main tick loop. |
+| `playerStateUpdate` | `server-game/src/rooms.js:417` | `{this: this, player, delta, currentTimeStamp}` | Per-player state-buffer replay/prediction step within the main tick loop. |
+| `roomStateUpdate` | `server-game/src/rooms.js:429` | `{this: this, delta, currentTimeStamp}` | End of the per-tick player loop. |
+| `roomSync` | `server-game/src/rooms.js:436` | `{this: this}` | The ~10Hz full-state sync is about to run (every `FramesBetweenSyncs` ticks). |
+| `dataSyncLoop` | `server-game/src/rooms.js:445` | `{this: this, delta, output}` | The ~1000ms "data sync" loop (less time-critical per-client data) is running. |
+| `clientDataSync` | `server-game/src/rooms.js:448` | `{this: this, client, delta, output}` | Per-client step within the data-sync loop. |
+| `roomDataSync` | `server-game/src/rooms.js:452` | `{this: this, delta, output}` | End of the data-sync loop. |
+| `metaLoop` | `server-game/src/rooms.js:458` | `{this: this, fromDisconnect}` | The ~2000ms "meta" loop (idle-kick, weather triggers, empty-room destroy) is running. |
+| `metaLoopClients` | `server-game/src/rooms.js:464` | `{this: this, client, fromDisconnect}` | Per-client step within the meta loop. |
+| `roomDestroy` | `server-game/src/rooms.js:489` | `{this: this}` | The room is being torn down. |
+| `clientSync` | `server-game/src/rooms.js:514` | `{this: this, output}` | Building the full-state sync packet — fires once, before the per-client loop below. |
+| `clientSyncLoop` | `server-game/src/rooms.js:517` | `{ this: this, client, output }` | Building the full-state sync packet — fires once per client; a plugin can set `plugins.cancel` here to replace the default position data with its own (e.g. occlusion-based visibility filtering). |
+| `clientSyncEnd` | `server-game/src/rooms.js:523` | `{this: this, output}` | Building the full-state sync packet — fires once at the end, after every client has been packed. |
+| `joinPlayer` | `server-game/src/rooms.js:529` | `{this: this, info}` | A player is joining this room. |
+| `registerPlayerClient` | `server-game/src/rooms.js:544` | `{this: this, client}` | The new `ClientConstructor` is registered into the room's player list. |
+| `disconnectClient` | `server-game/src/rooms.js:550` | `{this: this, client}` | A player is leaving/disconnecting — the closest real equivalent to a "leave" hook (there is no separate `leavePlayer` event, despite the naming symmetry you might expect with `joinPlayer`). |
+| `getPlayerCountLoop` | `server-game/src/rooms.js:583` | `{this: this, count, uuids, usernames, sessions, player, extraDetails}` | Computing the room's live player count/roster — fires once per player being counted. |
+| `getPlayerCount` | `server-game/src/rooms.js:587` | `{this: this, count, uuids, usernames, sessions, extraDetails}` | Computing the room's live player count/roster — fires once with the final tally. |
+| `getOldestClientLoop` | `server-game/src/rooms.js:598` | `{this: this, client, oldestClient, oldestTime}` | Finding the longest-connected client (used for game-owner fallback) — fires once per client being checked. |
+| `getOldestClient` | `server-game/src/rooms.js:605` | `{this: this, oldestClient}` | Finding the longest-connected client (used for game-owner fallback) — fires once with the result. |
+| `packSetGameOwner` | `server-game/src/rooms.js:610` | `{this: this, output}` | Building the "game owner" packet — fires before the packet body is assembled. |
+| `packSetGameOwnerFound` | `server-game/src/rooms.js:612` | `{this: this, output}` | Building the "game owner" packet — fires once an owner has actually been found. |
+| `setGameOwner` | `server-game/src/rooms.js:620` | `{this: this}` | Game-owner assignment/reassignment is starting (private rooms only have an owner). |
+| `setGameOwnerPrivate` | `server-game/src/rooms.js:622` | `{this: this}` | Game-owner assignment is proceeding, specifically for a private room. |
+| `setGameOwnerNew` | `server-game/src/rooms.js:628` | `{this: this, newOwner}` | A new game owner has been chosen. |
+| `getRandomSpawn` | `server-game/src/rooms.js:646` | `{this: this, player, list, pos}` | A random spawn point is being picked for a player. |
+| `getBestSpawn` | `server-game/src/rooms.js:659` | `{this: this, player}` | The "furthest from enemies" best-spawn algorithm is starting for a player. |
+| `getBestSpawnLoop` | `server-game/src/rooms.js:669` | `{this: this, player, spwn, spawnPos, smallestDistance}` | The "furthest from enemies" best-spawn algorithm — fires once per candidate spawn point being scored. |
+| `getBestSpawnEnd` | `server-game/src/rooms.js:687` | `{this: this, player, best, bestDistance}` | The "furthest from enemies" best-spawn algorithm — fires once with the chosen spawn point. |
+| `getValidItemSpawns` | `server-game/src/rooms.js:703` | `{this: this, data}` | Scanning the map for valid item-spawn cells — fires before the scan starts. |
+| `getValidItemSpawnsLoop` | `server-game/src/rooms.js:711` | `{this: this, x, y, z}` | Scanning the map for valid item-spawn cells — fires once per cell being checked. |
+| `getValidItemSpawnsEnd` | `server-game/src/rooms.js:722` | `{this: this}` | Scanning the map for valid item-spawn cells — fires once the scan is complete. |
+| `notify` | `server-game/src/rooms.js:730` | `{this: this, client, text, timeoutTime}` | A toast/notification is being sent to one client, as part of a room-wide `room.notify(text, timeoutTime)` broadcast. |
+| `packChat` | `server-game/src/rooms.js:737` | `{this: this, output, text, id, chatType}` | Building a chat-message packet — fires before the packet body is assembled (runs after `censor.js` filtering has already happened). |
+| `packChatEnd` | `server-game/src/rooms.js:742` | `{this: this, output, text, id, chatType}` | Building a chat-message packet — fires after the packet body is assembled. |
+| `packSpawnItemPacket` | `server-game/src/rooms.js:746` | `{this: this, output, id, kind, x, y, z}` | Building an item-spawn packet — fires before the packet body is assembled. |
+| `packSpawnItemPacketEnd` | `server-game/src/rooms.js:753` | `{this: this, output, id, kind, x, y, z}` | Building an item-spawn packet — fires after the packet body is assembled. |
+| `packCollectItemPacket` | `server-game/src/rooms.js:757` | `{this: this, output, playerId, kind, index, id}` | Building an item-collected packet — fires before the packet body is assembled. |
+| `packCollectItemPacketEnd` | `server-game/src/rooms.js:763` | `{this: this, output, playerId, kind, index, id}` | Building an item-collected packet — fires after the packet body is assembled. |
+| `packAllItems` | `server-game/src/rooms.js:768` | `{this: this, output, pools}` | Building the full item-state packet sent on join — fires before the per-pool loop below. |
+| `packAllItemsLoop` | `server-game/src/rooms.js:773` | `{this: this, output, item, i}` | Building the full item-state packet sent on join — fires once per item being packed. |
+| `spawnItems` | `server-game/src/rooms.js:783` | `{this: this, pools, output}` | The periodic item-spawning algorithm is starting for this pass. |
+| `spawnItemsLoop` | `server-game/src/rooms.js:795` | `{this: this, pool, i, maximum, output}` | The item-spawning algorithm — fires once per item pool being processed. |
+| `spawnItemsLoopSpawn` | `server-game/src/rooms.js:804` | `{this: this, pool, i, maximum, output, x, y, z}` | The item-spawning algorithm — fires immediately before an individual item is actually spawned. |
+| `spawnItemsLoopSpawnEnd` | `server-game/src/rooms.js:811` | `{this: this, pool, i, maximum, output, x, y, z, item}` | The item-spawning algorithm — fires immediately after an individual item has been spawned. |
+| `spawnItemsEnd` | `server-game/src/rooms.js:817` | `{this: this, pools, output}` | The periodic item-spawning algorithm has finished this pass. |
+| `getItemSpawnFromQueue` | `server-game/src/rooms.js:825` | `{this: this, pos}` | Pulling the next queued spawn position — fires before the position is resolved. |
+| `getItemSpawnFromQueueEnd` | `server-game/src/rooms.js:829` | `{this: this, pos}` | Pulling the next queued spawn position — fires with the resolved position. |
+| `getUnusedPlayerId` | `server-game/src/rooms.js:835` | `{this: this}` | Allocating a free numeric player-id slot — fires before the scan starts. |
+| `getUnusedPlayerIdLoop` | `server-game/src/rooms.js:845` | `{this: this, i, client, player}` | Allocating a free numeric player-id slot — fires once per candidate id being checked. |
+| `getPreferredTeam` | `server-game/src/rooms.js:857` | `{this: this}` | Team-balancing logic for a joining player — fires before team counts are tallied. |
+| `getPreferredTeamEnd` | `server-game/src/rooms.js:865` | `{this: this, team1Count, team2Count}` | Team-balancing logic for a joining player — fires with the chosen team. |
+| `getPlayerClient` | `server-game/src/rooms.js:874` | `{this: this, client, player}` | Resolving a `Player` back to its owning `ClientConstructor`. |
+| `packAllPlayers` | `server-game/src/rooms.js:880` | `{this: this, output}` | Building the full player-roster packet sent on join — fires before the per-client loop below. |
+| `packAllPlayersLoop` | `server-game/src/rooms.js:884` | `{this: this, output, client}` | Building the full player-roster packet sent on join — fires once per player being packed. |
+| `sendToOne` | `server-game/src/rooms.js:893` | `{this: this, output, fromId, toId, debug}` | Unicast send to one client — fires before the target is resolved. |
+| `sendToOneFound` | `server-game/src/rooms.js:895` | `{this: this, output, fromId, toId, debug}` | Unicast send to one client — fires once the target client has been found. |
+| `sendToOthers` | `server-game/src/rooms.js:906` | `{this: this, output, fromId, debug}` | Broadcast to all clients but one — fires before the per-client loop below. |
+| `sendToOthersLoop` | `server-game/src/rooms.js:908` | `{this: this, client, output, fromId, debug}` | Broadcast to all clients but one — fires once per client being considered. |
+| `sendToOthersLoopFound` | `server-game/src/rooms.js:910` | `{this: this, client, output, fromId, debug}` | Broadcast to all clients but one — fires once for each client that actually receives the packet. |
+| `sendToAll` | `server-game/src/rooms.js:917` | `{this: this, output, fromId, debug}` | Broadcast to every client — fires before the per-client loop below; a plugin can set `plugins.cancel` here to replace default fan-out with custom per-client visibility filtering. |
+| `sendToAllLoop` | `server-game/src/rooms.js:919` | `{this: this, client, output, fromId, debug}` | Broadcast to every client — fires once per client being considered. |
+| `sendToAllLoopFound` | `server-game/src/rooms.js:921` | `{this: this, client, output, fromId, debug}` | Broadcast to every client — fires once for each client that actually receives the packet. |
+| `roomLoaded` | `server-game/src/rooms.js:928` | `{RoomConstructor}` | Module load, once — hands out the room class itself. |
+| `adminCommand` | `server-game/src/worker.js:67` | `{ payload: message }` | Main thread relayed an admin action into THIS specific room worker (e.g. a kick - see `roomManager.js`'s admin dispatch and legacyadmin's `game/moderationWorker.js`/`game/roomBridge.js`). Only meaningful once `ss.room` exists. |
 
 ---
 *This page was drafted with AI assistance and reviewed for accuracy. If something looks wrong, please [open a PR](https://github.com/onlypuppy7/LegacyShell) or flag it.*

@@ -116,7 +116,6 @@ Every key in every `src/defaultconfig/*.yaml` template, with its default value a
 | `ratelimit.sensitive.max_count` | `5` | - |
 | `ratelimit.sensitive.reset_interval` | `300` | in seconds |
 | `ratelimit.sensitive.cmds[]` | `"validateLogin"` | - |
-| `ratelimit.sensitive.cmds[]` | `"validateLoginViaAuthToken"` | - |
 | `ratelimit.sensitive.cmds[]` | `"validateRegister"` | - |
 | `ratelimit.sensitive.cmds[]` | `"feedback"` | - |
 | `ratelimit.protect_ips` | `true` | md5 hashes ips. this is not a very strong algorithm, so still be careful about sharing info |

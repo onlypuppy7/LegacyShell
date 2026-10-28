@@ -27,11 +27,11 @@ Every `plugins.emit(...)` call site found in the files below, extracted directly
 | `loadMeshesBeforeMaterial` | `src/shell/loading.js:79` | `{mesh}` | During mesh loading, before a material is assigned — lets a plugin swap in a different material/texture. |
 | `permissionsAfterSetup` | `src/shell/permissions.js:747` | `{ this: this }` | End of `PermissionsConstructor`'s constructor, after every built-in command is registered — the extension point for registering new slash commands via `data.this.newCommand(...)`. |
 | `updateBefore` | `src/shell/player.js:246` | `{ player: this, delta, resim }` | Start of `Player.update()`, before movement/physics for that tick — the main per-player-per-tick hook. |
-| `onStandOnBlock` | `src/shell/player.js:783` | `{mesh, this: this, out}` | Per-tick, when a player's feet resolve against a block mesh — used for special surface behavior (e.g. a parkour gamemode). |
-| `onStandOnTile` | `src/shell/player.js:786` | `{mesh, this: this}` | Per-tick, when a player's feet resolve against a tile mesh — same use case as `onStandOnBlock` for a different mesh category. |
-| `canJump` | `src/shell/player.js:795` | `{ this: this, canJump }` | Before jump eligibility is finalized — a listener can override the boolean. |
-| `scoreKillEggs` | `src/shell/player.js:1157` | `data` | *(undocumented — add an entry to `src/scripts/event-descriptions.json`)* |
-| `onPlayerDeath` | `src/shell/player.js:1246` | `{player: this, firedId}` | A player has died — `firedId` identifies the killer (or is absent/null for an environmental death). |
+| `onStandOnBlock` | `src/shell/player.js:789` | `{mesh, this: this, out}` | Per-tick, when a player's feet resolve against a block mesh — used for special surface behavior (e.g. a parkour gamemode). |
+| `onStandOnTile` | `src/shell/player.js:792` | `{mesh, this: this}` | Per-tick, when a player's feet resolve against a tile mesh — same use case as `onStandOnBlock` for a different mesh category. |
+| `canJump` | `src/shell/player.js:801` | `{ this: this, canJump }` | Before jump eligibility is finalized — a listener can override the boolean. |
+| `scoreKillEggs` | `src/shell/player.js:1163` | `data` | *(undocumented — add an entry to `src/scripts/event-descriptions.json`)* |
+| `onPlayerDeath` | `src/shell/player.js:1252` | `{player: this, firedId}` | A player has died — `firedId` identifies the killer (or is absent/null for an environmental death). |
 | `prepareBabylonBefore` | `src/shell/general/prepare-babylons.js:91` | `{ baseBabylons, babylonDirFiles, addBabylonToZip }` | Model-build pipeline: register new `.babylon` filenames into `data.baseBabylons` before file paths are resolved. |
 | `prepareBabylon` | `src/shell/general/prepare-babylons.js:130` | `{ filename, baseBabylon: undefined, extraBabylons }` | Model-build pipeline: supply the actual file path for a previously-registered `.babylon` filename. |
 | `prepareBabylonExtra` | `src/shell/general/prepare-babylons.js:188` | `{ filename, baseBabylon, extraBabylonData, item }` | Model-build pipeline: reconcile a per-item "extra" babylon/skeleton against the base model (e.g. bone-index fixups). |
