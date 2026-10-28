@@ -11,7 +11,7 @@ export const PluginMeta = {
     identifier: "legacyreplay",
     name: 'LegacyReplay',
     author: 'onlypuppy7 (+Claude)', //NOTE! this plugin is VIBECODED.
-    version: '0.2.6',
+    version: '0.2.8',
     descriptionShort: 'Replays, camera angles and highlight reels', //displayed when loading
     descriptionLong: 'Records rooms on the game server, /clip saves the last bit as a replay. See DESIGN.md for where it is going.',
     legacyShellVersion: 656, //legacy shell version, can be found in /versionEnum.txt, or just on the homescreen
@@ -44,7 +44,7 @@ export class Plugin {
 
     pluginSourceInsertion(data) {
         //order matters: the format first (pure), then the shared command, then the client bits that use them
-        var files = ['format.js', 'shared.js', 'client.js', 'views.js', 'director.js', 'session.js', 'cameras.js', 'reel.js', 'fx.js', 'audio.js', 'editor.js', 'mux.js', 'export.js', 'live.js', 'spectate.js', 'viewer.js'];
+        var files = ['format.js', 'shared.js', 'client.js', 'views.js', 'director.js', 'session.js', 'cameras.js', 'reel.js', 'fx.js', 'audio.js', 'editor.js', 'mux.js', 'hud.js', 'export.js', 'live.js', 'spectate.js', 'viewer.js'];
         files.forEach((file, i) => {
             data.pluginInsertion.files.push({
                 insertBefore: i === 0 ? '\nconsole.log("inserting before... (LegacyReplay)");' : '',

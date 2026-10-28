@@ -31,7 +31,7 @@ export const ReplayExport = {
         if (document.getElementById("lrExportCss")) return;
         var style = ReplayViewer.el("style", { id: "lrExportCss", text: `
             body.lrExporting .lrPanel, body.lrExporting .lrSide, body.lrExporting .lrHint, body.lrExporting .lrToast { display: none !important; }
-            body.lrExporting #playerList, body.lrExporting #killTicker, body.lrExporting #chatOut { display: none !important; } /* the video is only the picture, and these are laid out again on every kill */
+            body.lrExporting:not(.replayPov) #playerList, body.lrExporting:not(.replayPov) #killTicker, body.lrExporting:not(.replayPov) #chatOut { display: none !important; }
             .lrExportBox { position: fixed; top: 0.8em; left: 50%; transform: translateX(-50%); z-index: 99999; display: flex; align-items: center; gap: 0.8em; padding: 0.4em 0.9em; }
             .lrExportBar { width: 14em; height: 0.7em; background: rgba(0, 0, 0, 0.35); border-radius: 0.4em; overflow: hidden; }
             .lrExportBar div { height: 100%; width: 0; background: #f2a022; }
@@ -143,6 +143,7 @@ export const ReplayExport = {
     paint: function (ctx, canvas, d) {
         var bw = canvas.width, bh = canvas.height, sw = bw / bh > d.ratio ? bh * d.ratio : bw, sh = bw / bh > d.ratio ? bh : bw / d.ratio;
         ctx.drawImage(canvas, (bw - sw) / 2, (bh - sh) / 2, sw, sh, 0, 0, d.w, d.h);
+        ReplayHud.paint(ctx, canvas, d, sw / bw, sh / bh);
         var s = ReplayFx.state;
         if (s && s.bars > 0.01) {
             var bars = Math.max(0, (d.h - d.w / 2.39) / 2) * s.bars;

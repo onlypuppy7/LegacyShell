@@ -25,7 +25,7 @@ export const ReplaySpectate = {
         var style = ReplayViewer.el("style", { text: "#spectateButtonContainer ~ div > #goButton { height: 4.5em !important } #teamButtonContainer:not([style*=\"display: none\"]) ~ #spectateButtonContainer ~ div > #goButton { height: 3em !important }" });
         document.head.appendChild(style);
         document.head.appendChild(ReplayViewer.el("style", { text: this.css }));
-        this.button = ReplayViewer.el("button", { id: "spectateButton", class: "ssbutton purple", text: "Spectate", style: "width: 100%; height: 2em", title: "Watch the game from any camera. play puts you back in", onclick: () => this.enter() });
+        this.button = ReplayViewer.el("button", { id: "spectateButton", class: "ssbutton purple", text: "Spectate", style: "width: 100%; height: 2em", onclick: () => this.enter() });
         var holder = ReplayViewer.el("div", { id: "spectateButtonContainer", style: "margin-top: 0.3em" }, [this.button]);
         play.parentElement.parentElement.insertBefore(holder, play.parentElement);
     },
