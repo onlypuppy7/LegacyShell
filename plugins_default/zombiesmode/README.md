@@ -83,6 +83,7 @@ The horde's team options (`damageModifier`, `contactDamage`, `contactCooldown`, 
 
 ```bash
 node plugins_default/zombiesmode/test-zombies.js [map]    # Two Towers by default
+node plugins_default/zombiesmode/test-navigation.js [map] [seed] [plain|small|brutish|sudden] # Blue by default
 node plugins_default/zombiesmode/test-client-registration.js
 ```
 
@@ -97,6 +98,8 @@ The cost of the mode is route searching (the zombies' AI is otherwise cheap): ev
 `test-zombies.js` boots a real room headlessly with stand-in humans: the gametype, the horde and its head start, eggs, infection (by dying, by leaving through the menu, by joining late), sudden death, both ways a round can end, the next round (including everyone being spawned into it), where zombies spawn (and that the position is in the respawn packet), whether they reach and bite a standing human, whether they find their way up to a human a few levels higher, whether they jump a one block gap from a run-up, whether they get as close as they can to a human on a tower they cannot walk up, and that they wander when they are stuck on the way (`NOSWARM=1` turns that off to compare). Takes a minute or so.
 
 `test-client-registration.js` loads `shared.js` and `zombievisuals.js` the way the browser bundle does and checks the gametype registers, the browser-side spawn behaves, the WAITING... text, and the zombie look (the hooks on the actors, the stumble, the gun and hands, and that humans are left alone), with no server and the meshes stood in for.
+
+`test-navigation.js` starts a zombie on each supported prop and stair on the real map and checks it reaches a nearby human within 30 simulated seconds. Recovery checks actual position changes, so pushing against something still counts as stuck; an active route keeps its own jump and replan recovery until it finishes.
 
 ---
 *This page was drafted with AI assistance and reviewed for accuracy. If something looks wrong, please [open a PR](https://github.com/onlypuppy7/LegacyShell) or flag it.*

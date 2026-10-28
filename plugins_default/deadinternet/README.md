@@ -100,6 +100,7 @@ Each waypoint is `{ x, y, z, type }`: `x`/`z` are cell centers, `y` is the stand
 
 The start position doesn't need to be exactly on a standable cell - the search looks around/below it first
 (mid-jump, mid-fall, or right on a cell boundary).
+Real players can also start on a prop's fractional standing surface; its verified height and footprint are kept for the first move.
 
 With a real player available (the normal in-game case) every WALK/RAMP/JUMP/FALL candidate is **verified
 by the real physics** (`physicsSimulation.js`) before the planner will use it; without one (the offline

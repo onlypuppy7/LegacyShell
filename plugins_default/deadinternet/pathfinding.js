@@ -1293,9 +1293,13 @@ function findPathUncached(room, start, goal, opts = {}) {
     // The start position is wherever the bot actually is, which might not itself read as
     // "standable" this exact tick (mid-jump, mid-fall, right at a cell boundary) - fall back to
     // searching from the nearest standable cell under/around it rather than failing outright.
+    let startStand = null;
     if (!isStandable(map, sx, sy, sz, player)) {
         const landing = findLandingBelow(map, sx, sy + 1, sz, player);
-        if (landing) { sy = landing.y; } else if (isStandable(map, sx, sy - 1, sz, player)) { sy -= 1; };
+        if (landing) {
+            sy = landing.y;
+            if (landing.standX !== undefined) startStand = landing;
+        } else if (isStandable(map, sx, sy - 1, sz, player)) { sy -= 1; };
     };
 
     // A goal standing on a crate/half step isn't an integer-y cell at all: its feet sit at a
@@ -1323,7 +1327,8 @@ function findPathUncached(room, start, goal, opts = {}) {
     // genuinely non-standable cell (embedded in solid geometry - real floor() there requires a
     // full 2-level column, not 1) get treated as a legitimate "current" node, generating bogus
     // candidate edges from a position a real player could never actually occupy.
-    if (!isStandable(map, sx, sy, sz, player)) return null;
+    // findLandingBelow already verified a prop's fractional surface, just like goalOnStand above.
+    if (!startStand && !isStandable(map, sx, sy, sz, player)) return null;
     if (!goalOnStand && !isStandable(map, gx, gy, gz, player)) return null;
 
     const startKey = key(sx, sy, sz);
@@ -1383,7 +1388,7 @@ function findPathUncached(room, start, goal, opts = {}) {
         // to recover the real (possibly off-center, see findAabbStandY) stand position `current`
         // represents - `current` itself is just the plain {x,y,z} cell popped off the open-set
         // heap (see the `open.push` calls above), it never carries standX/standZ itself.
-        const incomingEntry = cameFrom.get(currentKey);
+        const incomingEntry = cameFrom.get(currentKey) ?? (currentKey === startKey ? startStand : null);
         const incomingType = incomingEntry?.type;
         const incomingWasSmallHop = !!incomingEntry?.smallHop;
 

@@ -381,7 +381,8 @@ if (isMainThread) {
         {
             const z = zombies.pluginInstance, b = bots().find((x) => x.player.playing), p = b.player;
             const cmd = { engaged: false, state: 'hunt', moveTo: { x: p.x + 20, y: p.y, z: p.z } };
-            p.dx = p.dz = 0; b.zIdle = 19; b.zWander = 0;
+            p.dx = p.dz = 0.01; b.zIdle = 119; b.zWander = 0; b.stopPath();
+            b.zProgress = { x: p.x, y: p.y, z: p.z };
             z.zombieDrive(b, cmd);
             const far = b.zWanderTo && Math.hypot(b.zWanderTo.x - p.x, b.zWanderTo.z - p.z);
             assert('a zombie standing still on the way to someone starts wandering to a random spot 3 to 8 blocks off', b.zWander > 0 && far >= 3 - 1e-9 && far <= 8 + 1e-9, `${b.zWander} ${far}`);
@@ -389,6 +390,16 @@ if (isMainThread) {
             z.zombieThink(b, next);
             assert('...and goes there, instead of towards them', next.moveTo === b.zWanderTo && next.state === 'hunt');
             b.zWander = 0;
+            b.zIdle = 119; b.zPath = 0;
+            b.combat.target = { x: p.x + 1.8, y: p.y, z: p.z };
+            z.zombieDrive(b, { engaged: true });
+            assert('pushing against an obstacle near someone still hands over to a route', b.zPath === 150);
+            b.combat.target = null;
+            b.zIdle = 119;
+            const route = b.currentPath = [{ x: p.x + 3, y: p.y, z: p.z, type: 'jump' }];
+            z.zombieDrive(b, cmd);
+            assert('a pause during a route leaves its own jump and stuck recovery in charge', b.zWander === 0 && b.currentPath === route);
+            b.stopPath();
         };
 
         // ---- someone higher up who can be reached ----

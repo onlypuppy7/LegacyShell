@@ -31,7 +31,7 @@ export const PluginMeta = {
     identifier: "deadinternet",
     name: 'DeadInternet',
     author: 'onlypuppy7 (+Claude)', //NOTE! most of this plugin is VIBECODED.
-    version: '1.1.3',
+    version: '1.1.4',
     descriptionShort: 'Adds bot players that walk the map and fight, at any skill level', //displayed when loading
     descriptionLong: 'Adds bot players that walk the map and fight (aim, strafe, take cover, throw grenades, hear gunfire), from target dummies to nightmare skill, with ready-made fields of bots - plus a general A* pathfinding engine other plugins can use.',
     legacyShellVersion: 459, //legacy shell version, can be found in /versionEnum.txt, or just on the homescreen

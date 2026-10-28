@@ -15,7 +15,7 @@ export const PluginMeta = {
     identifier: "zombiesmode",
     name: 'ZombiesMode',
     author: 'onlypuppy7 (+Claude)', //NOTE! most of this plugin is VIBECODED.
-    version: '1.2.13',
+    version: '1.2.16',
     descriptionShort: 'Adds the zombies gamemode: survive the horde, the infected join it', //displayed when loading
     descriptionLong: 'Adds the Zombies gamemode. A horde of slow DeadInternet bots walks at the humans and bites them; a human who dies (or leaves the fight through the menu) is infected and joins the horde. Last human standing wins, or the humans win by outlasting the round.',
     legacyShellVersion: 613, //legacy shell version, can be found in /versionEnum.txt, or just on the homescreen
@@ -779,7 +779,7 @@ export class Plugin {
         const dx = target.x - p.x, dz = target.z - p.z;
         const flat = Math.hypot(dx, dz);
         const level = Math.abs(target.y - p.y) < 1;
-        if (bot.zPath > 0) bot.zPath--;
+        if (bot.zPath > 0 && (!bot.currentPath || bot.pathSuspended)) bot.zPath--;
 
         //Straight at them is for when they are level, near enough, and there is ground the whole way: a gap or a drop on the way (the bots'
         //ledge guard would stop it at the edge, standing there for good, since a bot in sight never follows a route) is for the route to
@@ -799,6 +799,12 @@ export class Plugin {
 
     zombieDrive(bot, cmd) {
         const p = bot.player;
+        const last = bot.zProgress;
+        //Collision can leave velocity without movement. Jumping on the spot is not progress either.
+        if (!last || Math.hypot(p.x - last.x, p.climbing ? p.y - last.y : 0, p.z - last.z) > 0.3) {
+            bot.zProgress = { x: p.x, y: p.y, z: p.z };
+            bot.zIdle = 0;
+        } else bot.zIdle = (bot.zIdle ?? 0) + 1;
 
         //Close to someone it cannot quite reach (they are up on something, or it is just standing there short of them): a jump now and
         //then, which is what gets a player onto a ledge or a step they were a little short of.
@@ -818,20 +824,18 @@ export class Plugin {
         //Within biting range and level: walk into them. The bots' ledge guard looks a block ahead, which is past someone standing at the
         //edge of something, so look only as far as they are.
         if (cmd.engaged && flat < 2.5 && Math.abs(dy) < 1) {
-            bot.zIdle = 0;
             if (ground(Math.min(0.9, flat))) p.controlKeys |= CONTROL.up;
-            return;
+            if (flat < 0.6 && Math.abs(dy) < 0.6) { bot.zIdle = 0; return; };
         };
 
         //Wanting to get somewhere but not getting anywhere: following a route and out of it. The route search already goes to the closest
         //point it can reach when there is no way to them (they are on a tower, say), so this bot is standing at that point, as close as it
         //gets. Rather than stand about (or pile up with the rest of the horde on the one point), it wanders off to somewhere random nearby
         //for a while, then the route gets another go.
-        if (bot.zWander > 0) return;
-        bot.zIdle = Math.hypot(p.dx, p.dz) < 0.004 && !p.climbing ? (bot.zIdle ?? 0) + 1 : 0; //(a ladder is not going anywhere sideways either)
-        if (bot.zIdle < 20) return;
+        if (bot.zWander > 0 || (bot.currentPath?.length && !bot.pathSuspended)) return; //the route has its own jump/replan recovery; do not replace it halfway through
+        if (bot.zIdle < 120) return;
         bot.zIdle = 0;
-        if (cmd.engaged) { bot.zPath = 150; return; }; //ticks (2.5s)
+        if (cmd.engaged) { bot.zPath = 150; bot.stopPath(); return; }; //ticks (2.5s), then until the route is finished
         this.roam(bot, 180);
     };
 
