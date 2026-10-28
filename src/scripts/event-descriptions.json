@@ -203,6 +203,7 @@
   "server-client/src/client-static/src/shellshock.min.js#waitForSetupAndAuthCompleteCheck": "The startup poll loop is checking whether auth and page setup have both finished yet.",
   "server-client/src/client-static/src/shellshock.min.js#waitForSetupAndAuthCompleteReady": "The startup poll loop has confirmed both auth and page setup are ready.",
   "server-client/src/client-static/src/shellshock.min.js#setupComplete": "The startup poll loop concluded successfully.",
+  "server-client/src/client-static/src/shellshock.min.js#playerClicked": "A current player-list entry was clicked, before the default player menu opens. Receives `{ player, playerId, uniqueId, username, event, handled }`. Set `handled = true` on this event object to replace the default menu; it is local to this click and supports async listeners. The player is checked again after listeners finish, so a departed player or reused slot cannot open the fallback menu. LegacyProfiles consumes this event to open its profile viewer.",
   "server-client/src/client-static/src/shellshock.min.js#reachedEnd": "End of the whole client script file, once.",
   "server-client/src/client-static/editor/js/mapEdit.js#loadMeshesBeforeMaterial": "Same hook as the shared `loading.js` version, duplicated for the standalone map-editor page.",
 

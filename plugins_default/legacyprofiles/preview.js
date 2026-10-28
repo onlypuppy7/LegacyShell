@@ -3,7 +3,8 @@ export class LegacyProfilePreview {
     constructor(canvas, profile, onReady, onError) {
         this.canvas = canvas;
         this.dead = false;
-        this.yaw = this.pitch = 0;
+        this.yaw = profile.preferences?.yaw || 0;
+        this.pitch = profile.preferences?.pitch || 0;
         try {
             this.engine = engine;
             this.context = canvas.getContext('2d');
@@ -114,8 +115,7 @@ export class LegacyProfilePreview {
             if (!pointer || pointer.id !== event.pointerId || !this.root) return;
             this.yaw -= (event.clientX - pointer.x) / camera.angularSensibilityX;
             this.pitch = Math.max(-Math.PI / 3, Math.min(Math.PI / 3, this.pitch + (event.clientY - pointer.y) / camera.angularSensibilityY));
-            this.root.rotationQuaternion = BABYLON.Quaternion.RotationAxis(BABYLON.Vector3.Right(), this.pitch)
-                .multiply(BABYLON.Quaternion.RotationAxis(BABYLON.Vector3.Up(), this.yaw));
+            this.setAngle(this.yaw, this.pitch);
             pointer.x = event.clientX;
             pointer.y = event.clientY;
             this.dirty = true;
@@ -131,6 +131,14 @@ export class LegacyProfilePreview {
             camera.radius = Math.max(camera.lowerRadiusLimit, Math.min(camera.upperRadiusLimit, camera.radius + Math.sign(event.deltaY) * .2));
             this.dirty = true;
         }, { passive: false });
+    };
+
+    setAngle(yaw, pitch) {
+        this.yaw = yaw;
+        this.pitch = pitch;
+        if (this.root) this.root.rotationQuaternion = BABYLON.Quaternion.RotationAxis(BABYLON.Vector3.Right(), pitch)
+            .multiply(BABYLON.Quaternion.RotationAxis(BABYLON.Vector3.Up(), yaw));
+        this.dirty = true;
     };
 
     resizeTarget() {
@@ -234,10 +242,10 @@ export class LegacyProfilePreview {
         return pending;
     };
 
-    clone(name, parent) {
-        const source = this.scene.getMeshByName(name);
-        if (!source) throw new Error('Preview mesh not found: ' + name);
-        const mesh = source.clone('profile.' + name, parent);
+    clone(name, parent, skeletonName) {
+        if (!this.scene.getMeshByName(name)) throw new Error('Preview mesh not found: ' + name);
+        const mesh = this.scene.cloneMesh(name, parent, skeletonName);
+        mesh.name = 'profile.' + name;
         for (const part of [mesh, ...mesh.getChildMeshes()]) {
             part.setEnabled(true);
             part.isPickable = false;
@@ -256,34 +264,48 @@ export class LegacyProfilePreview {
 
         const scene = this.scene;
         this.root = new BABYLON.TransformNode('profileAvatar', scene);
+        this.setAngle(this.yaw, this.pitch);
         this.root.setPivotPoint(new BABYLON.Vector3(0, .32, 0));
         const body = this.clone('egg', this.root);
         body.position.y = .32;
         body.material = this.eggMaterial;
         this.shadow.getShadowMap().renderList.push(body);
-        const color = BABYLON.Color3.FromHexString(shellColors[loadout.colorIdx] || shellColors[0]);
-        this.shellColor = color;
-        body.colorMult = color;
+        this.colorIdx = loadout.colorIdx;
+        this.actor = {
+            scene, bodyMesh: body, hands: {},
+            player: { id: -2, scene, shellColor: this.colorIdx },
+            wearHat: PlayerActor.prototype.wearHat,
+            removeHat: PlayerActor.prototype.removeHat,
+            applyStamp: item => this.applyStamp(item),
+            removeStamp: () => { this.stampU = 0; this.stampV = 1; },
+        };
+        this.customizer = { avatar: { actor: this.actor } };
+        PlayerActor.prototype.setShellColor.call(this.actor, this.colorIdx);
         const hat = catalog.findItemById(loadout.hatId);
-        if (hat?.item_data?.meshName && scene.getMeshByName(hat.item_data.meshName)) {
-            const mesh = this.clone(hat.item_data.meshName, body);
-            mesh.position.y = -.02;
+        Customizer.prototype.poseWithHat.call(this.customizer, hat?.item_data?.meshName && scene.getMeshByName(hat.item_data.meshName) ? hat : null);
+        if (this.actor.hat) {
+            for (const part of [this.actor.hat, ...this.actor.hat.getChildMeshes()]) {
+                part.setEnabled(true);
+                part.isPickable = false;
+                part.material = this.standard;
+            };
         };
-        const stamp = catalog.findItemById(loadout.stampId);
-        if (stamp) {
-            const sheet = new BABYLON.Texture('img/stamps.png?v=LEGACYSHELLSTAMPSPNG', scene, false, false, BABYLON.Texture.NEAREST_SAMPLINGMODE, () => {
-                if (this.dead) return;
-                const width = sheet.getSize().width / stampSize;
-                this.stampCell = 1 / width;
-                this.stampU = stamp.item_data.x / width;
-                this.stampV = 1 - stamp.item_data.y / width;
-                this.eggMaterial.setTexture('textureSampler', sheet);
-            });
-        };
+        Customizer.prototype.poseWithStamp.call(this.customizer, catalog.findItemById(loadout.stampId) || null);
         this.head = new BABYLON.TransformNode('profileHead', scene);
         this.head.parent = this.root;
         this.head.position.y = .3;
         if (weapon) await this.setWeapon(weapon);
+    };
+
+    applyStamp(stamp) {
+        const sheet = new BABYLON.Texture('img/stamps.png?v=LEGACYSHELLSTAMPSPNG', this.scene, false, true, BABYLON.Texture.NEAREST_SAMPLINGMODE, () => {
+            if (this.dead) return;
+            const width = sheet.getSize().width / stampSize;
+            this.stampCell = 1 / width;
+            this.stampU = stamp.item_data.x / width;
+            this.stampV = 1 - stamp.item_data.y / width;
+            this.eggMaterial.setTexture('textureSampler', sheet);
+        });
     };
 
     async setWeapon(weapon) {
@@ -295,26 +317,23 @@ export class LegacyProfilePreview {
         const handsBase = scene.getSkeletonByName('hands_skeleton');
         const gunBase = scene.getSkeletonByName('gun_' + item_classes[weapon.item_data.class]?.standardMeshName + '_skeleton');
         if (!handsBase || !gunBase) throw new Error('Weapon skeleton not found');
-        if (this.actor) {
+        if (this.actor.skeleton) {
             scene.stopAnimation(this.actor.skeleton);
             this.actor.skeleton.dispose();
             this.actor.hands.skeleton.dispose();
-            this.actor = null;
         };
         this.gunContainer?.dispose();
         const gunContainer = this.gunContainer = new BABYLON.TransformNode('profileGun', scene);
         gunContainer.parent = this.head;
         gunContainer.rotation.set(-.035, -.14, 0);
         const hands = this.clone('hands', gunContainer);
-        hands.colorMult = this.shellColor;
-        hands.skeleton = handsBase.clone('profileHands');
-        const gun = this.clone(weapon.item_data.meshName, gunContainer);
-        gun.skeleton = gunBase.clone('profileWeapon');
-        this.actor = {
-            hands,
-            gripBone: hands.skeleton.bones[hands.skeleton.getBoneIndexByName('gripHand')],
-            foreBone: hands.skeleton.bones[hands.skeleton.getBoneIndexByName('foreHand')],
-        };
+        hands.skeleton = scene.cloneSkeleton(handsBase.name);
+        const gun = this.clone(weapon.item_data.meshName, gunContainer, gunBase.name);
+        gun.skeleton = scene.cloneSkeleton(gunBase.name);
+        this.actor.hands = hands;
+        this.actor.gripBone = hands.skeleton.bones[hands.skeleton.getBoneIndexByName('gripHand')];
+        this.actor.foreBone = hands.skeleton.bones[hands.skeleton.getBoneIndexByName('foreHand')];
+        PlayerActor.prototype.setShellColor.call(this.actor, this.colorIdx);
         PlayerActor.prototype.setWeaponSkeleton.call(this.actor, gun.skeleton);
         const range = gun.skeleton.getAnimationRange('idle');
         if (range) scene.beginAnimation(gun.skeleton, range.from, range.to, true);

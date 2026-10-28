@@ -15,7 +15,7 @@ export const PluginMeta = {
     identifier: "zombiesmode",
     name: 'ZombiesMode',
     author: 'onlypuppy7 (+Claude)', //NOTE! most of this plugin is VIBECODED.
-    version: '1.2.17',
+    version: '1.2.18',
     descriptionShort: 'Adds the zombies gamemode: survive the horde, the infected join it', //displayed when loading
     descriptionLong: 'Adds the Zombies gamemode. A horde of slow DeadInternet bots walks at the humans and bites them; a human who dies (or leaves the fight through the menu) is infected and joins the horde. Last human standing wins, or the humans win by outlasting the round.',
     legacyShellVersion: 613, //legacy shell version, can be found in /versionEnum.txt, or just on the homescreen
@@ -392,6 +392,7 @@ export class Plugin {
         z.envStage = 0;
         z.victory = false;
         z.neverSpawned = false;
+        this.plugins.emit('zombiesRoundStarted', { room });
         room.updateRoomParamsForClients(); //(the interim is over)
         iteratePlayers((player) => { //the last round's victory switched the bite off for whoever was left
             if (player.team === HORDE) player.changeModifiers({ contactDamage: biteOf(player, room) });
@@ -413,6 +414,7 @@ export class Plugin {
 
         const survivors = activeHumans(z);
         const winner = z.winner ?? (z.humansAtStart === 0 ? null : (survivors.length ? 'humans' : 'zombies'));
+        this.plugins.emit('zombiesRoundFinished', { room, winner, survivors });
 
         for (const bot of z.bots) { //no zombies coming back during the gap between rounds
             clearTimeout(bot.zombieTimer);

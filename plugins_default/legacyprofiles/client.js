@@ -14,6 +14,11 @@ export const LegacyProfiles = {
         pluginManager.on('game:onPageLoadedEnd', () => this.setup());
         pluginManager.on('game:setupComplete', () => this.setup());
         pluginManager.on('game:leaveGame', () => this.close());
+        pluginManager.on('game:playerClicked', click => {
+            if (click.handled) return;
+            click.handled = true;
+            this.openPlayer(click.playerId, click.uniqueId);
+        });
     },
 
     element(tag, className, text, parent) {
@@ -36,6 +41,12 @@ export const LegacyProfiles = {
         const logout = document.getElementById('logout');
         if (!logout) return;
         this.ready = true;
+        const rebuild = rebuildPlayerList;
+        rebuildPlayerList = (...args) => {
+            const result = rebuild(...args);
+            this.updateRankBadges();
+            return result;
+        };
         const css = document.createElement('link');
         css.rel = 'stylesheet';
         css.href = '/legacyprofiles/profiles.css';
@@ -57,13 +68,13 @@ export const LegacyProfiles = {
 
     openOwn() {
         if (!playerAccount?.isLoggedIn) return;
-        this.open(Number(playerAccount.account_id), null);
+        this.open(playerAccount.username, null);
     },
 
     openPlayer(id, uniqueId) {
         const player = players_by_id[id];
         if (!player || player.uniqueId !== uniqueId) return;
-        this.open(Number(uniqueId) || 0, { id, uniqueId, player });
+        this.open(Number(uniqueId) > 0 ? player.username : null, { id, uniqueId, player });
     },
 
     livePlayer() {
@@ -72,7 +83,7 @@ export const LegacyProfiles = {
         return player === this.target.player && player.uniqueId === this.target.uniqueId ? player : null;
     },
 
-    async open(accountId, target) {
+    async open(username, target) {
         this.close();
         this.previousFocus = document.activeElement;
         this.target = target;
@@ -109,7 +120,7 @@ export const LegacyProfiles = {
         this.closeButton.focus();
         this.actionTimer = setInterval(() => this.renderActions(), 750);
         try {
-            const profile = accountId > 0 ? await this.request(accountId) : this.guestProfile();
+            const profile = username !== null ? await this.request(username) : this.guestProfile();
             if (generation !== this.generation || !this.overlay) return;
             const live = this.livePlayer();
             if (live) {
@@ -127,11 +138,11 @@ export const LegacyProfiles = {
             this.content.replaceChildren();
             this.element('h2', '', target?.player.name || 'Player profile', this.content);
             this.element('p', 'lp-message', error.message, this.content).setAttribute('role', 'alert');
-            this.button('Try Again', 'blue', () => this.open(accountId, target), this.content);
+            this.button('Try Again', 'blue', () => this.open(username, target), this.content);
         };
     },
 
-    request(accountId) {
+    request(username, preferences) {
         return new Promise((resolve, reject) => {
             const socket = new WebSocket(servicesServer);
             let done = false;
@@ -145,7 +156,7 @@ export const LegacyProfiles = {
             };
             const timer = setTimeout(() => finish(new Error('The egg took too long. Try again.')), 10000);
             this.cancelRequest = () => finish(new Error('Profile closed.'));
-            socket.onopen = () => socket.send(JSON.stringify({ cmd: 'legacyprofilesGet', account_id: accountId }));
+            socket.onopen = () => socket.send(JSON.stringify(preferences === undefined ? { cmd: 'legacyprofilesGet', username } : { cmd: 'legacyprofilesSave', session: playerAccount.session, preferences }));
             socket.onmessage = event => {
                 try {
                     const data = JSON.parse(event.data);
@@ -164,7 +175,7 @@ export const LegacyProfiles = {
         primary[player.classIdx] = player.primaryWeaponItem?.id;
         secondary[player.classIdx] = player.secondaryWeaponItem?.id;
         return {
-            account_id: null, username: null, guest: true,
+            username: null, guest: true,
             rank: { name: 'Guest', value: 0 }, vip: { active: false }, inventory: [],
             loadout: { classIdx: player.classIdx, colorIdx: player.shellColor, primaryId: primary, secondaryId: secondary, hatId: player.hatItem?.id, stampId: player.stampItem?.id },
         };
@@ -205,9 +216,58 @@ export const LegacyProfiles = {
     number(value) { return Math.max(0, Number(value) || 0).toLocaleString(); },
     ratio(kills, deaths) { return (Math.max(0, Number(kills) || 0) / Math.max(1, Number(deaths) || 0)).toFixed(2); },
 
+    rankIcon(profile) {
+        if (profile.guest) return 'guest';
+        const name = (profile.rank?.name || '').toLowerCase();
+        if (name.includes('developer')) return 'developer';
+        if (name.includes('twitch')) return 'twitch';
+        if (name.includes('tiktok')) return 'tiktok';
+        const rank = Number(profile.rank?.value) || 0;
+        if (rank >= 255) return 'owner';
+        if (rank >= 20) return 'admin';
+        if (rank >= 10) return 'mod';
+        if (rank >= 5) return 'creator';
+        return 'player';
+    },
+
+    roleBadge(profile, parent) {
+        const badge = this.element('span', 'lp-role-icon', undefined, parent);
+        badge.title = profile.rank.name;
+        badge.setAttribute('role', 'img');
+        badge.setAttribute('aria-label', profile.rank.name);
+        badge.style.setProperty('--lp-role-icon', 'url("/legacyprofiles/icons/roles/' + this.rankIcon(profile) + '.svg")');
+        return badge;
+    },
+
+    updateRankBadges() {
+        const list = document.getElementById('playerList');
+        if (!list) return;
+        const players = [];
+        iteratePlayers(player => players.push(player));
+        const teams = gameOptions.teamsEnabled ? getTeamScores().score : null;
+        const score = player => player.score + (teams ? teams[player.team] + (player.team === lastLeadingTeam ? 1e5 : 0) : 0);
+        players.sort((a, b) => score(b) - score(a));
+        for (let i = 0; i < list.children.length; i++) {
+            const row = list.children[i];
+            const current = row.querySelector('.lp-rank-badge');
+            const player = players[i];
+            if (!player) { current?.remove(); continue; };
+            row.classList.add('lp-ranked-player');
+            const guest = !(Number(player.uniqueId) > 0);
+            const rank = guest ? { name: 'Guest', value: 0 } : profileRank(player.adminRoles, permissions.ranks);
+            const key = [guest, rank.value, rank.name].join(':');
+            if (current?.dataset.rank === key) continue;
+            current?.remove();
+            const badge = this.roleBadge({ guest, rank }, null);
+            badge.classList.add('lp-rank-badge');
+            badge.dataset.rank = key;
+            row.appendChild(badge);
+        };
+    },
+
     render() {
         const profile = this.profile;
-        this.viewClassIdx = profile.loadout.classIdx;
+        this.viewClassIdx = this.initialClass();
         this.content.replaceChildren();
         const hero = this.element('div', 'lp-hero', undefined, this.content);
         const stage = this.element('div', 'lp-stage', undefined, hero);
@@ -215,13 +275,18 @@ export const LegacyProfiles = {
         previewCanvas.setAttribute('aria-label', '3D equipped loadout. Drag to rotate, scroll to zoom.');
         const previewMessage = this.element('span', 'lp-preview-message', 'Loading egg...', stage);
         this.element('span', 'lp-stage-hint', 'Drag to rotate', stage);
+        if (this.isOwn()) this.editButton('Edit egg angle and featured class', () => this.editPreview(stage), stage);
         const summary = this.element('div', 'lp-summary', undefined, hero);
         this.element('span', 'lp-eyebrow', this.target ? 'In This Game' : 'Your Account', summary);
-        const nickname = this.target?.player.name || document.getElementById('nickname')?.value || profile.username;
-        this.element('h1', '', nickname, summary);
-        this.element('p', 'lp-username', profile.username ? '@' + profile.username : 'Guest player', summary);
+        const nickname = this.target?.player.name || (this.isOwn() ? document.getElementById('nickname')?.value : null) || profile.username;
+        this.element('h1', '', profile.username ? '@' + profile.username : nickname, summary);
+        if (profile.username && nickname !== profile.username) this.element('p', 'lp-username', 'Nickname: ' + nickname, summary);
+        else if (!profile.username) this.element('p', 'lp-username', 'Guest player', summary);
         const tags = this.element('div', 'lp-tags', undefined, summary);
-        this.element('span', 'lp-tag', profile.rank.name, tags);
+        const role = this.element('span', 'lp-tag', undefined, tags);
+        const roleIcon = this.roleBadge(profile, role);
+        roleIcon.setAttribute('aria-hidden', 'true');
+        this.element('span', '', profile.rank.name, role);
         if (this.target?.player.isGameOwner) this.element('span', 'lp-tag', 'Game Owner', tags);
         if (profile.vip.active) {
             const vip = this.element('span', 'lp-tag lp-vip', undefined, tags);
@@ -234,7 +299,7 @@ export const LegacyProfiles = {
         if (profile.guest) this.element('p', 'lp-muted', 'Guest players do not have saved stats or an inventory.', summary);
         else {
             const joined = profile.joined ? new Date(profile.joined * 1000).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : 'Unknown';
-            this.element('p', 'lp-joined', 'Joined ' + joined + '  ·  Player #' + profile.account_id, summary);
+            this.element('p', 'lp-joined', 'Joined ' + joined, summary);
             const stats = this.element('div', 'lp-stats', undefined, summary);
             for (const [label, value] of [['Kills', this.number(profile.kills)], ['Deaths', this.number(profile.deaths)], ['KDR', this.ratio(profile.kills, profile.deaths)], ['Best Streak', this.number(profile.streak)]]) {
                 this.stat(stats, label, value);
@@ -254,10 +319,88 @@ export const LegacyProfiles = {
         if (!profile.guest) this.tab('Inventory (' + profile.inventory.length + ')', 'inventory', container => this.renderInventory(container));
         for (const [id, section] of this.sections) this.tab(section.label, id, container => section.render(profile, container));
         this.selectTab('loadout');
-        this.preview = new LegacyProfilePreview(previewCanvas, profile,
+        this.preview = new LegacyProfilePreview(previewCanvas, { ...profile, loadout: { ...profile.loadout, classIdx: this.viewClassIdx } },
             () => { previewMessage.hidden = true; },
             error => { previewMessage.textContent = '3D preview unavailable'; console.warn('LegacyProfiles preview:', error); });
         this.plugins.emit('legacyprofilesViewed', { profile, container: this.content });
+    },
+
+    isOwn() { return !this.profile?.guest && playerAccount?.isLoggedIn && this.profile?.username === playerAccount.username; },
+
+    initialClass() {
+        const featured = this.profile.preferences?.classIdx;
+        return this.loadoutClasses().includes(featured) ? featured : this.profile.loadout.classIdx;
+    },
+
+    className(index) {
+        return (typeof classes !== 'undefined' && classes[index]?.name) || ['Soldier', 'Scrambler', 'Ranger', 'Eggsploder'][index] || 'Class ' + (index + 1);
+    },
+
+    editButton(label, action, parent) {
+        const button = this.button('✎', 'blue', action, parent);
+        button.classList.add('lp-edit');
+        button.title = label; button.setAttribute('aria-label', label);
+        return button;
+    },
+
+    async savePreferences(changes, errorLabel) {
+        const profile = this.profile, generation = this.generation;
+        if (!this.isOwn() || this.savingPreferences) return false;
+        this.savingPreferences = true;
+        try {
+            const saved = await this.request(profile.username, { yaw: 0, pitch: 0, classIdx: null, featuredItems: [], ...profile.preferences, ...changes });
+            if (generation !== this.generation || this.profile !== profile) return false;
+            profile.preferences = saved.preferences;
+            return true;
+        } catch (error) {
+            if (generation === this.generation && errorLabel.isConnected) errorLabel.textContent = error.message;
+            return false;
+        } finally { this.savingPreferences = false; };
+    },
+
+    editPreview(stage) {
+        if (this.savingPreferences) return;
+        if (stage.querySelector('.lp-preview-editor') || !this.preview) return;
+        const preview = this.preview;
+        const before = { yaw: preview.yaw, pitch: preview.pitch, classIdx: this.viewClassIdx };
+        const editor = this.element('div', 'lp-preview-editor', undefined, stage);
+        this.element('span', '', 'Drag your egg to set its angle.', editor);
+        const row = this.element('div', 'lp-edit-controls', undefined, editor);
+        const select = this.element('select', 'ss_select', undefined, row);
+        select.setAttribute('aria-label', 'Featured class');
+        for (const index of this.loadoutClasses()) {
+            const option = this.element('option', '', this.className(index), select);
+            option.value = index;
+        };
+        select.value = this.viewClassIdx;
+        select.onchange = () => { this.viewClassIdx = Number(select.value); this.showPreviewClass(this.viewClassIdx); };
+        const error = this.element('span', 'lp-edit-error', '', editor);
+        error.setAttribute('role', 'status');
+        const finish = () => {
+            this.cancelPreviewEdit = null;
+            editor.remove();
+            if (this.tabs.querySelector('[data-section="loadout"][aria-selected="true"]')) this.selectTab('loadout');
+        };
+        const save = this.button('Save', 'green', async () => {
+            save.disabled = cancel.disabled = reset.disabled = select.disabled = true;
+            const ok = await this.savePreferences({ yaw: preview.yaw, pitch: preview.pitch, classIdx: Number(select.value) }, error);
+            if (ok) { preview.setAngle(this.profile.preferences.yaw, this.profile.preferences.pitch); finish(); }
+            else save.disabled = cancel.disabled = reset.disabled = select.disabled = false;
+        }, row);
+        const cancel = this.button('Cancel', 'red', () => this.cancelPreviewEdit(), row);
+        this.cancelPreviewEdit = () => {
+            preview.setAngle(before.yaw, before.pitch);
+            this.viewClassIdx = before.classIdx;
+            this.showPreviewClass(before.classIdx); finish();
+        };
+        const reset = this.button('Reset', 'blue', () => preview.setAngle(0, 0), row);
+    },
+
+    editFeatured() {
+        if (!this.isOwn() || this.savingPreferences) return;
+        this.cancelPreviewEdit?.();
+        this.featuredDraft = [...(this.profile.preferences?.featuredItems || [])];
+        this.selectTab('inventory');
     },
 
     stat(parent, label, value) {
@@ -287,6 +430,7 @@ export const LegacyProfiles = {
     },
 
     selectTab(id) {
+        if (id !== 'inventory') this.featuredDraft = null;
         this.tileGeneration = (this.tileGeneration || 0) + 1;
         for (const button of this.tabs.children) {
             const active = button.dataset.section === id;
@@ -316,6 +460,7 @@ export const LegacyProfiles = {
     },
 
     cycleLoadout(direction, container) {
+        if (this.cancelPreviewEdit) return;
         const classes = this.loadoutClasses();
         if (classes.length < 2) return;
         this.viewClassIdx = classes[(classes.indexOf(this.viewClassIdx) + direction + classes.length) % classes.length];
@@ -346,7 +491,11 @@ export const LegacyProfiles = {
     renderLoadout(container) {
         const loadout = this.profile.loadout;
         const classIdx = this.viewClassIdx ?? loadout.classIdx;
-        const heading = this.element('div', 'lp-loadout-heading', undefined, container);
+        const featured = (this.profile.preferences?.featuredItems || []).map(id => catalog.findItemById(id)).filter(Boolean);
+        const split = featured.length || this.isOwn();
+        const layout = this.element('div', split ? 'lp-showcase' : '', undefined, container);
+        const equipped = this.element('div', split ? 'lp-compact-loadout' : '', undefined, layout);
+        const heading = this.element('div', 'lp-loadout-heading', undefined, equipped);
         if (this.loadoutClasses().length > 1) {
             for (const [direction, text, label] of [[-1, '‹', 'Previous loadout'], [1, '›', 'Next loadout']]) {
                 const arrow = this.button(text, 'blue', () => this.cycleLoadout(direction, container), heading);
@@ -355,12 +504,23 @@ export const LegacyProfiles = {
                 arrow.setAttribute('aria-label', label); arrow.title = label;
             };
         };
-        this.element('h2', '', (['Soldier', 'Scrambler', 'Ranger', 'Eggsploder'][classIdx] || 'Soldier') + "'s Loadout", heading).setAttribute('aria-live', 'polite');
-        const grid = this.element('div', 'lp-loadout', undefined, container);
+        this.element('h2', '', this.className(classIdx) + "'s Loadout", heading).setAttribute('aria-live', 'polite');
+        const grid = this.element('div', 'lp-loadout', undefined, equipped);
         this.equippedIds(classIdx).forEach((id, index) => {
             if (index === 2) this.element('div', 'lp-loadout-divider', undefined, grid).setAttribute('aria-hidden', 'true');
             this.itemCard(catalog.findItemById(id), ['Primary', 'Secondary', 'Hat', 'Stamp'][index], grid);
         });
+        if (split) {
+            const section = this.element('div', 'lp-featured', undefined, layout);
+            this.element('h2', '', 'Favourite Items', section);
+            if (this.isOwn()) this.editButton('Choose favourite items', () => this.editFeatured(), section);
+            const items = this.element('div', 'lp-featured-grid', undefined, section);
+            for (const item of featured) {
+                const card = this.itemCard(item, 'Favourite', items);
+                card.removeAttribute('title');
+            };
+            if (!featured.length) this.element('p', 'lp-muted', 'Pick up to six favourites from your inventory.', section);
+        };
         if (this.target) {
             const player = this.livePlayer();
             if (player) {
@@ -399,10 +559,91 @@ export const LegacyProfiles = {
             this.element('span', 'lp-no-item', '—', card);
             this.element('span', 'lp-item-name', 'None', card);
         };
+        return card;
+    },
+
+    moveFavourite(from, to) {
+        const draft = this.featuredDraft;
+        if (this.savingPreferences || !draft || !Number.isInteger(from) || !Number.isInteger(to) || from < 0 || to < 0 || from >= draft.length || to >= draft.length || from === to) return false;
+        draft.splice(to, 0, draft.splice(from, 1)[0]);
+        return true;
+    },
+
+    renderFavouriteStrip(strip, refresh) {
+        strip.replaceChildren();
+        let draggedId = null;
+        this.featuredDraft.forEach((id, index) => {
+            const item = catalog.findItemById(id);
+            const slot = this.element('div', 'lp-favourite-slot', undefined, strip);
+            slot.dataset.favouriteId = id;
+            slot.tabIndex = 0;
+            slot.setAttribute('role', 'button');
+            slot.setAttribute('aria-label', 'Remove favourite ' + (index + 1) + ': ' + (item?.name || 'Item'));
+            slot.draggable = !this.savingPreferences;
+            const card = this.itemCard(item, 'Favourite', slot);
+            card.removeAttribute('title');
+            const tooltip = this.element('span', 'lp-favourite-tooltip', item?.name || 'Item', slot);
+            tooltip.id = 'lp-favourite-tip-' + index;
+            tooltip.setAttribute('role', 'tooltip');
+            slot.setAttribute('aria-describedby', tooltip.id);
+            const update = () => {
+                refresh();
+                strip.querySelector('[data-favourite-id="' + id + '"]')?.focus();
+            };
+            const remove = () => {
+                if (this.savingPreferences || Date.now() < (strip.draggedUntil || 0)) return;
+                this.featuredDraft.splice(index, 1);
+                refresh();
+                strip.querySelector('.lp-favourite-slot')?.focus();
+            };
+            slot.onclick = remove;
+            slot.onkeydown = event => {
+                if (['Enter', ' ', 'Delete', 'Backspace'].includes(event.key)) { event.preventDefault(); remove(); }
+                else if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+                    event.preventDefault();
+                    if (this.moveFavourite(index, index + (event.key === 'ArrowLeft' ? -1 : 1))) update();
+                };
+            };
+            slot.ondragstart = event => {
+                if (this.savingPreferences) { event.preventDefault(); return; };
+                draggedId = id;
+                strip.draggedUntil = Infinity;
+                strip.dataset.dragging = 'true';
+                event.dataTransfer.effectAllowed = 'move';
+                event.dataTransfer.setData('text/plain', String(id));
+            };
+            slot.ondragover = event => { if (draggedId !== null && !this.savingPreferences) { event.preventDefault(); event.dataTransfer.dropEffect = 'move'; }; };
+            slot.ondrop = event => {
+                event.preventDefault();
+                strip.draggedUntil = Date.now() + 250;
+                strip.dataset.dragging = 'false';
+                if (draggedId !== null && this.moveFavourite(this.featuredDraft.indexOf(draggedId), index)) update();
+                draggedId = null;
+            };
+            slot.ondragend = () => { draggedId = null; strip.draggedUntil = Date.now() + 250; strip.dataset.dragging = 'false'; };
+        });
+        for (let index = this.featuredDraft.length; index < 6; index++) this.element('span', 'lp-favourite-empty', String(index + 1), strip).setAttribute('aria-hidden', 'true');
     },
 
     renderInventory(container) {
         const items = this.profile.inventory.map(id => catalog.findItemById(id)).filter(Boolean);
+        let count, save, cancel, editError, strip;
+        if (this.featuredDraft) {
+            const editing = this.element('div', 'lp-featured-editor', undefined, container);
+            count = this.element('span', '', 'Favourite Items ' + this.featuredDraft.length + '/6', editing);
+            this.element('span', 'lp-favourite-hint', 'Drag to reorder · Click to remove', editing);
+            editError = this.element('span', 'lp-edit-error', '', editing);
+            editError.setAttribute('role', 'status');
+            save = this.button('Save', 'green', async () => {
+                save.disabled = cancel.disabled = true;
+                const draft = [...this.featuredDraft];
+                if (await this.savePreferences({ featuredItems: draft }, editError)) this.selectTab('loadout');
+                else save.disabled = cancel.disabled = false;
+            }, editing);
+            cancel = this.button('Cancel', 'red', () => this.selectTab('loadout'), editing);
+            strip = this.element('div', 'lp-favourite-strip', undefined, container);
+            strip.setAttribute('aria-label', 'Selected favourites');
+        };
         const controls = this.element('div', 'lp-inventory-controls', undefined, container);
         const search = this.element('input', 'textInput', undefined, controls);
         search.type = 'search'; search.placeholder = 'Find an item...'; search.setAttribute('aria-label', 'Search inventory');
@@ -421,7 +662,9 @@ export const LegacyProfiles = {
         const names = { Eggk47: 'Soldier', DozenGauge: 'Scrambler', CSG1: 'Ranger', RPEGG: 'Eggsploder', Cluck9mm: 'Cluck 9mm' };
         const types = new Set([...catalog.primaryWeapons, ...catalog.secondaryWeapons].map(item => item.item_data?.class).filter(Boolean));
         for (const type of types) {
-            addOption('weapon:' + type, names[type] || type, weapons);
+            const weapon = catalog.primaryWeapons.find(item => item.item_data?.class === type);
+            const name = Number.isInteger(weapon?.exclusive_for_class) ? this.className(weapon.exclusive_for_class) : names[type] || type;
+            addOption('weapon:' + type, name, weapons);
         };
         const grid = this.element('div', 'lp-inventory', undefined, container);
         const footer = this.element('div', 'lp-inventory-footer', undefined, container);
@@ -432,12 +675,37 @@ export const LegacyProfiles = {
         const next = this.button('Next', 'blue', () => { page++; draw(); }, footer);
         const draw = () => {
             this.tileGeneration++;
+            if (strip) {
+                count.textContent = 'Favourite Items ' + this.featuredDraft.length + '/6';
+                this.renderFavouriteStrip(strip, draw);
+            };
             const query = search.value.trim().toLocaleLowerCase();
             const visible = items.filter(item => this.matchesInventory(item, filter.value, query));
             const pages = Math.max(1, Math.ceil(visible.length / 24));
             page = Math.max(0, Math.min(page, pages - 1));
             grid.replaceChildren();
-            visible.slice(page * 24, (page + 1) * 24).forEach(item => this.itemCard(item, null, grid));
+            visible.slice(page * 24, (page + 1) * 24).forEach(item => {
+                const card = this.itemCard(item, this.featuredDraft ? 'Choose item' : null, grid);
+                if (!this.featuredDraft) return;
+                const index = this.featuredDraft.indexOf(item.id);
+                if (index >= 0) {
+                    card.classList.add('itemButtonSelected');
+                    this.element('span', 'lp-equipped', 'Favourite ' + (index + 1), card);
+                };
+                card.setAttribute('role', 'button'); card.tabIndex = 0;
+                card.setAttribute('aria-pressed', index >= 0 ? 'true' : 'false');
+                card.onclick = () => {
+                    if (save.disabled) return;
+                    if (index >= 0) this.featuredDraft.splice(index, 1);
+                    else if (this.featuredDraft.length < 6) this.featuredDraft.push(item.id);
+                    else { editError.textContent = 'Remove an item before adding another. Six is the limit!'; return; };
+                    editError.textContent = '';
+                    count.textContent = 'Favourite Items ' + this.featuredDraft.length + '/6';
+                    draw();
+                    [...grid.children].find(el => el.title === item.name)?.focus();
+                };
+                card.onkeydown = event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); card.click(); }; };
+            });
             if (!visible.length) this.element('p', 'lp-message', 'No items found.', grid);
             previous.disabled = page === 0; next.disabled = page >= pages - 1;
             counter.textContent = visible.length + (visible.length === 1 ? ' item · ' : ' items · ') + (page + 1) + ' / ' + pages;
@@ -459,6 +727,8 @@ export const LegacyProfiles = {
     },
 
     close() {
+        this.cancelPreviewEdit = null;
+        this.featuredDraft = null;
         this.generation++;
         this.tileGeneration = (this.tileGeneration || 0) + 1;
         this.cancelRequest?.();
