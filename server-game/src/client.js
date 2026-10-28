@@ -379,6 +379,7 @@ class ClientConstructor {
                         };
                         break;
                     case Comm.Code.reload:
+                        this.player.reloadsQueued = 1; //the last shot might still be in the input buffer
                         this.player.reload();
                         break;
                     case Comm.Code.swapWeapon:

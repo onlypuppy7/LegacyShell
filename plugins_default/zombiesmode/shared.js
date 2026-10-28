@@ -84,6 +84,11 @@ export const ZombiesModePlugin = {
         Player.prototype.pullTrigger = function () { if (infected(this)) return; return pullTrigger.apply(this, arguments); };
     },
 
+    resetHuman(player) {
+        player.hp = 100;
+        player.grenadeCount = player.gameOptions.startingGrenades;
+    },
+
     // ---- the browser ---------------------------------------------------------------------------------------------------------
     // The server spawns everyone when a round starts, including people sitting on the game menu. Normally you press PLAY, which also
     // takes the pointer lock and closes the menu; here nobody pressed anything, so do the same when the server spawns you.
@@ -95,6 +100,7 @@ export const ZombiesModePlugin = {
 
         var original = Player.prototype.respawn;
         Player.prototype.respawn = function () {
+            if (this.gameOptions.plugins && this.gameOptions.plugins.zombies && this.team === 1) ZombiesModePlugin.resetHuman(this);
             var result = original.apply(this, arguments);
             if (this.id === meId && gameOptions.plugins && gameOptions.plugins.zombies) ZombiesModePlugin.enterGame();
             return result;
