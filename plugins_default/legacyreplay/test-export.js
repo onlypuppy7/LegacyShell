@@ -32,6 +32,8 @@ const context = vm.createContext({
     },
     ReplayEditor: { reel: { name: 'r', shots: [{ start: 0, end: 3000, speed: [[0, 1]] }] } },
     ReplayDirector: { rate: () => 1 },
+    ReplayFx: { state: null, flashEl: null },
+    ReplayHud: { paint: () => { } },
     BABYLON: { Tools: { QueueNewFrame: function original() { return 0 } } },
     engine: { renderEvenInBackground: false, _frameHandler: 7, _bindedRenderFunction: function loop() { context.started++ } },
     started: 0,
@@ -74,6 +76,13 @@ test('the finished dialog shows the video, saves nothing until Download, and let
     assert.deepEqual(saved, ['reel.webm'], 'Download saves it');
     dialog.find((n) => n.tag === 'button' && n.textContent === 'Close').onclick();
     assert.ok(dialog.removed && revoked.includes(video.src), 'closing takes the dialog away and lets the video go');
+});
+
+test('a frame is drawn over black, so a pixel the game leaves see-through is not the last frame showing through (a trail behind anything that moves)', () => {
+    const calls = [];
+    const ctx = { drawImage: () => calls.push('draw'), fillRect: () => calls.push('fill'), set fillStyle(v) { calls.push('colour ' + v) } };
+    E.paint(ctx, { width: 1600, height: 900 }, { w: 1280, h: 720, ratio: 16 / 9 });
+    assert.deepEqual(calls.slice(0, 3), ['colour #000', 'fill', 'draw']);
 });
 
 await (async () => {

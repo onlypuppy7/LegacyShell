@@ -76,7 +76,7 @@ export const ReplayViewer = {
 
         //the clip key, in a real game (not while watching a replay, and not while typing in chat)
         window.addEventListener("keydown", (e) => {
-            if (!inGame || ReplaySession.active || e.repeat || (e.target && e.target.tagName === "INPUT")) return;
+            if (typeof inGame === "undefined" || !inGame || ReplaySession.active || e.repeat || (e.target && e.target.tagName === "INPUT")) return;
             var name = e.key === " " ? "SPACE" : e.key.toUpperCase();
             if (name === this.bound("replayKeyClip", "F8")) { e.preventDefault(); var seconds = Number(this.bound("replayClipSeconds", "30")) || 30; LegacyReplay.clip(seconds); LegacyReplay.chat("Saving a clip of the last " + seconds + " seconds...") };
         }, true);

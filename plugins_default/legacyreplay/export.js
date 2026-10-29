@@ -142,6 +142,8 @@ export const ReplayExport = {
     //the part of the game's picture that is kept, with the letterbox and flash over it (those are page elements, so they are drawn here)
     paint: function (ctx, canvas, d) {
         var bw = canvas.width, bh = canvas.height, sw = bw / bh > d.ratio ? bh * d.ratio : bw, sh = bw / bh > d.ratio ? bh : bw / d.ratio;
+        ctx.fillStyle = "#000"; //where the game draws nothing (a void for a sky) it leaves the pixel see-through, and a canvas that is only drawn over keeps the last frame there: trails behind anything that moves
+        ctx.fillRect(0, 0, d.w, d.h);
         ctx.drawImage(canvas, (bw - sw) / 2, (bh - sh) / 2, sw, sh, 0, 0, d.w, d.h);
         ReplayHud.paint(ctx, canvas, d, sw / bw, sh / bh);
         var s = ReplayFx.state;
