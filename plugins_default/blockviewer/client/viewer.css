@@ -1,0 +1,74 @@
+#bv-dialog { padding: 0; width: min(1200px, 96vw); height: min(780px, 94vh); max-width: none; max-height: none; border: none; border-radius: .25em; color: #000; background: #ffffffd9; box-shadow: 0 20px 30px #0003, 0 1px 3px #0001; overflow: hidden; font: clamp(12px, 2vh, 16px)/1.2em sans-serif; }
+#bv-dialog::backdrop { background: #0008; }
+#bv-dialog * { font-family: inherit; font-size: inherit; line-height: 1.2em; font-weight: normal; box-sizing: border-box; }
+#bv-dialog [hidden] { display: none !important; }
+#bv-dialog .bv-shell { display: flex; flex-direction: column; height: 100%; }
+#bv-dialog header { display: flex; align-items: center; gap: .5em; padding: .65em 1em; border-bottom: 1px solid #0003; }
+#bv-dialog h1 { font-size: 1.5em; font-weight: bold; margin: 0; }
+#bv-dialog button { background: #33333370; color: #fff; border: none; border-radius: .3em; padding: .25em .45em; cursor: pointer; transition: background-color .15s; }
+#bv-dialog button:hover { background: #232323; }
+#bv-dialog button:active { background: #000; }
+#bv-dialog button:disabled { opacity: .4; cursor: default; }
+#bv-dialog :focus-visible { outline: 2px solid var(--egg-brown, #532a19); outline-offset: 2px; }
+#bv-dialog button[aria-pressed="true"] { background: var(--egg-brown, #532a19); }
+#bv-dialog .bv-close { font-size: 1.1em; }
+#bv-dialog .bv-spacer { flex: 1; }
+#bv-dialog .bv-layout { display: grid; grid-template-columns: 235px minmax(0, 1fr) 220px; flex: 1; min-height: 0; }
+#bv-dialog .bv-library { display: flex; flex-direction: column; border-right: 1px solid #0003; min-height: 0; }
+#bv-dialog .bv-filters { display: grid; gap: .5em; padding: .75em; border-bottom: 1px solid #0003; }
+#bv-dialog label.bv-label, #bv-dialog h2 { font-size: 1em; font-weight: bold; margin: 0; }
+#bv-dialog input[type="search"], #bv-dialog select { width: 100%; min-width: 0; height: 1.8em; padding: .1em .25em; background: #fff; color: #000; border: 1px solid #888; border-radius: 0; opacity: 1; }
+#bv-dialog .bv-count { font-size: .8em; color: #444; }
+#bv-dialog .bv-list { flex: 1; min-height: 0; overflow: auto; padding: .3em; }
+#bv-dialog .bv-item { display: flex; align-items: center; gap: .6em; width: 100%; text-align: left; background: transparent; color: #000; border-radius: .15em; margin-bottom: .15em; padding: .4em .5em; overflow-wrap: anywhere; }
+#bv-dialog .bv-item:hover { background: #0002; }
+#bv-dialog .bv-item[aria-pressed="true"] { color: #000; background: #0003; box-shadow: inset 3px 0 var(--egg-brown, #532a19); }
+#bv-dialog .bv-thumb { flex: none; width: 3em; height: 3em; border-radius: .15em; background: #0001 center / contain no-repeat; }
+#bv-dialog .bv-text { flex: 1; min-width: 0; }
+#bv-dialog .bv-item strong { font-size: .9em; font-weight: bold; display: block; }
+#bv-dialog .bv-item small { font-size: .75em; color: #444; display: block; margin-top: .2em; }
+#bv-dialog .bv-empty { color: #444; padding: 1em .5em; }
+#bv-dialog .bv-stage { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+#bv-dialog .bv-stage-title { padding: .6em .75em; border-bottom: 1px solid #0003; min-height: 3.5em; overflow-wrap: anywhere; }
+#bv-dialog .bv-stage-title strong { font-size: 1.1em; font-weight: bold; display: block; }
+#bv-dialog .bv-stage-title small { font-size: .75em; color: #444; }
+#bv-dialog .bv-viewport { position: relative; flex: 1; min-height: 150px; background: #99b3cc; }
+#bv-dialog canvas { display: block; width: 100%; height: 100%; touch-action: none; outline: none; }
+#bv-dialog .bv-legend { position: absolute; top: .5em; left: .5em; pointer-events: none; }
+#bv-dialog .bv-legend span { font-size: .8em; background: #ffffffd9; padding: .2em .4em; border-radius: .2em; }
+#bv-dialog .bv-legend .bv-collision-key { color: #a43e00; }
+#bv-dialog .bv-viewbar { display: flex; flex-wrap: wrap; gap: .3em; padding: .5em; align-items: center; border-top: 1px solid #0003; }
+#bv-dialog .bv-viewbar button { font-size: .85em; }
+#bv-dialog .bv-hint { padding: .25em .5em .5em; text-align: center; font-size: .75em; color: #444; }
+#bv-dialog .bv-stats { padding: .75em; overflow: auto; border-left: 1px solid #0003; }
+#bv-dialog dl { margin: .5em 0 1em; }
+#bv-dialog dl > div { display: flex; justify-content: space-between; gap: .5em; padding: .35em 0; border-bottom: 1px solid #0002; }
+#bv-dialog dt { color: #333; font-size: .85em; }
+#bv-dialog dd { margin: 0; font-size: .85em; font-weight: bold; text-align: right; overflow-wrap: anywhere; }
+#bv-dialog .bv-note { font-size: .85em; color: #333; margin: .5em 0; white-space: normal; }
+#bv-dialog .bv-definition { margin-top: .4em; }
+#bv-dialog .bv-definition summary { font-size: .85em; color: #333; cursor: pointer; }
+#bv-dialog footer { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: .5em; align-items: center; padding: .5em .75em; border-top: 1px solid #0003; }
+#bv-dialog .bv-status { flex: 1; font-size: .85em; color: #333; white-space: normal; }
+#bv-dialog .bv-status[role="alert"] { color: #a32312; }
+#bv-dialog #bv-export-scope { width: auto; max-width: 100%; }
+#bv-open { position: absolute; left: 1em; top: 6.5em; }
+@media (max-width: 960px) {
+    #bv-dialog .bv-layout { grid-template-columns: 200px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
+    #bv-dialog .bv-library { grid-row: 1 / 3; }
+    #bv-dialog .bv-stats { border-left: 0; border-top: 1px solid #0003; display: grid; grid-template-columns: 1fr 1fr; gap: .75em; max-height: 200px; }
+    #bv-dialog dl { margin-bottom: 0; }
+    #bv-dialog dl > div { padding: .2em 0; }
+}
+@media (max-width: 620px) {
+    #bv-dialog { width: 98vw; height: 96vh; }
+    #bv-dialog header { padding: .6em .75em; }
+    #bv-dialog .bv-layout { grid-template-columns: 150px minmax(0, 1fr); }
+    #bv-dialog .bv-filters { padding: .6em; }
+    #bv-dialog .bv-stats { max-height: 240px; gap: .5em; }
+    #bv-dialog .bv-viewbar button { font-size: 12px; }
+}
+
+#bv-dialog .bv-layer-controls { display: flex; flex-direction: column; align-items: stretch; gap: .25em; padding-right: .5em; border-right: 1px solid #0002; }
+#bv-dialog .bv-layer-controls label { display: flex; align-items: center; gap: .2em; font-size: .75em; cursor: pointer; }
+#bv-dialog .bv-layer-controls input { margin: 0; accent-color: var(--egg-brown, #532a19); }
