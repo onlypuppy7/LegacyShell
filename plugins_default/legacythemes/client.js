@@ -339,7 +339,7 @@ const LegacyThemesPlugin = {
             style?.remove();
         });
 
-        list = list.slice().reverse();
+        list = (list || []).slice().reverse(); //a fresh profile has no saved list yet
 
         devlog("Applying styles:", list);
 

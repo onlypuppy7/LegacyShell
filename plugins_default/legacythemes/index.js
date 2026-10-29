@@ -6,7 +6,7 @@ export const PluginMeta = {
     identifier: "legacythemes",
     name: 'LegacyThemes',
     author: 'onlypuppy7',
-    version: '1.0.1',
+    version: '1.0.2',
     descriptionShort: 'A theme framework for LegacyShell', //displayed when loading
     descriptionLong: 'A theme framework for LegacyShell',
     legacyShellVersion: 562, //legacy shell version, can be found in /versionEnum.txt, or just on the homescreen
