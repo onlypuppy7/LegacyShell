@@ -139,3 +139,18 @@ console.log('ok    bytes mistaken for commands are dropped, and said once');
 scene.dispose();
 engine.dispose();
 console.log('ok    repeated seeks preserve the rendering camera');
+
+//moving blocks run on the replay's time, whatever the real clock does
+var clock = { seconds: 12, anchor: 5, source: () => 5, now() { return this.seconds + this.source() - this.anchor } };
+context.Collider = { platformWorld: { clock } };
+var S4 = context.ReplaySession;
+S4.active = true; S4.seeking = false; S4.feeding = false; S4.time = 1000;
+S4.bindPlatforms();
+assert.equal(clock.now(), 12, 'binding does not move the blocks');
+S4.time = 3500;
+assert.equal(clock.now(), 14.5, 'they follow the replay');
+S4.time = 3500;
+assert.equal(clock.now(), 14.5, 'and stand still when it does');
+clock.observe = undefined; S4.bindPlatforms();
+assert.equal(clock.replay, true);
+console.log('ok    moving blocks follow the replay clock');

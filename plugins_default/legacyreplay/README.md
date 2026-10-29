@@ -40,7 +40,7 @@ Clips are kept on your device (the browser's storage) and, signed in, on your ac
 - **Projectiles:** grenade cam and rocket cam ride the watched player's own grenade or rocket and circle where it went off. Until one is thrown they are a chase.
 - **Bullets** (from a reel shot that has one, or the editor): bullet cam (behind it), from the front, side on, and incoming (the victim's eyes, watching it come).
 
-In a replay everyone is drawn from the recorded syncs as paths through time (a smooth curve through the points, the aim from the six ticks after each), not from the game's guess between syncs, so first person is as smooth as it was. A live game being spectated goes by the ticks. The sun and the weather go by the replay's time, so skipping ahead or slowing down moves them, and a seek puts them where they were. The egg colours plugins set are in every keyframe.
+In a replay everyone is drawn from the recorded syncs as paths through time (a smooth curve through the points, the aim from the six ticks after each), not from the game's guess between syncs, so first person is as smooth as it was. A live game being spectated goes by the ticks. The sun and the weather go by the replay's time, so skipping ahead or slowing down moves them, and a seek puts them where they were. So do moving blocks (dynamicmapblocks): they stop when it does and run at its speed. The egg colours plugins set are in every keyframe.
 
 Orbit: hold the orbit button (middle mouse by default, bindable in the Replay tab) and move the mouse to swing the camera round whatever it is looking at, or use W A S D (A and D round, W and S up and down), the wheel for in and out, V to put it back. In first person it looks round from their eyes.
 

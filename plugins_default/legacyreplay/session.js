@@ -179,6 +179,7 @@ export const ReplaySession = {
         this.wrapSounds();
         this.wrapAmmo();
         if (typeof WeatherRender !== "undefined" && !this.weatherClock) { this.weatherClock = WeatherRender.clock; WeatherRender.clock = () => ReplaySession.worldClock() }; //the sun and the weather go by the replay's time
+        if (typeof PlatformRenderClock !== "undefined" && !this.platformNow) { this.platformNow = PlatformRenderClock.prototype.now; PlatformRenderClock.prototype.now = function () { return this.sample() } }; //moving blocks draw at the replay's time as it is, not smoothed towards it by the real one
         this.wrapPlayerList();
         this.wrapAddPlayer();
         ReplayAudio.start();
@@ -213,6 +214,7 @@ export const ReplaySession = {
         this.unwrapSounds();
         this.unwrapAmmo();
         if (typeof WeatherRender !== "undefined" && this.weatherClock) { WeatherRender.clock = this.weatherClock; this.weatherClock = null };
+        if (this.platformNow) { PlatformRenderClock.prototype.now = this.platformNow; this.platformNow = null };
         this.paths = null;
         this.unwrapPlayerList();
         this.unwrapAddPlayer();
@@ -250,8 +252,20 @@ export const ReplaySession = {
         this.playing ? this.pause() : this.play();
     },
 
+    //moving blocks are where the room's clock puts them, which the recording carries (platformState) and the game would let run on by the real time. here it runs on by the replay's, so pausing, slowing and seeking move them too
+    bindPlatforms: function () {
+        var clock = typeof Collider !== "undefined" && Collider.platformWorld && Collider.platformWorld.clock;
+        if (!clock || clock.replay) return;
+        var at = clock.now();
+        clock.source = () => ReplaySession.worldClock() / 1000;
+        clock.seconds = at;
+        clock.anchor = clock.source();
+        clock.replay = true;
+    },
+
     frame: function () {
         if (!this.active || this.seeking) return;
+        this.bindPlatforms();
         var now = performance.now();
         var dt = Math.max(0, Math.min(now - (this.lastFrame || now), this.maxStep || 100)); //a hitch (or a slow machine) must not skip ahead through a slow motion stretch
         this.lastFrame = now;
@@ -393,6 +407,7 @@ export const ReplaySession = {
         tMs = Math.min(Math.max(0, tMs), this.duration);
         while (this.feeding) await this.sleep(5);
         this.seeking = true;
+        this.bindPlatforms();
         var wasPlaying = this.playing;
         try {
             Howler.mute(true);
