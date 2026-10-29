@@ -348,13 +348,15 @@ export function buildMapData (errorFunc) { //[12th], (name from deobf leak)
                     var rx = cell.rx * Math.PI90 || 0;
                     var ry = cell.ry * Math.PI90 || 0;
                     var rz = cell.rz * Math.PI90 || 0;
-    
+                    //full cubes are only symmetrical on quarter turns, anything else must be tested rotated
+                    var offGrid = [cell.rx, cell.ry, cell.rz].some(r => Math.abs((r || 0) % 1) > 1e-6);
+
                     map.data[cell.x][cell.y][cell.z] = {
                         item: void 0,
                         mesh: mesh,
                         idx: meshIdx,
                         colliderMesh: colliderMesh,
-                        colliderPrecise: colliderPrecise,
+                        colliderPrecise: colliderPrecise || (mesh.colliderType == "full" && offGrid),
                         colliderChildren: colliderChildren,
                         colliderMatrix: BABYLON.Matrix.RotationYawPitchRoll(ry, rx, rz).invert(),
                         rx: rx,

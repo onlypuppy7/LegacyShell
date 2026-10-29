@@ -46,6 +46,7 @@ function createPreferences() { //alr nvm let's make it a func called before load
   initPref("renderWorkers", "", 2, "how many workers should be used during rendering?");
   initPref("debugInfo", "show debug info", true, "displays a few debug informations");
   initPref("prettyAngles", "pretty angles", true, "shows angles in factors of pi and degrees instead of raw radians");
+  initPref("fineRotateStep", "fine rotate step", 0.25, "how far Shift+Space / Shift+X / Shift+Z turn a block, in quarter turns (1 = 90°, 0.25 = 22.5°). decimals and negatives allowed. static blocks only");
   initPref("sortCombos", "sort filter menus", true, "sorts the filter menus in the palette (theme and collider combobox) alphabetically [REQUIRES RELOAD]");
   //below are just tests for how the system would behave in extreme situations.
   //there's still stuff to do (mainly with spinners), so it's going to stay commented out, but not deleted
@@ -194,9 +195,10 @@ document.addEventListener("DOMContentLoaded", ()=>{
       spin.type = "number";
       spin.style.marginRight = "0.75em";
       spin.style.width = "7.5em";
+      spin.step = "any"; //decimals allowed
       spin.addEventListener("change", (event)=>{
-        changePreference(opt, parseInt(spin.value));
-        console.log("spin new val " + parseInt(spin.value));
+        changePreference(opt, parseFloat(spin.value));
+        console.log("spin new val " + parseFloat(spin.value));
       });
       spin.value = preferences[opt].val;
       //checkContainer.appendChild(spin);
@@ -89439,9 +89441,9 @@ function doDebugMenu(){
 }
 function formatPrettyRotationText(rotation){
   if (!pref("prettyAngles")) return rotation;
-  const xxX = Math.round(rotation.x / Math.PI *2);
-  const yyY = Math.round(rotation.y / Math.PI *2);
-  const zzZ = Math.round(rotation.z / Math.PI *2);
+  const xxX = Math.round(rotation.x / Math.PI *2 * 100) / 100;
+  const yyY = Math.round(rotation.y / Math.PI *2 * 100) / 100;
+  const zzZ = Math.round(rotation.z / Math.PI *2 * 100) / 100;
 
   return `{x: ${xxX/2}π (${xxX*90}°), y: ${yyY/2}π (${yyY*90}°), z: ${zzZ/2}π (${zzZ*90}°)}`;
 }
@@ -89756,6 +89758,12 @@ function keydown(e) {
     case "x":
       rotateCell(AXIS_X);
       break;
+    case "Z":
+      rotateCell(AXIS_Z, pref("fineRotateStep"));
+      break;
+    case "X":
+      rotateCell(AXIS_X, pref("fineRotateStep"));
+      break;
     case "Backspace":
       var pick = scene.pickWithRay(camera.getForwardRay());
       if (pick.hit) {
@@ -89769,7 +89777,7 @@ function keydown(e) {
       }
       break;
     case " ":
-      rotateCell(AXIS_Y);
+      rotateCell(AXIS_Y, e.shiftKey ? pref("fineRotateStep") : 1);
       break;
     case "b":
       light.direction = camera.getDirection(BABYLON.Vector3.Forward());
@@ -89791,22 +89799,27 @@ function keydown(e) {
       break;
   }
 }
-function rotateCell(axis) {
+function rotateCell(axis, step) {
   var pick = scene.pickWithRay(camera.getForwardRay());
-  pick.pickedMesh.rotationQuaternion = null;
+  if (pick.hit && pick.pickedMesh) pick.pickedMesh.rotationQuaternion = null;
   if (pick.hit) {
     if (pick.pickedMesh.name != "ground") {
-      undoPoint();
       var cel = getPickedCell(pick);
+      if (!cel) return;
+      step = Number(step);
+      if (!isFinite(step) || step === 0) step = 1;
+      undoPoint();
+      //quarter turns, decimals ok (0.25 = 22.5°). rounded so floats dont drift
+      var turn = (v) => Math.round((((v || 0) + step) % 4 + 4) % 4 * 1e4) / 1e4 % 4;
       switch (axis) {
         case AXIS_X:
-          cel.rx = ++cel.rx % 4;
+          cel.rx = turn(cel.rx);
           break;
         case AXIS_Y:
-          cel.ry = ++cel.ry % 4;
+          cel.ry = turn(cel.ry);
           break;
         case AXIS_Z:
-          cel.rz = ++cel.rz % 4;
+          cel.rz = turn(cel.rz);
           break;
       }
       rotation.x = cel.rx;

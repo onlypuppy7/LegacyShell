@@ -121,6 +121,7 @@ class ColliderConstructor {
             if (ignoreSoft && mapMesh.softness) return false;
             switch (mapMesh.colliderType) {
                 case "full":
+                    if (cell.colliderPrecise) break; //off-grid rotation, test it rotated
                     return {
                         x: cx, y: cy, z: cz, cell: cell, mesh: this.fullCollisionMesh
                     };
