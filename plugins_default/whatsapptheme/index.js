@@ -6,7 +6,7 @@ export const PluginMeta = {
     identifier: "whatsapptheme",
     name: 'WhatsAppTheme',
     author: 'onlypuppy7',
-    version: '1.0.0',
+    version: '1.0.1',
     descriptionShort: 'A little demonstration theme', //displayed when loading
     descriptionLong: 'A little demonstration theme',
     legacyShellVersion: 562, //legacy shell version, can be found in /versionEnum.txt, or just on the homescreen
