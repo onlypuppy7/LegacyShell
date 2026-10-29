@@ -205,7 +205,7 @@ export default async function run (runStart) {
                     ip = rawIp; //from rawIp, else it rehashes every message
                     if (ss.config.services.ratelimit.protect_ips)
                         ip = crypto.createHash('md5').update(rawIp).digest('hex');
-                    ip = (rawIp.includes(":") ? "6" : "4") + ip; //family prefix, sessions allow one ip per family
+                    ip = ((rawIp.includes(":") && !rawIp.startsWith("::ffff:")) ? "6" : "4") + ip; //family prefix, sessions allow one ip per family. ::ffff: is an ipv4 the socket dressed up as v6 (no proxy in front)
     
                     let isAccepted;
     
