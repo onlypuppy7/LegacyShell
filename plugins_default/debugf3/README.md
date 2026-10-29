@@ -11,6 +11,9 @@ The toggle is remembered in `localStorage`. Only drawn while in a game. Settings
 
 ## Notes
 
+Other plugins can add lines with `game:debugF3Lines` (a synchronous event, `emitSync`). Listeners get `{ left, right, player, target, hide }`; push strings onto `left` (above the Debug line) or `right` (below the targeted block). `target` is the raycast result, so platform hits carry their own fields. Use `hide` to skip anything identifying. `dynamicmapblocks` uses this to show its platforms.
+
+
 Purely client-side (only registers `client:pluginSourceInsertion`, splicing `client.js` into the bundle). It runs its own `requestAnimationFrame` loop and refreshes the text at 10Hz. "Targeted block" raycasts 8 units from the camera with `Collider.rayCollidesWithMap`, the same way bullets do.
 
 ---

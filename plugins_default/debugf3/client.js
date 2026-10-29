@@ -1,5 +1,6 @@
 //legacyshell: basic
 import { isClient } from "#constants";
+import { plugins } from "#plugins";
 //
 
 export const DebugF3 = {
@@ -64,7 +65,7 @@ export const DebugF3 = {
         lines.forEach((line, i) => {
             let row = el.children[i];
             if (!row) row = el.appendChild(document.createElement("div"));
-            row.className = line === "" ? "gap" : line === "Targeted Block" ? "underline" : "";
+            row.className = line === "" ? "gap" : /^Targeted /.test(line) ? "underline" : "";
             if (row.textContent !== line) row.textContent = line;
         });
     },
@@ -85,7 +86,7 @@ export const DebugF3 = {
 
     update: function (force) {
         const now = performance.now();
-        if (!this.shown || !inGame || !me || !gameScene || !engine) {
+        if (!this.shown || typeof inGame === "undefined" || !inGame || !me || !gameScene || !engine) {
             if (force || this.left.style.display !== "none") this.left.style.display = this.right.style.display = "none";
             return;
         };
@@ -177,6 +178,11 @@ export const DebugF3 = {
             target ? `${target.voxel.x}, ${target.voxel.y}, ${target.voxel.z}` : "none",
             target ? targetName : "",
         ];
+
+        const extra = { left: [], right: [], player: p, target, hide }; //other plugins add their own lines here
+        plugins.emitSync("debugF3Lines", extra);
+        left.splice(-2, 0, ...extra.left);
+        right.push(...extra.right);
 
         this.render(this.left, left);
         this.render(this.right, right);
