@@ -2,6 +2,8 @@ import { ss } from '#misc';
 import sess from '#sessionManagement';
 import { AchievementStore } from './storage.js';
 
+const maxWatchers = 3; //subscribed sockets kept per account, the oldest go first
+
 export class AchievementService {
     constructor(plugins, context = () => ss, sessions = sess) {
         this.context = context;
@@ -69,7 +71,7 @@ export class AchievementService {
             if (!this.watchers.has(ws)) ws.once('close', () => this.watchers.delete(ws));
             this.watchers.set(ws, { id, session: msg.session, ip });
             const others = [...this.watchers].filter(([socket, watcher]) => socket !== ws && watcher.id === id);
-            while (others.length >= 3) { const [socket] = others.shift(); this.watchers.delete(socket); socket.close(); };
+            while (others.length >= maxWatchers) { const [socket] = others.shift(); this.watchers.delete(socket); socket.close(); };
             this.send(ws, { type: 'snapshot', ...this.store.snapshot(id) }, msg.requestId);
         } else if (msg.cmd === 'achievementsClaim') {
             if (typeof msg.achievement !== 'string') throw new Error('Choose an achievement first.');

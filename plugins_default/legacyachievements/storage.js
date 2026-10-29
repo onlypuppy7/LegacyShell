@@ -1,9 +1,17 @@
-import { AchievementDefinitions } from './definitions.js';
+import { AchievementDefinitions, AchievementMaxPins } from './definitions.js';
+
+//how far an account is towards a definition, new metrics go here
+export function progressOf(definition, user) {
+    if (definition.metric === 'account') return 1;
+    if (definition.metric === 'kills') return Math.max(0, user.kills || 0);
+    return 0;
+};
 
 export class AchievementStore {
     constructor(db, definitions = AchievementDefinitions) {
         this.db = db;
         this.definitions = definitions;
+        this.byId = new Map(definitions.map(definition => [definition.id, definition]));
         db.exec(`CREATE TABLE IF NOT EXISTS achievement_unlocks (
             account_id INTEGER NOT NULL,
             achievement_id TEXT NOT NULL,
@@ -31,15 +39,14 @@ export class AchievementStore {
             (account_id, achievement_id, unlocked_at, reward) VALUES (?, ?, ?, ?)`);
         this.db.transaction(() => {
             for (const definition of this.definitions) {
-                const progress = definition.metric === 'account' ? 1 : definition.metric === 'kills' ? user.kills : 0;
-                if (progress >= definition.goal && insert.run(id, definition.id, now, JSON.stringify(definition.reward)).changes) earned.push(definition.id);
+                if (progressOf(definition, user) >= definition.goal && insert.run(id, definition.id, now, JSON.stringify(definition.reward)).changes) earned.push(definition.id);
             };
         })();
         return earned;
     };
 
     unlock(id, achievementId, now = Math.floor(Date.now() / 1000)) {
-        const definition = this.definitions.find(entry => entry.id === achievementId);
+        const definition = this.byId.get(achievementId);
         if (!definition || !this.user(id)) throw new Error('Achievement not found.');
         return !!this.db.prepare(`INSERT OR IGNORE INTO achievement_unlocks
             (account_id, achievement_id, unlocked_at, reward) VALUES (?, ?, ?, ?)`)
@@ -50,11 +57,10 @@ export class AchievementStore {
         const rows = new Map(this.db.prepare('SELECT * FROM achievement_unlocks WHERE account_id = ?').all(user.account_id).map(row => [row.achievement_id, row]));
         return this.definitions.map(definition => {
             const row = rows.get(definition.id);
-            const progress = definition.metric === 'account' ? 1 : definition.metric === 'kills' ? Math.max(0, user.kills || 0) : 0;
             return { id: definition.id, name: definition.name, category: definition.category || 'Other', description: definition.description,
                 image: definition.image || '/legacyachievements/img/placeholder.png', goal: definition.goal,
                 tier: Number.isInteger(definition.tier) && definition.tier > 0 ? definition.tier : null,
-                progress: row ? definition.goal : Math.min(definition.goal, progress),
+                progress: row ? definition.goal : Math.min(definition.goal, progressOf(definition, user)),
                 unlockedAt: row?.unlocked_at || null, claimedAt: row?.claimed_at || null,
                 reward: row ? JSON.parse(row.reward) : definition.reward };
         });
@@ -69,13 +75,13 @@ export class AchievementStore {
     featured(id) {
         const row = this.db.prepare('SELECT pins FROM achievement_showcases WHERE account_id = ?').get(id);
         const earned = new Set(this.db.prepare('SELECT achievement_id FROM achievement_unlocks WHERE account_id = ?').all(id).map(row => row.achievement_id));
-        try { return JSON.parse(row?.pins || '[]').filter(pin => earned.has(pin) && this.definitions.some(definition => definition.id === pin)).slice(0, 3); }
+        try { return JSON.parse(row?.pins || '[]').filter(pin => earned.has(pin) && this.byId.has(pin)).slice(0, AchievementMaxPins); }
         catch { return []; };
     };
 
     feature(id, pins) {
         return this.db.transaction(() => {
-            if (!Array.isArray(pins) || pins.length > 3 || new Set(pins).size !== pins.length || pins.some(pin => typeof pin !== 'string' || !this.definitions.some(definition => definition.id === pin) || !this.db.prepare('SELECT 1 FROM achievement_unlocks WHERE account_id = ? AND achievement_id = ?').get(id, pin))) throw new Error('Choose up to three earned pins.');
+            if (!Array.isArray(pins) || pins.length > AchievementMaxPins || new Set(pins).size !== pins.length || pins.some(pin => typeof pin !== 'string' || !this.byId.has(pin) || !this.db.prepare('SELECT 1 FROM achievement_unlocks WHERE account_id = ? AND achievement_id = ?').get(id, pin))) throw new Error('Choose up to three earned pins.');
             this.db.prepare(`INSERT INTO achievement_showcases (account_id, pins) VALUES (?, ?)
                 ON CONFLICT(account_id) DO UPDATE SET pins = excluded.pins`).run(id, JSON.stringify(pins));
         }).immediate();
@@ -97,7 +103,7 @@ export class AchievementStore {
     claim(id, achievementId, now = Math.floor(Date.now() / 1000)) {
         return this.db.transaction(() => {
             const row = this.db.prepare('SELECT * FROM achievement_unlocks WHERE account_id = ? AND achievement_id = ?').get(id, achievementId);
-            if (!row || !this.definitions.some(definition => definition.id === achievementId)) throw new Error('That achievement has not been unlocked.');
+            if (!row || !this.byId.has(achievementId)) throw new Error('That achievement has not been unlocked.');
             const user = this.user(id);
             if (!user) throw new Error('Account not found.');
             if (!row.claimed_at) {

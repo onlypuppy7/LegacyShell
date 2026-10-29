@@ -8,7 +8,7 @@ export const PluginMeta = {
     identifier: 'legacyachievements',
     name: 'LegacyAchievements',
     author: 'onlypuppy7',
-    version: '1.0.7',
+    version: '1.0.8',
     descriptionShort: 'Get cracking, earn rewards',
     descriptionLong: 'Achievements, profile rewards and a little something for your trouble',
     legacyShellVersion: 661,

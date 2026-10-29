@@ -234,7 +234,7 @@ export const LegacyAchievements = {
             edit.onclick = () => { this.pinDraft = [...(data.featured || [])]; this.render(profile, container); };
             return;
         };
-        this.element('strong', '', 'Display Pins ' + this.pinDraft.length + '/3', bar);
+        this.element('strong', '', 'Display Pins ' + this.pinDraft.length + '/' + AchievementMaxPins, bar);
         this.element('span', 'la-pin-hint', 'Drag to reorder · Click to remove', bar);
         const error = this.element('span', 'la-error', '', bar);
         error.setAttribute('role', 'status');
@@ -529,11 +529,11 @@ export const LegacyAchievements = {
         if (own && this.pinDraft && achievement.unlockedAt) {
             const chosen = this.pinDraft.includes(achievement.id);
             const toggle = this.element('button', 'ssbutton blue', chosen ? 'Unpin' : 'Pin', actions);
-            toggle.disabled = !!this.pinSaving || (!chosen && this.pinDraft.length >= 3);
+            toggle.disabled = !!this.pinSaving || (!chosen && this.pinDraft.length >= AchievementMaxPins);
             toggle.onclick = () => {
                 if (this.pinSaving) return;
                 if (chosen) this.pinDraft.splice(this.pinDraft.indexOf(achievement.id), 1);
-                else if (this.pinDraft.length < 3) this.pinDraft.push(achievement.id);
+                else if (this.pinDraft.length < AchievementMaxPins) this.pinDraft.push(achievement.id);
                 this.render(LegacyProfiles.profile, LegacyProfiles.pane);
             };
         };

@@ -8,7 +8,7 @@ import UglifyJS from 'uglify-js';
 import misc from '#misc';
 import { AchievementStore } from './storage.js';
 import { AchievementService } from './services.js';
-import { AchievementDefinitions } from './definitions.js';
+import { AchievementDefinitions, AchievementMaxPins } from './definitions.js';
 import { Plugin } from './index.js';
 
 function fixture() {
@@ -307,7 +307,7 @@ test('display pins use category colours and only render a numeral for an explici
 });
 
 test('the pin picker hides redemption controls and redeemed rows show the earned date', () => {
-    const context = vm.createContext({ isClient: false, document: { createElement: () => new Element() } });
+    const context = vm.createContext({ isClient: false, AchievementMaxPins, document: { createElement: () => new Element() } });
     vm.runInContext(misc.prepareForClient(fs.readFileSync(new URL('client.js', import.meta.url), 'utf8')) + '\nglobalThis.client = LegacyAchievements;', context);
     const client = context.client;
     client.rewardIcons = () => {};

@@ -3,6 +3,8 @@ import { ss } from '#misc';
 import Player from '#player';
 import { iteratePlayers } from '#constants';
 
+const challengeMap = 'Blue', challengeKills = 50; //Sidearm Survivor
+
 export class AchievementGame {
     constructor(plugins, report = username => this.report(username), PlayerClass = Player, eachPlayer = iteratePlayers) {
         this.rounds = new WeakMap();
@@ -16,7 +18,7 @@ export class AchievementGame {
             return result;
         };
         plugins.on('game:zombiesRoundStarted', ({ room }) => {
-            if (room.useCustomMap || room.minMap?.name !== 'Blue') { rounds.delete(room); return; };
+            if (room.useCustomMap || room.minMap?.name !== challengeMap) { rounds.delete(room); return; };
             const players = new Map();
             eachPlayer(player => {
                 if (player.room === room && player.client?.isHuman && player.client.loggedIn && player.client.username) players.set(player, { username: player.client.username, kills: 0 });
@@ -34,10 +36,10 @@ export class AchievementGame {
         plugins.on('game:zombiesRoundFinished', async ({ room, winner, survivors }) => {
             const round = rounds.get(room);
             rounds.delete(room);
-            if (!round || round.cheated || room.gameOptions.cheatsEnabled || room.useCustomMap || room.minMap?.name !== 'Blue' || winner !== 'humans') return;
+            if (!round || round.cheated || room.gameOptions.cheatsEnabled || room.useCustomMap || room.minMap?.name !== challengeMap || winner !== 'humans') return;
             await Promise.allSettled(survivors.map(async player => {
                 const entry = round.players.get(player);
-                if (entry?.kills >= 50 && player.client?.loggedIn && player.client.username === entry.username && !player.gameOptions.cheatsEnabled) await report(entry.username);
+                if (entry?.kills >= challengeKills && player.client?.loggedIn && player.client.username === entry.username && !player.gameOptions.cheatsEnabled) await report(entry.username);
             }));
         });
         plugins.on('game:roomDestroy', ({ this: room }) => rounds.delete(room));

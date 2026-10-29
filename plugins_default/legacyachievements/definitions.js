@@ -1,3 +1,5 @@
+export const AchievementMaxPins = 3; //earned achievements shown on a profile
+
 export const AchievementDefinitions = [
     { id: 'fresh_egg', name: 'Fresh Egg', category: 'Account', description: 'Make an account.', metric: 'account', goal: 1, image: '/img/ico_chicken.png', reward: { eggs: 250 } },
     { id: 'kills_5', tier: 1, name: 'Getting Cracking I', category: 'Combat', description: 'Kill 5 eggs.', metric: 'kills', goal: 5, image: '/img/egg_icon.png', reward: { eggs: 500 } },
