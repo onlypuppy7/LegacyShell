@@ -13,7 +13,7 @@ export const PluginMeta = {
     identifier: "legacyshellcore",
     name: 'LegacyShellCore',
     author: 'onlypuppy7',
-    version: '1.0.12',
+    version: '1.0.13',
     descriptionShort: 'Used in the public instance', //displayed when loading
     descriptionLong: 'Used in the public instance',
     legacyShellVersion: 269, //legacy shell version, can be found in /versionEnum.txt, or just on the homescreen
@@ -31,7 +31,8 @@ export class Plugin {
         LegacyShellCorePlugin.registerListeners(this.plugins);
         this.plugins.on('client:pluginSourceInsertion', this.pluginSourceInsertion.bind(this));
         this.plugins.on('client:onStartServer', this.onStartServer.bind(this));
-        
+        this.plugins.on('client:replacementsBefore', this.replacementsBefore.bind(this));
+
         this.plugins.on('client:prepareBabylonBefore', this.prepareBabylonBefore.bind(this));
         this.plugins.on('game:prepareBabylonBefore', this.prepareBabylonBefore.bind(this));
 
@@ -54,6 +55,13 @@ export class Plugin {
         let app = data.app;
 
         app.use(express.static(path.join(this.thisDir, 'client')));
+    };
+
+    replacementsBefore(data) { //housePromo.json gets baked into the bundle from core's copy, so ours has to go in there too (the static mount above isnt asked any more)
+        for (var replacement of data.replacementsBefore) {
+            if (replacement.pattern?.source !== "LEGACYSHELLHOUSEPROMO") continue;
+            replacement.insertion = JSON.stringify(JSON.parse(fs.readFileSync(path.join(this.thisDir, 'client', 'housePromo.json'), 'utf8')));
+        };
     };
 
     async eventsInit(data) {

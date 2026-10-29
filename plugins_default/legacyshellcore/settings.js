@@ -163,7 +163,7 @@ const LegacyShellCoreSettings = {
             label: "Scoped Sensitivity",
             tooltip: "Multiplier on your mouse speed while aiming down sights. Lower is slower and steadier.",
             min: 0.05, max: 1.5, step: 0.05, showNumber: true, //a multiplier on mouse speed while scoped, the original is a fixed 0.3
-            getValue: () => settings.scopeSensitivity ?? 0.3,
+            getValue: () => getScopeSensitivity(),
             setValue: (val) => {
                 settings.scopeSensitivity = val;
                 LegacySettings.set("scopeSensitivity", val);
@@ -204,7 +204,7 @@ const LegacyShellCoreSettings = {
             key: "fovDegrees",
             label: "FOV",
             min: 50, max: 110, step: 1, showNumber: true,
-            getValue: () => Math.round((settings.fov || 1.25) * 180 / Math.PI),
+            getValue: () => Math.round(getDefaultFov() * 180 / Math.PI),
             setValue: (val) => {
                 LegacySettings.set("fovDegrees", val);
                 LegacyShellCoreSettings.applyFov(val);
