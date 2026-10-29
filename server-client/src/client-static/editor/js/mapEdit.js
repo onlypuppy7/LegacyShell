@@ -88866,6 +88866,8 @@ function createScene() {
   selector.material = selectorMat;
   selector.setEnabled(false);
   scene.onPointerDown = function(evt, pickResult) {
+    plugins.emitSync('editorPointerDown', { event: evt, pick: pickResult });
+    if (plugins.cancel) return;
     if (clickTimeout)
       return;
     clickTimeout = setTimeout(() => {
@@ -88937,6 +88939,8 @@ function createScene() {
     }
   };
   scene.onPointerUp = function(evt, pickResult) {
+    plugins.emitSync('editorPointerUp', { event: evt, pick: pickResult });
+    if (plugins.cancel) return;
     if (evt.button == 0 || evt.button == 2) {
       lastPointPicked = new BABYLON.Vector3(-1e3, -1e3, -1e3);
       evaluate();
@@ -88952,6 +88956,8 @@ function createScene() {
   });
 
   scene.onPointerMove = function(evt, pickResult) {
+    plugins.emitSync('editorPointerMove', { event: evt, pick: pickResult });
+    if (plugins.cancel) return;
     // console.log(evt.movementX + evt.movementY, ignoreMouseInput);
     if (ignoreMouseInput) ((evt.movementX = 0), (evt.movementY = 0));
     if (evt.constructor.name === "WheelEvent") {
@@ -89421,7 +89427,7 @@ function doDebugMenu(){
   var pick = scene.pickWithRay(camera.getForwardRay());
   if (pick.hit && pick.pickedMesh.name != "ground") {
     var cel = getPickedCell(pick);
-    if(!cel){
+    if(!cel || !mapMeshes[cel.idx]){
       rotText.innerText = `rotation: UNKNOWN PICK!`;
       posText.innerText = `position: UNKNOWN PICK!`;
       return;
@@ -89833,6 +89839,7 @@ function rotateCell(axis, step) {
   }
 }
 function moveMap(dx, dy, dz) {
+  plugins.emitSync('editorMoveMapBefore', {});
   undoPoint();
   var newMap2 = makeEmptyMap(map.width, map.height, map.depth);
   var odx = dx;
@@ -89866,6 +89873,7 @@ function moveMap(dx, dy, dz) {
       children[i3].dispose();
     }
   }
+  plugins.emitSync('editorMoveMapAfter', { dx, dy, dz });
 }
 function selectTool(t) {
   tool = t;
@@ -89903,6 +89911,7 @@ function newMap() {
   setupSkybox();
 }
 function initMap() {
+  plugins.emitSync('editorInitMapBefore', {});
   document.getElementById("filename").value = "";
   document.getElementById("mapName").value = "";
   if (mapContainer)
@@ -89916,6 +89925,7 @@ function initMap() {
   mapContainer = new BABYLON.AbstractMesh();
   mapEdited = false;
   updateMapSettings({});
+  plugins.emitSync('editorInitMapAfter', {});
 }
 function makeEmptyMap(w, h, d) {
   var emptyMap = Array(map.width);
@@ -90054,8 +90064,10 @@ function testMap() {
   window.open(location.origin+"/?testMap&x=" + x + "&y=" + y + "&z=" + z + "&pitch=" + pitch + "&yaw=" + yaw, "_blank");
 }
 function maximizeMap(json) {
+  plugins.emitSync('editorLoadMapBefore', { json });
   if (!json || json == "") {
     setupSkybox();
+    plugins.emitSync('editorLoadMapAfter', { json });
     return false;
   }
   var minMap2 = JSON.parse(json);
@@ -90150,6 +90162,7 @@ function maximizeMap(json) {
   }
   updateMapSettings(minMap2);
   evaluate();
+  plugins.emitSync('editorLoadMapAfter', { json });
   return true;
 }
 function findClosestMeshIdx(name) {
@@ -90183,6 +90196,7 @@ function stringCompare(a, b) {
   return foundIn / (medianLen * 2) + foundAt / medianLen;
 }
 function generateExtents() {
+  plugins.emitSync('editorExtentsBefore', {});
   minMap = {};
   minMap.data = {};
   extents.x = { max: 0, min: 1e4 };
@@ -90223,6 +90237,7 @@ function generateExtents() {
   extents.width = extents.x.max - extents.x.min + 1;
   extents.height = extents.y.max - extents.y.min + 1;
   extents.depth = extents.z.max - extents.z.min + 1;
+  plugins.emitSync('editorExtentsAfter', { extents });
 };
 function minimizeMap() {
   generateExtents();
@@ -90270,6 +90285,7 @@ function minimizeMap() {
   extents.seasonalEffectsDisabled = document.getElementById("seasonalEffectsDisabled").checked;
   extents.maxJumps = document.getElementById("maxJumps").value;
 
+  plugins.emitSync('editorSaveMap', { minMap, extents });
   return minMap;
 }
 function saveToLocal() {

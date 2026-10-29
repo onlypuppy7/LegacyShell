@@ -91,6 +91,7 @@ async function modifyFiles(babylonsDone) {
         pluginInsertion.strings.beforebefore = "";
         pluginInsertion.strings.before = "";
         pluginInsertion.strings.after = "";
+        pluginInsertion.strings.editor = "";
         pluginInsertion.files = [];
     
         await plugins.emit('pluginSourceInsertion', { this: this, ss, pluginInsertion });
@@ -111,7 +112,7 @@ async function modifyFiles(babylonsDone) {
         });
 
         code.sourceJs = fs.readFileSync(sourceShellJsPath, 'utf8');
-        code.mapEditorJs = fs.readFileSync(sourceEditorJsPath, 'utf8');
+        code.mapEditorJs = fs.readFileSync(sourceEditorJsPath, 'utf8') + pluginInsertion.strings.editor;
         code.htmlContent = fs.readFileSync(sourceHtmlPath, 'utf8');
         code.mapEditorHtmlContent = fs.readFileSync(sourceEditorHtmlPath, 'utf8');
 
