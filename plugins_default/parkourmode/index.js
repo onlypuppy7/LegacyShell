@@ -13,7 +13,7 @@ export const PluginMeta = {
     identifier: "parkourmode",
     name: 'ParkourMode',
     author: 'onlypuppy7',
-    version: '1.0.1',
+    version: '1.0.2',
     descriptionShort: 'Adds the parkour gamemode', //displayed when loading
     descriptionLong: 'Adds the parkour gamemode',
     legacyShellVersion: 269, //legacy shell version, can be found in /versionEnum.txt, or just on the homescreen

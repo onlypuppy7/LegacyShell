@@ -18,7 +18,7 @@ Hooks `game:onStandOnTile` and checks the mesh name a player is currently standi
 
 ## Notes
 
-Sound assets include a `parkour.gerudo` clip that's loaded (`loadSounds`) but never actually played anywhere in the reviewed source - a loaded-but-unused asset, not a bug that affects anything, just dead weight if you're auditing what actually gets used.
+Sound assets include a `parkour.gerudo` clip that's registered (`loadSounds`) but never actually played anywhere in the reviewed source. It's registered with `{ preload: false, html5: true }`, so it isn't even downloaded unless something plays it - harmless, just unused.
 
 ---
 *This page was drafted with AI assistance and reviewed for accuracy. If something looks wrong, please [open a PR](https://github.com/onlypuppy7/LegacyShell) or flag it.*

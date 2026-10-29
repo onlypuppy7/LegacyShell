@@ -8,7 +8,7 @@ export const PluginMeta = {
     identifier: "legacysettings",
     name: 'LegacySettings',
     author: 'onlypuppy7',
-    version: '1.0.1-wip',
+    version: '1.0.2-wip',
     descriptionShort: 'Revamps the existing settings and adds a framework you can build plugins off of', //displayed when loading
     descriptionLong: 'Revamps the existing settings and adds a framework you can build plugins off of',
     legacyShellVersion: 561, //legacy shell version, can be found in /versionEnum.txt, or just on the homescreen

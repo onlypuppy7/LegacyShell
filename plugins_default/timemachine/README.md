@@ -1,19 +1,19 @@
 # TimeMachine
 
-A "throwback options" plugin - lets a player opt back into older (pre-0.17.0) visual behavior: bullet holes (removed in 0.17.0, this plugin reimplements the 0.9.0 and 0.1.0 versions), bullet smoke, a classic egg-splatter death animation, and classic frag particles - each individually toggleable, none on by default except bullet smoke.
+A "throwback options" plugin - lets a player opt back into older (pre-0.17.0) visual behavior: bullet holes (removed in 0.17.0, this plugin reimplements the 0.9.0 and 0.1.0 versions), bullet smoke, a classic egg-splatter death animation, classic frag particles and the early versions' skyboxes - each individually toggleable, none on by default except bullet smoke. It also adds a "Classic Shell Background" style pack and a "Classic Grenade Sounds" sound pack.
 
 ## Setup
 
-Depends on [Legacy Settings](/plugins_default/legacysettings/README.md) and [Legacy Themes](/plugins_default/legacythemes/README.md) (`dependencies.js` declares both as `"plugin"` dependencies) - and, unlike [Legacy Themes](/plugins_default/legacythemes/README.md) itself, actually declares what it depends on rather than relying on splice-order coincidence.
+Depends on [Legacy Settings](/plugins_default/legacysettings/README.md), [Legacy Themes](/plugins_default/legacythemes/README.md) and [Classic Skybox](/plugins_default/classicskybox/README.md) (`dependencies.js` declares all three as `"plugin"` dependencies) - and, unlike [Legacy Themes](/plugins_default/legacythemes/README.md) itself, actually declares what it depends on rather than relying on splice-order coincidence.
 
 ## What it actually does
 
-Adds a "Throwback Options" category under a shared "Graphics" settings tab (see [Legacy Settings](/plugins_default/legacysettings/README.md)) with four options, each wired directly into a `plugins.cancel`-based replacement of a default rendering behavior:
+Adds a "Throwback Options" category under a shared "Graphics" settings tab (see [Legacy Settings](/plugins_default/legacysettings/README.md)) with five options, the effect ones each wired directly into a `plugins.cancel`-based replacement of a default rendering behavior:
 
 | Option | Effect when set |
 |---|---|
 | Bullet Holes | `0.17.0` (default, i.e. off), `0.9.0`, or `0.1.0` - reimplements the old sprite-based bullet-hole decal system for the two non-default choices, using an original comment's own note that "0.17.0 removed them entirely." |
-| Map Skybox | `classic-alpha` (0.0.4), `classic` (0.1.0) or `skyboxes` (0.14.4+, default, each map's own) - sets `ClassicSkyboxPlugin.override`, so it needs [Classic Skybox](/plugins_default/classicskybox/index.js). |
+| Map Skybox | `classic-alpha` (0.0.4), `classic` (0.1.0) or `skyboxes` (0.14.4+, default, each map's own) - sets `ClassicSkyboxPlugin.override`, so it needs [Classic Skybox](/plugins_default/classicskybox/README.md). |
 | Bullet Smoke | Off cancels the default `bulletHitEffect` behavior entirely (`plugins.cancel = !this.bulletSmoke.get()`). |
 | Death Animation | `0.15.4d` (default, current) or `0.4.2` (classic egg-splatter: exploding shell, white and yolk). Anything but current cancels the default `playerDeathAnimation`. |
 | Classic Frag Particles | On cancels the default `shellFragBurstBefore` particle burst and substitutes an old-style one. |

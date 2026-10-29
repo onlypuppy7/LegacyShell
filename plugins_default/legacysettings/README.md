@@ -16,6 +16,9 @@ A single global instance (`LegacySettings`, `client.js`) exposes:
 | `addCategory(tabName, panelIndex, label, { defaultOpen, collapsible })` | A labeled, optionally-collapsible group of options within one panel. |
 | `addOption(tabName, opt, panelIndex, categoryLabel)` | Adds one control. `opt.key` is the persisted storage key (auto-generated with a warning if omitted); `opt.type` selects which control renders - see below. |
 | `get(key, default)` / `set(key, value)` | Read/write a value directly, outside of the UI - state persists to `localStorage` under the settings-menu's own id, not to any server-side store. |
+| `refresh()` | Re-reads every option's value into its control - for when state changed somewhere else (a reset, another option that depends on this one). |
+
+`addOption` returns the option object, which has its own `get()`, `set(value)`, `refresh()` and `setVisible(bool)`. An option normally stores its value under `opt.key`, but it can be backed by state that lives elsewhere instead: give it `getValue()`/`setValue(value)` and LegacySettings reads and writes through those (this is how LegacyShellCore's rebuilt 0.17.0 settings menu drives the core's own `settings` object and keybinds). `onChange(value)` is called whenever the player changes it.
 
 Existing settings added before this plugin's own UI takes over are preserved: `finalise()` absorbs the page's original `#settingsContainer` element wholesale into a "General" tab (`absorbOldSettings`, default `true`) rather than discarding it.
 
@@ -25,7 +28,7 @@ Existing settings added before this plugin's own UI takes over are preserved: `f
 
 ## Notes
 
-`client.js` ends with a full worked example (a "Gameplay" tab exercising every option type) purely for reference - it's live example code, not something that ships to real players, but reading it directly is the fastest way to see every option type's exact call shape at once.
+`client.js` ends with a full worked example (a "Gameplay" tab exercising every option type) purely for reference. It's commented out (uncomment the marker line above it and the one at the end of the file to see it in game), but reading it directly is the fastest way to see every option type's exact call shape at once.
 
 ---
 *This page was drafted with AI assistance and reviewed for accuracy. If something looks wrong, please [open a PR](https://github.com/onlypuppy7/LegacyShell) or flag it.*

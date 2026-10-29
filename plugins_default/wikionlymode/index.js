@@ -8,7 +8,7 @@ export const PluginMeta = {
     identifier: "wikionlymode",
     name: 'Wiki Only Mode',
     author: 'onlypuppy7 (+Claude)',
-    version: '1.0.0',
+    version: '1.0.1',
     descriptionShort: 'Takes the client offline while keeping the wiki and services reachable',
     descriptionLong: 'Swaps the site\'s index page for a "currently unavailable" notice (with a selectable reason) while /wiki and the services connection stay up. Toggled via store/config.jsonc - see the admin plugin, which surfaces this file automatically.',
     legacyShellVersion: 600,
