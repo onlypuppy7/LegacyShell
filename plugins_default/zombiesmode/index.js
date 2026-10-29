@@ -1,7 +1,7 @@
 //basic
 import path from 'node:path';
 //plugin: zombiesmode
-import { ZombiesModePlugin, ZombiesModeDefaults, ZombiesModeMaps } from './shared.js';
+import { ZombiesModePlugin, ZombiesModeDefaults, ZombiesModeMaps, ZombiesTeams } from './shared.js';
 import { DeadInternetBot, registerPreset } from '../deadinternet/index.js';
 import { hasGroundAhead } from '../deadinternet/combat.js';
 import Player from '#player';
@@ -15,7 +15,7 @@ export const PluginMeta = {
     identifier: "zombiesmode",
     name: 'ZombiesMode',
     author: 'onlypuppy7 (+Claude)', //NOTE! most of this plugin is VIBECODED.
-    version: '1.2.18',
+    version: '1.2.19',
     descriptionShort: 'Adds the zombies gamemode: survive the horde, the infected join it', //displayed when loading
     descriptionLong: 'Adds the Zombies gamemode. A horde of slow DeadInternet bots walks at the humans and bites them; a human who dies (or leaves the fight through the menu) is infected and joins the horde. Last human standing wins, or the humans win by outlasting the round.',
     legacyShellVersion: 613, //legacy shell version, can be found in /versionEnum.txt, or just on the homescreen
@@ -59,8 +59,8 @@ registerPreset('zombie', {
     respawnDelay: ZombiesModeDefaults.respawnSecs,
 });
 
-const HUMANS = 1;
-const HORDE = 2;
+const { HUMANS, HORDE } = ZombiesTeams;
+const WIND_DIRECTION = 70; //the round's storm always blows the same way
 const WALK_PACE = 0.0315; //how far a player at speed 1 goes in a tick walking (it settles there: acceleration .007, drag .8)
 
 // Ghosts are the horde's players with noclip (nothing else turns it on in this gamemode), which is also how the browsers tell them apart.
@@ -353,8 +353,9 @@ export class Plugin {
     packUpdateRoomParams(data) {
         const room = data.this;
         if (!isZombieRoom(room)) return;
-        room.gameOptions.plugins.zombiesInterim = !getState(room).active && room.roundEndTime <= Date.now() && room.roundRestartTime > Date.now();
-        room.gameOptions.plugins.zombiesSuddenDeath = getState(room).active && getState(room).suddenDeath;
+        const z = getState(room), now = Date.now();
+        room.gameOptions.plugins.zombiesInterim = !z.active && room.roundEndTime <= now && room.roundRestartTime > now;
+        room.gameOptions.plugins.zombiesSuddenDeath = z.active && z.suddenDeath;
     };
 
     // Health packs (the healthpackitem plugin, enabled for this gamemode in shared.js) are for the humans: the horde walks over them.
@@ -440,10 +441,10 @@ export class Plugin {
     roundTimeUp(room) {
         const z = getState(room);
         const cfg = settings(room);
-        if (!z.active || z.winner || z.victory || activeHumans(z).length === 0) return room.endRound();
+        const survivors = activeHumans(z);
+        if (!z.active || z.winner || z.victory || survivors.length === 0) return room.endRound();
 
         z.victory = true;
-        const survivors = activeHumans(z);
         const horde = [];
         iteratePlayers((player) => {
             if (player.team !== HORDE) return;
@@ -531,7 +532,7 @@ export class Plugin {
     // death a downpour with lightning every second or two.
 
     setSky(room, weather, time) {
-        room.gameOptions.plugins.weather = { wind: { strength: 0.5, direction: 70 }, ...weather };
+        room.gameOptions.plugins.weather = { wind: { strength: 0.5, direction: WIND_DIRECTION }, ...weather };
         room.gameOptions.plugins.time = time;
         room.updateRoomParamsForClients();
     };
@@ -544,19 +545,19 @@ export class Plugin {
             if (z.envStage < 3) {
                 z.envStage = 3;
                 this.setSky(room,
-                    { rain: 0.9, storm: { intensity: 1, lightning: 4, flash: 2.5, thunder: 1, distance: 55, front: 0.6 }, wind: { strength: 1.6, direction: 70 }, transitionSecs: 6 },
+                    { rain: 0.9, storm: { intensity: 1, lightning: 4, flash: 2.5, thunder: 1, distance: 55, front: 0.6 }, wind: { strength: 1.6, direction: WIND_DIRECTION }, transitionSecs: 6 },
                     { preset: 'night', sky: 0.06, transitionSecs: 6 });
             };
         } else if (z.envStage === 0 && elapsed >= cfg.dayHoldSecs) {
             z.envStage = 1;
             this.setSky(room,
-                { rain: 0.5, storm: { intensity: 0.75, lightning: 0.6, thunder: 0.8, distance: 90 }, wind: { strength: 0.6, direction: 70 }, transitionSecs: cfg.darkenSecs },
+                { rain: 0.5, storm: { intensity: 0.75, lightning: 0.6, thunder: 0.8, distance: 90 }, wind: { strength: 0.6, direction: WIND_DIRECTION }, transitionSecs: cfg.darkenSecs },
                 { preset: 'twilight', transitionSecs: cfg.darkenSecs });
         } else if (z.envStage === 1 && elapsed >= cfg.dayHoldSecs + cfg.darkenSecs) {
             z.envStage = 2; //from here to nearly the end of the round: a little darker, the storm a little stronger
             const secs = Math.max(10, Math.round(room.roundLength - elapsed - 10));
             this.setSky(room,
-                { rain: 0.65, storm: { intensity: 0.9, lightning: 1.2, thunder: 0.9, distance: 80 }, wind: { strength: 0.9, direction: 70 }, transitionSecs: secs },
+                { rain: 0.65, storm: { intensity: 0.9, lightning: 1.2, thunder: 0.9, distance: 80 }, wind: { strength: 0.9, direction: WIND_DIRECTION }, transitionSecs: secs },
                 { preset: 'night', transitionSecs: secs });
         };
     };
@@ -606,11 +607,10 @@ export class Plugin {
                 if (wait > 0) { await sleep(wait); continue; };
 
                 //a share of them are ghosts (evenly through the horde: with 1 in 6, the 6th, the 12th...)
-                const ghosts = z.bots.filter((bot) => bot.zGhost).length;
                 //...and of the rest, some are brutish or small, the same way
-                const brutes = z.bots.filter((bot) => bot.zVariant === 'brutish').length, smalls = z.bots.filter((bot) => bot.zVariant === 'small').length;
-                const variant = brutes < Math.floor((z.bots.length + 1) * cfg.brutishRatio + 1e-9) ? 'brutish' : smalls < Math.floor((z.bots.length + 1) * cfg.smallRatio + 1e-9) ? 'small' : null;
-                const bot = ghosts < Math.floor((z.bots.length + 1) * cfg.ghostRatio + 1e-9) ? await this.spawnGhost(room, z, cfg) : await this.spawnZombie(room, z, cfg, variant);
+                const due = (match, ratio) => z.bots.filter(match).length < Math.floor((z.bots.length + 1) * ratio + 1e-9);
+                const variant = due((bot) => bot.zVariant === 'brutish', cfg.brutishRatio) ? 'brutish' : due((bot) => bot.zVariant === 'small', cfg.smallRatio) ? 'small' : null;
+                const bot = due((bot) => bot.zGhost, cfg.ghostRatio) ? await this.spawnGhost(room, z, cfg) : await this.spawnZombie(room, z, cfg, variant);
                 z.bots.push(bot);
                 if (cfg.staggerSecs > 0) await sleep(cfg.staggerSecs * 1e3 / cfg.count);
             };
@@ -857,7 +857,8 @@ export class Plugin {
         const spawns = (room.spawnPoints || []).flat().filter(Boolean);
         if (!spawns.length) return null;
 
-        const clearance = (s) => humans.reduce((least, h) => Math.min(least, Math.hypot(s.x + 0.5 - h.x, s.y - h.y, s.z + 0.5 - h.z)), Infinity);
+        const clearances = new Map(spawns.map((s) => [s, humans.reduce((least, h) => Math.min(least, Math.hypot(s.x + 0.5 - h.x, s.y - h.y, s.z + 0.5 - h.z)), Infinity)]));
+        const clearance = (s) => clearances.get(s); //worked out once, the sort below asks a lot
         //'near' is a fixed distance, but never more than a good part of the map: maps are small, and a human somewhere in the middle of one
         //would otherwise have every spawn 'near'
         const near = Math.min(cfg.spawnClearRadius, 0.4 * Math.max(room.map?.width ?? Infinity, room.map?.depth ?? Infinity));

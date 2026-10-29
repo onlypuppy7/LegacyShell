@@ -9,6 +9,9 @@ import { plugins } from '#plugins';
 
 // The maps this mode is played on (the rest are left out: the horde has to be able to get about them). index.js gives each of them the
 // "Zombies" mode when the maps are loaded into the database, which is what the gametype's map pool is made of.
+// The two sides: humans are team 1, the horde (bots and the infected) team 2.
+export const ZombiesTeams = { HUMANS: 1, HORDE: 2 };
+
 export const ZombiesModeMaps = ['Blue', 'Castle', 'Dirt', 'Feedlot', 'Moonbase', 'Ruins', 'Shellville', 'Shipyard', 'Two Towers'];
 
 // Per-room settings, read from gameOptions.plugins.zombies. A gametype (or another plugin) can change any of them.
@@ -76,7 +79,7 @@ export const ZombiesModePlugin = {
         Player.prototype.zombiesFireBlocked = true;
         var infected = function (player) {
             var options = player.gameOptions;
-            return !!(options && options.plugins && options.plugins.zombies && player.team === 2);
+            return !!(options && options.plugins && options.plugins.zombies && player.team === ZombiesTeams.HORDE);
         };
         var fire = Player.prototype.fire;
         Player.prototype.fire = function () { if (infected(this)) return; return fire.apply(this, arguments); };
@@ -100,7 +103,7 @@ export const ZombiesModePlugin = {
 
         var original = Player.prototype.respawn;
         Player.prototype.respawn = function () {
-            if (this.gameOptions.plugins && this.gameOptions.plugins.zombies && this.team === 1) ZombiesModePlugin.resetHuman(this);
+            if (this.gameOptions.plugins && this.gameOptions.plugins.zombies && this.team === ZombiesTeams.HUMANS) ZombiesModePlugin.resetHuman(this);
             var result = original.apply(this, arguments);
             if (this.id === meId && gameOptions.plugins && gameOptions.plugins.zombies) ZombiesModePlugin.enterGame();
             return result;
