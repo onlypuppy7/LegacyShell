@@ -22,7 +22,7 @@ npm run cn         # kills whatever is bound to ports 13370-13372 (unix `lsof`, 
 
 Bun equivalents exist per-role (`binit`, `bclient`, `bservices`, `bgame`) but there is no combined `ball`.
 
-There is **no test suite, no lint script, and no build script** defined anywhere in this repo today. The only CI (`.github/workflows/main.yml`) runs on every push to `main` and just increments `versionEnum.txt` / rewrites `versionHash.txt` with the new commit hash — it is not a build or test gate. Don't assume `npm test` or `npm run build` exist.
+There is **no test suite, no lint script, and no build script** defined anywhere in this repo today (several plugins ship their own `test-*.js` scripts, run directly with `node` - see each plugin's README; the headless room ones need a game server to have written `server-game/store/maps.json` first). The only CI (`.github/workflows/main.yml`) runs on every push to `main` and just increments `versionEnum.txt` / rewrites `versionHash.txt` with the new commit hash — it is not a build or test gate. Don't assume `npm test` or `npm run build` exist.
 
 The **wiki** (VuePress 2, under `wiki/`) has no wired npm script; build/serve it directly:
 ```bash
