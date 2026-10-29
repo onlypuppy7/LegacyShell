@@ -20,7 +20,7 @@ Every `plugins.emit(...)` and `plugins.emitSync(...)` call site found in the fil
 | `requestRespawn` | `server-game/src/client.js:270` | `{this: this, player: this.player, spawnPoint}` | A respawn request from this client is being processed. |
 | `CommCodeSyncEnd` | `server-game/src/client.js:335` | `{this: this, player: this.player, adjustment: this.adjustment, stateIdx, startIdx, i}` | End of processing an incoming input-sync packet from this client — a natural hook for anti-cheat heuristics that inspect aim-angle jitter between synced states. |
 | `beforeChat` | `server-game/src/client.js:353` | `{ this: this, text }` | Right before a sent chat message is processed at all (before the chatLineCap/censor/mention handling) - set `plugins.cancel = true` to silently drop it, e.g. legacyadmin's mute enforcement (`game/muteCache.js`). |
-| `packModifiers` | `server-game/src/client.js:591` | `{ this: this, extra }` | *(undocumented — add an entry to `src/scripts/event-descriptions.json`)* |
+| `packModifiers` | `server-game/src/client.js:591` | `{ this: this, extra }` | Building this client's modifiers packet - push anything else into `data.extra`, which goes out as JSON with it. Not awaited: listeners must fill `extra` synchronously (legacyreplay sends the whole modifier set this way). |
 | `clientPackSync` | `server-game/src/client.js:601` | `{ this: this, output }` | Building this client's outbound sync packet — fires once per sync, before the per-state loop below. |
 | `clientPackSyncLoop` | `server-game/src/client.js:620` | `{ this: this, output, state }` | Building this client's outbound sync packet — fires once per buffered state entry being packed. |
 

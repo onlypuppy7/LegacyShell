@@ -9,11 +9,11 @@ Every `plugins.emit(...)` and `plugins.emitSync(...)` call site found in the fil
 | Event | Location | Payload | Fires when |
 |---|---|---|---|
 | `onLoad` | `server-game/start-game.js:40` | `{ ss }` | Game process finished its own init, before connecting the outbound socket to services. |
-| `joinGameFound` | `server-game/start-game.js:108` | `joinFound` | *(undocumented — add an entry to `src/scripts/event-descriptions.json`)* |
+| `joinGameFound` | `server-game/start-game.js:108` | `joinFound` | A join found an existing room, before the room-full check. Set `skipFull = true` on the payload to let a join in that does not take a player slot (legacyreplay's live caster uses this). |
 | `connectWebSocketMessage` | `server-game/start-game.js:177` | `{ this: this, ss, msg }` | Any message received on the outbound services websocket. |
 | `requestConfigReceived` | `server-game/start-game.js:185` | `{msg}` | Specifically a `requestConfig` response (maps/items/servers/config sync) was received from services. |
 | `servicesCommand` | `server-game/start-game.js:256` | `{ msg }` | Services routed an admin-style command to THIS specific instance (see `services/registry.js`'s `adminRouteToServer`, which targets by our own `auth_key`) down our existing persistent connection. `msg.payload` carries the actual command; a listener replies via a fresh one-off `#wsrequest` call wrapped as `adminRouteToServerResponse`, not back down this connection. |
-| `beforeJoinRoom` | `server-game/src/roomManager.js:318` | `joinData` | Right before a join is accepted, before the existing bootedIps/uuid/session/locked checks — set `plugins.cancel = true` to reject it (closes with `Comm.Close.booted`), e.g. legacyadmin's global ban-list check (`game/banCache.js`). |
+| `beforeJoinRoom` | `server-game/src/roomManager.js:318` | `joinData` | Right before a join is accepted, before the existing bootedIps/uuid/session/locked checks — set `plugins.cancel = true` to reject it (closes with `Comm.Close.booted`), e.g. legacyadmin's global ban-list check (`game/banCache.js`). Set `handled = true` instead if the plugin has taken the socket and the join over itself (legacyreplay's live caster); `userLookup` is the services user lookup already in flight for this join (a promise, may resolve to null). |
 | `sendGameInfo` | `server-game/src/roomManager.js:443` | `{gameInfo}` | Before the aggregated per-room player/room-count snapshot is pushed to services. |
 
 ---

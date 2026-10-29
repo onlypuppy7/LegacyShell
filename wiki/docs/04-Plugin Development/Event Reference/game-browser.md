@@ -23,11 +23,11 @@ Every `plugins.emit(...)` and `plugins.emitSync(...)` call site found in the fil
 | `playerActorShadowRenderList` | `server-client/src/client-static/src/shellshock.min.js:2055` | `{ playerActor: this, shadowGen: shadowGen }` | The player mesh was registered with the shadow generator. |
 | `playerActorRemoveFromPlay` | `server-client/src/client-static/src/shellshock.min.js:2332` | `{ playerActor: this }` | A player's visual actor is being hidden (died or left). |
 | `playerActorRestoreToPlay` | `server-client/src/client-static/src/shellshock.min.js:2341` | `{ playerActor: this }` | A player's visual actor is being restored (respawned). |
-| `grenadeActorFlashing` | `server-client/src/client-static/src/shellshock.min.js:2494` | `{ grenadeActor: this }` | *(undocumented — add an entry to `src/scripts/event-descriptions.json`)* |
+| `grenadeActorFlashing` | `server-client/src/client-static/src/shellshock.min.js:2494` | `{ grenadeActor: this }` | Every frame a live grenade's beep light is on (its emissive flash colour is set). fancygraphics hangs its grenade glow off this. |
 | `bulletActorFired` | `server-client/src/client-static/src/shellshock.min.js:2545` | `{ bulletActor: this }` | A visual bullet actor was fired client-side. |
-| `rocketActorFlying` | `server-client/src/client-static/src/shellshock.min.js:2611` | `{ rocketActor: this }` | *(undocumented — add an entry to `src/scripts/event-descriptions.json`)* |
+| `rocketActorFlying` | `server-client/src/client-static/src/shellshock.min.js:2611` | `{ rocketActor: this }` | Every frame a fired rocket's mesh is enabled and has just been moved to the rocket's position. |
 | `gunActorSetup` | `server-client/src/client-static/src/shellshock.min.js:2630` | `{ gunActor: this, shadowGen }` | A weapon's visual model finished setup. |
-| `gunActorFired` | `server-client/src/client-static/src/shellshock.min.js:2710` | `{ gunActor: this }` | *(undocumented — add an entry to `src/scripts/event-descriptions.json`)* |
+| `gunActorFired` | `server-client/src/client-static/src/shellshock.min.js:2710` | `{ gunActor: this }` | A gun actor fired client-side (any player), right after its fire sound plays and before the muzzle flash is shown. |
 | `onPageLoadedEnd` | `server-client/src/client-static/src/shellshock.min.js:3573` | `{}` | The game's HTML page finished loading. |
 | `joinGame` | `server-client/src/client-static/src/shellshock.min.js:3606` | `{ joinGameIdPassed }` | The client is about to send its join request. |
 | `onExtraParams` | `server-client/src/client-static/src/shellshock.min.js:3701` | `{ extraParams }` | Extra join params (session, custom map, etc.) are being assembled. |
@@ -50,7 +50,7 @@ Every `plugins.emit(...)` and `plugins.emitSync(...)` call site found in the fil
 | `shadowsToggled` | `server-client/src/client-static/src/shellshock.min.js:6664` | `{ shadowsEnabled: false }` | Shadows were just switched on or off (by the settings or the auto-detail optimiser) and the map's material swapped with them; `data.shadowsEnabled` is the new state. Lets a plugin re-apply anything that replaces the map material. |
 | `shadowsToggled` | `server-client/src/client-static/src/shellshock.min.js:6671` | `{ shadowsEnabled: true }` | Shadows were just switched on or off (by the settings or the auto-detail optimiser) and the map's material swapped with them; `data.shadowsEnabled` is the new state. Lets a plugin re-apply anything that replaces the map material. |
 | `explosionSpriteAfter` | `server-client/src/client-static/src/shellshock.min.js:7223` | `{ sprite: s, manager, isFire: manager == explosionFireManager }` | After an explosion or rocket-trail smoke/fire sprite has been set up (spawned with its animColors, which are re-applied to sprite.color every tick, so a plugin recolours them by replacing sprite.animColors). |
-| `explosionFx` | `server-client/src/client-static/src/shellshock.min.js:7228` | `{ x, y, z, damage, radius }` | *(undocumented — add an entry to `src/scripts/event-descriptions.json`)* |
+| `explosionFx` | `server-client/src/client-static/src/shellshock.min.js:7228` | `{ x, y, z, damage, radius }` | An explosion's visual effects are about to be spawned client-side (grenade or rocket), with its position, damage and radius. |
 | `shellFragBurstBefore` | `server-client/src/client-static/src/shellshock.min.js:7256` | `{ player, count, theSize, theAnimLength }` | Before a shell-casing particle burst effect plays. |
 | `shellFragBurstAfter` | `server-client/src/client-static/src/shellshock.min.js:7285` | `{ player, count }` | After an egg's shell fragments have been spawned (death or heavy damage); the fragment sprites are in shellFragManager. |
 | `yolkBurstAfter` | `server-client/src/client-static/src/shellshock.min.js:7313` | `{ player, manager: yolkManager }` | After the yolk particles of an egg death have been spawned; `manager` is the yolk sprite manager. |
@@ -60,20 +60,20 @@ Every `plugins.emit(...)` and `plugins.emitSync(...)` call site found in the fil
 | `waitForSetupAndAuthCompleteReady` | `server-client/src/client-static/src/shellshock.min.js:8294` | `{waitIteration}` | The startup poll loop has confirmed both auth and page setup are ready. |
 | `setupComplete` | `server-client/src/client-static/src/shellshock.min.js:8315` | `{}` | The startup poll loop concluded successfully. |
 | `reachedEnd` | `server-client/src/client-static/src/shellshock.min.js:9308` | `{}` | End of the whole client script file, once. |
-| `loadMeshesBeforeMaterial` | `server-client/src/client-static/editor/js/mapEdit.js:88278` | `{mesh}` | Same hook as the shared `loading.js` version, duplicated for the standalone map-editor page. |
-| `editorPointerDown` | `server-client/src/client-static/editor/js/mapEdit.js:88867` | `{ event: evt, pick: pickResult }` | Before the normal editor pointer-down action. Synchronous and cancellable. |
-| `editorPointerUp` | `server-client/src/client-static/editor/js/mapEdit.js:88940` | `{ event: evt, pick: pickResult }` | Before the normal editor pointer-up action. Synchronous and cancellable. |
-| `editorPointerMove` | `server-client/src/client-static/editor/js/mapEdit.js:88957` | `{ event: evt, pick: pickResult }` | Before the normal editor pointer-move action. Synchronous and cancellable. |
-| `editorMoveMapBefore` | `server-client/src/client-static/editor/js/mapEdit.js:89829` | `{}` | Before shifting map cells; synchronous notification. |
-| `editorMoveMapAfter` | `server-client/src/client-static/editor/js/mapEdit.js:89863` | `{ dx, dy, dz }` | After shifting map cells. dx/dy/dz are the actual rounded world-space translation; synchronous notification. |
-| `editorInitMapBefore` | `server-client/src/client-static/editor/js/mapEdit.js:89901` | `{}` | Before clearing the current editor map; synchronous notification. |
-| `editorInitMapAfter` | `server-client/src/client-static/editor/js/mapEdit.js:89915` | `{}` | After creating the empty editor map; synchronous notification. |
-| `editorLoadMapBefore` | `server-client/src/client-static/editor/js/mapEdit.js:90054` | `{ json }` | Before loading serialized editor data; synchronous notification with the JSON string. |
-| `editorLoadMapAfter` | `server-client/src/client-static/editor/js/mapEdit.js:90057` | `{ json }` | After loading serialized editor data, including an empty input; synchronous notification with the JSON string. |
-| `editorLoadMapAfter` | `server-client/src/client-static/editor/js/mapEdit.js:90152` | `{ json }` | After loading serialized editor data, including an empty input; synchronous notification with the JSON string. |
-| `editorExtentsBefore` | `server-client/src/client-static/editor/js/mapEdit.js:90186` | `{}` | Before calculating map bounds; synchronous notification. |
-| `editorExtentsAfter` | `server-client/src/client-static/editor/js/mapEdit.js:90227` | `{ extents }` | After calculating map bounds; synchronously extend the extents object for plugin geometry. |
-| `editorSaveMap` | `server-client/src/client-static/editor/js/mapEdit.js:90275` | `{ minMap, extents }` | Before returning the serialized minMap; synchronously append plugin metadata to minMap/extents. |
+| `loadMeshesBeforeMaterial` | `server-client/src/client-static/editor/js/mapEdit.js:88280` | `{mesh}` | Same hook as the shared `loading.js` version, duplicated for the standalone map-editor page. |
+| `editorPointerDown` | `server-client/src/client-static/editor/js/mapEdit.js:88869` | `{ event: evt, pick: pickResult }` | Before the normal editor pointer-down action. Synchronous and cancellable. |
+| `editorPointerUp` | `server-client/src/client-static/editor/js/mapEdit.js:88942` | `{ event: evt, pick: pickResult }` | Before the normal editor pointer-up action. Synchronous and cancellable. |
+| `editorPointerMove` | `server-client/src/client-static/editor/js/mapEdit.js:88959` | `{ event: evt, pick: pickResult }` | Before the normal editor pointer-move action. Synchronous and cancellable. |
+| `editorMoveMapBefore` | `server-client/src/client-static/editor/js/mapEdit.js:89842` | `{}` | Before shifting map cells; synchronous notification. |
+| `editorMoveMapAfter` | `server-client/src/client-static/editor/js/mapEdit.js:89876` | `{ dx, dy, dz }` | After shifting map cells. dx/dy/dz are the actual rounded world-space translation; synchronous notification. |
+| `editorInitMapBefore` | `server-client/src/client-static/editor/js/mapEdit.js:89914` | `{}` | Before clearing the current editor map; synchronous notification. |
+| `editorInitMapAfter` | `server-client/src/client-static/editor/js/mapEdit.js:89928` | `{}` | After creating the empty editor map; synchronous notification. |
+| `editorLoadMapBefore` | `server-client/src/client-static/editor/js/mapEdit.js:90067` | `{ json }` | Before loading serialized editor data; synchronous notification with the JSON string. |
+| `editorLoadMapAfter` | `server-client/src/client-static/editor/js/mapEdit.js:90070` | `{ json }` | After loading serialized editor data, including an empty input; synchronous notification with the JSON string. |
+| `editorLoadMapAfter` | `server-client/src/client-static/editor/js/mapEdit.js:90165` | `{ json }` | After loading serialized editor data, including an empty input; synchronous notification with the JSON string. |
+| `editorExtentsBefore` | `server-client/src/client-static/editor/js/mapEdit.js:90199` | `{}` | Before calculating map bounds; synchronous notification. |
+| `editorExtentsAfter` | `server-client/src/client-static/editor/js/mapEdit.js:90240` | `{ extents }` | After calculating map bounds; synchronously extend the extents object for plugin geometry. |
+| `editorSaveMap` | `server-client/src/client-static/editor/js/mapEdit.js:90288` | `{ minMap, extents }` | Before returning the serialized minMap; synchronously append plugin metadata to minMap/extents. |
 
 ---
 *This page was drafted with AI assistance and reviewed for accuracy. If something looks wrong, please [open a PR](https://github.com/onlypuppy7/LegacyShell) or flag it.*
