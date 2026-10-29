@@ -18,11 +18,11 @@ Seven kinds of reference page in this wiki are generated directly from source, v
 
 The last one works a little differently from the other six - see [llms.txt / llms-full.txt](#llms-txt-llms-full-txt) below.
 
-[Per-Plugin Docs](../../plugins/listofplugins.md) (25 pages and counting) are **not** in this list - they're not generated at all, in the sense of "run a script, get a file." They're built live, by VuePress itself, every time the wiki builds or its dev server starts, straight from each plugin's own `README.md` - see [Per-plugin docs, built live by VuePress](#per-plugin-docs-built-live-by-vuepress) below for why that's a meaningfully different (and better) mechanism than the other six.
+[Per-Plugin Docs](../../plugins/listofplugins.md) (35 pages and counting) are **not** in this list - they're not generated at all, in the sense of "run a script, get a file." They're built live, by VuePress itself, every time the wiki builds or its dev server starts, straight from each plugin's own `README.md` - see [Per-plugin docs, built live by VuePress](#per-plugin-docs-built-live-by-vuepress) below for why that's a meaningfully different (and better) mechanism than the other six.
 
 ## Why generate these at all
 
-The event catalog alone is ~220 call sites, scattered across four different directory trees. A hand-maintained copy of that is guaranteed to drift the first time someone adds, removes, or renames an emit call without also remembering to update a wiki page nobody's looking at while writing the actual code change. Generating it means the source of truth is the code itself, checked fresh on every run - there's nothing to remember to keep in sync.
+The event catalog alone is ~250 call sites, scattered across four different directory trees. A hand-maintained copy of that is guaranteed to drift the first time someone adds, removes, or renames an emit call without also remembering to update a wiki page nobody's looking at while writing the actual code change. Generating it means the source of truth is the code itself, checked fresh on every run - there's nothing to remember to keep in sync.
 
 ## Running it
 

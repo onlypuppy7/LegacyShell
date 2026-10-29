@@ -13,7 +13,7 @@ Not sure where to start, or looking for a specific answer rather than a linear r
 - **[Lifecycle](./lifecycle.md)** - load order, alphabetical sorting, git auto-pull on load, gating a plugin to one server type.
 - **[Dependencies](./dependencies.md)** - `dependencies.js`, npm packages vs. depending on another plugin.
 - **[Events (concept)](./events-concept.md)** - `on`/`emit`, the `type:` prefix system, payload shapes, the shared `plugins.cancel` flag.
-- **[Event Reference](./Event%20Reference/)** - the full, generated table of every event LegacyShell emits (~185 of them), split by subsystem.
+- **[Event Reference](./Event%20Reference/)** - the full, generated table of every event LegacyShell emits (~240 of them, from ~250 call sites), split by subsystem.
 - **[Commands](./commands.md)** - hooking `permissionsAfterSetup`, `newCommand`, permission tuples, @mentions.
 - **[Client-side code](./client-side-code.md)** - shipping browser JS via `pluginSourceInsertion`, the `isClient` guard.
 - **[Static assets](./static-assets.md)** - serving your plugin's own files via `onStartServer`.

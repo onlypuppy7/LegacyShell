@@ -8,7 +8,7 @@ Adding a new weapon skin, hat, or stamp to the shop - the catalog/inventory syst
 
 ## Two ways to add one
 
-- **Directly editing the database** - fine for a single server you run yourself, not distributed to anyone else. See [The Database](../02-Running%20a%20Server/the-database.md) for how to open it, or use the [web SQL tool](../02-Running%20a%20Server/the-database.md#the-built-in-web-sql-tool)'s `[items] Insert New Item` template.
+- **Directly editing the database** - fine for a single server you run yourself, not distributed to anyone else. See [The Database](../02-Running%20a%20Server/the-database.md) for how to open it, or use the [admin panel](../02-Running%20a%20Server/the-database.md#the-admin-panel)'s `[items] Insert New Item` SQL template.
 - **Shipping it as a plugin** - the right approach if you want this distributed, reusable, or reinstalled automatically on every boot. See [Content Packs](../04-Plugin%20Development/content-packs.md#items) - this requires a small amount of JavaScript (a file exporting the item definitions), but no gameplay coding.
 
 Either way, the item shape itself is identical - only how it gets into the database differs.

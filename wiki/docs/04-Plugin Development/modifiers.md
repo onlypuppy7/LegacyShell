@@ -2,7 +2,7 @@
 
 > **Audience:** Plugin authors building gamemodes, moderators using in-game `change` commands · **Prereqs:** [Events (concept)](./events-concept.md)
 >
-> **Canonical source:** `src/shell/gametypes.js` (`defaultOptions`), `src/shell/player.js:176-193` (`setDefaultModifiers`), `src/shell/permissions.js:37-333` (the `change`-category commands)
+> **Canonical source:** `src/shell/gametypes.js` (`defaultOptions`), `src/shell/player.js:176-207` (`setDefaultModifiers`), `src/shell/permissions.js:37-400` (the `change`-category commands), `server-game/src/rooms.js` (`contactDamageUpdate`)
 
 Modifiers are the per-team numeric multipliers that make up most of what a gamemode actually *is* mechanically - speed, gravity, damage, and a dozen others. They're set two ways: baked into a `GameType`'s `options` at boot (the gamemode-authoring path), or changed live in a room via slash commands (the moderator path, `/gravity`, `/speed`, etc. - see the [generated slash command reference](../05-Codebase%20Reference/Generated/slash-commands.md) for the full list and permission levels). This page covers the mechanism underneath both.
 
@@ -24,7 +24,7 @@ Index `0` is used for FFA (everyone's on "team 0" in a non-team gamemode), `1` a
 A player's own effective modifiers are copied out of `gameOptions` onto the player object once, in `setDefaultModifiers`:
 
 ```js
-// src/shell/player.js:176-193 - real code (abridged)
+// src/shell/player.js:176-207 - real code (abridged)
 setDefaultModifiers(init) {
     this.changeModifiers({
         gravityModifier: this.gameOptions.gravityModifier[this.team],
@@ -42,23 +42,27 @@ Traced to its actual usage, not just its name:
 
 | Modifier | Default | Effect | Where |
 |---|---|---|---|
-| `scale` | `1` | Multiplies outgoing damage dealt *and* divides incoming damage taken - a de facto "player size" stat, not purely cosmetic. | `bullets.js:115`, `player.js:1140` |
-| `speedModifier` | `1` | Multiplies horizontal movement input. | `player.js:535-536` |
-| `gravityModifier` | `1` | Multiplies downward acceleration. | `player.js:529` |
-| `regenModifier` | `1` | Multiplies passive HP regen rate. | `player.js:367` |
+| `scale` | `1` | Multiplies outgoing damage dealt *and* divides incoming damage taken - a de facto "player size" stat, not purely cosmetic. | `bullets.js:115`, `player.js:1187` |
+| `speedModifier` | `1` | Multiplies horizontal movement input. | `player.js:571-572` |
+| `gravityModifier` | `1` | Multiplies downward acceleration. | `player.js:565` |
+| `regenModifier` | `1` | Multiplies passive HP regen rate. | `player.js:386` |
 | `damageModifier` | `1` | Multiplies damage *dealt* by this player's shots/explosions (attacker-side). | `bullets.js:52,115` |
-| `resistanceModifier` | `1` | Divides damage *taken* by this player (defender-side) - the modifier [Recipe: New Gamemode](./Recipes/new-gamemode.md) sets to `0.01` for a one-hit-kill mode. | `player.js:1140` |
-| `jumpBoostModifier` | `1` | Multiplies jump velocity. | `player.js:771` |
-| `knockbackModifier` | `0` | Multiplies self-knockback taken from incoming damage - **off by default**, unlike every other combat modifier. | `player.js:1123` |
-| `physicsSpeedModifier` | `1` | Multiplies the delta-time used for this player's own physics step and view bobble - a personal slow-motion/fast-forward dial. | `player.js:240,360` |
+| `resistanceModifier` | `1` | Divides damage *taken* by this player (defender-side) - the modifier [Recipe: New Gamemode](./Recipes/new-gamemode.md) sets to `0.01` for a one-hit-kill mode. | `player.js:1187` |
+| `jumpBoostModifier` | `1` | Multiplies jump velocity. | `player.js:814` |
+| `knockbackModifier` | `0` | Multiplies self-knockback taken from incoming damage - **off by default**, unlike every other combat modifier. | `player.js:1170` |
+| `physicsSpeedModifier` | `1` | Multiplies the delta-time used for this player's own physics step and view bobble - a personal slow-motion/fast-forward dial. | `player.js:245,379` |
 | `bulletSpeedModifier` | `1` | Multiplies bullet travel speed. | `bullets.js:128` |
-| `reloadSpeedModifier` | `1` | Divides reload time (higher = faster reload). | `player.js:1003,1005` |
-| `weaponSettleModifier` | `1` | Multiplies the delta-time used for weapon sway/settle animation. | `player.js:896` |
-| `grenadeThrowModifier` | `1` | Multiplies throw power. | `player.js:1019` |
-| `grenadeTimerModifier` | `1` | Divides the rate a grenade's fuse counts down (higher = longer fuse before detonation). | `bullets.js:366` |
-| `grenadeBounceModifier` | `1` | Multiplies bounce impulse off surfaces. | `bullets.js:380` |
+| `reloadSpeedModifier` | `1` | Divides reload time (higher = faster reload). | `player.js:1046,1048` |
+| `weaponSettleModifier` | `1` | Multiplies the delta-time used for weapon sway/settle animation. | `player.js:939` |
+| `grenadeThrowModifier` | `1` | Multiplies throw power. | `player.js:1062` |
+| `grenadeTimerModifier` | `1` | Divides the rate a grenade's fuse counts down (higher = longer fuse before detonation). | `bullets.js:367` |
+| `grenadeBounceModifier` | `1` | Multiplies bounce impulse off surfaces. | `bullets.js:381` |
+| `noclip` | `0` | `1` lets the player fly through everything: no collision, no gravity, never "falls out of the world". Forward goes where they look, jump is straight up. Turning it off nudges them up out of any block they're inside. Sent to the browser in the modifiers packet. | `player.js:298-330,496` |
+| `contactDamage` | `0` | HP this player takes off an *enemy* just by touching them (team 0 counts everyone as an enemy). Not scaled by `damageModifier`, so a team that can't shoot can still bite. Server-side only. | `rooms.js` `contactDamageUpdate` |
 
-Two more team-indexed arrays exist alongside the modifiers but aren't named `*Modifier`: `lifesteal` (defaults `0`) and `scale`'s sibling `itemsEnabled`/`teamSwitchMaximumDifference` are plain `defaultOptions` entries, not per-modifier multipliers - see `gametypes.js` directly if you need those.
+Two more team-indexed arrays exist alongside the modifiers but aren't named `*Modifier`: `lifesteal` (defaults `0`) and `scale`'s sibling `itemsEnabled`/`teamSwitchMaximumDifference` are plain `defaultOptions` entries, not per-modifier multipliers - see `gametypes.js` directly if you need those. `contactDamage` comes with two room-wide (not per-team) settings: `contactCooldown` (ms between hits on the same victim, default `500`) and `contactReach` (blocks of leniency beyond the two hitboxes just touching, default `0.1`).
+
+A plugin that needs to send more than the fixed packet carries can push its own fields into `data.extra` on `game:packModifiers` - they go out as JSON alongside the modifiers.
 
 ## Setting modifiers from a gamemode plugin
 
@@ -86,7 +90,7 @@ this.plugins.on('game:GameTypesInit', ({ GameTypes }) => {
 This is what every `change`-category slash command does, and it's available to your own commands too via `setGameOptionInMentions` (server-side, authoritative) paired with `changeModifiers` (client-side, predicted) - see [Prediction and Authority](./prediction-and-authority.md) for why both halves exist:
 
 ```js
-// pattern from src/shell/permissions.js:37-56 - real code, abridged
+// pattern from src/shell/permissions.js:37-57 - real code, abridged
 executeClient: ({ player, opts, mentions }) => {
     forEachMentionInMentions(mentions, (player) => {
         player.changeModifiers({ gravityModifier: opts });
@@ -97,7 +101,7 @@ executeServer: ({ player, opts, mentions, mentionsLiteral }) => {
 }
 ```
 
-`setGameOptionInMentions` (`permissions.js:963`) understands three scope literals, checked against the command's `@mention`:
+`setGameOptionInMentions` (`permissions.js:981`) understands three scope literals, checked against the command's `@mention`:
 
 | Mention | Effect |
 |---|---|

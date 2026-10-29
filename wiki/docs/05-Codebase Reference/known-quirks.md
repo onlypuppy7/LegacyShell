@@ -23,7 +23,7 @@ createRoom(info) {
     info.gameKey = 784;                                              // <- what actually runs
 ```
 
-`784` looks like an arbitrary debug leftover at a glance - it isn't. Every room's shareable join code is built by rendering `gameId`/`gameKey` in base 36 (`roomManager.js:367`: `` `${ss.thisServer}${gameId.toString(36)}${gameKey.toString(36)}`.toUpperCase() ``, and the browser builds the same code independently from the same two fields, `shellshock.min.js:5223`), and `(784).toString(36) === "ls"`. **`784` is the base-36 encoding of the literal string `LS`** - "LegacyShell" - so every room's join code ends in `LS` by design.
+`784` looks like an arbitrary debug leftover at a glance - it isn't. Every room's shareable join code is built by rendering `gameId`/`gameKey` in base 36 (`roomManager.js:404`: `` `${ss.thisServer}${gameId.toString(36)}${gameKey.toString(36)}`.toUpperCase() ``, and the browser builds the same code independently from the same two fields in `shellshock.min.js`), and `(784).toString(36) === "ls"`. **`784` is the base-36 encoding of the literal string `LS`** - "LegacyShell" - so every room's join code ends in `LS` by design.
 
 This is a deliberate branding choice, not dead code, but it does have a real side effect worth knowing: the commented-out randomized version drew across the full `36²`-wide range specifically for these two trailing characters; hardcoding them removes that entropy entirely - every room's join code ends identically, and two rooms only ever differ in their (still-random) leading `gameId` digits. See [Rooms and Workers](./rooms-and-workers.md#gamekey-is-hardcoded-to-spell-ls-in-base-36).
 
@@ -51,7 +51,7 @@ export function getStringHeight(str) {
 
 ## Model zip packaging is disabled, despite what older docs may say
 
-`prepare-babylons.js`'s `saveZip` calls are commented out entirely, with the author's own comment above them: `// why was i still doing this pointless bullshit?`. If you've read anything describing automatic zipping of model files for bandwidth savings, that description no longer matches current behavior - see [Stamps and Babylons](./stamps-and-babylons.md#preparebabylons-merging-base-and-plugin-models).
+`prepare-babylons.js`'s `saveZip` calls are commented out entirely, with the author's own comment above them: `// why was i still doing this pointless bullshit?`. If you've read anything describing automatic zipping of model files for bandwidth savings, that description no longer matches current behavior - models are compressed on the fly by the client server instead (see [Build Pipeline](./build-pipeline.md#compression-on-the-way-out)). Note the zips are still *assembled* in memory on every build (`addBabylonToZip` stringifies every merged model into `modelsZip`/`mapZip`, and is handed to plugins on `prepareBabylonBefore`), they're just never written - wasted work, not a bug. The `LEGACYSHELLMAPZIPTIMESTAMP` token is likewise still filled in, but only commented-out code uses it.
 
 ## Several plugin events are commented out, not currently emitted
 
@@ -62,6 +62,14 @@ Present in source as dead code, not firing for any plugin to listen to:
 - `roomBeforeMapInit` (`server-game/src/rooms.js:85`)
 
 If you're searching the source for an event and find one of these, that's why it never fires - it's not a bug in your plugin.
+
+## Baked lightmaps are switched off
+
+The browser can read a pre-baked `.lightmap` file per map, but `useBakedLightmaps` is hardcoded `false` in `shellshock.min.js` ("baked lightmaps are wip/broken") - the lighting is always computed from scratch, then cached in the browser's IndexedDB under a hash of the map so a second visit to the same map skips the ray casting. The baked-file branch (a synchronous XHR) is still there, unreachable.
+
+## `legacyanalytics` imports a package nobody installs
+
+`plugins_default/legacyanalytics/index.js` imports `sqlite3`, but services moved to `better-sqlite3` (August 2026) and `sqlite3` is neither in `package.json` nor in that plugin's own `dependencies.js` - so on a fresh install it fails to load (`ERR_MODULE_NOT_FOUND`) and logs an error at every boot, while everything else carries on. Install `sqlite3` yourself if you want its analytics, or prefix its folder with `_` to quiet it.
 
 ---
 *This page was drafted with AI assistance and reviewed for accuracy. If something looks wrong, please [open a PR](https://github.com/onlypuppy7/LegacyShell) or flag it.*

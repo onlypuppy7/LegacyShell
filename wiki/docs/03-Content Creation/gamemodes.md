@@ -8,7 +8,7 @@ What you can configure about gamemodes without writing any code - creating a gen
 
 ## Only two gamemodes are actually built into the base game
 
-`gametypes.js` itself only defines **FFA** and **Teams**. Every other mode you'll see in a normal LegacyShell instance's mode dropdown (Timed variants, Scale Shift, Lifesteal, Apocalypse, Parkour, etc.) is added by a **plugin** hooking `game:GameTypesInit` - typically ones already bundled in `plugins_default/` on a standard install, not something baked into core. If you're trying to find where a specific mode "lives" in the codebase and it's not FFA or Teams, it's in a plugin, not `gametypes.js`.
+`gametypes.js` itself only defines **FFA** and **Teams**. Every other mode you'll see in a normal LegacyShell instance's mode dropdown (Timed variants, Scale Shift, Lifesteal, Apocalypse, Hiroshima, Parkour, Zombies, etc.) is added by a **plugin** hooking `game:GameTypesInit` - typically ones already bundled in `plugins_default/` on a standard install, not something baked into core. If you're trying to find where a specific mode "lives" in the codebase and it's not FFA or Teams, it's in a plugin, not `gametypes.js`.
 
 ## `mapPool` - why some maps don't show up for some modes
 
@@ -16,11 +16,11 @@ Every gamemode declares a `mapPool` name (`"FFA"`, `"Teams"`, or a custom one a 
 
 ## Per-room settings (`gameOptions`)
 
-The actual player/room-facing configurability - team toggles, item spawn rates, gravity/speed/damage modifiers per team, timed-round settings, weather - is the `gameOptions` object, adjustable per-room via slash commands rather than server-wide config. See [Moderation](../02-Running%20a%20Server/moderation.md#the-commands-you-ll-actually-use) and the [generated slash command reference](../05-Codebase%20Reference/Generated/slash-commands.md) for the full `change`/`room`/`rounds`/`weather` command list - these are the same commands a private-room owner uses to customize their own game (see [Users and Ranks](../02-Running%20a%20Server/users-and-ranks.md#how-permission-checks-actually-work) for why private rooms get more command access than public ones).
+The actual player/room-facing configurability - team toggles, item spawn rates, gravity/speed/damage modifiers per team, timed-round settings, weather - is the `gameOptions` object, adjustable per-room via slash commands rather than server-wide config. See [Moderation](../02-Running%20a%20Server/moderation.md#the-commands-you-ll-actually-use) and the [generated slash command reference](../05-Codebase%20Reference/Generated/slash-commands.md) for the full `change`/`room`/`rounds` command list (`/weather` and `/time` come from the LegacyWeather plugin) - these are the same commands a private-room owner uses to customize their own game (see [Users and Ranks](../02-Running%20a%20Server/users-and-ranks.md#how-permission-checks-actually-work) for why private rooms get more command access than public ones).
 
 ## Creating an actual new gamemode
 
-This requires hooking `game:GameTypesInit` and is a coding task, not a config one - see [Events (concept)](../04-Plugin%20Development/events-concept.md) and the [Plugin Development](../04-Plugin%20Development/) section generally. A "New Gamemode" recipe is planned but not yet written - see [Recipes](../04-Plugin%20Development/Recipes/) for what's currently available.
+This requires hooking `game:GameTypesInit` and is a coding task, not a config one - see [Events (concept)](../04-Plugin%20Development/events-concept.md) and the [Plugin Development](../04-Plugin%20Development/) section generally. See [Recipe: New Gamemode](../04-Plugin%20Development/Recipes/new-gamemode.md) for a worked example, and the bundled `parkourmode` and `zombiesmode` plugins for two complete real ones.
 
 Next: [Seasonal Events](./seasonal-events.md).
 

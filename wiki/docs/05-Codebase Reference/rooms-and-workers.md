@@ -63,7 +63,7 @@ Every worker box - spare or claimed - independently ran the full boot sequence (
 
 ## The warm-spare-worker pattern
 
-`RoomManager` keeps exactly one **spare** worker alive at all times, created proactively rather than on demand:
+`RoomManager` keeps one **spare** worker alive, created proactively rather than on demand:
 
 ```js
 async createRoomWorker() {
@@ -74,13 +74,22 @@ async createRoomWorker() {
 }
 
 getRoomWorker() {
-    const oldRoom = this.roomWorker;   // hand out the currently-warm one
-    this.createRoomWorker();           // ...and immediately start spinning up its replacement
+    if (!this.roomWorker) this.createRoomWorker();   // no spare right now: make one on the spot, like before
+    const oldRoom = this.roomWorker;                  // hand out the currently-warm one
+    this.roomWorker = null;
+
+    clearTimeout(this.spareTimer);
+    this.spareTimer = setTimeout(() => {              // ...and start its replacement a little later
+        if (!this.roomWorker) this.createRoomWorker();
+    }, spareWorkerDelay);                             // 6e3
+
     return oldRoom;
 };
 ```
 
-`getRoomWorker()` is called exactly once, from `createRoom()`, every time a new room is actually needed. The effect: creating a room never pays worker-thread startup latency (module loading, plugin loading - see below) on the critical path, since there's always already a worker that finished that startup work sitting idle, waiting to be handed a room. The moment one spare gets claimed, a new one immediately starts warming up to replace it.
+`getRoomWorker()` is called exactly once, from `createRoom()`, every time a new room is actually needed. The effect: creating a room normally doesn't pay worker-thread startup latency (module loading, plugin loading - see below) on the critical path, since a worker that already finished that startup work is sitting idle, waiting to be handed a room. The replacement waits `spareWorkerDelay` (6 seconds) before it starts: loading plugins and parsing the map is a lot of CPU to spend while the player the spare was just taken for is joining. A second room created inside that window makes its own worker, the way it always did when no spare was ready.
+
+The spare also does the slowest part of a room's setup ahead of time: `worker.js` creates a `NullEngine` scene and loads `map.babylon` into it while it waits (`ss.preload`), and the `RoomConstructor` that eventually runs there takes that engine and scene over instead of making its own. Only the first map build uses it; a rebuild loads the meshes again as before.
 
 ## Each worker independently re-runs the entire server boot sequence
 
@@ -98,6 +107,12 @@ getRoomWorker() {
 This means **every worker thread - including the spare one that's just sitting idle waiting for a room - has its own complete, independent set of plugin instances**, with no shared memory or state with the main thread's plugin instances, or with any other worker's. See [Workers and State](../04-Plugin%20Development/workers-and-state.md) for the plugin-author-facing consequences of this.
 
 We confirmed this directly, empirically, while validating a plugin example: booting a game server with one simple plugin installed produces **two independent, complete "Loaded plugin" log lines**, milliseconds apart - one from the main thread's own `loadPlugins('game')` call (`run-game.js`), one from the spare worker's independent call inside `worker.js`. Once a real room is created, that room's worker produces a third, and so on, one per room.
+
+## Looking players up before the room needs them
+
+A joining player's account data used to be fetched by the room worker, over a brand-new WebSocket to services, after the room had been found - which with services on another machine was most of the join. Now the main thread starts the lookup the moment `joinGame` arrives (`server-game/src/servicesLink.js`, a few connections to services kept open and pinged, one request in flight per connection), passes the promise to `joinRoom` as `userLookup`, and hands the result to the worker as `msg.prefetchedUser`. The worker's `client.js` uses it if it's there and falls back to its own `wsrequest` if it's `null` (no open link, a timeout, or an error). `[join]` timing lines in the game server's log show how long each step took.
+
+Two plugin hooks sit on this path: `joinGameFound` (set `skipFull` to let a join into a full room, for something that doesn't take a player slot) and `beforeJoinRoom` (set `plugins.cancel` to reject the join, or `handled` if the plugin has taken the socket over itself).
 
 ## The main thread's actual job: routing, not simulating
 
@@ -122,7 +137,7 @@ The main thread's `worker.on('message', ...)` handler switches on this enum and 
 
 ## `gameKey` is hardcoded to spell "LS" in base 36
 
-`createRoom(info)` sets `info.gameKey = 784` unconditionally, with the original randomized version (`Math.getRandomInt(10, Math.pow(36, 2) - 10)`) left commented out directly above it. This looks like an arbitrary debug leftover, but it isn't: a room's shareable join code is built by rendering `gameId`/`gameKey` in base 36 (`(room.gameKey).toString(36)`, `roomManager.js:367`), and `(784).toString(36)` is `"ls"` - `784` is deliberately the base-36 encoding of `LS` ("LegacyShell"), so every room's join code ends in `LS` by design, not by accident. It does still remove real entropy from that portion of the code (every room's trailing two characters are now identical, where the commented-out version varied them across the full `36²` range) - worth knowing if you're relying on `gameKey` for anything that needs it to actually vary. See [Known Quirks](./known-quirks.md#roommanager-js-s-gamekey-is-hardcoded-to-spell-ls-in-base-36-not-random).
+`createRoom(info)` sets `info.gameKey = 784` unconditionally, with the original randomized version (`Math.getRandomInt(10, Math.pow(36, 2) - 10)`) left commented out directly above it. This looks like an arbitrary debug leftover, but it isn't: a room's shareable join code is built by rendering `gameId`/`gameKey` in base 36 (`(room.gameKey).toString(36)`, `roomManager.js:404`), and `(784).toString(36)` is `"ls"` - `784` is deliberately the base-36 encoding of `LS` ("LegacyShell"), so every room's join code ends in `LS` by design, not by accident. It does still remove real entropy from that portion of the code (every room's trailing two characters are now identical, where the commented-out version varied them across the full `36²` range) - worth knowing if you're relying on `gameKey` for anything that needs it to actually vary. See [Known Quirks](./known-quirks.md#roommanager-js-s-gamekey-is-hardcoded-to-spell-ls-in-base-36-not-random).
 
 ---
 *This page was drafted with AI assistance and reviewed for accuracy. If something looks wrong, please [open a PR](https://github.com/onlypuppy7/LegacyShell) or flag it.*

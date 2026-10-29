@@ -19,7 +19,7 @@ This section covers actually operating a LegacyShell deployment: the database, u
 - **[Closed mode](./closed-mode.md)** - taking the client server into maintenance mode.
 - **[Deployment](./deployment.md)** - reverse proxy, ports, TLS, keeping it running long-term.
 - **[Troubleshooting](./troubleshooting.md)** - services unreachable, restart loops, desync between servers.
-- **Items and inventory, Codes** - granting items, redemption codes, `ownedItemIds`. *(Not yet written - see [The Database](./the-database.md) in the meantime for direct table access.)*
+- **Items and inventory, Codes** - granting items, redemption codes, `ownedItemIds`. *(Not yet written - LegacyAdmin's admin panel has Inventory and Codes tabs for both, see [The Database](./the-database.md#the-admin-panel); [The Database](./the-database.md) covers direct table access.)*
 
 If you're extending gameplay rather than operating a server, you want [Plugin Development](../04-Plugin%20Development/) instead.
 

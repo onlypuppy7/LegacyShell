@@ -14,7 +14,7 @@ Because it's all getting antiquated, finding working tools isn't as easy as you 
 
 They are horribly unoptimised jsons containing loads of information that could instead be somehow encoded. Nevertheless, the advantage present is that they become very easy to manipulate, especially with JavaScript, so for the purposes of the LegacyShell project we don't intend on switching formats because it allows for things like combining files in conjunction with plugins.
 
-LegacyShell does optimise bandwidth by automatically zipping all the models - resulting in an 80% reduction in file size. While the models still can get big, especially when seeking to import newer items, it greatly helps reduce load on the server and time needed to transfer everything on slow connections.
+LegacyShell does optimise bandwidth by compressing the models as they're served - gzip straight away, then brotli once it's been built in the background - which takes them down by around 90% (108MB of models, bundle and assets down to 10MB on a default install). While the models still can get big, especially when seeking to import newer items, it greatly helps reduce load on the server and time needed to transfer everything on slow connections. (They used to be zipped instead; that's been switched off.)
 
 ## How can I open .babylon files?
 
@@ -106,7 +106,7 @@ Here is a small table telling you all you need to know:
 
 |File|Contents|Notes|
 |-|-|-|
-|egg.babylon|Contains the egg model and hats.|Note that by modifying the egg you will break the automatic UV scaler for stamps.<br>I'm sure you realise already that even without this there's a headache to be had regardless.|
+|egg.babylon|Contains the egg model, hats and the classic guns (`old.*`, whose bones get renamed to the modern gun skeletons at build time).|Note that by modifying the egg you will break the automatic UV scaler for stamps.<br>I'm sure you realise already that even without this there's a headache to be had regardless.|
 |gun_cluck9mm.babylon|Contains all the gun skins for the Cluck9mm.|All of the gun models require no elaboration, really.|
 |gun_csg1.babylon|Contains all the gun skins for the CSG1 (Free Ranger).|-|
 |gun_dozenGauge.babylon|Contains all the gun skins for the Dozen Gauge (Scrambler).|-|

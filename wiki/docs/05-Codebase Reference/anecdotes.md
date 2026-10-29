@@ -6,7 +6,7 @@
 
 ## The maintainer, talking to the code
 
-`bullets.js:340`, in `Grenade.prototype.update`, right above a line that plays a sound effect:
+`bullets.js:343`, in `Grenade.prototype.update`, right above a line that plays a sound effect:
 
 ```js
 //what the fuck puppy don't just place audio code here grrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr
@@ -14,7 +14,7 @@
 
 The maintainer's own handle is `onlypuppy7` - this is them catching themselves mid-refactor and addressing themselves by name, in the second person, in a comment that's still there.
 
-`player.js:643` doesn't waste any words on what `moveZ` is like to work on:
+`player.js:694` doesn't waste any words on what `moveZ` is like to work on:
 
 ```js
 moveZ(ndz, delta, dontApply = {}) { //fuck this function
@@ -60,7 +60,7 @@ It is, genuinely, an accurate description of what the function does.
 
 ("cba" - can't be arsed - shows up often enough in this codebase that it's basically a second author's-note convention alongside real JSDoc tags.)
 
-And `comm.js:477`, the actual JSDoc for the `requestRespawn` opcode:
+And `comm.js:478`, the actual JSDoc for the `requestRespawn` opcode:
 
 ```js
 /** #CLIENT: try to respawn. if rejected for some reason ur screwed (i think)
@@ -98,7 +98,7 @@ The censor system's own inline example of what it censors is the thing it censor
 
 ## An inline changelog, one comment at a time
 
-`player.js:880`, in the jump-buffer tolerance logic - note the second sentence was clearly added later, by the same person, without deleting the first:
+`player.js:931`, in the jump-buffer tolerance logic - note the second sentence was clearly added later, by the same person, without deleting the first:
 
 ```js
 //idk if 1.3 is too much or not enough; Should do the job though. - op7: make that 1.5.
@@ -106,7 +106,7 @@ The censor system's own inline example of what it censors is the thing it censor
 
 `op7` is the maintainer signing their own follow-up edit, in-line, like a tiny embedded git-blame.
 
-`player.js:1266`, explaining a deliberate compatibility quirk in respawn ammo logic:
+`player.js:1322`, explaining a deliberate compatibility quirk in respawn ammo logic:
 
 ```js
 //switching weapons to another then back would give inifinite ammo, so thats pointless, kek...
@@ -124,7 +124,7 @@ And `player.js:7`, on the import that wires up kill/death tracking:
 console.log("wtf?", CommCode); //case that shouldnt exist
 ```
 
-with a sibling a few hundred lines down at `player.js:345`:
+with a sibling a few hundred lines down at `player.js:372`:
 
 ```js
 if (this.actor && this.id == meId) { //wtf is this for
@@ -134,13 +134,13 @@ if (this.actor && this.id == meId) { //wtf is this for
 
 Three of this project's own npm dependencies - `puppylog`, `puppymisc`, `puppyperpetual` (see `package.json`) - are packages the maintainer published themselves, all under the same `puppy` branding as their `onlypuppy7` handle. `puppylog` in particular is imported directly into `src/shell/` (`player.js`, `plugins.js`, `catalog.js`, `events.js`, and more) - the shared game-logic layer's own logging is a personal package, not a generic one.
 
-The built-in `/mod boot` command's `example` field, shown to players in its own help text (`permissions.js:245`):
+The built-in `/mod boot` command's `example` field, shown to players in its own help text (`permissions.js:425`):
 
 ```js
 example: "@onlypuppy7",
 ```
 
-The maintainer picked themselves as the example person to demonstrate kicking someone.
+The maintainer picked themselves as the example person to demonstrate kicking someone - and did it again for `/player kill` (`permissions.js:446`), the command that instantly kills a player.
 
 And `src/scripts/conv-md.js`, a small one-off markdown conversion script, opens its actual transform logic with (line 13):
 

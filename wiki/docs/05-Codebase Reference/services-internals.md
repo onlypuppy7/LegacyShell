@@ -11,7 +11,7 @@ The engineering detail underneath [Architecture Overview](../02-Running%20a%20Se
 Every incoming WebSocket message goes through the same gate before reaching any actual command logic:
 
 1. **Classify** `cmdType` - `sensitive` (in `ratelimit.sensitive.cmds`), `auth_required` (a fixed list: `getUser`, `addEggs`, `addKill`, `addDeath`, `sqlRequest` - not configurable), or `regular` otherwise.
-2. **Optionally hash the IP** (`protect_ips`) - see [Rate Limiting](../02-Running%20a%20Server/rate-limiting.md).
+2. **Resolve and optionally hash the IP** - `cf-connecting-ip`, else the first `X-Forwarded-For` entry, else the socket address (worked out once per connection, as `rawIp`); MD5-hashed per message if `protect_ips` is on, then prefixed `4` or `6` for the address family. See [Rate Limiting](../02-Running%20a%20Server/rate-limiting.md).
 3. **Resolve `isAccepted`**: a valid `auth_key` bypasses everything; an `auth_required` command with no key is rejected outright; otherwise it goes through `rl.allowRequest(ss, ip, cmdType)`.
 4. **Reject with `{ error: 'Too many requests. Please try again later.' }`** if step 3 said no - nothing further happens for this message.
 5. **`requestConfig`** is handled as a special case *outside* the closed-mode gate below - it's the polling handshake every game/client server relies on, so it has to keep working even in [closed mode](../02-Running%20a%20Server/closed-mode.md).
@@ -38,9 +38,9 @@ The practical asymmetry: **items only get their "empty table" treatment once, ev
 ## Auth internals
 
 - **Passwords**: `bcrypt`, cost factor from `config.services.password_cost_factor` (see [`npm run bcrypt`](../01-Getting%20Started/requirements.md)).
-- **Auth tokens** ("remember me"): a 32-byte hex token, regenerated on every successful login/registration, compared by plain equality.
+- **Auth tokens** ("remember me"): a 32-byte hex token, regenerated on every successful login/registration, compared by plain equality. Token logins (`validateLoginViaAuthToken`) are rate-limited as `regular`, not `sensitive`, since every page load sends one - and the browser sends it from an inline script in the page head, before the game bundle has even downloaded.
 - **`game_servers.auth_key` lookup** (`accs.getAuthKeyData`) is the single enforcement point for game-server authorization across the whole codebase - see [Adding Game Servers](../02-Running%20a%20Server/adding-game-servers.md).
-- **Sessions**: one active session per account (`createSession` deletes all prior sessions for that user first), a random 64-hex-char `session_id`, and an IP-mismatch check on retrieval that wipes all of that account's sessions if the requesting IP doesn't match what the session was created with (anti-hijacking) - unless the caller explicitly passes `readOnly` (used when a request is just peeking, not authenticating on behalf of the session).
+- **Sessions**: one active session per account (`createSession` deletes all prior sessions for that user first), a random 64-hex-char `session_id`, and an IP check on retrieval: a session can be bound to one IP per address family (the first IPv4 and the first IPv6 address it's used from, stored comma-separated in `ip_address`, told apart by that `4`/`6` prefix), and a request from any other IP wipes all of that account's sessions (anti-hijacking) - unless the caller explicitly passes `readOnly` (used when a request is just peeking, not authenticating on behalf of the session).
 
 ## Common Issues
 

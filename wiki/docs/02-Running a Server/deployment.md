@@ -28,14 +28,18 @@ location /services/ {
 
 Point `wss://your-domain/services/` at this, and set `services_server`/`sync_server`/`servicesURL` in your game/client/distributed config to match (see [Config Files](../01-Getting%20Started/config-files.md) and the [generated config reference](../05-Codebase%20Reference/Generated/config-reference.md)) - `wss://` in place of `ws://` once TLS is actually terminated at the proxy.
 
-## `X-Forwarded-For` matters for rate limiting - and can be spoofed if misconfigured
+## Forwarded IP headers matter for rate limiting - and can be spoofed if misconfigured
 
-Services resolves the connecting client's IP as `req.headers['x-forwarded-for'] || req.socket.remoteAddress` - checked directly in source. This is exactly the setup a reverse-proxy deployment needs (otherwise every connection would appear to come from your proxy's own IP, making per-IP [rate limiting](./rate-limiting.md) useless). But it has a real consequence: **whatever your proxy is configured to do with `X-Forwarded-For`, services trusts completely.**
+Services resolves the connecting client's IP as `cf-connecting-ip`, else the first entry of `X-Forwarded-For`, else `req.socket.remoteAddress` - checked directly in source (`server-services/start-services.js`). This is exactly the setup a reverse-proxy or Cloudflare deployment needs (otherwise every connection would appear to come from your proxy's own IP, or from a Cloudflare edge node that changes per connection, making per-IP [rate limiting](./rate-limiting.md) useless and logging players out). But it has a real consequence: **whatever arrives in those two headers, services trusts completely.** The same IP is what a login session is bound to, so it matters for sessions as well as rate limits.
 
 - If your proxy correctly **overwrites** `X-Forwarded-For` with the real client IP (the standard, correct nginx/Caddy behavior when it's the actual edge of your network), this works as intended.
-- If a client can reach services **directly**, bypassing your proxy (firewall misconfiguration, services port exposed publicly alongside the proxied one), they can set their own `X-Forwarded-For` header and have services believe they're a different IP than they actually are - trivially defeating rate limiting.
+- If a client can reach services **directly**, bypassing your proxy (firewall misconfiguration, services port exposed publicly alongside the proxied one), they can set their own `cf-connecting-ip` or `X-Forwarded-For` header and have services believe they're a different IP than they actually are - trivially defeating rate limiting. Not using Cloudflare doesn't help here: services reads `cf-connecting-ip` whether or not Cloudflare is in front, so a proxy that isn't Cloudflare should strip that header from incoming requests.
 
 Practical takeaway: if you put a reverse proxy in front of services, also firewall the raw services port (`13371` by default) so it's only reachable from the proxy itself, not directly from the internet. Exposing both "protects nothing" - it's strictly worse than not having a proxy at all, since it looks protected but isn't.
+
+## Compression is built in
+
+The client server compresses its own static files (the bundle, `.babylon` models, lightmaps, CSS, HTML) - gzip straight away, then brotli built in the background and swapped in as each file finishes, cached on disk under `server-client/store/brotli-cache/` by content hash so a restart only redoes what changed. Every plugin's `express.static` mount gets the same treatment. Leave compression off for these paths in your proxy (or let it pass `Content-Encoding` through) rather than compressing twice. The stamp spritesheet is also served as lossless WebP to browsers that accept it.
 
 ## Process management
 
@@ -62,7 +66,9 @@ WantedBy=multi-user.target
 
 **WebSocket connections fail only in production, work fine locally.** Almost always the reverse proxy not forwarding the `Upgrade`/`Connection` headers - see the nginx example above. Check your proxy's access logs for a `101 Switching Protocols` response; anything else means the upgrade isn't happening.
 
-**Rate limiting seems to treat every player as the same IP.** Your proxy isn't setting `X-Forwarded-For` (or services isn't configured to trust it correctly) - see the section above.
+**Rate limiting seems to treat every player as the same IP.** Your proxy isn't setting `X-Forwarded-For` - see the section above.
+
+**Players keep getting logged out behind Cloudflare.** Make sure Cloudflare is actually adding `cf-connecting-ip` (it does by default for proxied hostnames) - without it, services sees a different edge IP on each connection, and a session bound to the old one gets wiped.
 
 ---
 *This page was drafted with AI assistance and reviewed for accuracy. If something looks wrong, please [open a PR](https://github.com/onlypuppy7/LegacyShell) or flag it.*

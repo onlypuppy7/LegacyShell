@@ -14,8 +14,9 @@ LegacyShell is a Node.js project - you need Node installed to run any of it. The
 | v20.11.1 | Windows 11 |
 | v20.18.1 | macOS (M4) |
 | v20.19.2 | macOS (M2 Pro) |
+| v22.22.0 | Linux (a clean cloud container: `npm install`, `npm run init -- -y`, all three servers and the plugin test scripts, October 2026) |
 
-If you don't have Node yet, grab the current **LTS** release from [nodejs.org](https://nodejs.org/) - anything in the v18-v20 range should be safe. Check what you have with:
+If you don't have Node yet, grab the current **LTS** release from [nodejs.org](https://nodejs.org/) - anything in the v18-v22 range should be safe. Check what you have with:
 
 ```bash
 node --version

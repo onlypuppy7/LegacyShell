@@ -6,13 +6,13 @@
 
 Services rate-limits incoming WebSocket commands per-IP, to keep a single misbehaving or malicious client from hammering the database or auth flow.
 
-## The two buckets
+## The three types
 
 Every command is classified into exactly one of three types before it's even processed:
 
 | Type | What's in it | Default limit |
 |---|---|---|
-| `sensitive` | Whatever commands are listed in `ratelimit.sensitive.cmds` - by default `validateLogin`, `validateLoginViaAuthToken`, `validateRegister`, `feedback` (the account/auth-touching commands most worth protecting against brute-forcing or spam). | 5 requests per 300 seconds |
+| `sensitive` | Whatever commands are listed in `ratelimit.sensitive.cmds` - by default `validateLogin`, `validateRegister`, `feedback` (the account/auth-touching commands most worth protecting against brute-forcing or spam). Token logins (`validateLoginViaAuthToken`, the "remember me" login every page load sends) were moved out of this bucket in October 2026 - they're `regular` now, since every page load sends one. | 5 requests per 300 seconds |
 | `regular` | Everything else, except... | 10 requests per 60 seconds |
 | `auth_required` | A fixed list baked into the code (not configurable): `getUser`, `addEggs`, `addKill`, `addDeath`, `sqlRequest`. | Not rate-limited at all - instead, **rejected outright unless a valid `auth_key` is present.** |
 
@@ -29,6 +29,10 @@ Counts live in an in-memory cache (`ss.requests_cache`, keyed by IP) for speed, 
 ## What happens when a request is rejected
 
 The client gets back `{ "error": "Too many requests. Please try again later." }` over the same WebSocket connection - no special close code, no ban, just that one message in place of whatever response it was expecting. The next request from that IP is evaluated fresh against the same rolling window.
+
+## Which IP counts
+
+Services takes the client's address from the `cf-connecting-ip` header if there is one (Cloudflare's real-client header), then the first entry of `X-Forwarded-For`, then the socket itself, and prefixes it with `4` or `6` for the address family. Read [Deployment](./deployment.md#forwarded-ip-headers-matter-for-rate-limiting-and-can-be-spoofed-if-misconfigured) before putting services behind (or not behind) a proxy - both headers are trusted as-is.
 
 ## `protect_ips`
 

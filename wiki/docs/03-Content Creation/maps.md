@@ -48,7 +48,7 @@ If you're distributing a map pack as a plugin instead of editing the base game d
 
 ## Fields set outside the editor
 
-A few map properties aren't part of the editor export and instead come from the database row's own defaults (or need setting directly) - `sun`, `fog` *(unused)*, `skybox`, `modes` (which gamemodes the map is valid for, e.g. `{"FFA":true,"Teams":true}`), `availability` (`public`/`private`/`both`), and `numPlayers` (spawn-count hint). See the [generated database schema](../05-Codebase%20Reference/Generated/database-schema.md#maps) for the full column list and current defaults - editing these means editing the database row directly (or the plugin-side map object before calling `insertMaps`) rather than through the in-game editor.
+A few map properties aren't part of the editor export and instead come from the database row's own defaults (or need setting directly) - `sun`, `fog` *(unused)*, `skybox` (any skybox the client has, plus `classic` and `classic-alpha` from the bundled classicskybox plugin), `modes` (which gamemodes the map is valid for, e.g. `{"FFA":true,"Teams":true}`), `availability` (`public`/`private`/`both`), and `numPlayers` (spawn-count hint). See the [generated database schema](../05-Codebase%20Reference/Generated/database-schema.md#maps) for the full column list and current defaults - editing these means editing the database row directly (or the plugin-side map object before calling `insertMaps`) rather than through the in-game editor.
 
 ## Common Issues
 

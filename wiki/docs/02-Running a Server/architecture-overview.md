@@ -77,7 +77,7 @@ Its entire external interface is a raw WebSocket server - no HTTP, no REST API. 
 
 ### Game: where matches actually happen
 
-Each game server is authoritative for the matches it's running - physics, hit detection, scoring - and pushes state updates to connected players over its own WebSocket. It doesn't touch the database directly; instead it talks to services for anything account-related (recording a kill, checking a session).
+Each game server is authoritative for the matches it's running - physics, hit detection, scoring - and pushes state updates to connected players over its own WebSocket. It doesn't touch the database directly; instead it talks to services for anything account-related (recording a kill, checking a session). It keeps a few connections to services open for looking players up as they join, so a join doesn't pay for a fresh connection to a services server that may be far away.
 
 Internally, each game *room* (a single ongoing match) runs in its own dedicated worker thread, isolated from every other room on the same server - useful to know if you ever get into plugin development, covered in [Codebase Reference](../05-Codebase%20Reference/rooms-and-workers.md), but not something you need to think about just to operate a server.
 

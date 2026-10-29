@@ -72,6 +72,7 @@ Because of step 3, most nontrivial methods in `player.js`, `bullets.js`, `guns.j
 | `munitionsManager.js` | Per-room pooled management of active projectiles. |
 | `items.js` | The pickup-item array (`AllItems`/`ItemTypes`) - ammo, grenades, plugin-added pickups. See [Catalog and Items](./catalog-and-items.md). |
 | `itemManager.js` | Per-room pooled management of spawned pickup items. |
+| `itemRenderer.js` | Renders item thumbnails (guns, hats, stamps) to canvases for the shop, inventory and picker tiles - browser-only in practice (also reused by LegacyAdmin's item browser). Its meshes and stamp sheet load lazily, once startup is done or when a tile first needs them. |
 | `catalog.js` | The cosmetic/loadout shop catalog and weekly rotation algorithm. See [Catalog and Items](./catalog-and-items.md). |
 | `player.js` | The authoritative `Player` class - movement, combat, state-buffer prediction/reconciliation. |
 | `collider.js` | Voxel-grid collision engine. See [Physics and Collision](./physics-and-collision.md). |
@@ -90,7 +91,8 @@ Because of step 3, most nontrivial methods in `player.js`, `bullets.js`, `guns.j
 | `general/misc.js` | The `ss` context object and the splice machinery described on this page. See [The `ss` Object](./the-ss-object.md). |
 | `general/looper.js` | The server tick-loop scheduler. See [Game Loop](./game-loop.md). |
 | `general/prepare-babylons.js` | Server-only model-merging build step (not itself spliced into the client - it's never referenced via a `LEGACYSHELLXXX` token). |
-| `general/wsrequest.js` | A minimal promise-wrapped WebSocket request helper, used for server-to-server calls. |
+| `general/wsrequest.js` | A minimal promise-wrapped WebSocket request helper, used for server-to-server calls. No timeout of its own - callers that need one race it themselves. |
+| `general/sqliteWrap.js` | Services-only: wraps the `better-sqlite3` database in the async `runQuery`/`getOne`/`getAll` interface (and the permissive bind-param handling) every caller was written against for the old `sqlite3` driver. See [The `ss` Object](./the-ss-object.md). |
 
 ---
 *This page was drafted with AI assistance and reviewed for accuracy. If something looks wrong, please [open a PR](https://github.com/onlypuppy7/LegacyShell) or flag it.*

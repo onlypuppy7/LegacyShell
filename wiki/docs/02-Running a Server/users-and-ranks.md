@@ -41,13 +41,15 @@ In **public** rooms, only the `bypassRank` tier can use the command at all - the
 
 ## Moderation: what exists, and what doesn't
 
-LegacyShell ships one built-in moderation command: **`boot`** (Moderator rank or above), which disconnects a player from the current room. That's a **kick, not a ban** - there's no persistent, built-in mechanism that stops a booted player from simply reconnecting.
+Core ships one moderation command: **`boot`** (Moderator rank or above), which disconnects a player from the current room. That's a **kick, not a ban** - nothing in core stops a booted player from simply reconnecting.
 
-If you need actual bans, you have a few real options, none of them built in:
+Real bans and mutes come from the bundled **LegacyAdmin** plugin (enabled by default). Its admin panel (`/admin`) can ban or mute by account, IP or browser uuid, with a reason; game servers poll the list every ~20 seconds and refuse banned players when they join, and muted players' chat is dropped. Everything is written to its audit log. See [its page](../../plugins/Plugin%20Docs/Default/legacyadmin/info.md).
+
+Without LegacyAdmin (or for anything it doesn't cover), the options are:
 
 - Revoke/rename the offending account directly in the `users` table (breaks their login, doesn't stop a new account).
 - Block their IP at the network/reverse-proxy level in front of your client and game servers (outside the scope of LegacyShell itself).
-- Write a plugin that checks a ban list on `game:joinPlayer` and disconnects/rejects matching players - see [Plugin Development](../04-Plugin%20Development/) once you're ready; this is exactly the kind of thing the "could this be a plugin?" philosophy expects you to build rather than have LegacyShell dictate one specific ban system.
+- Write a plugin that rejects matching players on `game:beforeJoinRoom` (set `plugins.cancel = true`) - exactly how LegacyAdmin does it, and exactly the kind of thing the "could this be a plugin?" philosophy expects you to build rather than have LegacyShell dictate one specific ban system. See [Plugin Development](../04-Plugin%20Development/).
 
 Next: [Adding Game Servers](./adding-game-servers.md).
 

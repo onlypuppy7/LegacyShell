@@ -32,20 +32,20 @@ INSERT INTO game_servers (name, address) VALUES ('eu-west', 'game-eu.example.com
 SELECT auth_key FROM game_servers WHERE name = 'eu-west';
 ```
 
-### Option B: Web SQL tool (remote services server)
+### Option B: The admin panel (remote services server)
 
-If you don't have filesystem access to the services server (it's hosted elsewhere), LegacyShell ships an admin web page for exactly this - **`/sql/`** on any client server, e.g. `http://localhost:13370/sql/`. It's a full SQL editor in the browser with prebuilt templates for every table (including a "Add New Game Server" / "Update Game Server Info" template for this exact task) - see [The Database](./the-database.md#the-built-in-web-sql-tool) for the full walkthrough.
+If you don't have filesystem access to the services server (it's hosted elsewhere), the bundled **LegacyAdmin** plugin serves an admin panel at **`/admin`** on any client server, e.g. `http://localhost:13370/admin`. Its **SQL** tab is a SQL editor with prebuilt templates for every table (including "Add New Game Server" / "Update Game Server Info" for this exact task), plus a table editor - see [The Database](./the-database.md#the-admin-panel) for the full walkthrough. (The older standalone `/sql/` page still works with the same two credentials, but it's slated for deprecation - the panel's templates were ported from it by hand, so the two can drift.)
 
-To use it you need two credentials beyond the services server's own address: **any existing valid `game_servers.auth_key`** (this is a bit of a chicken-and-egg problem the very first time - see the note below) and the **`sqlPassword`**, which services auto-generates and prints to its own console the first time it ever boots:
+SQL writes need the panel's full-access login, which takes two credentials beyond the services server's own address: **any existing valid `game_servers.auth_key`** (this is a bit of a chicken-and-egg problem the very first time - see the note below) and the **`sqlPassword`**, which services auto-generates and prints to its own console the first time it ever boots:
 
 ```
 sqlPassword: <printed once, on first boot - save it somewhere safe>
 ```
 
-Both are required - the underlying `sqlRequest` command is gated behind having a valid auth key (same as other sensitive services commands) *and* a separate `sqlPassword` check on top of that.
+Both are required - the underlying `sqlRequest` command is gated behind having a valid auth key (same as other sensitive services commands) *and* a separate `sqlPassword` check on top of that. Every `sqlRequest`, allowed or not, is written to LegacyAdmin's audit log.
 
 ::: tip Bootstrapping the very first game server
-The web SQL tool needs an existing auth key to authenticate with, so it can't be how you register your *very first* game server (there's nothing to authenticate with yet). Use Option A (direct database access) or `npm run init`'s automatic setup for that one; the web tool becomes useful once you already have at least one authorized server and want to add more without touching the database file directly.
+The admin panel's full-access login needs an existing auth key to authenticate with, so it can't be how you register your *very first* game server (there's nothing to authenticate with yet). Use Option A (direct database access) or `npm run init`'s automatic setup for that one; the panel becomes useful once you already have at least one authorized server and want to add more without touching the database file directly.
 :::
 
 ## Configuring the new game server itself

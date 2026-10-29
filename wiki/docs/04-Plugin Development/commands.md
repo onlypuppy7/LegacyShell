@@ -8,7 +8,7 @@ LegacyShell's slash-command system (`/room lock true`, `/change speed 1.5`, etc.
 
 ## The hook
 
-`PermissionsConstructor` registers all of LegacyShell's ~20 built-in commands in its own constructor, then, as the very last thing it does, emits:
+`PermissionsConstructor` registers all of LegacyShell's 35 built-in commands in its own constructor, then, as the very last thing it does, emits:
 
 ```js
 plugins.emit('permissionsAfterSetup', { this: this });
@@ -66,7 +66,7 @@ Typed in-game, this becomes `/sample test`.
 | `autocomplete` | Optional autocomplete trigger character, e.g. `"@"`. |
 | `options` | Optional array of choices for the command's first argument, e.g. `["rain", "storm", "snow"]`. Chat autocomplete offers them as you type, so players can see what's valid. `usage` is shown in the command info panel as HTML, so write `&lt;` and `&gt;` for literal angle brackets (and `<br>` for line breaks). |
 | `mentionTypes` | Optional, defaults to `{player: true, group: true}` - restricts which `@mention` kinds this command accepts (see below). |
-| `isCheat` | Optional, defaults to falsy - if true, additionally requires the room's `gameOptions.cheatsEnabled` flag, regardless of rank. |
+| `isCheat` | Optional, defaults to falsy - if true, additionally requires the room's `gameOptions.cheatsEnabled` flag. The one exception is a player of **Admin** rank or above: if they're otherwise permitted, running a cheat command turns cheats on for the room (with a notice) instead of being refused. |
 | `warningText` | Optional extra text shown alongside the command. |
 | `permissionLevel` | `[bypassRank, privateRoomRank, requireGameOwnerInPrivate]` - see [Users and Ranks](../02-Running%20a%20Server/users-and-ranks.md#how-permission-checks-actually-work) for the full explanation of this tuple. |
 | `inputType` | `["string"]`, `["bool"]`, or `["number", min, max, step]` - governs both input parsing and the auto-generated usage text. |
@@ -93,7 +93,7 @@ Restrict which kinds a command accepts with `mentionTypes` - e.g. `{ group: true
 
 ## Common Issues
 
-**My command doesn't do anything when typed.** Check you actually implemented the half that matters for what you're testing - if you only wrote `executeServer` and expected to see something happen the instant you hit enter, that's expected; the visible effect only appears once the server's response comes back. Also double check `category`/`name` don't collide with a built-in command (`change`, `admin`, `mod`, `room`, `rounds`, `time`, `weather` are all already taken categories).
+**My command doesn't do anything when typed.** Check you actually implemented the half that matters for what you're testing - if you only wrote `executeServer` and expected to see something happen the instant you hit enter, that's expected; the visible effect only appears once the server's response comes back. Also double check `category`/`name` don't collide with an existing command - core's categories are `change`, `admin`, `mod`, `player`, `room` and `rounds`, and bundled plugins add more (`weather`/`time` from LegacyWeather, `bots`/`botsdebug` from DeadInternet, `replay` from LegacyReplay).
 
 **"Insufficient permissions" even though I think I should have access.** Re-check the `permissionLevel` tuple against your actual rank and whether you're testing in a public or private room - the private-room allowance never applies in public rooms, regardless of rank. See [Users and Ranks](../02-Running%20a%20Server/users-and-ranks.md).
 

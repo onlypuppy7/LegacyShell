@@ -69,13 +69,14 @@ How `src/client-static/src/shellshock.min.js` (the hand-maintained, *not actuall
 `prepareModified()` is called as part of `server-client`'s own startup (alongside `stampsGenerator.js` and the wiki build - see [Architecture Overview](../02-Running%20a%20Server/architecture-overview.md#client-what-your-browser-actually-downloads)), running two things in parallel:
 
 ```js
+const babylonsDone = prepareBabylons(path.join(ss.rootDir, 'server-client', 'store', 'client-modified', 'models'));
 await Promise.all([
-    prepareBabylons(path.join(ss.rootDir, 'server-client', 'store', 'client-modified', 'models')),
-    modifyFiles(),
+    babylonsDone,
+    modifyFiles(babylonsDone),
 ]);
 ```
 
-`prepareBabylons` handles model merging - see [Stamps and Babylons](./stamps-and-babylons.md). `modifyFiles()` is the actual JS/HTML build step this page covers.
+`prepareBabylons` handles model merging - see [Stamps and Babylons](./stamps-and-babylons.md). `modifyFiles()` is the actual JS/HTML build step this page covers. They still run side by side, but `modifyFiles` awaits `babylonsDone` partway through, just before pass one: it reads every `*.babylon.manifest` the model build wrote and bakes them into the bundle (`LEGACYSHELLMANIFESTS`), along with `housePromo.json` (`LEGACYSHELLHOUSEPROMO`), so the browser doesn't spend a dozen requests on them at startup. A plugin that serves its own `housePromo.json` has to swap its copy into that replacement itself (`legacyshellcore` does, on `replacementsBefore`) - the static file is no longer what the page reads.
 
 ## What `modifyFiles()` processes
 
@@ -96,7 +97,9 @@ The build works by literal string substitution against `LEGACYSHELLXXX`-style pl
 
 For a `file:` entry, the actual inserted content is `misc.hashtagToString(hashtag)` - the shared module's live source, transformed by `prepareForClient` (see [Server-Only Markers](./server-only-markers.md)). This pass is also where plugin-injected client code lands, via the `pluginSourceInsertion` emit (see [Client-Side Code](../04-Plugin%20Development/client-side-code.md)) resolving the `LEGACYSHELLPLUGINSBEFOREBEFORE`/`LEGACYSHELLPLUGINSBEFORE`/`LEGACYSHELLPLUGINSAFTER` tokens. `replacementsBefore` itself is also a documented plugin extension point - a listener can push its own entries onto the array before this pass runs.
 
-**Pass two (`replacementsAfter`)** happens near the end, after minification - it inlines the final `items`/`maps` JSON (now annotated with stamp grid coordinates by `stampsGenerator.js`, hence waiting until after that's done - see [Stamps and Babylons](./stamps-and-babylons.md)), plus the raw Babylon.js library source and its GLSL shaders.
+**Pass two (`replacementsAfter`)** happens near the end, after minification - it inlines the final `items`/`maps` JSON (now annotated with stamp grid coordinates by `stampsGenerator.js`, hence waiting until after that's done - see [Stamps and Babylons](./stamps-and-babylons.md)), plus the raw Babylon.js library source and the shared map/player/item GLSL shaders.
+
+The shaders go through one plugin hook on the way: `shaderSources` hands listeners `data.shaders.vertex`/`.pixel` as strings to edit in place. Both files carry anchor comments to insert at - `//@vertexDeclarations`, `//@vertexEnd`, `//@pixelDeclarations`, `//@pixelPreFog` - and a plugin should keep the anchor text when it inserts after one, so the next plugin can still find it. `legacyweather` (wet surfaces, puddles, lightning, point-light glow) and `zombiesmode` (see-through ghosts) both patch the shader this way.
 
 ## IIFE wrapping
 
@@ -109,6 +112,15 @@ If `config.client.minify` is true, the assembled (and possibly IIFE-wrapped) scr
 ## Cache-busting hashes
 
 A SHA-256 hash of the built `servers.js` (`SERVERJSHASH`) gets computed and embedded into `index.html`, and the `hashes` event fires twice - once early, once again after the final build pass - giving plugins two points to observe or extend the hash set used for cache-busting.
+
+## Compression on the way out
+
+The build output isn't served raw. `server-client/src/gzipStatic.js` patches `express.static` before any plugin mounts anything, so every static mount (core's and every plugin's, in its own place in the mount order) serves `.babylon`, `.json`, `.js`, `.css`, `.html`, `.svg`, `.manifest` and `.lightmap` files over 1KB compressed, with an ETag:
+
+- gzip on the first request for a file, cached in memory until the file changes;
+- brotli built in the background once startup is done (`precompress()`, not awaited) - every file at quality 9 flat out first, then quality 11 on two threads at a 50% duty cycle, each swapped in as it finishes - and cached on disk in `server-client/store/brotli-cache/` by content hash, so a restart only redoes what changed.
+
+A mount made with an options object is left alone (those options are for `express.static` to enforce). `stamps.png` is separately answered with `stamps.webp` for browsers that accept it (`stampsWebp.js`).
 
 ## Common Issues
 

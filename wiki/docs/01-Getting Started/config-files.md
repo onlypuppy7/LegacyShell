@@ -22,7 +22,7 @@ You edit files in `store/config/`, then restart the affected server(s) for chang
 | `all.yaml` | All three servers | Just two global toggles: `verbose` and `devlogs` logging. |
 | `services.yaml` | Services only | Port, password hashing cost, session lifetime, rate limits, backup schedule, feedback webhook. |
 | `game.yaml` | Game only | Port, which services server to sync with, your `auth_key`. |
-| `client.yaml` | Client only | Port, which services server to sync with, site URL, optional HTTP login gate. |
+| `client.yaml` | Client only | Port, which services server to sync with, site URL, optional HTTP login gate (if `login.enabled` is on without both a `username` and `password`, the client refuses to start rather than run unprotected). |
 | `distributed_all.yaml` | All (via services) | Settings services pushes out to every connected server - see [Running a Server](../02-Running%20a%20Server/) for the distributed-deployment case. |
 | `distributed_client.yaml` | Client (via services) | Client-specific settings pushed the same way. |
 | `distributed_permissions.yaml` | Game (via services) | Rank names and numeric levels, and per-command permission overrides - see [Users and Ranks](../02-Running%20a%20Server/users-and-ranks.md). |

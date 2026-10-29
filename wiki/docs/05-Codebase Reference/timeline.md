@@ -53,7 +53,7 @@ Per [`release.md`](../../wiki/LegacyShell/release.html), written by the project 
 
 > After many months of working on this project, the creator and main contributer to the LegacyShell project onlypuppy7, released the first public version of the game (v0.1.0-alpha) on Saturday, 7 December 2024 at 16:00 UTC.
 
-It was preceded by public tests and teasers/trailers on a dedicated [YouTube channel](https://www.youtube.com/@legacyshell). `package.json`'s `version` field has read `v0.1.0-alpha` ever since - it's the same string today, over 1,400 commits and 20 months later.
+It was preceded by public tests and teasers/trailers on a dedicated [YouTube channel](https://www.youtube.com/@legacyshell). `package.json`'s `version` field has read `v0.1.0-alpha` ever since - it's the same string today, around 1,700 commits and almost two years later (October 2026).
 
 ## Early 2025: community content, then a long quiet stretch
 
@@ -73,13 +73,33 @@ Between March and December 2025, `main` saw a total of 61 commits across ten mon
 
 ## The comeback: December 2025-present
 
-Whatever `7939b89` fixed, the project picked back up immediately: a seasonal-effects toggle and the vaporwave plugin's map rotation landed the next day (`0229a9e`, 19 Dec), the room class got refactored on New Year's Eve (`db8f8dd`, 31 Dec), and warm-spare worker caching - the optimization documented today in [Rooms and Workers](./rooms-and-workers.md) - arrived three weeks later (`a573141`, 23 Jan 2026). Activity since has been real but uneven - 85 commits in January 2026, tapering to single digits by mid-year - consistent with a maintained side project rather than the October 2024 sprint.
+Whatever `7939b89` fixed, the project picked back up immediately: a seasonal-effects toggle and the vaporwave plugin's map rotation landed the next day (`0229a9e`, 19 Dec), the room class got refactored on New Year's Eve (`db8f8dd`, 31 Dec), and warm-spare worker caching - the optimization documented today in [Rooms and Workers](./rooms-and-workers.md) - arrived three weeks later (`a573141`, 23 Jan 2026). Activity since has been real but uneven - 85 commits in January 2026, tapering to single digits by mid-year - consistent with a maintained side project, until August 2026 picked it back up.
 
-`versionEnum.txt` currently reads **598**, last bumped by the CI job on 5 Jun 2026; a few commits since then (an init-wizard flag, a healthpack fix, a plugin-dependency-install fix, all 18-19 Aug 2026) exist locally ahead of that count.
+## August-October 2026: the documentation, and then the plugins
+
+`versionEnum.txt` read **598** at the start of August 2026 (last bumped by CI on 5 Jun). A few fixes landed on 18-19 Aug (an init-wizard `--yes` flag, a healthpack fix, a plugin-dependency-install fix), and then on **20 Aug 2026** the `wiki/docs/` tree this page lives in, `CLAUDE.md` and the generators under `src/scripts/gen-wiki-reference.js` were committed together (`f1cb2cf` "Add wiki reference generators and a live-built plugin-docs page", `1a73d5a` "Restructure wiki/docs/ into a six-tier contributor documentation site", `017132e` per-plugin README docs) - built with AI assistance across a series of sessions that month.
+
+The same day, `61ea61b` - "pathfinding WORKING v1" - started what became `deadinternet`, the bot plugin. The rest of August moved fast: `better-sqlite3` replaced `sqlite3` for services' database (`dc9e6e6`, 26 Aug), the weather and time-of-day code moved out of core into `legacyweather` (`7c81f52`, 29 Aug), and `legacyadmin` became the one admin panel (`55c1683`, same day).
+
+| Month | Commits |
+|---|---|
+| 2026-08 | 40 |
+| 2026-09 | 6 |
+| 2026-10 | **183** |
+
+October 2026 was the busiest month since late 2024, and like October 2024 it reshaped the codebase:
+
+- **Bots and a new gamemode**: `deadinternet`'s bots learned to fight (aim, strafe, cover, grenades, hearing - 16 Oct), and `zombiesmode` was built on top of them the same day (`f1cdf51`), along with the two core modifiers it leans on, `contactDamage` (16 Oct) and `noclip` (20 Oct). It got ghosts, brutish and small zombies, a weather arc and a lot of route-finding work over the following week.
+- **A loading-speed pass** (mostly 21 Oct, dozens of small commits): the login request goes out from the page head, item meshes and the stamp sheet load after startup instead of during it, the game scene is preloaded, the client keeps a connection to the chosen game server warm, game servers keep connections to services open, and the client server compresses everything with gzip and then brotli.
+- **legacyweather** grew into layered rain/storm/snow with shader wetness, real lightning and an automatic day cycle (14-15 Oct).
+- **New plugins**: `debugf3` (a Minecraft-style F3 screen, 22 Oct), `legacyreplay` (recording rooms, camera angles, highlight reels, video export, live casting - 23 Oct), `legacyprofiles` (player profiles - 24 Oct), `discordplaytest` (expiring site passwords from Discord - 27 Oct) and `legacyachievements` (28 Oct). `classicskybox` moved from the samples into the bundled plugins, finished.
+- **Settings and themes**: the original 0.17.0 settings menu was rebuilt on LegacySettings (20 Oct, with FOV, scoped sensitivity, gun position and a hide-HUD section soon after), and LegacyThemes gained sound packs (23 Oct).
+
+`versionEnum.txt` reads **666** at the end of October 2026.
 
 ## Right now: this documentation
 
-The `wiki/docs/` tree this page lives in, `CLAUDE.md`, and the generators under `src/scripts/gen-wiki-reference.js` are the newest thing in this repo - and, as of this page being written, not yet committed to git at all (`git status` shows the whole tree as untracked). Unlike everything above, there's no commit archaeology for this part yet; it's simply what's currently on disk, built with AI assistance across a series of sessions in August 2026. If you're reading this significantly later than that, check `git log` on this file directly - at some point it'll have a real commit history of its own to append here.
+The docs have a commit history of their own now - `git log -- wiki/docs` shows it. Generated pages are refreshed with `npm run gen-docs` alongside the code changes they describe (see [Generators](../06-Contributing/generators.md)), and the hand-written ones are updated when someone notices they've drifted - this page included, last brought up to date at the end of October 2026.
 
 ---
 *This page was drafted with AI assistance and reviewed for accuracy. If something looks wrong, please [open a PR](https://github.com/onlypuppy7/LegacyShell) or flag it.*

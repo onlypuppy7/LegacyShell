@@ -88,7 +88,7 @@ This recipe deliberately doesn't touch Babylon.js at all - `document.createEleme
 
 ## What we validated
 
-Loaded against a real (isolated, scratch) client server: the build pipeline successfully locates and splices `shared.js` into the bundle at the `after` position with no insertion error - the same mechanism validated in [Custom Weapon](./custom-weapon.md#what-we-validated-and-what-we-couldn-t), which also notes the pre-existing, unrelated minification issue that prevented us from getting a fully built bundle to visually confirm the banner appears on screen in this particular test environment.
+Loaded against a real (isolated, scratch) client server: the build pipeline successfully locates and splices `shared.js` into the bundle at the `after` position with no insertion error - the same mechanism validated in [Custom Weapon](./custom-weapon.md#what-we-validated-and-what-we-couldn-t), which also notes the minification failure that stopped us getting a fully built bundle to visually confirm the banner back then (since fixed - a stock build minifies cleanly now).
 
 ## Common Issues
 

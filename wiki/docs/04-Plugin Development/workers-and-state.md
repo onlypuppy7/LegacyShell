@@ -8,7 +8,7 @@ This is the single most important architectural fact for a `game:`-targeting plu
 
 ## Each room is its own worker thread
 
-The game server's main thread doesn't run room simulation itself - `server-game/src/roomManager.js` spins up a dedicated `node:worker_threads` `Worker` **per room**, running `server-game/src/worker.js`. A spare worker is kept warm at all times (spun up proactively, so creating a new room doesn't pay JS-startup latency on the critical path).
+The game server's main thread doesn't run room simulation itself - `server-game/src/roomManager.js` spins up a dedicated `node:worker_threads` `Worker` **per room**, running `server-game/src/worker.js`. A spare worker is kept warm (spun up proactively, so creating a new room doesn't pay JS-startup latency on the critical path) - it even parses `map.babylon` while it waits, and the room takes that scene over. When the spare is taken, its replacement starts about 6 seconds later rather than straight away, so its startup doesn't compete with the join it was taken for; a room created inside that gap just makes its own worker, as if there were no spare.
 
 Each worker is a genuinely separate JS execution context - its own heap, its own module state, its own everything. Critically, `server-game/src/worker.js` **independently re-runs the entire boot sequence**: its own `misc.instantiateSS(...)` and its own `plugins.loadPlugins('game')`, completely separately from whatever happened in the main thread.
 

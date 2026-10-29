@@ -20,7 +20,7 @@ If you're running under [Perpetual](./perpetual.md) (the normal case via `npm ru
 
 Game and client servers only pick up services-side changes on their next `requestConfig` poll, or immediately if services reports a newer `startTime` (which triggers an automatic self-restart on their end - see [Architecture Overview](./architecture-overview.md#how-they-find-each-other)). If something seems stale:
 
-1. Confirm the change actually landed on services first (query the database directly, or via the [web SQL tool](./the-database.md#the-built-in-web-sql-tool)) - a "stale" symptom is sometimes actually "the write never happened."
+1. Confirm the change actually landed on services first (query the database directly, or via the [admin panel](./the-database.md#the-admin-panel)) - a "stale" symptom is sometimes actually "the write never happened."
 2. Restart the affected game/client server manually to force an immediate poll, rather than waiting for the next automatic one.
 3. If servers *never* seem to pick up services restarts automatically, check `ss.isPerpetual` is actually true for them - self-restart-on-newer-`startTime` only fires the `process.exit(1337)` that [Perpetual](./perpetual.md) then acts on; running the raw `node server-game/run-game.js` without `--perpetual` (bypassing Perpetual entirely) means that exit just kills the process with nothing to restart it.
 
@@ -30,7 +30,7 @@ Something else is already bound to that port - most often a previous instance th
 
 ## Rate limiting behaving unexpectedly in production
 
-See [Rate Limiting](./rate-limiting.md) and specifically [Deployment](./deployment.md#x-forwarded-for-matters-for-rate-limiting-and-can-be-spoofed-if-misconfigured) - almost always a reverse-proxy `X-Forwarded-For` configuration issue once you're past `localhost`.
+See [Rate Limiting](./rate-limiting.md) and specifically [Deployment](./deployment.md#forwarded-ip-headers-matter-for-rate-limiting-and-can-be-spoofed-if-misconfigured) - almost always a reverse-proxy forwarded-header (`CF-Connecting-IP`/`X-Forwarded-For`) configuration issue once you're past `localhost`.
 
 ---
 *This page was drafted with AI assistance and reviewed for accuracy. If something looks wrong, please [open a PR](https://github.com/onlypuppy7/LegacyShell) or flag it.*

@@ -153,6 +153,19 @@ This is the mechanism behind LegacyShell's most powerful plugin capability - ful
 It isn't scoped per-listener. If two plugins both listen to the same event and only one of them means to cancel the default, the other one's listener still runs against a `plugins.cancel` that's already `true` by the time it checks it (since listeners run sequentially and the flag is set as soon as any earlier listener sets it) - and any code checking `plugins.cancel` *after* your listener runs sees whatever the last listener left it as. Only set it when you specifically mean to suppress the default for that particular emit, and be aware that plugin load order (see [Lifecycle](./lifecycle.md)) determines which listener runs, and therefore which one's cancel decision "wins" if they disagree.
 :::
 
+### Newer hooks carry their own flag instead
+
+A few of the newer emit sites don't use `plugins.cancel` at all - they put a flag on the payload, which only that one emit's listeners can see, so nothing else can reset it in between:
+
+| Event | Flag | Effect |
+|---|---|---|
+| `game:scoreKillEggs` | `data.cancel = true` | Skip the default egg reward for this kill. |
+| `game:joinGameFound` | `data.skipFull = true` | Let this join into a room that's full. |
+| `game:beforeJoinRoom` | `data.handled = true` | The plugin has taken the socket over; core does nothing more with it. (It still honours `plugins.cancel` for rejecting a join.) |
+| `game:playerClicked` (browser) | `data.handled = true` | Replace the default player menu. Safe with async listeners. |
+
+`scoreKillEggs` is the clearest case for why: its default runs in a `.then()` after the emit, by which time another emit could already have reset `plugins.cancel`. If you're adding a new emit site to core whose default runs after an `await` or in a callback, this is the pattern to copy.
+
 ## `onConstructor` - a small convenience wrapper
 
 ```js

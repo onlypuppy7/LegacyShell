@@ -24,7 +24,7 @@ npm run client
 
 ## What you'll see
 
-The very first time any server starts, it loads every plugin in `plugins_default/` (about two dozen, bundled with LegacyShell) plus anything you've added to `plugins/`. **This first boot can take noticeably longer than later ones** - some bundled plugins declare their own npm dependencies (e.g. the `autoshopnotifications` plugin needs the `easy-table` package) which get installed automatically on first load if missing:
+The very first time any server starts, it loads every plugin in `plugins_default/` (over thirty, bundled with LegacyShell) plus anything you've added to `plugins/`. **This first boot can take noticeably longer than later ones** - some bundled plugins declare their own npm dependencies (e.g. the `autoshopnotifications` plugin needs the `easy-table` package) which get installed automatically on first load if missing:
 
 ```
 autoshopnotifications dependencies { 'easy-table': '^1.2.0' } true
@@ -47,7 +47,7 @@ Go to **[http://localhost:13370](http://localhost:13370)** in your browser (assu
 You'll land on the normal Shell Shockers-style menu:
 
 - A **Nickname** field (top of the play panel) - you can play as a guest without an account.
-- A gamemode dropdown (Free For All, Teams, Timed variants, and LegacyShell's own extra modes like Scale Shift, Lifesteal, Apocalypse, and Parkour).
+- A gamemode dropdown (Free For All, Teams, Timed variants, and LegacyShell's own extra modes like Scale Shift, Lifesteal, Apocalypse, Hiroshima, Parkour and Zombies).
 - **Create**/**Join** buttons for private games.
 - A **▶ PLAY** button to jump into a public match.
 - A **Login** button in the corner, which opens a combined login/register box with **Username** and **Password** fields and separate **Login**/**Register** buttons.

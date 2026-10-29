@@ -4,7 +4,7 @@
 >
 > **Canonical source:** `src/shell/guns.js` (the `fireX` hooks), `src/shell/bullets.js` (`Bullet.fire`)
 
-LegacyShell's four weapon classes (Eggk47, Dozen Gauge, CSG1, Cluck9mm) plus RPEGG are fixed at the engine level - there's no plugin hook for registering a genuinely new sixth weapon slot. What you *can* do, fully through the plugin API, is replace an **existing** weapon's fire behavior entirely. This recipe does that: making the CSG1 (Free Ranger) fire three pellets in a horizontal spread instead of one bullet.
+LegacyShell's classes (Soldier/Eggk47, Scrambler/Dozen Gauge, Ranger/CSG1, Eggsploder/RPEGG, plus the Cluck9mm secondary) aren't a closed set - `5_crackshot` adds a whole new class with its own weapon (the M24) by registering it into the shared class/item tables on `constantsFinished`, which is the place to look if that's what you want. It's a lot of moving parts, though. The much smaller job, fully through the plugin API, is replacing an **existing** weapon's fire behavior entirely. This recipe does that: making the CSG1 (Free Ranger) fire three pellets in a horizontal spread instead of one bullet.
 
 ## The hook
 
@@ -92,7 +92,7 @@ export class Plugin {
 
 ## What we validated, and what we couldn't
 
-We loaded this exact plugin against a real (isolated, scratch) instance: the **game server** loads it cleanly on both the main thread and inside a room worker (no errors, both `Bullet`/`BABYLON` imports resolve correctly server-side). The **client server**'s build pipeline also successfully locates and splices `shared.js` into the bundle at the `after` position with no insertion error. We could not get a fully built, minified, visually-verified bundle in our test environment - the client build's minification step failed with an unrelated pre-existing error (`Legacy octal literals are not allowed in strict mode`) that we confirmed also occurs with **zero** custom plugins installed, i.e. it's an environment/dependency issue in the stock codebase, not something this recipe caused. If you hit the same error in your own environment, it's worth investigating separately - it isn't specific to this plugin.
+We loaded this exact plugin against a real (isolated, scratch) instance: the **game server** loads it cleanly on both the main thread and inside a room worker (no errors, both `Bullet`/`BABYLON` imports resolve correctly server-side). The **client server**'s build pipeline also successfully locates and splices `shared.js` into the bundle at the `after` position with no insertion error. When this recipe was first written, the minification step of the client build failed in the test environment (`Legacy octal literals are not allowed in strict mode`, with zero custom plugins installed too). That no longer happens: a stock build on current main (October 2026, Node 22) minifies cleanly. If you still hit it, it isn't caused by this plugin.
 
 ## Common Issues
 

@@ -8,7 +8,7 @@ Giving a player eggs (LegacyShell's in-game currency) from a game-server plugin 
 
 ## The existing, real call this recipe mirrors
 
-`ClientConstructor.addEggsViaServices` (`server-game/src/client.js:682-692`) is what actually credits a player after a kill:
+`ClientConstructor.addEggsViaServices` (`server-game/src/client.js:703-713`) is what actually credits a player after a kill:
 
 ```js
 // server-game/src/client.js - real code
@@ -26,6 +26,10 @@ async addEggsViaServices(eggAmount) {
 ```
 
 `wsrequest` (`#wsrequest`, `src/shell/general/wsrequest.js`) opens a one-off authenticated WebSocket request to services and resolves with its JSON response - the same mechanism `requestConfig` polling uses (see [Architecture Overview](../../02-Running%20a%20Server/architecture-overview.md#how-they-find-each-other)), just for a single command instead of a poll loop. `services_server`/`auth_key` come straight from `game.yaml` (see [Adding Game Servers](../../02-Running%20a%20Server/adding-game-servers.md)) - the same credentials that authorize this game server to talk to services at all.
+
+## Changing what a kill pays
+
+If what you want is a different reward *for kills* rather than a separate reward, hook `game:scoreKillEggs` instead: it fires server-side just before a kill is paid, with `{ this: killer, killedPlayer, cancel }`. Set `data.cancel = true` (the payload's own flag - not `plugins.cancel`, which another emit can reset before the check runs) and the default `addKillViaServices` is skipped, leaving you to pay whatever you like with `addEggsViaServices`. `zombiesmode` does exactly this to pay a flat, capped amount per zombie.
 
 ## The plugin
 

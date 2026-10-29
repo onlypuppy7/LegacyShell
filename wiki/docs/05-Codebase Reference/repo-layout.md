@@ -18,7 +18,7 @@ A directory-by-directory map of the monorepo - what lives where, and why, before
 | `server-services/` | The services server role - see [Services Internals](./services-internals.md). |
 | `server-game/` | The game server role - see [Game Loop](./game-loop.md) and [Rooms and Workers](./rooms-and-workers.md). |
 | `server-client/` | The client server role, including the entire browser-facing static site and the build pipeline that assembles it - see [Build Pipeline](./build-pipeline.md). |
-| `plugins_default/` | First-party bundled plugins. |
+| `plugins_default/` | First-party bundled plugins. Several of the bigger ones (deadinternet, zombiesmode, legacyreplay, legacyachievements, legacyprofiles, legacyweather, discordplaytest) carry their own `test-*.js`/`bench-*.js` scripts - see each one's README. |
 | `plugins/` | User-installed/third-party plugins. |
 | `plugins_samples/` | Minimal example plugins referenced throughout the [Plugin Development](../04-Plugin%20Development/) docs. |
 | `wiki/` | This wiki - VuePress 2, source in `wiki/docs`/`wiki/wiki`/`wiki/plugins`, config in `wiki/.vuepress/`. |
@@ -46,6 +46,7 @@ A directory-by-directory map of the monorepo - what lives where, and why, before
 | `src/worker.js` | The script each room's dedicated worker thread actually runs. |
 | `src/rooms.js` | Room simulation itself - by far the largest single event surface in the codebase. Runs inside the worker thread. |
 | `src/client.js` | Per-connection player wrapper (`ClientConstructor`). |
+| `src/servicesLink.js` | A few connections to services kept open by the main thread, used to look a joining player up before their room needs them - see [Rooms and Workers](./rooms-and-workers.md#looking-players-up-before-the-room-needs-them). |
 
 ## Inside `server-client/`
 
@@ -53,9 +54,11 @@ A directory-by-directory map of the monorepo - what lives where, and why, before
 |---|---|
 | `run-client.js` / `start-client.js` | Entry point and the Express app / build orchestration. |
 | `src/prepare-modified.js` | The actual build step - splices `src/shell/*` into the browser bundle, minifies, injects plugin code. |
-| `src/stampsGenerator.js` | Composites the stamp spritesheet. |
+| `src/stampsGenerator.js` | Composites the stamp spritesheet (plus a lossless WebP copy). |
+| `src/gzipStatic.js` / `src/stampsWebp.js` | Compression for every static mount, and the WebP stamp sheet - see [Build Pipeline](./build-pipeline.md#compression-on-the-way-out). |
 | `src/client-static/` | Raw, hand-maintained browser assets - `src/shellshock.min.js` (the browser game source, despite the filename), `editor/` (the map editor), `libs/`, `sound/`, `app_nugget/`. |
 | `store/client-modified/` | Generated build output - not checked into git. |
+| `store/brotli-cache/` | Brotli-compressed copies of the served files, keyed by content hash - not checked into git. |
 
 ## A naming trap: `src/items/` doesn't exist
 

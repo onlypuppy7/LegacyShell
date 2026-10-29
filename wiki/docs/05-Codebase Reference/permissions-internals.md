@@ -41,7 +41,7 @@ parseCmd(player, category, name, opts) {
 ## Inside `Command.execute`
 
 1. **Input coercion** based on `inputType[0]`: `"string"` passes through unchanged; `"bool"` lowercases and checks for a `f`/`0` prefix to decide false vs. true; `"number"` runs `formatNumber(opts, inputType)` (clamping to the declared `[min, max, step]`).
-2. **`isCheat` gate**: if the command is cheat-tagged and the room's `gameOptions.cheatsEnabled` is falsy, execution is blocked regardless of rank, with feedback text pointing at `/room enableCheats true`.
+2. **`isCheat` gate**: if the command is cheat-tagged and the room's `gameOptions.cheatsEnabled` is falsy, execution is blocked, with feedback text pointing at `/room enableCheats true` - unless the player is otherwise permitted and has `ranksEnum.Admin` or above, in which case the server calls `room.enableCheats()`, tells the room (`Cheats have been enabled by ...`) and lets the command through (the client just lets it through and waits for the server).
 3. **Permission check** (`checkPermissions`) - see [Users and Ranks](../02-Running%20a%20Server/users-and-ranks.md#how-permission-checks-actually-work) for the tuple semantics.
 4. **Mention parsing** (`parseMentions`, only if permitted) - see below.
 5. **Dispatch to the matching half**: `isClient ? this.executeClient(...) : this.executeServer(...)` - see [Prediction and Authority](../04-Plugin%20Development/prediction-and-authority.md) for why both halves matter.

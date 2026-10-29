@@ -23,6 +23,8 @@ The generator matches image filenames to item names with a few tolerances, so yo
 
 On client server startup, every matched stamp image gets composited into one square spritesheet (`store/client-modified/img/stamps.png`), sized to fit all of them in a `ceil(sqrt(count))` grid. Each stamp's grid position gets written back into the in-memory item data (`x`/`y` fields) so the browser client knows which region of the shared spritesheet to sample for that stamp - this is why stamps don't each need their own texture load at runtime, just one shared image.
 
+A lossless WebP copy (`stamps.webp`) is written next to it, and browsers that accept WebP are sent that instead under the same `stamps.png` URL - a good deal smaller. The browser doesn't load the sheet during startup either: eggs start with a blank placeholder and the real sheet loads once startup is done, or straight away if a stamp is actually equipped.
+
 This regeneration is **skipped automatically** when nothing's changed - the generator hashes every matched input image plus the current output file, and only redoes the compositing work if that combined hash differs from last time. A large stamp collection doesn't slow down every single server restart, only ones where a stamp actually changed.
 
 A stamp whose artwork touches the edge of its image with non-transparent pixels automatically gets a 1px border added, to avoid visual bleeding between adjacent stamps in the packed spritesheet - you don't need to add this padding yourself.

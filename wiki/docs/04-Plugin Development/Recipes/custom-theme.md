@@ -136,7 +136,7 @@ None of that needs JavaScript - it's the base stylesheet's own custom properties
 The 3D scene's sky color and ambient light aren't DOM elements - CSS can't touch them directly. `legacythemes` reads these two variables back out with `getComputedStyle` after applying your stylesheet and feeds them into the Babylon.js scene itself:
 
 ```js
-// plugins_default/legacythemes/client.js:264-265 - real code
+// plugins_default/legacythemes/client.js:423-424 - real code
 Customizer.skyColor.set(...this.getCSSVariable('--customizer-skyColor'));
 Customizer.diffuseColor.set(...this.getCSSVariable('--customizer-diffuseColor'));
 ```
@@ -163,15 +163,19 @@ Any variable named `--replaceImgSrc-` followed by a DOM element's `id` swaps tha
 }
 ```
 
-This is resolved generically - `updateThingsFromCSS` (`legacythemes/client.js:263-281`) scans every custom property collected from all currently-applied stylesheets, and for any name matching the `--replaceImgSrc-` prefix, looks up `document.getElementById(identifier)` and sets `.src`. You aren't limited to the three images `whatsapptheme` replaces - any element with an `id` in the base game's markup is a valid target, as long as your variable name matches it exactly.
+This is resolved generically - `updateThingsFromCSS` (`legacythemes/client.js:422-443`) scans every custom property collected from all currently-applied stylesheets, and for any name matching the `--replaceImgSrc-` prefix, looks up `document.getElementById(identifier)` and sets `.src`. You aren't limited to the three images `whatsapptheme` replaces - any element with an `id` in the base game's markup is a valid target, as long as your variable name matches it exactly.
+
+## Sound packs work the same way
+
+`LegacyThemesPlugin.soundPacks` is the sound equivalent of `stylePacks`: push `{ name, identifier, description, sounds, images }`, where `sounds` maps a sound name to a replacement file (or an array of files, played at random), and serve the files from your own `client/` folder. Players stack them under Settings → Theming → Sound Packs the same way. `plugins_default/legacyshellcore/soundpacks.js` (Minecraft) and `timemachine`'s Classic Grenade Sounds are complete real examples - one plugin can register both a style pack and a sound pack.
 
 ## Stacking order, if you support being combined with other themes
 
 Players can apply more than one style pack at once via the reorderable "Current Applied Style Packs" list. `applyStylesFromList` reverses that list before appending each stylesheet to `<head>` in order:
 
 ```js
-// plugins_default/legacythemes/client.js:235 - real code
-list = list.slice().reverse();
+// plugins_default/legacythemes/client.js:342 - real code
+list = (list || []).slice().reverse(); //a fresh profile has no saved list yet
 ```
 
 Later `<head>` entries win the normal CSS cascade for any variable both stylesheets define - so the list's reversal means **the first item in the player's visible list has final say**, matching what a player would expect ("top of my list wins"). If your theme is meant to layer under others rather than override them, don't redefine variables you don't actually need to change - an unset variable simply falls through to whatever's beneath it.

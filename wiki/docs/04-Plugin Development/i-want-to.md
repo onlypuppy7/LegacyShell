@@ -24,6 +24,8 @@ Skip straight to `plugins_default/` (first-party plugins bundled with LegacyShel
 - **...reward consecutive kills with a temporary buff.** [Recipe: Killstreaks](./Recipes/killstreaks.md).
 - **...give a player in-game currency (eggs).** [Recipe: Rewarding Players with Currency](./Recipes/player-currency.md).
 - **...attach my own custom data to a player.** [Recipe: Custom Per-Player Data](./Recipes/custom-player-data.md).
+- **...add bot players, or use pathfinding in my own plugin.** The bundled [DeadInternet](../../plugins/Plugin%20Docs/Default/deadinternet/info.md) plugin - its bots and its A* `findPath` are both usable from other plugins; [ZombiesMode](../../plugins/Plugin%20Docs/Default/zombiesmode/info.md) is a whole gamemode built on them.
+- **...add an achievement.** [LegacyAchievements](../../plugins/Plugin%20Docs/Default/legacyachievements/info.md) - its definitions are one array in `definitions.js`.
 - **...fully replace something core code does by default, not just react to it.** [Events (concept) - `plugins.cancel`](./events-concept.md#plugins-cancel-opting-out-of-default-behavior), then [Recipe: Replacing Core Behaviour](./Recipes/replacing-core-behaviour.md).
 
 ## Adding content
@@ -37,6 +39,7 @@ Skip straight to `plugins_default/` (first-party plugins bundled with LegacyShel
 - **...add a new collidable map block, and actually understand how its collision gets generated.** [Map Blocks](../03-Content%20Creation/map-blocks.md) - covers the naming convention *and* exactly where each `colliderType`'s collision geometry comes from.
 - **...build or edit a map.** [Maps](../03-Content%20Creation/maps.md).
 - **...add sound effects or music.** [Sounds](../03-Content%20Creation/sounds.md) for the assets, [Sound and Apollo](./sound-and-apollo.md) for triggering them from code.
+- **...replace the game's sounds without overwriting its files (a sound pack).** [Sounds - Swapping sounds without touching the files](../03-Content%20Creation/sounds.md#swapping-sounds-without-touching-the-files), and [Recipe: Custom Theme](./Recipes/custom-theme.md#sound-packs-work-the-same-way).
 - **...add a seasonal/limited-time shop event.** [Seasonal Events](../03-Content%20Creation/seasonal-events.md).
 - **...ship models, items, and maps together as one plugin.** [Content Packs](./content-packs.md) - the pattern `legacyshellcore` itself uses.
 

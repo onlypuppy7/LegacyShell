@@ -42,6 +42,8 @@ Unlike the local `client.yaml` switch above, setting `distributed_all.closed` do
 
 Restart the affected server(s) after changing either flag - neither is picked up live.
 
+If you want the game down but the wiki still readable, there's a third option: the bundled [Wiki Only Mode](../../plugins/Plugin%20Docs/Default/wikionlymode/info.md) plugin swaps just the front page for a "currently unavailable" notice with a choice of reasons, and leaves `/wiki` and services alone.
+
 Next: [Deployment](./deployment.md).
 
 ---

@@ -41,7 +41,7 @@ Everything from here on assumes your terminal is inside this folder (the one con
 npm install
 ```
 
-This downloads everything LegacyShell needs (Express, SQLite, Babylon.js, VuePress for the wiki, etc.) into a `node_modules` folder. On a clean install this takes well under a minute and pulls in around 500 packages.
+This downloads everything LegacyShell needs (Express, SQLite, Babylon.js, VuePress for the wiki, etc.) into a `node_modules` folder. On a clean install this takes well under a minute and pulls in around 450 packages (433 on a clean Node 22 install in October 2026).
 
 You'll very likely see a wall of deprecation warnings and an `npm audit` summary reporting dozens of vulnerabilities - **this is normal and expected** for a project with this dependency tree; it's not a sign something went wrong. Don't run `npm audit fix --force` to "clean it up" - that can silently bump dependencies to incompatible major versions.
 
@@ -61,8 +61,8 @@ This is a required, one-time interactive step - every LegacyShell server refuses
 
 1. Create an empty `plugins/` folder (for your own third-party plugins).
 2. Copy every template config file from `src/defaultconfig/*.yaml` into a new `store/config/` folder.
-3. Ask two yes/no questions.
-4. Optionally set up a local SQLite database and register your machine as an authorized game server.
+3. Ask two yes/no questions about logging.
+4. Ask a third, and if you say yes, set up a local SQLite database and register your machine as an authorized game server.
 
 It looks like this (real output from a clean run):
 

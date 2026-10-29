@@ -23,6 +23,10 @@ async onStartServer(data) {
 
 That's the entire pattern - `data.app` is the live Express instance, `express.static(...)` is the same middleware any Express app uses to serve a folder verbatim. This exact snippet (usually pointed at a `client/` subfolder inside the plugin's own directory) is used throughout the first-party plugins in this codebase - `legacyshellcore`, `parkourmode`, `5_crackshot`, `timemachine`, `fancygraphics`, `whatsapptheme`, and the third-party `plugins/_mcblocks` all follow it.
 
+## Compression comes for free
+
+The client server hooks `express.static` itself before plugins load, so every mount made this way - yours included - serves its `.babylon`/`.json`/`.js`/`.css`/`.html`/`.svg` files compressed (gzip at first, brotli once the background pass has built it), with an ETag, in its own place in the mount order. Nothing to do on your side. The one exception: a mount made with an options object (`express.static(dir, { dotfiles: 'allow' })`, say) is left to `express.static` alone and isn't compressed, since those options are for it to enforce.
+
 ## Folder convention
 
 There's no requirement to name your assets folder `client/` - it's just the convention every existing plugin uses, chosen to make clear "this is what gets served to browsers" as distinct from server-only files sitting elsewhere in the same plugin folder (item definitions, maps, plugin logic). A typical layout:

@@ -2,7 +2,7 @@
 
 > **Audience:** Plugin authors adding or triggering sound effects · **Prereqs:** [Client-Side Code](./client-side-code.md)
 >
-> **Canonical source:** `server-client/src/client-static/src/apollon/Apollo.js` (imported client-side via `#apollo`), `plugins.emit("loadSounds", ...)` in `server-client/src/client-static/src/shellshock.min.js:3914`
+> **Canonical source:** `server-client/src/client-static/src/apollon/Apollo.js` (imported client-side via `#apollo`), `plugins.emit("loadSounds", ...)` in `server-client/src/client-static/src/shellshock.min.js:4430`
 
 **Apollo** is LegacyShell's own audio wrapper around [Howler.js](https://howlerjs.com), spliced into the browser bundle the same way `src/shell/*` modules are, despite physically living outside that folder. [Sounds](../03-Content%20Creation/sounds.md) covers the asset side - file formats, where files live, replacing an existing sound. This page covers the code side: how a plugin actually registers a new sound and plays it.
 
@@ -13,7 +13,7 @@ Every function below is a client-side global once Apollo has loaded into the bun
 The base game builds one big `soundsList` of `[src, name]` pairs and fires `loadSounds` before loading them, specifically so plugins can append to the same list:
 
 ```js
-// shellshock.min.js:3914 - real code
+// shellshock.min.js:4430 - real code
 await plugins.emit("loadSounds", { soundsList });
 // ...
 loadSoundsFromList(soundsList, onComplete);
@@ -22,7 +22,7 @@ loadSoundsFromList(soundsList, onComplete);
 A plugin hooks it and pushes its own entries - this is the exact code `5_crackshot` uses to add its M24 sounds:
 
 ```js
-// plugins_default/5_crackshot/shared.js:113-123 - real code
+// plugins_default/5_crackshot/shared.js:112-122 - real code
 loadSounds(data) {
     const additionalSounds = [
         ["sound/m24/boltClose.mp3", "m24.boltClose"],
@@ -35,6 +35,12 @@ loadSounds(data) {
 ```
 
 `loadSounds` only ever fires client-side (it's emitted from the browser bundle itself, never from server code), so there's no need to guard this listener with `isClient` - it simply never fires on a game server.
+
+An entry can carry a third element, an options object handed to Howler. `{ preload: false }` skips downloading the sound until it's first played, so a big, rarely-played file (music, a long loop) doesn't hold up loading - Apollo registers it straight away and Howler queues the first play until the file arrives. Add `html5: true` to stream it rather than decode the whole thing up front. `parkourmode` marks its (big, and currently never played) `gerudo` track this way:
+
+```js
+["sound/parkour/gerudo.mp3", "parkour.gerudo", { preload: false, html5: true }],
+```
 
 Sound paths are resolved the same way the base game's own sounds are - relative to `server-client/src/client-static/sound/` if you're shipping through core, or your plugin's own served static directory if you're serving the file yourself (see [Static Assets](./static-assets.md)). Apollo automatically retries a failed `.mp3` load as `.ogg` at the same path - see [Sounds - Format and fallback](../03-Content%20Creation/sounds.md#format-and-fallback).
 
@@ -51,7 +57,7 @@ Which function you want depends on whether the sound has a position, and whether
 `playSoundIndependent` is what grenade/rocket explosions use:
 
 ```js
-// src/shell/bullets.js:284 - real code
+// src/shell/bullets.js:285 - real code
 var pos = new BABYLON.Vector3(this.x, this.y, this.z);
 playSoundIndependent(this.actor.explodeSound, {pos});
 ```
@@ -72,7 +78,7 @@ An `Emitter` subscribes to its parent's `onBeforeRenderObservable` and repositio
 Useful for anything that shouldn't sound identical every time - footsteps, death screams, ambient thunder. Load a cue once, then treat its name exactly like a normal sound everywhere else (`playSoundIndependent`, `Emitter.play`, etc.) - Apollo resolves it to one of its sounds at play time:
 
 ```js
-// shellshock.min.js:3924-3938 - real code, the base game's own death-scream cue
+// shellshock.min.js:4441-4446 - real code, the base game's own death-scream cue
 let deathsSrcs = [];
 for (var i = 1; i < 11; i++) {
     deathsSrcs.push("sound/death/scream" + i + ".mp3");
@@ -84,6 +90,8 @@ playSoundIndependent("death.scream", { pos });
 ```
 
 The default `selectSound` picks uniformly at random. Override it on the `Cue` instance for non-random selection (e.g. cycling in order, weighting toward a rarer variant).
+
+If LegacyThemes is installed it wraps `loadCue` (and the `loadSounds` list) so that sound packs can swap any sound or cue for their own files - see [Sounds](../03-Content%20Creation/sounds.md#swapping-sounds-without-touching-the-files). A plugin's own sound names can be replaced by a pack the same way the base game's can.
 
 ## Global controls
 

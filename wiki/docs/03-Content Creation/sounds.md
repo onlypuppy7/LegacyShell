@@ -14,11 +14,17 @@ LegacyShell replaced the original game's audio with its own Howler.js-based wrap
 
 Apollo loads sounds by filename + logical name, and if an `.mp3` fails to load, automatically retries the same path with the extension swapped to `.ogg` - shipping both formats side by side is the existing convention (`ammo.mp3` and `ammo.ogg` both present) for broader browser codec compatibility, though `.mp3` alone works in effectively every modern browser today.
 
+A sound that's big and rarely played (background music, a long ambient loop) can be marked to load only when it's first played, so it doesn't hold up the loading screen - see `preload: false` in [Sound and Apollo](../04-Plugin%20Development/sound-and-apollo.md#registering-a-new-sound-file).
+
 If a sound fails to load entirely (neither format works, or the file is missing), Apollo plays a built-in fallback tone (`fallBack.mp3`/`fallBack.ogg`) instead of silently failing - so a broken sound reference is usually audible as "the same fallback sound plays for everything," not silence, which is a useful signal when something's misconfigured.
 
 ## Replacing an existing sound
 
 Overwrite the file in place, keeping the same filename and format(s) - the game references sounds by their existing path/name, so no code or config change is needed to swap the audio content itself.
+
+## Swapping sounds without touching the files
+
+With the LegacyThemes plugin (bundled), a plugin can ship a **sound pack**: a set of replacement files for any sound names it likes, which players pick and stack under Settings → Theming → Sound Packs, without anything in `sound/` being overwritten. A name can map to a list of files, and one of them is picked at random each time it plays. `legacyshellcore`'s Minecraft pack and `timemachine`'s Classic Grenade Sounds are real examples - see [LegacyThemes' page](../../plugins/Plugin%20Docs/Default/legacythemes/info.md).
 
 ## Adding a new sound
 

@@ -126,6 +126,9 @@ async updateLoop (delta) {
             player.incrementStatesUsed();
         });
 
+        this.contactDamageUpdate(currentTimeStamp);   // touch damage, see below
+        plugins.emit('roomStateUpdate', {this: this, delta, currentTimeStamp});
+
         this.serverStateIdx = Math.mod(this.serverStateIdx + 1, stateBufferSize);
         if (this.serverStateIdx % FramesBetweenSyncs === 0) {
             await this.sync();          // ~10Hz (FramesBetweenSyncs = ceil(60/10) = 6), full-state push
@@ -140,9 +143,17 @@ Three things worth pulling out:
 2. **Human players branch three ways**, not two: a bot always just simulates; a human player with buffered real input pending (`stateIdx !== syncStateIdx`) *replays* that input tick by tick (the authoritative reconciliation path); a human player with no new input yet runs `predictUpdate` (extrapolating forward) instead of stalling. This is the concrete mechanism behind the client-prediction pattern described throughout [Plugin Development](../04-Plugin%20Development/prediction-and-authority.md) - the server is doing its own version of "predict, then correct when real data arrives," not just trusting whatever the client last reported.
 3. **Full-state sync happens every `FramesBetweenSyncs` ticks** (6, at the default 60Hz/10Hz ratio), gated by a modulo check on `serverStateIdx` - not its own separate timer, but derived from the same counter the state ring buffer uses.
 
+4. **Contact damage runs once per tick, after everyone has moved.** `contactDamageUpdate` checks every player with a `contactDamage` modifier against every enemy in play: if their hitboxes (0.5 wide, 0.6 tall per unit of `scale`) are within `gameOptions.contactReach` of touching, the victim takes that much damage, at most once per `gameOptions.contactCooldown` ms per victim. It's what zombiesmode's bite is built on - see [Modifiers](../04-Plugin%20Development/modifiers.md).
+
+## Connection timeouts
+
+The room's own meta check drops a client that hasn't been heard from (pings included) for **15 seconds** - or **45 seconds** while it's still loading (before `clientReady`), since a browser tab in the background can stall its map build - and one that's been idle (no input) for 5 minutes.
+
 ## The state ring buffer
 
 `stateBufferSize = 256` (see `src/shell/constants.js`) - at `TickStep` (~16.67ms) per entry, that's roughly **4.3 seconds** of buffered per-player state history, used for the replay/reconciliation described above. This lives on the `Player` object itself (`player.js`), shared by the exact same class running client-side (for local prediction) and server-side (for authoritative replay) - see [Shared Shell Layer](./shared-shell-layer.md).
+
+Each entry stores position and velocity plus the jump state (`jumps`, `isFalling`, `jumpHeld`), so a correction can restore it. When a sync arrives, the browser puts its player back at the server's position as of the tick *before* the synced `stateIdx` and re-runs its own buffered inputs up to the tick before its current one (the one at `stateIdx` hasn't run yet), and a correction is spread over the next `FramesBetweenSyncs` ticks rather than a hardcoded 6.
 
 ---
 *This page was drafted with AI assistance and reviewed for accuracy. If something looks wrong, please [open a PR](https://github.com/onlypuppy7/LegacyShell) or flag it.*

@@ -9,7 +9,7 @@ A condensed, skimmable list of the sharpest edges in the plugin API - things tha
 ## `plugins.cancel` is one flag, not scoped per-listener
 
 If two plugins listen to the same event and only one means to suppress the default behavior, the other still sees whatever `plugins.cancel` was last set to by the time it runs - there's no per-listener isolation. Only set it when you specifically mean to override the default for that emit, and know that plugin load order (alphabetical by `PluginMeta.identifier`) decides which listener's decision "wins" if two disagree.
-→ [Events (concept)](./events-concept.md#plugins-cancel-opting-out-of-default-behavior)
+→ [Events (concept)](./events-concept.md#plugins-cancel-opting-out-of-default-behavior) - and some newer hooks use their own flag on the payload instead (`data.cancel` on `scoreKillEggs`, `handled`, `skipFull`); setting `plugins.cancel` there does nothing.
 
 ## Not every event name that sounds like it should exist, does
 
