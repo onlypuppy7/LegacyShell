@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Moving block lighting test</title>
+<style>
+body { margin: 0; font: 16px Arial, sans-serif; color: #4b2b18; background: #fff3ef; }
+main { max-width: 1100px; margin: auto; padding: 16px; } h1 { font-size: 24px; }
+canvas { display: block; width: 100%; height: 380px; background: #8392a0; }
+button, select { padding: 8px 12px; margin: 8px 6px 8px 0; color: inherit; background: white; border: 1px solid #83634b; border-radius: 4px; }
+table { border-collapse: collapse; width: 100%; } th, td { text-align: left; padding: 8px; border-bottom: 1px solid #d6bca7; }
+small { display: block; line-height: 1.5; } pre { white-space: pre-wrap; }
+</style></head><body><main>
+<h1>Moving block lighting test</h1>
+<p>Imported crates, benches and disks move between open and covered areas. Uses the plugin's rendering and lighting code.</p>
+<canvas id="view"></canvas>
+<label>Lighting <select id="mode"><option value="original">Original</option><option value="surface">Surface only</option><option value="environment">Surface + environment</option></select></label>
+<label>Moving blocks <select id="count"><option>1</option><option>8</option><option selected>32</option></select></label>
+<button id="run" disabled>Run comparison</button><button id="save" disabled>Save results</button><button id="pause">Pause preview</button>
+<p id="status" role="status">Loading models...</p>
+<table><thead><tr><th>Mode</th><th>Blocks</th><th>Render mean</th><th>Render p95</th><th>Frame p95</th></tr></thead><tbody id="results"></tbody></table>
+<small>Each mode warms up before measurement. Render times include GPU completion using gl.finish(), which serialises work; they are comparisons, not a prediction of normal game FPS. Frame times include browser scheduling. No network or physics simulation is measured.</small>
+<pre id="details"></pre>
+</main><script src="/dynamicmapblocks/lighting-profile/babylon.js"></script><script src="/dynamicmapblocks/lighting-profile.js"></script></body></html>

@@ -1,0 +1,51 @@
+#dmb-open { position: absolute; left: 1em; top: 8.8em; }
+#dmb-open[aria-pressed="true"] { background: #232323; }
+#dmb-panel { top: 10em; right: 1em; width: min(24em, calc(100vw - 5em)); max-height: calc(100vh - 19em); display: flex; flex-direction: column; gap: .6em; z-index: 12; box-sizing: border-box; }
+#dmb-panel * { box-sizing: border-box; font-size: inherit; line-height: 1.2em; }
+.dmb-editing #edDebugInfo, .dmb-editing #toolNormal img { display: none !important; }
+#dmb-panel [hidden], #dmb-panel[hidden] { display: none !important; }
+#dmb-panel header, #dmb-panel footer, #dmb-panel .dmb-actions { display: flex; align-items: center; flex-wrap: wrap; gap: .35em; }
+#dmb-panel header { justify-content: space-between; position: relative; padding-bottom: .5em; border-bottom: 1px solid #0003; }
+#dmb-panel .dmb-corner { display: flex; align-items: center; gap: .3em; }
+#dmb-panel .dmb-more > summary { list-style: none; padding: .25em .5em; background: #666; color: #fff; border-radius: .3em; cursor: pointer; user-select: none; transition: background-color .15s; }
+#dmb-panel .dmb-more > summary::-webkit-details-marker { display: none; }
+#dmb-panel .dmb-more > summary:hover, #dmb-panel .dmb-more[open] > summary { background: #232323; }
+#dmb-panel .dmb-more.dmb-active > summary { box-shadow: inset 0 -3px #ffb133; }
+#dmb-panel .dmb-menu { position: absolute; right: 0; top: 100%; margin-top: .3em; z-index: 2; display: grid; gap: .5em; width: 15em; padding: .6em; background: #f1efec; border: 1px solid #0004; border-radius: .3em; box-shadow: 0 .2em .6em #0005; }
+#dmb-panel .dmb-menu .dmb-help { border-top: 1px solid #0002; padding-top: .5em; }
+#dmb-panel .dmb-rules th, #dmb-panel .dmb-rules td { text-align: center; }
+#dmb-panel .dmb-rules th:first-child { text-align: left; width: 45%; }
+#dmb-panel .dmb-rules th:last-child { width: auto; }
+#dmb-panel .dmb-rules thead th { font-size: .85em; }
+#dmb-panel .dmb-rules input[type="checkbox"]:disabled { opacity: .35; }
+#dmb-panel .dmb-rules tbody th { font-size: .9em; font-weight: normal; }
+#dmb-panel h1 { font-size: 1.3em; font-weight: bold; margin: 0; }
+#dmb-panel p { margin: 0; }
+#dmb-panel #dmb-selection { overflow-wrap: anywhere; color: #333; font-size: .9em; }
+#dmb-panel button { padding: .25em .5em; background: #666; color: #fff; border: 0; border-radius: .3em; cursor: pointer; transition: background-color .15s; }
+#dmb-panel button:hover { background: #232323; }
+#dmb-panel button:active, #dmb-panel #dmb-apply { background: #333; }
+#dmb-panel #dmb-apply:hover { background: #000; }
+#dmb-panel :disabled { opacity: .4; cursor: default; }
+#dmb-panel input, #dmb-panel select { width: 100%; min-width: 0; height: 1.65em; padding: .1em .25em; opacity: 1; background: #fff; color: #000; border: 1px solid #888; border-radius: 0; }
+#dmb-panel form { display: flex; flex-direction: column; min-height: 0; min-width: 0; margin: 0; }
+#dmb-panel fieldset { min-height: 0; min-width: 0; margin: 0; padding: 0; border: 0; }
+#dmb-panel .dmb-controls { min-height: 0; overflow: auto; padding-right: .3em; scrollbar-width: thin; }
+#dmb-panel label { display: grid; gap: .2em; margin: .55em 0; min-width: 0; }
+#dmb-panel .dmb-grid, #dmb-panel .dmb-vector { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .6em; }
+#dmb-panel .dmb-vector { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+#dmb-panel table { width: 100%; table-layout: fixed; border-spacing: .2em; margin: .4em 0; }
+#dmb-panel th { font-size: .9em; font-weight: bold; }
+#dmb-panel th:last-child { width: 1.8em; }
+#dmb-panel td { padding: 0; }
+#dmb-panel td button { width: 100%; padding: .2em; }
+#dmb-panel :focus-visible { outline: 2px solid #532a19; outline-offset: 2px; }
+#dmb-panel footer { flex-shrink: 0; margin-top: .65em; padding-top: .6em; border-top: 1px solid #0003; }
+#dmb-panel #dmb-status, #dmb-panel .dmb-help, #dmb-panel #dmb-path > p, #dmb-panel #dmb-pivot-vector > p, #dmb-panel small { font-size: .85em; color: #444; }
+#dmb-panel .dmb-help { border-top: 1px solid #0002; padding-top: .5em; }
+#dmb-panel .dmb-check { display: flex; align-items: center; gap: .35em; margin: 0; }
+#dmb-panel input[type="checkbox"] { width: 1em; height: 1em; margin: 0; padding: 0; accent-color: #555; }
+#dmb-panel #dmb-warning { font-size: .85em; padding: .4em .5em; background: #fff1ce; color: #654516; border-left: 2px solid #c19443; }
+@media (max-width: 900px) { #dmb-panel { width: min(24em, 46vw); padding: .75em; } }
+@media (max-height: 540px) { #dmb-panel { top: 7em; max-height: calc(100vh - 12em); gap: .4em; } }
+@media (max-width: 600px) { #dmb-panel { width: 70vw; } }
