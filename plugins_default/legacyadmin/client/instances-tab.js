@@ -1,7 +1,7 @@
 // Instances tab (was "Files"): pick which game/client instance the panel is managing, see its
 // live perf, restart it - and edit its config files. With no instance selected everything targets
 // this services instance. Routed commands (file edit, restart, perf) go to the selection.
-import { AdminApp, registerTab, $, setStatus, serverLabel } from './app.js';
+import { AdminApp, registerTab, $, esc, setStatus, serverLabel } from './app.js';
 
 let currentFile = null;
 let perfTimer = null;
@@ -108,7 +108,7 @@ function populateSelect(container) {
     const sel = container.querySelector('#inst-select');
     if (!sel) return;
     sel.innerHTML = '<option value="">This services instance</option>' +
-        AdminApp.servers.map(s => `<option value="${s.id}">${serverLabel(s)}</option>`).join('');
+        AdminApp.servers.map(s => `<option value="${esc(s.id)}">${esc(serverLabel(s))}</option>`).join('');
     sel.value = AdminApp.targetId || '';
 };
 

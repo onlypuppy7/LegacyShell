@@ -6,7 +6,7 @@
 //   - open a throwaway tab logged in as them -> adminImpersonate + client/impersonate-inject.js
 // plus a per-account ban / mute panel that reuses the same adminAddModeration/RemoveModeration/
 // ListModeration commands the Moderation tab uses (target_type 'account_id').
-import { AdminApp, registerTab, $, setQueryParam } from './app.js';
+import { AdminApp, registerTab, $, esc, setQueryParam } from './app.js';
 import { createItemPicker } from './tilePicker.js';
 
 let allItems = [];
@@ -21,7 +21,6 @@ const dangerBtn = 'text-xs px-3 py-1.5 rounded-md font-medium border border-rose
 const inputClass = 'border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-md px-3 py-1.5 text-sm';
 const labelClass = 'text-xs font-medium text-slate-500 dark:text-slate-400 block mb-0.5';
 
-const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const isAdminTier = () => AdminApp.adminRoles >= 20 || !!$('sqlPassword')?.value;
 
 async function sha256Hex(str) {

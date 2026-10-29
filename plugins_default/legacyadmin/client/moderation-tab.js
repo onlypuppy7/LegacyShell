@@ -1,12 +1,11 @@
 // Global ban/mute list management (services/moderation.js). Per-room kick lives in the Rooms tab
 // instead, since it needs a live room/player to target - this tab is for the persistent,
 // cross-room list. Moderator+ session or SQL password both work here.
-import { AdminApp, registerTab, $ } from './app.js';
+import { AdminApp, registerTab, $, esc } from './app.js';
 
 const inputClass = 'border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 rounded-md px-3 py-1.5 text-sm';
 
 // target_value / reason are operator-supplied free text - escape before they hit innerHTML.
-const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 function render(container) {
     container.innerHTML = `

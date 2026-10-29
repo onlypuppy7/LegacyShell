@@ -1,8 +1,7 @@
 // Storage tab: DB size, per-table row/byte breakdown, backups summary, services store/ tree size.
 // Read-only (adminGetStorage is Moderator+).
-import { AdminApp, registerTab, $ } from './app.js';
+import { AdminApp, registerTab, $, esc } from './app.js';
 
-const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 function fmtBytes(n) {
     if (n == null) return '-';
     if (n < 1024) return n + ' B';

@@ -1,14 +1,10 @@
 // Read-only view of the security audit trail (services/auditLog.js -> its own
 // LegacyShellAdminLog.db). Admin (rank 20) or SQL password only - NOT visible to plain
 // Moderators, since the log records moderator actions. Newest first, with a cursor to page back.
-import { AdminApp, registerTab, $ } from './app.js';
+import { AdminApp, registerTab, $, esc } from './app.js';
 
 let oldestShownAt = null;
 let rows = [];
-
-function esc(s) {
-    return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-};
 
 const resultClass = (r) => r === 'ok'
     ? 'text-emerald-600 dark:text-emerald-400'

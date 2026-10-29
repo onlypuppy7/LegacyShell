@@ -2,7 +2,7 @@
 // (codes.key auto-generates via the table's own DEFAULT expression, so there's no separate
 // generator to write), with the shared item-tile picker instead of typing raw IDs. Still
 // services-local, still goes through sqlRequest, so it needs the SQL password same as the SQL tab.
-import { AdminApp, registerTab, $, setStatus } from './app.js';
+import { AdminApp, registerTab, $, esc, setStatus } from './app.js';
 import { createItemPicker } from './tilePicker.js';
 
 let allItems = [];
@@ -87,8 +87,8 @@ function renderCodeList(list) {
         item.className = 'flex items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-700 py-1';
         item.innerHTML = `
             <div class="min-w-0">
-                <div class="font-mono text-xs truncate">${row.key}</div>
-                <div class="text-[11px] text-slate-400 dark:text-slate-500">${row.eggs_given} eggs · ${row.uses} use(s) left</div>
+                <div class="font-mono text-xs truncate">${esc(row.key)}</div>
+                <div class="text-[11px] text-slate-400 dark:text-slate-500">${esc(row.eggs_given)} eggs · ${esc(row.uses)} use(s) left</div>
             </div>
             <div class="flex gap-1 shrink-0">
                 <button data-action="copy" class="${plainBtn}">Copy code</button>

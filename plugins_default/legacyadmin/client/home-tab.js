@@ -1,8 +1,7 @@
 // Dashboard - the default view, reached by the "LegacyAdmin" nav button (#home), hidden from the
 // tab bar. Fans out a batch of read commands on open and fills cards as answers arrive.
-import { AdminApp, registerTab, $ } from './app.js';
+import { AdminApp, registerTab, $, esc } from './app.js';
 
-const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 function fmtBytes(n) {
     if (n == null) return '-';
     if (n < 1024) return n + ' B';

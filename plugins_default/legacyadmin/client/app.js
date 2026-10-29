@@ -3,6 +3,8 @@
 // register for the response keys it cares about without app.js needing to know their shapes.
 
 const $ = (id) => document.getElementById(id);
+// escapes text for the innerHTML templates, every tab uses this one
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 // Commands that get wrapped in adminRouteToServer when a target instance is selected. Everything
 // else (login, SQL, catalog, codes, moderation CRUD, servicesInfo) is inherently services-local and
@@ -250,7 +252,7 @@ export function setQueryParam(key, value) {
     history.replaceState(null, '', `${location.pathname}?${params.toString()}${location.hash}`);
 };
 
-export { $, setStatus };
+export { $, setStatus, esc };
 
 // --- Boot ---------------------------------------------------------------------------------------
 document.addEventListener('DOMContentLoaded', async () => {

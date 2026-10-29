@@ -3,7 +3,7 @@
 // lazily only when this mode is opened) as a second mode. Both modes hit the exact same
 // `sqlRequest` command on services - the table editor is just a different UI generating
 // getAll/runQuery calls instead of hand-written SQL. Always services-local (never routed).
-import { AdminApp, registerTab, $, setQueryParam } from './app.js';
+import { AdminApp, registerTab, $, esc, setQueryParam } from './app.js';
 
 const templates = [
     { name: "[users] Get All Users", code: "SELECT * FROM users;" },
@@ -180,7 +180,7 @@ AdminApp.on('result', async (result) => {
     if (!grid || !Array.isArray(result) || !currentTable) return;
 
     try { await ensureTabulator(); }
-    catch (e) { grid.innerHTML = `<div class="p-4 text-rose-600 text-sm">${String(e?.message || e).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}</div>`; return; };
+    catch (e) { grid.innerHTML = `<div class="p-4 text-rose-600 text-sm">${esc(e?.message || e)}</div>`; return; };
     const pk = EDITABLE_TABLES[currentTable];
     if (result.length === 0) { grid.innerHTML = '<div class="p-4 text-slate-400 dark:text-slate-500 text-sm">No rows.</div>'; tabulatorInstance = null; return; };
 
@@ -196,7 +196,7 @@ AdminApp.on('result', async (result) => {
             const v = cell.getValue();
             const text = v && typeof v === 'object' ? JSON.stringify(v) : String(v ?? '');
             cell.getElement().title = text;
-            return `<span class="block truncate">${text.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}</span>`;
+            return `<span class="block truncate">${esc(text)}</span>`;
         },
     }));
     columns.push({
@@ -234,7 +234,6 @@ function fmtBytes(n) {
     do { n /= 1024; i++; } while (n >= 1024 && i < u.length - 1);
     return n.toFixed(1) + ' ' + u[i];
 };
-const escB = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 function renderBackups(body) {
     body.innerHTML = `
@@ -261,18 +260,18 @@ function renderBackupList(payload) {
     if (!list) return;
     const entries = payload.entries || [];
     const info = document.getElementById('bk-info');
-    if (info) info.textContent = `${entries.length} backup(s)${payload.keep != null ? ` · auto-keep ${payload.keep}` : ''} · ${escB(payload.dir || '')}`;
+    if (info) info.textContent = `${entries.length} backup(s)${payload.keep != null ? ` · auto-keep ${payload.keep}` : ''} · ${esc(payload.dir || '')}`;
     if (!entries.length) { list.innerHTML = '<div class="p-4 text-sm text-slate-400 dark:text-slate-500">No backups.</div>'; return; };
     list.innerHTML = `<table class="w-full">
         <thead class="bg-slate-50 dark:bg-slate-900/40 text-slate-500 dark:text-slate-400 text-xs"><tr>
             <th class="text-left p-2">File</th><th class="text-right p-2">Size</th><th class="text-left p-2">Created</th><th class="p-2"></th></tr></thead>
         <tbody>${entries.map(e => `<tr class="border-t border-slate-100 dark:border-slate-700">
-            <td class="p-2 font-mono text-xs break-all">${escB(e.name)}</td>
+            <td class="p-2 font-mono text-xs break-all">${esc(e.name)}</td>
             <td class="p-2 text-right">${fmtBytes(e.bytes)}</td>
             <td class="p-2 text-xs text-slate-400 dark:text-slate-500">${new Date(e.mtime * 1000).toLocaleString()}</td>
             <td class="p-2 whitespace-nowrap text-right">
-                <button data-restore="${escB(e.name)}" class="text-xs text-amber-600 hover:underline mr-2">Restore</button>
-                <button data-del="${escB(e.name)}" class="text-xs text-rose-600 hover:underline">Delete</button>
+                <button data-restore="${esc(e.name)}" class="text-xs text-amber-600 hover:underline mr-2">Restore</button>
+                <button data-del="${esc(e.name)}" class="text-xs text-rose-600 hover:underline">Delete</button>
             </td></tr>`).join('')}</tbody>
     </table>`;
     list.querySelectorAll('[data-del]').forEach(b => b.onclick = () => {

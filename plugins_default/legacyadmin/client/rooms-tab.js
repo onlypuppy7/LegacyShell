@@ -2,7 +2,7 @@
 // pipeline (adminGetServicesInfo just reads what game servers already push there periodically -
 // see services/roomOverview.js). Drilling into one room's live player list / chat / kick action
 // routes directly to that specific game instance instead (see game/roomBridge.js).
-import { AdminApp, registerTab, $, setQueryParam } from './app.js';
+import { AdminApp, registerTab, $, esc, setQueryParam } from './app.js';
 
 let lastGameInfo = {};
 let drilldownGameId = null;
@@ -53,7 +53,7 @@ function renderOverview() {
         const heading = entry?.name ? `${entry.name} · game #${index}` : `Game server #${index}`;
         const section = document.createElement('section');
         section.className = 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden';
-        section.innerHTML = `<div class="bg-slate-50 dark:bg-slate-900/40 px-3 py-2 text-sm font-semibold">${escapeHtml(heading)}</div>`;
+        section.innerHTML = `<div class="bg-slate-50 dark:bg-slate-900/40 px-3 py-2 text-sm font-semibold">${esc(heading)}</div>`;
         if (rooms.length === 0) {
             section.innerHTML += '<div class="p-3 text-sm text-slate-400 dark:text-slate-500">No open rooms.</div>';
         } else {
@@ -65,8 +65,8 @@ function renderOverview() {
                 const tr = document.createElement('tr');
                 tr.className = 'border-t border-slate-100 dark:border-slate-700';
                 const btn = routeId ? `<button class="text-xs text-indigo-600 hover:underline">Manage</button>` : '';
-                const names = (room.playerNames || []).filter(Boolean).map(escapeHtml).join(', ');
-                tr.innerHTML = `<td class="p-2 font-mono">${escapeHtml(room.gameId)}</td><td class="p-2">${escapeHtml(room.mapId)}</td><td class="p-2">${escapeHtml(room.gameType)}</td><td class="p-2">${escapeHtml(room.playerCount)}/${escapeHtml(room.playerLimit)}</td><td class="p-2 truncate max-w-xs">${names}</td><td class="p-2">${btn}</td>`;
+                const names = (room.playerNames || []).filter(Boolean).map(esc).join(', ');
+                tr.innerHTML = `<td class="p-2 font-mono">${esc(room.gameId)}</td><td class="p-2">${esc(room.mapId)}</td><td class="p-2">${esc(room.gameType)}</td><td class="p-2">${esc(room.playerCount)}/${esc(room.playerLimit)}</td><td class="p-2 truncate max-w-xs">${names}</td><td class="p-2">${btn}</td>`;
                 const manageBtn = tr.querySelector('button');
                 if (manageBtn) manageBtn.onclick = () => {
                     AdminApp.setTarget(routeId);
@@ -87,7 +87,7 @@ function loadDrilldown(gameId, container) {
     const drilldown = container.querySelector('#rooms-drilldown');
     if (!drilldown) return;
     drilldown.innerHTML = `<div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4">
-        <h3 class="text-sm font-semibold mb-2">Room ${escapeHtml(gameId)}</h3>
+        <h3 class="text-sm font-semibold mb-2">Room ${esc(gameId)}</h3>
         <div id="room-players">Loading...</div>
         <div id="room-chat"></div>
     </div>`;
@@ -110,7 +110,7 @@ AdminApp.on('adminListRooms', (result) => {
         const playerId = room.playerIds?.[i];
         const tr = document.createElement('tr');
         tr.className = 'border-t border-slate-100 dark:border-slate-700';
-        tr.innerHTML = `<td class="p-1">${escapeHtml(name)}</td><td class="p-1"><button class="text-xs text-rose-600">Kick</button></td>`;
+        tr.innerHTML = `<td class="p-1">${esc(name)}</td><td class="p-1"><button class="text-xs text-rose-600">Kick</button></td>`;
         tr.querySelector('button').onclick = () => {
             if (!confirm(`Kick ${name}?`)) return;
             AdminApp.send('adminKickPlayer', { gameId: drilldownGameId, playerId, reason: 'Kicked via admin panel' });
@@ -128,13 +128,9 @@ AdminApp.on('adminGetRoomChat', (result) => {
     const messages = result.messages || [];
     chatEl.innerHTML = '<h4 class="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Recent chat</h4>' + (messages.length
         ? '<div class="max-h-48 overflow-auto font-mono text-xs bg-slate-50 dark:bg-slate-900/40 rounded-md p-2 space-y-0.5">' +
-            messages.map(m => `<div>[${new Date(m.at).toLocaleTimeString()}] <span class="font-semibold">${escapeHtml(m.senderName)}:</span> ${escapeHtml(m.text)}</div>`).join('') +
+            messages.map(m => `<div>[${new Date(m.at).toLocaleTimeString()}] <span class="font-semibold">${esc(m.senderName)}:</span> ${esc(m.text)}</div>`).join('') +
           '</div>'
         : '<div class="text-sm text-slate-400 dark:text-slate-500">No chat captured yet.</div>');
 });
-
-function escapeHtml(s) {
-    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-};
 
 registerTab({ id: 'rooms', label: 'Rooms', render, moderatorOnly: true });
