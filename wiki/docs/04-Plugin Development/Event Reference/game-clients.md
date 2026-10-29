@@ -4,7 +4,7 @@
 
 > **Audience:** Plugin authors and AI agents · **Prereqs:** [Events (concept)](../events-concept.md)
 
-Every `plugins.emit(...)` call site found in the files below, extracted directly from source - not hand-maintained. Unprefixed at the call site; `PluginManager.emit` adds `game:` before checking for listeners, so e.g. the first row below actually fires as `game:clientStartUp`.
+Every `plugins.emit(...)` and `plugins.emitSync(...)` call site found in the files below, extracted directly from source - not hand-maintained. Unprefixed at the call site; `PluginManager.emit` adds `game:` before checking for listeners, so e.g. the first row below actually fires as `game:clientStartUp`.
 
 | Event | Location | Payload | Fires when |
 |---|---|---|---|
@@ -20,9 +20,9 @@ Every `plugins.emit(...)` call site found in the files below, extracted directly
 | `requestRespawn` | `server-game/src/client.js:270` | `{this: this, player: this.player, spawnPoint}` | A respawn request from this client is being processed. |
 | `CommCodeSyncEnd` | `server-game/src/client.js:335` | `{this: this, player: this.player, adjustment: this.adjustment, stateIdx, startIdx, i}` | End of processing an incoming input-sync packet from this client — a natural hook for anti-cheat heuristics that inspect aim-angle jitter between synced states. |
 | `beforeChat` | `server-game/src/client.js:353` | `{ this: this, text }` | Right before a sent chat message is processed at all (before the chatLineCap/censor/mention handling) - set `plugins.cancel = true` to silently drop it, e.g. legacyadmin's mute enforcement (`game/muteCache.js`). |
-| `packModifiers` | `server-game/src/client.js:590` | `{ this: this, extra }` | *(undocumented — add an entry to `src/scripts/event-descriptions.json`)* |
-| `clientPackSync` | `server-game/src/client.js:600` | `{ this: this, output }` | Building this client's outbound sync packet — fires once per sync, before the per-state loop below. |
-| `clientPackSyncLoop` | `server-game/src/client.js:619` | `{ this: this, output, state }` | Building this client's outbound sync packet — fires once per buffered state entry being packed. |
+| `packModifiers` | `server-game/src/client.js:591` | `{ this: this, extra }` | *(undocumented — add an entry to `src/scripts/event-descriptions.json`)* |
+| `clientPackSync` | `server-game/src/client.js:601` | `{ this: this, output }` | Building this client's outbound sync packet — fires once per sync, before the per-state loop below. |
+| `clientPackSyncLoop` | `server-game/src/client.js:620` | `{ this: this, output, state }` | Building this client's outbound sync packet — fires once per buffered state entry being packed. |
 
 ---
 *This page was drafted with AI assistance and reviewed for accuracy. If something looks wrong, please [open a PR](https://github.com/onlypuppy7/LegacyShell) or flag it.*

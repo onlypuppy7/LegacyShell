@@ -335,7 +335,15 @@ Grenade.v2 = new BABYLON.Vector3;
 Grenade.v3 = new BABYLON.Vector3;
 Grenade.v4 = new BABYLON.Vector3;
 Grenade.matrix = new BABYLON.Matrix;
-Grenade.prototype.update = function (delta) {
+Grenade.prototype.update = function (...args) {
+    if (plugins.listeners[plugins.type + ':grenadeUpdate']?.length) {
+        var data = { this: this, args, run: (...values) => this.updateDefault(...values) };
+        plugins.emitSync('grenadeUpdate', data);
+        if (plugins.cancel) return data.result;
+    };
+    return this.updateDefault(...args);
+};
+Grenade.prototype.updateDefault = function (delta) {
     if (this.ttl <= 0) {
         // console.log(new BABYLON.Vector3(this.x, this.y, this.z));
         if (getMunitionsManager().grenadePool.recycle(this), this.actor) {
@@ -390,7 +398,15 @@ Grenade.prototype.collidesWithMap = function () {
 
     return res;
 };
-Grenade.prototype.throw = function (player, pos, vec) {
+Grenade.prototype.throw = function (...args) {
+    if (plugins.listeners[plugins.type + ':grenadeThrow']?.length) {
+        var data = { this: this, args, run: (...values) => this.throwDefault(...values) };
+        plugins.emitSync('grenadeThrow', data);
+        if (plugins.cancel) return data.result;
+    };
+    return this.throwDefault(...args);
+};
+Grenade.prototype.throwDefault = function (player, pos, vec) {
     this.player = player, this.x = pos.x, this.y = pos.y, this.z = pos.z, this.dx = vec.x, this.dy = vec.y, this.dz = vec.z, this.ttl = 150, this.damage = 130, this.radius = 3, this.active = true, this.actor && this.actor.throw()
 };
 

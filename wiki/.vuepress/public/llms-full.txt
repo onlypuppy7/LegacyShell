@@ -2686,7 +2686,7 @@ Next: [Events (concept)](./events-concept.md).
 
 > **Audience:** Plugin authors and AI agents · **Prereqs:** [Events (concept)](../events-concept.md)
 
-Every `plugins.emit(...)` call site found in the files below, extracted directly from source - not hand-maintained. Unprefixed at the call site; `PluginManager.emit` adds `client:` before checking for listeners, so e.g. the first row below actually fires as `client:onLoad`.
+Every `plugins.emit(...)` and `plugins.emitSync(...)` call site found in the files below, extracted directly from source - not hand-maintained. Unprefixed at the call site; `PluginManager.emit` adds `client:` before checking for listeners, so e.g. the first row below actually fires as `client:onLoad`.
 
 | Event | Location | Payload | Fires when |
 |---|---|---|---|
@@ -2710,17 +2710,17 @@ Every `plugins.emit(...)` call site found in the files below, extracted directly
 | `servicesCommand` | `server-client/start-client.js:386` | `{ msg }` | Services routed an admin-style command to THIS specific instance (see `services/registry.js`'s `adminRouteToServer`, which targets by our own `auth_key`) down our existing persistent connection. `msg.payload` carries the actual command; a listener replies via a fresh one-off `#wsrequest` call wrapped as `adminRouteToServerResponse`, not back down this connection. |
 | `serversJs` | `server-client/src/prepare-modified.js:76` | `{ ss, code }` | The `servers.js` template (server list + ports) has been generated. |
 | `hashes` | `server-client/src/prepare-modified.js:86` | `{ ss, hashes }` | Cache-busting file hashes computed — this fires twice per build (once early, once again after the final build pass), both sharing the same event name. |
-| `pluginSourceInsertion` | `server-client/src/prepare-modified.js:96` | `{ this: this, ss, pluginInsertion }` | The main hook for shipping plugin JS into the browser bundle — push `{filepath, insertBefore, insertAfter, position}` onto `pluginInsertion.files`. |
-| `doReplacements` | `server-client/src/prepare-modified.js:119` | `{ this: this, ss, replacements, code }` | The token-replacement pass that inlines `#hashtag` shared-source files into the bundle — fires once overall, before the per-entry loop below. |
-| `doReplacementsLoop` | `server-client/src/prepare-modified.js:125` | `{ this: this, ss, replacement, code, insertion, name }` | The token-replacement pass — fires once per replacement entry being applied. |
-| `replacementsBefore` | `server-client/src/prepare-modified.js:220` | `{ this: this, ss, code, replacementsBefore }` | Before the `LEGACYSHELLXXX` → `#hashtag` replacement table is applied — plugins can add their own entries here. |
-| `minificationBefore` | `server-client/src/prepare-modified.js:234` | `{ this: this, ss, code, UglifyJS }` | Before the UglifyJS minification step; set `plugins.cancel` here to fully replace minification with a different tool/pipeline entirely. |
-| `minificationAfter` | `server-client/src/prepare-modified.js:241` | `{ this: this, ss, code, result }` | After the UglifyJS minification step has run. |
-| `minificationSkipped` | `server-client/src/prepare-modified.js:256` | `{ this: this, ss, code }` | Minification was skipped (`config.client.minify` is falsy). |
-| `shaderSources` | `server-client/src/prepare-modified.js:272` | `{ ss, shaders }` | The shared map/player/item shader source is about to be inlined into the bundle - `data.shaders.vertex`/`.pixel` are the GLSL strings; a plugin edits them in place, inserting at the `//@vertexDeclarations`, `//@vertexEnd`, `//@pixelDeclarations` and `//@pixelPreFog` anchors (keep the anchor text so other plugins can still use it). |
-| `replacementsAfter` | `server-client/src/prepare-modified.js:284` | `{ ss, replacementAfter, code }` | The second replacement pass that inlines final `items`/`maps` JSON and the Babylon.js library source. |
-| `hashes` | `server-client/src/prepare-modified.js:302` | `{ ss, hashes }` | Cache-busting file hashes computed — this fires twice per build (once early, once again after the final build pass), both sharing the same event name. |
-| `htmlContent` | `server-client/src/prepare-modified.js:304` | `{ ss, code }` | The generated `index.html` content, just before it's written to disk. |
+| `pluginSourceInsertion` | `server-client/src/prepare-modified.js:97` | `{ this: this, ss, pluginInsertion }` | The main hook for shipping plugin JS into the browser bundle — push `{filepath, insertBefore, insertAfter, position}` onto `pluginInsertion.files`. |
+| `doReplacements` | `server-client/src/prepare-modified.js:120` | `{ this: this, ss, replacements, code }` | The token-replacement pass that inlines `#hashtag` shared-source files into the bundle — fires once overall, before the per-entry loop below. |
+| `doReplacementsLoop` | `server-client/src/prepare-modified.js:126` | `{ this: this, ss, replacement, code, insertion, name }` | The token-replacement pass — fires once per replacement entry being applied. |
+| `replacementsBefore` | `server-client/src/prepare-modified.js:221` | `{ this: this, ss, code, replacementsBefore }` | Before the `LEGACYSHELLXXX` → `#hashtag` replacement table is applied — plugins can add their own entries here. |
+| `minificationBefore` | `server-client/src/prepare-modified.js:235` | `{ this: this, ss, code, UglifyJS }` | Before the UglifyJS minification step; set `plugins.cancel` here to fully replace minification with a different tool/pipeline entirely. |
+| `minificationAfter` | `server-client/src/prepare-modified.js:242` | `{ this: this, ss, code, result }` | After the UglifyJS minification step has run. |
+| `minificationSkipped` | `server-client/src/prepare-modified.js:257` | `{ this: this, ss, code }` | Minification was skipped (`config.client.minify` is falsy). |
+| `shaderSources` | `server-client/src/prepare-modified.js:273` | `{ ss, shaders }` | The shared map/player/item shader source is about to be inlined into the bundle - `data.shaders.vertex`/`.pixel` are the GLSL strings; a plugin edits them in place, inserting at the `//@vertexDeclarations`, `//@vertexEnd`, `//@pixelDeclarations` and `//@pixelPreFog` anchors (keep the anchor text so other plugins can still use it). |
+| `replacementsAfter` | `server-client/src/prepare-modified.js:285` | `{ ss, replacementAfter, code }` | The second replacement pass that inlines final `items`/`maps` JSON and the Babylon.js library source. |
+| `hashes` | `server-client/src/prepare-modified.js:303` | `{ ss, hashes }` | Cache-busting file hashes computed — this fires twice per build (once early, once again after the final build pass), both sharing the same event name. |
+| `htmlContent` | `server-client/src/prepare-modified.js:305` | `{ ss, code }` | The generated `index.html` content, just before it's written to disk. |
 | `stampImageDirs` | `server-client/src/stampsGenerator.js:56` | `{this: this, stampImageDirs, stampImages}` | Before scanning for stamp source images — plugins push their own image directories here. |
 | `stampsPreparedSkip` | `server-client/src/stampsGenerator.js:242` | `{this: this, items, composites, image, output: outputImagePath}` | The stamp spritesheet was already up to date and regeneration was skipped (hash match). |
 | `stampsPrepared` | `server-client/src/stampsGenerator.js:266` | `{this: this, items, composites, image, output: outputImagePath}` | The stamp spritesheet was (re)generated. |
@@ -2733,7 +2733,7 @@ Every `plugins.emit(...)` call site found in the files below, extracted directly
 
 > **Audience:** Plugin authors and AI agents · **Prereqs:** [Events (concept)](../events-concept.md)
 
-Every `plugins.emit(...)` call site found in the files below, extracted directly from source - not hand-maintained. Unprefixed at the call site; `PluginManager.emit` adds `game:` before checking for listeners, so e.g. the first row below actually fires as `game:startUp`.
+Every `plugins.emit(...)` and `plugins.emitSync(...)` call site found in the files below, extracted directly from source - not hand-maintained. Unprefixed at the call site; `PluginManager.emit` adds `game:` before checking for listeners, so e.g. the first row below actually fires as `game:startUp`.
 
 | Event | Location | Payload | Fires when |
 |---|---|---|---|
@@ -2767,28 +2767,42 @@ Every `plugins.emit(...)` call site found in the files below, extracted directly
 | `createMapCellsMapLoaded` | `server-client/src/client-static/src/shellshock.min.js:4561` | `{ minMap, SPS, gameScene, shadowGen, shadowLight }` | The raw map JSON has been fetched and is about to be turned into cells. |
 | `modifyMinMap` | `server-client/src/client-static/src/shellshock.min.js:4611` | `event` | A direct hook to rewrite the map data itself before cell generation. |
 | `createMapCells` | `server-client/src/client-static/src/shellshock.min.js:4638` | `{ minMap, SPS, gameScene, shadowGen, shadowLight }` | Map cells are being generated from `minMap`. |
-| `onMapCompleteBeforeSetup` | `server-client/src/client-static/src/shellshock.min.js:5043` | `{ gameScene, minMap }` | Before final map setup finishes. |
-| `onMapComplete` | `server-client/src/client-static/src/shellshock.min.js:5072` | `{ gameScene }` | After final map setup finishes. |
-| `resetGamePlayer` | `server-client/src/client-static/src/shellshock.min.js:5346` | `{player}` | Client-local counterpart to the server's `resetGamePlayer` — round-scoped UI/state reset. |
-| `leaveGame` | `server-client/src/client-static/src/shellshock.min.js:5468` | `{}` | The player is leaving the game for the main menu - fired just before the game scene is disposed. A plugin should stop anything it started for the game (sounds, timers). |
-| `playerClicked` | `server-client/src/client-static/src/shellshock.min.js:5691` | `click` | A current player-list entry was clicked, before the default player menu opens. Receives `{ player, playerId, uniqueId, username, event, handled }`. Set `handled = true` on this event object to replace the default menu; it is local to this click and supports async listeners. The player is checked again after listeners finish, so a departed player or reused slot cannot open the fallback menu. LegacyProfiles consumes this event to open its profile viewer. |
-| `addKillTextBefore` | `server-client/src/client-static/src/shellshock.min.js:5790` | `{msgs}` | Before the kill-feed text is rendered. |
-| `onBalanceUpdated` | `server-client/src/client-static/src/shellshock.min.js:5812` | `{balance: playerAccount.currentBalance}` | The player's currency balance display changed. |
-| `onResourcesLoadedEnd` | `server-client/src/client-static/src/shellshock.min.js:5865` | `{}` | All game resources (models/sounds/textures) finished loading. |
-| `shadowsToggled` | `server-client/src/client-static/src/shellshock.min.js:6663` | `{ shadowsEnabled: false }` | Shadows were just switched on or off (by the settings or the auto-detail optimiser) and the map's material swapped with them; `data.shadowsEnabled` is the new state. Lets a plugin re-apply anything that replaces the map material. |
-| `shadowsToggled` | `server-client/src/client-static/src/shellshock.min.js:6670` | `{ shadowsEnabled: true }` | Shadows were just switched on or off (by the settings or the auto-detail optimiser) and the map's material swapped with them; `data.shadowsEnabled` is the new state. Lets a plugin re-apply anything that replaces the map material. |
-| `explosionSpriteAfter` | `server-client/src/client-static/src/shellshock.min.js:7222` | `{ sprite: s, manager, isFire: manager == explosionFireManager }` | After an explosion or rocket-trail smoke/fire sprite has been set up (spawned with its animColors, which are re-applied to sprite.color every tick, so a plugin recolours them by replacing sprite.animColors). |
-| `explosionFx` | `server-client/src/client-static/src/shellshock.min.js:7227` | `{ x, y, z, damage, radius }` | *(undocumented — add an entry to `src/scripts/event-descriptions.json`)* |
-| `shellFragBurstBefore` | `server-client/src/client-static/src/shellshock.min.js:7255` | `{ player, count, theSize, theAnimLength }` | Before a shell-casing particle burst effect plays. |
-| `shellFragBurstAfter` | `server-client/src/client-static/src/shellshock.min.js:7284` | `{ player, count }` | After an egg's shell fragments have been spawned (death or heavy damage); the fragment sprites are in shellFragManager. |
-| `yolkBurstAfter` | `server-client/src/client-static/src/shellshock.min.js:7312` | `{ player, manager: yolkManager }` | After the yolk particles of an egg death have been spawned; `manager` is the yolk sprite manager. |
-| `syncToServer` | `server-client/src/client-static/src/shellshock.min.js:7992` | `{loadout}` | The client is about to push a loadout change to the server. |
-| `waitForSetupAndAuthComplete` | `server-client/src/client-static/src/shellshock.min.js:8277` | `{waitIteration}` | The startup poll loop, waiting for auth and page setup to both finish, has started. |
-| `waitForSetupAndAuthCompleteCheck` | `server-client/src/client-static/src/shellshock.min.js:8290` | `{waitIteration, customizer, authAttemptComplete, houseAdsLoaded}` | The startup poll loop is checking whether auth and page setup have both finished yet. |
-| `waitForSetupAndAuthCompleteReady` | `server-client/src/client-static/src/shellshock.min.js:8293` | `{waitIteration}` | The startup poll loop has confirmed both auth and page setup are ready. |
-| `setupComplete` | `server-client/src/client-static/src/shellshock.min.js:8314` | `{}` | The startup poll loop concluded successfully. |
-| `reachedEnd` | `server-client/src/client-static/src/shellshock.min.js:9307` | `{}` | End of the whole client script file, once. |
+| `lightmapReady` | `server-client/src/client-static/src/shellshock.min.js:4886` | `{ gameScene, lightMap, w, h, d }` | Synchronous notification after the static light field is calculated, before applying it to terrain. Payload includes scene, lightMap and grid dimensions w/h/d; reuse the field without new raycasts. |
+| `onMapCompleteBeforeSetup` | `server-client/src/client-static/src/shellshock.min.js:5044` | `{ gameScene, minMap }` | Before final map setup finishes. |
+| `onMapComplete` | `server-client/src/client-static/src/shellshock.min.js:5073` | `{ gameScene }` | After final map setup finishes. |
+| `resetGamePlayer` | `server-client/src/client-static/src/shellshock.min.js:5347` | `{player}` | Client-local counterpart to the server's `resetGamePlayer` — round-scoped UI/state reset. |
+| `leaveGame` | `server-client/src/client-static/src/shellshock.min.js:5469` | `{}` | The player is leaving the game for the main menu - fired just before the game scene is disposed. A plugin should stop anything it started for the game (sounds, timers). |
+| `playerClicked` | `server-client/src/client-static/src/shellshock.min.js:5692` | `click` | A current player-list entry was clicked, before the default player menu opens. Receives `{ player, playerId, uniqueId, username, event, handled }`. Set `handled = true` on this event object to replace the default menu; it is local to this click and supports async listeners. The player is checked again after listeners finish, so a departed player or reused slot cannot open the fallback menu. LegacyProfiles consumes this event to open its profile viewer. |
+| `addKillTextBefore` | `server-client/src/client-static/src/shellshock.min.js:5791` | `{msgs}` | Before the kill-feed text is rendered. |
+| `onBalanceUpdated` | `server-client/src/client-static/src/shellshock.min.js:5813` | `{balance: playerAccount.currentBalance}` | The player's currency balance display changed. |
+| `onResourcesLoadedEnd` | `server-client/src/client-static/src/shellshock.min.js:5866` | `{}` | All game resources (models/sounds/textures) finished loading. |
+| `shadowsToggled` | `server-client/src/client-static/src/shellshock.min.js:6664` | `{ shadowsEnabled: false }` | Shadows were just switched on or off (by the settings or the auto-detail optimiser) and the map's material swapped with them; `data.shadowsEnabled` is the new state. Lets a plugin re-apply anything that replaces the map material. |
+| `shadowsToggled` | `server-client/src/client-static/src/shellshock.min.js:6671` | `{ shadowsEnabled: true }` | Shadows were just switched on or off (by the settings or the auto-detail optimiser) and the map's material swapped with them; `data.shadowsEnabled` is the new state. Lets a plugin re-apply anything that replaces the map material. |
+| `explosionSpriteAfter` | `server-client/src/client-static/src/shellshock.min.js:7223` | `{ sprite: s, manager, isFire: manager == explosionFireManager }` | After an explosion or rocket-trail smoke/fire sprite has been set up (spawned with its animColors, which are re-applied to sprite.color every tick, so a plugin recolours them by replacing sprite.animColors). |
+| `explosionFx` | `server-client/src/client-static/src/shellshock.min.js:7228` | `{ x, y, z, damage, radius }` | *(undocumented — add an entry to `src/scripts/event-descriptions.json`)* |
+| `shellFragBurstBefore` | `server-client/src/client-static/src/shellshock.min.js:7256` | `{ player, count, theSize, theAnimLength }` | Before a shell-casing particle burst effect plays. |
+| `shellFragBurstAfter` | `server-client/src/client-static/src/shellshock.min.js:7285` | `{ player, count }` | After an egg's shell fragments have been spawned (death or heavy damage); the fragment sprites are in shellFragManager. |
+| `yolkBurstAfter` | `server-client/src/client-static/src/shellshock.min.js:7313` | `{ player, manager: yolkManager }` | After the yolk particles of an egg death have been spawned; `manager` is the yolk sprite manager. |
+| `syncToServer` | `server-client/src/client-static/src/shellshock.min.js:7993` | `{loadout}` | The client is about to push a loadout change to the server. |
+| `waitForSetupAndAuthComplete` | `server-client/src/client-static/src/shellshock.min.js:8278` | `{waitIteration}` | The startup poll loop, waiting for auth and page setup to both finish, has started. |
+| `waitForSetupAndAuthCompleteCheck` | `server-client/src/client-static/src/shellshock.min.js:8291` | `{waitIteration, customizer, authAttemptComplete, houseAdsLoaded}` | The startup poll loop is checking whether auth and page setup have both finished yet. |
+| `waitForSetupAndAuthCompleteReady` | `server-client/src/client-static/src/shellshock.min.js:8294` | `{waitIteration}` | The startup poll loop has confirmed both auth and page setup are ready. |
+| `setupComplete` | `server-client/src/client-static/src/shellshock.min.js:8315` | `{}` | The startup poll loop concluded successfully. |
+| `reachedEnd` | `server-client/src/client-static/src/shellshock.min.js:9308` | `{}` | End of the whole client script file, once. |
 | `loadMeshesBeforeMaterial` | `server-client/src/client-static/editor/js/mapEdit.js:88278` | `{mesh}` | Same hook as the shared `loading.js` version, duplicated for the standalone map-editor page. |
+| `editorPointerDown` | `server-client/src/client-static/editor/js/mapEdit.js:88867` | `{ event: evt, pick: pickResult }` | Before the normal editor pointer-down action. Synchronous and cancellable. |
+| `editorPointerUp` | `server-client/src/client-static/editor/js/mapEdit.js:88940` | `{ event: evt, pick: pickResult }` | Before the normal editor pointer-up action. Synchronous and cancellable. |
+| `editorPointerMove` | `server-client/src/client-static/editor/js/mapEdit.js:88957` | `{ event: evt, pick: pickResult }` | Before the normal editor pointer-move action. Synchronous and cancellable. |
+| `editorMoveMapBefore` | `server-client/src/client-static/editor/js/mapEdit.js:89829` | `{}` | Before shifting map cells; synchronous notification. |
+| `editorMoveMapAfter` | `server-client/src/client-static/editor/js/mapEdit.js:89863` | `{ dx, dy, dz }` | After shifting map cells. dx/dy/dz are the actual rounded world-space translation; synchronous notification. |
+| `editorInitMapBefore` | `server-client/src/client-static/editor/js/mapEdit.js:89901` | `{}` | Before clearing the current editor map; synchronous notification. |
+| `editorInitMapAfter` | `server-client/src/client-static/editor/js/mapEdit.js:89915` | `{}` | After creating the empty editor map; synchronous notification. |
+| `editorLoadMapBefore` | `server-client/src/client-static/editor/js/mapEdit.js:90054` | `{ json }` | Before loading serialized editor data; synchronous notification with the JSON string. |
+| `editorLoadMapAfter` | `server-client/src/client-static/editor/js/mapEdit.js:90057` | `{ json }` | After loading serialized editor data, including an empty input; synchronous notification with the JSON string. |
+| `editorLoadMapAfter` | `server-client/src/client-static/editor/js/mapEdit.js:90152` | `{ json }` | After loading serialized editor data, including an empty input; synchronous notification with the JSON string. |
+| `editorExtentsBefore` | `server-client/src/client-static/editor/js/mapEdit.js:90186` | `{}` | Before calculating map bounds; synchronous notification. |
+| `editorExtentsAfter` | `server-client/src/client-static/editor/js/mapEdit.js:90227` | `{ extents }` | After calculating map bounds; synchronously extend the extents object for plugin geometry. |
+| `editorSaveMap` | `server-client/src/client-static/editor/js/mapEdit.js:90275` | `{ minMap, extents }` | Before returning the serialized minMap; synchronously append plugin metadata to minMap/extents. |
 
 ---
 
@@ -2798,7 +2812,7 @@ Every `plugins.emit(...)` call site found in the files below, extracted directly
 
 > **Audience:** Plugin authors and AI agents · **Prereqs:** [Events (concept)](../events-concept.md)
 
-Every `plugins.emit(...)` call site found in the files below, extracted directly from source - not hand-maintained. Unprefixed at the call site; `PluginManager.emit` adds `game:` before checking for listeners, so e.g. the first row below actually fires as `game:clientStartUp`.
+Every `plugins.emit(...)` and `plugins.emitSync(...)` call site found in the files below, extracted directly from source - not hand-maintained. Unprefixed at the call site; `PluginManager.emit` adds `game:` before checking for listeners, so e.g. the first row below actually fires as `game:clientStartUp`.
 
 | Event | Location | Payload | Fires when |
 |---|---|---|---|
@@ -2814,9 +2828,9 @@ Every `plugins.emit(...)` call site found in the files below, extracted directly
 | `requestRespawn` | `server-game/src/client.js:270` | `{this: this, player: this.player, spawnPoint}` | A respawn request from this client is being processed. |
 | `CommCodeSyncEnd` | `server-game/src/client.js:335` | `{this: this, player: this.player, adjustment: this.adjustment, stateIdx, startIdx, i}` | End of processing an incoming input-sync packet from this client — a natural hook for anti-cheat heuristics that inspect aim-angle jitter between synced states. |
 | `beforeChat` | `server-game/src/client.js:353` | `{ this: this, text }` | Right before a sent chat message is processed at all (before the chatLineCap/censor/mention handling) - set `plugins.cancel = true` to silently drop it, e.g. legacyadmin's mute enforcement (`game/muteCache.js`). |
-| `packModifiers` | `server-game/src/client.js:590` | `{ this: this, extra }` | *(undocumented — add an entry to `src/scripts/event-descriptions.json`)* |
-| `clientPackSync` | `server-game/src/client.js:600` | `{ this: this, output }` | Building this client's outbound sync packet — fires once per sync, before the per-state loop below. |
-| `clientPackSyncLoop` | `server-game/src/client.js:619` | `{ this: this, output, state }` | Building this client's outbound sync packet — fires once per buffered state entry being packed. |
+| `packModifiers` | `server-game/src/client.js:591` | `{ this: this, extra }` | *(undocumented — add an entry to `src/scripts/event-descriptions.json`)* |
+| `clientPackSync` | `server-game/src/client.js:601` | `{ this: this, output }` | Building this client's outbound sync packet — fires once per sync, before the per-state loop below. |
+| `clientPackSyncLoop` | `server-game/src/client.js:620` | `{ this: this, output, state }` | Building this client's outbound sync packet — fires once per buffered state entry being packed. |
 
 ---
 
@@ -2826,7 +2840,7 @@ Every `plugins.emit(...)` call site found in the files below, extracted directly
 
 > **Audience:** Plugin authors and AI agents · **Prereqs:** [Events (concept)](../events-concept.md)
 
-Every `plugins.emit(...)` call site found in the files below, extracted directly from source - not hand-maintained. Unprefixed at the call site; `PluginManager.emit` adds `game:` before checking for listeners, so e.g. the first row below actually fires as `game:onLoad`.
+Every `plugins.emit(...)` and `plugins.emitSync(...)` call site found in the files below, extracted directly from source - not hand-maintained. Unprefixed at the call site; `PluginManager.emit` adds `game:` before checking for listeners, so e.g. the first row below actually fires as `game:onLoad`.
 
 | Event | Location | Payload | Fires when |
 |---|---|---|---|
@@ -2846,7 +2860,7 @@ Every `plugins.emit(...)` call site found in the files below, extracted directly
 
 > **Audience:** Plugin authors and AI agents · **Prereqs:** [Events (concept)](../events-concept.md)
 
-Every `plugins.emit(...)` call site found in the files below, extracted directly from source - not hand-maintained. Unprefixed at the call site; `PluginManager.emit` adds `game:` before checking for listeners, so e.g. the first row below actually fires as `game:roomLoading`.
+Every `plugins.emit(...)` and `plugins.emitSync(...)` call site found in the files below, extracted directly from source - not hand-maintained. Unprefixed at the call site; `PluginManager.emit` adds `game:` before checking for listeners, so e.g. the first row below actually fires as `game:roomLoading`.
 
 | Event | Location | Payload | Fires when |
 |---|---|---|---|
@@ -2855,82 +2869,83 @@ Every `plugins.emit(...)` call site found in the files below, extracted directly
 | `roomSetSS` | `server-game/src/rooms.js:39` | `{ss}` | The room worker's local `ss` is being seeded with `{maps, items, permissions, config}` from the main thread. |
 | `roomInitGameOptions` | `server-game/src/rooms.js:61` | `{this: this}` | `gameOptions` is being initialized for the room. |
 | `roomBeforeMapBuild` | `server-game/src/rooms.js:96` | `{this: this, info: info}` | Before the map is built — a listener can rewrite `this.minMap` to substitute a custom map. |
-| `roomInitEnd` | `server-game/src/rooms.js:173` | `{ this: this }` | Room construction finished; the room is ready to accept players. |
-| `roomWsMessage` | `server-game/src/rooms.js:190` | `{this: this, client, type, content}` | A raw, not-yet-decoded websocket message arrived for a client in this room (relayed from the main thread) — a plugin can decode it itself with `new Comm.In(data.content)` to react to a custom opcode. |
-| `packRoundEnd` | `server-game/src/rooms.js:260` | `{this: this, output}` | Building the "round end" network packet — fires before the packet body is assembled. |
-| `packRoundEndEnd` | `server-game/src/rooms.js:263` | `{this: this, output}` | Building the "round end" network packet — fires after the packet body is assembled. |
-| `packRoundUpdate` | `server-game/src/rooms.js:267` | `{this: this, output}` | Building the "round update" (timer) network packet — fires before the packet body is assembled. |
-| `packRoundUpdateEnd` | `server-game/src/rooms.js:272` | `{this: this, output}` | Building the "round update" (timer) network packet — fires after the packet body is assembled. |
-| `resetGamePlayer` | `server-game/src/rooms.js:289` | `{this: this, player}` | A player's round-scoped state (score, etc.) is being reset. |
-| `roomDetailsUpdated` | `server-game/src/rooms.js:299` | `{this: this, details: this.details}` | Room metadata (name, options, etc.) is changing — fires before the change is applied. |
-| `roomDetailsUpdatedEnd` | `server-game/src/rooms.js:327` | `{this: this, details: this.details}` | Room metadata (name, options, etc.) has changed — fires after the change is applied. |
-| `packUpdateRoomParams` | `server-game/src/rooms.js:337` | `{this: this, output}` | Building the room-params sync packet sent to clients — fires before the packet body is assembled. |
-| `packUpdateRoomParamsEnd` | `server-game/src/rooms.js:347` | `{this: this, output}` | Building the room-params sync packet sent to clients — fires after the packet body is assembled. |
-| `roomUpdate` | `server-game/src/rooms.js:402` | `{this: this, delta, currentTimeStamp}` | Top of the 60Hz simulation tick, before per-player updates run. |
-| `playerUpdate` | `server-game/src/rooms.js:411` | `{this: this, player, delta, currentTimeStamp}` | Per-player, per-tick update within the main tick loop. |
-| `playerStateUpdate` | `server-game/src/rooms.js:417` | `{this: this, player, delta, currentTimeStamp}` | Per-player state-buffer replay/prediction step within the main tick loop. |
-| `roomStateUpdate` | `server-game/src/rooms.js:429` | `{this: this, delta, currentTimeStamp}` | End of the per-tick player loop. |
-| `roomSync` | `server-game/src/rooms.js:436` | `{this: this}` | The ~10Hz full-state sync is about to run (every `FramesBetweenSyncs` ticks). |
-| `dataSyncLoop` | `server-game/src/rooms.js:445` | `{this: this, delta, output}` | The ~1000ms "data sync" loop (less time-critical per-client data) is running. |
-| `clientDataSync` | `server-game/src/rooms.js:448` | `{this: this, client, delta, output}` | Per-client step within the data-sync loop. |
-| `roomDataSync` | `server-game/src/rooms.js:452` | `{this: this, delta, output}` | End of the data-sync loop. |
-| `metaLoop` | `server-game/src/rooms.js:458` | `{this: this, fromDisconnect}` | The ~2000ms "meta" loop (idle-kick, weather triggers, empty-room destroy) is running. |
-| `metaLoopClients` | `server-game/src/rooms.js:464` | `{this: this, client, fromDisconnect}` | Per-client step within the meta loop. |
-| `roomDestroy` | `server-game/src/rooms.js:489` | `{this: this}` | The room is being torn down. |
-| `clientSync` | `server-game/src/rooms.js:514` | `{this: this, output}` | Building the full-state sync packet — fires once, before the per-client loop below. |
-| `clientSyncLoop` | `server-game/src/rooms.js:517` | `{ this: this, client, output }` | Building the full-state sync packet — fires once per client; a plugin can set `plugins.cancel` here to replace the default position data with its own (e.g. occlusion-based visibility filtering). |
-| `clientSyncEnd` | `server-game/src/rooms.js:523` | `{this: this, output}` | Building the full-state sync packet — fires once at the end, after every client has been packed. |
-| `joinPlayer` | `server-game/src/rooms.js:529` | `{this: this, info}` | A player is joining this room. |
-| `registerPlayerClient` | `server-game/src/rooms.js:544` | `{this: this, client}` | The new `ClientConstructor` is registered into the room's player list. |
-| `disconnectClient` | `server-game/src/rooms.js:550` | `{this: this, client}` | A player is leaving/disconnecting — the closest real equivalent to a "leave" hook (there is no separate `leavePlayer` event, despite the naming symmetry you might expect with `joinPlayer`). |
-| `getPlayerCountLoop` | `server-game/src/rooms.js:583` | `{this: this, count, uuids, usernames, sessions, player, extraDetails}` | Computing the room's live player count/roster — fires once per player being counted. |
-| `getPlayerCount` | `server-game/src/rooms.js:587` | `{this: this, count, uuids, usernames, sessions, extraDetails}` | Computing the room's live player count/roster — fires once with the final tally. |
-| `getOldestClientLoop` | `server-game/src/rooms.js:598` | `{this: this, client, oldestClient, oldestTime}` | Finding the longest-connected client (used for game-owner fallback) — fires once per client being checked. |
-| `getOldestClient` | `server-game/src/rooms.js:605` | `{this: this, oldestClient}` | Finding the longest-connected client (used for game-owner fallback) — fires once with the result. |
-| `packSetGameOwner` | `server-game/src/rooms.js:610` | `{this: this, output}` | Building the "game owner" packet — fires before the packet body is assembled. |
-| `packSetGameOwnerFound` | `server-game/src/rooms.js:612` | `{this: this, output}` | Building the "game owner" packet — fires once an owner has actually been found. |
-| `setGameOwner` | `server-game/src/rooms.js:620` | `{this: this}` | Game-owner assignment/reassignment is starting (private rooms only have an owner). |
-| `setGameOwnerPrivate` | `server-game/src/rooms.js:622` | `{this: this}` | Game-owner assignment is proceeding, specifically for a private room. |
-| `setGameOwnerNew` | `server-game/src/rooms.js:628` | `{this: this, newOwner}` | A new game owner has been chosen. |
-| `getRandomSpawn` | `server-game/src/rooms.js:646` | `{this: this, player, list, pos}` | A random spawn point is being picked for a player. |
-| `getBestSpawn` | `server-game/src/rooms.js:659` | `{this: this, player}` | The "furthest from enemies" best-spawn algorithm is starting for a player. |
-| `getBestSpawnLoop` | `server-game/src/rooms.js:669` | `{this: this, player, spwn, spawnPos, smallestDistance}` | The "furthest from enemies" best-spawn algorithm — fires once per candidate spawn point being scored. |
-| `getBestSpawnEnd` | `server-game/src/rooms.js:687` | `{this: this, player, best, bestDistance}` | The "furthest from enemies" best-spawn algorithm — fires once with the chosen spawn point. |
-| `getValidItemSpawns` | `server-game/src/rooms.js:703` | `{this: this, data}` | Scanning the map for valid item-spawn cells — fires before the scan starts. |
-| `getValidItemSpawnsLoop` | `server-game/src/rooms.js:711` | `{this: this, x, y, z}` | Scanning the map for valid item-spawn cells — fires once per cell being checked. |
-| `getValidItemSpawnsEnd` | `server-game/src/rooms.js:722` | `{this: this}` | Scanning the map for valid item-spawn cells — fires once the scan is complete. |
-| `notify` | `server-game/src/rooms.js:730` | `{this: this, client, text, timeoutTime}` | A toast/notification is being sent to one client, as part of a room-wide `room.notify(text, timeoutTime)` broadcast. |
-| `packChat` | `server-game/src/rooms.js:737` | `{this: this, output, text, id, chatType}` | Building a chat-message packet — fires before the packet body is assembled (runs after `censor.js` filtering has already happened). |
-| `packChatEnd` | `server-game/src/rooms.js:742` | `{this: this, output, text, id, chatType}` | Building a chat-message packet — fires after the packet body is assembled. |
-| `packSpawnItemPacket` | `server-game/src/rooms.js:746` | `{this: this, output, id, kind, x, y, z}` | Building an item-spawn packet — fires before the packet body is assembled. |
-| `packSpawnItemPacketEnd` | `server-game/src/rooms.js:753` | `{this: this, output, id, kind, x, y, z}` | Building an item-spawn packet — fires after the packet body is assembled. |
-| `packCollectItemPacket` | `server-game/src/rooms.js:757` | `{this: this, output, playerId, kind, index, id}` | Building an item-collected packet — fires before the packet body is assembled. |
-| `packCollectItemPacketEnd` | `server-game/src/rooms.js:763` | `{this: this, output, playerId, kind, index, id}` | Building an item-collected packet — fires after the packet body is assembled. |
-| `packAllItems` | `server-game/src/rooms.js:768` | `{this: this, output, pools}` | Building the full item-state packet sent on join — fires before the per-pool loop below. |
-| `packAllItemsLoop` | `server-game/src/rooms.js:773` | `{this: this, output, item, i}` | Building the full item-state packet sent on join — fires once per item being packed. |
-| `spawnItems` | `server-game/src/rooms.js:783` | `{this: this, pools, output}` | The periodic item-spawning algorithm is starting for this pass. |
-| `spawnItemsLoop` | `server-game/src/rooms.js:795` | `{this: this, pool, i, maximum, output}` | The item-spawning algorithm — fires once per item pool being processed. |
-| `spawnItemsLoopSpawn` | `server-game/src/rooms.js:804` | `{this: this, pool, i, maximum, output, x, y, z}` | The item-spawning algorithm — fires immediately before an individual item is actually spawned. |
-| `spawnItemsLoopSpawnEnd` | `server-game/src/rooms.js:811` | `{this: this, pool, i, maximum, output, x, y, z, item}` | The item-spawning algorithm — fires immediately after an individual item has been spawned. |
-| `spawnItemsEnd` | `server-game/src/rooms.js:817` | `{this: this, pools, output}` | The periodic item-spawning algorithm has finished this pass. |
-| `getItemSpawnFromQueue` | `server-game/src/rooms.js:825` | `{this: this, pos}` | Pulling the next queued spawn position — fires before the position is resolved. |
-| `getItemSpawnFromQueueEnd` | `server-game/src/rooms.js:829` | `{this: this, pos}` | Pulling the next queued spawn position — fires with the resolved position. |
-| `getUnusedPlayerId` | `server-game/src/rooms.js:835` | `{this: this}` | Allocating a free numeric player-id slot — fires before the scan starts. |
-| `getUnusedPlayerIdLoop` | `server-game/src/rooms.js:845` | `{this: this, i, client, player}` | Allocating a free numeric player-id slot — fires once per candidate id being checked. |
-| `getPreferredTeam` | `server-game/src/rooms.js:857` | `{this: this}` | Team-balancing logic for a joining player — fires before team counts are tallied. |
-| `getPreferredTeamEnd` | `server-game/src/rooms.js:865` | `{this: this, team1Count, team2Count}` | Team-balancing logic for a joining player — fires with the chosen team. |
-| `getPlayerClient` | `server-game/src/rooms.js:874` | `{this: this, client, player}` | Resolving a `Player` back to its owning `ClientConstructor`. |
-| `packAllPlayers` | `server-game/src/rooms.js:880` | `{this: this, output}` | Building the full player-roster packet sent on join — fires before the per-client loop below. |
-| `packAllPlayersLoop` | `server-game/src/rooms.js:884` | `{this: this, output, client}` | Building the full player-roster packet sent on join — fires once per player being packed. |
-| `sendToOne` | `server-game/src/rooms.js:893` | `{this: this, output, fromId, toId, debug}` | Unicast send to one client — fires before the target is resolved. |
-| `sendToOneFound` | `server-game/src/rooms.js:895` | `{this: this, output, fromId, toId, debug}` | Unicast send to one client — fires once the target client has been found. |
-| `sendToOthers` | `server-game/src/rooms.js:906` | `{this: this, output, fromId, debug}` | Broadcast to all clients but one — fires before the per-client loop below. |
-| `sendToOthersLoop` | `server-game/src/rooms.js:908` | `{this: this, client, output, fromId, debug}` | Broadcast to all clients but one — fires once per client being considered. |
-| `sendToOthersLoopFound` | `server-game/src/rooms.js:910` | `{this: this, client, output, fromId, debug}` | Broadcast to all clients but one — fires once for each client that actually receives the packet. |
-| `sendToAll` | `server-game/src/rooms.js:917` | `{this: this, output, fromId, debug}` | Broadcast to every client — fires before the per-client loop below; a plugin can set `plugins.cancel` here to replace default fan-out with custom per-client visibility filtering. |
-| `sendToAllLoop` | `server-game/src/rooms.js:919` | `{this: this, client, output, fromId, debug}` | Broadcast to every client — fires once per client being considered. |
-| `sendToAllLoopFound` | `server-game/src/rooms.js:921` | `{this: this, client, output, fromId, debug}` | Broadcast to every client — fires once for each client that actually receives the packet. |
-| `roomLoaded` | `server-game/src/rooms.js:928` | `{RoomConstructor}` | Module load, once — hands out the room class itself. |
+| `roomBuildMap` | `server-game/src/rooms.js:144` | `data` | Before building a room map. Awaited; replace `data.minMap` to prepare map geometry before mesh loading. |
+| `roomInitEnd` | `server-game/src/rooms.js:176` | `{ this: this }` | Room construction finished; the room is ready to accept players. |
+| `roomWsMessage` | `server-game/src/rooms.js:193` | `{this: this, client, type, content}` | A raw, not-yet-decoded websocket message arrived for a client in this room (relayed from the main thread) — a plugin can decode it itself with `new Comm.In(data.content)` to react to a custom opcode. |
+| `packRoundEnd` | `server-game/src/rooms.js:263` | `{this: this, output}` | Building the "round end" network packet — fires before the packet body is assembled. |
+| `packRoundEndEnd` | `server-game/src/rooms.js:266` | `{this: this, output}` | Building the "round end" network packet — fires after the packet body is assembled. |
+| `packRoundUpdate` | `server-game/src/rooms.js:270` | `{this: this, output}` | Building the "round update" (timer) network packet — fires before the packet body is assembled. |
+| `packRoundUpdateEnd` | `server-game/src/rooms.js:275` | `{this: this, output}` | Building the "round update" (timer) network packet — fires after the packet body is assembled. |
+| `resetGamePlayer` | `server-game/src/rooms.js:292` | `{this: this, player}` | A player's round-scoped state (score, etc.) is being reset. |
+| `roomDetailsUpdated` | `server-game/src/rooms.js:302` | `{this: this, details: this.details}` | Room metadata (name, options, etc.) is changing — fires before the change is applied. |
+| `roomDetailsUpdatedEnd` | `server-game/src/rooms.js:330` | `{this: this, details: this.details}` | Room metadata (name, options, etc.) has changed — fires after the change is applied. |
+| `packUpdateRoomParams` | `server-game/src/rooms.js:340` | `{this: this, output}` | Building the room-params sync packet sent to clients — fires before the packet body is assembled. |
+| `packUpdateRoomParamsEnd` | `server-game/src/rooms.js:350` | `{this: this, output}` | Building the room-params sync packet sent to clients — fires after the packet body is assembled. |
+| `roomUpdate` | `server-game/src/rooms.js:405` | `{this: this, delta, currentTimeStamp}` | Top of the 60Hz simulation tick, before per-player updates run. |
+| `playerUpdate` | `server-game/src/rooms.js:414` | `{this: this, player, delta, currentTimeStamp}` | Per-player, per-tick update within the main tick loop. |
+| `playerStateUpdate` | `server-game/src/rooms.js:420` | `{this: this, player, delta, currentTimeStamp}` | Per-player state-buffer replay/prediction step within the main tick loop. |
+| `roomStateUpdate` | `server-game/src/rooms.js:432` | `{this: this, delta, currentTimeStamp}` | End of the per-tick player loop. |
+| `roomSync` | `server-game/src/rooms.js:439` | `{this: this}` | The ~10Hz full-state sync is about to run (every `FramesBetweenSyncs` ticks). |
+| `dataSyncLoop` | `server-game/src/rooms.js:448` | `{this: this, delta, output}` | The ~1000ms "data sync" loop (less time-critical per-client data) is running. |
+| `clientDataSync` | `server-game/src/rooms.js:451` | `{this: this, client, delta, output}` | Per-client step within the data-sync loop. |
+| `roomDataSync` | `server-game/src/rooms.js:455` | `{this: this, delta, output}` | End of the data-sync loop. |
+| `metaLoop` | `server-game/src/rooms.js:461` | `{this: this, fromDisconnect}` | The ~2000ms "meta" loop (idle-kick, weather triggers, empty-room destroy) is running. |
+| `metaLoopClients` | `server-game/src/rooms.js:467` | `{this: this, client, fromDisconnect}` | Per-client step within the meta loop. |
+| `roomDestroy` | `server-game/src/rooms.js:492` | `{this: this}` | The room is being torn down. |
+| `clientSync` | `server-game/src/rooms.js:517` | `{this: this, output}` | Building the full-state sync packet — fires once, before the per-client loop below. |
+| `clientSyncLoop` | `server-game/src/rooms.js:520` | `{ this: this, client, output }` | Building the full-state sync packet — fires once per client; a plugin can set `plugins.cancel` here to replace the default position data with its own (e.g. occlusion-based visibility filtering). |
+| `clientSyncEnd` | `server-game/src/rooms.js:526` | `{this: this, output}` | Building the full-state sync packet — fires once at the end, after every client has been packed. |
+| `joinPlayer` | `server-game/src/rooms.js:532` | `{this: this, info}` | A player is joining this room. |
+| `registerPlayerClient` | `server-game/src/rooms.js:547` | `{this: this, client}` | The new `ClientConstructor` is registered into the room's player list. |
+| `disconnectClient` | `server-game/src/rooms.js:553` | `{this: this, client}` | A player is leaving/disconnecting — the closest real equivalent to a "leave" hook (there is no separate `leavePlayer` event, despite the naming symmetry you might expect with `joinPlayer`). |
+| `getPlayerCountLoop` | `server-game/src/rooms.js:586` | `{this: this, count, uuids, usernames, sessions, player, extraDetails}` | Computing the room's live player count/roster — fires once per player being counted. |
+| `getPlayerCount` | `server-game/src/rooms.js:590` | `{this: this, count, uuids, usernames, sessions, extraDetails}` | Computing the room's live player count/roster — fires once with the final tally. |
+| `getOldestClientLoop` | `server-game/src/rooms.js:601` | `{this: this, client, oldestClient, oldestTime}` | Finding the longest-connected client (used for game-owner fallback) — fires once per client being checked. |
+| `getOldestClient` | `server-game/src/rooms.js:608` | `{this: this, oldestClient}` | Finding the longest-connected client (used for game-owner fallback) — fires once with the result. |
+| `packSetGameOwner` | `server-game/src/rooms.js:613` | `{this: this, output}` | Building the "game owner" packet — fires before the packet body is assembled. |
+| `packSetGameOwnerFound` | `server-game/src/rooms.js:615` | `{this: this, output}` | Building the "game owner" packet — fires once an owner has actually been found. |
+| `setGameOwner` | `server-game/src/rooms.js:623` | `{this: this}` | Game-owner assignment/reassignment is starting (private rooms only have an owner). |
+| `setGameOwnerPrivate` | `server-game/src/rooms.js:625` | `{this: this}` | Game-owner assignment is proceeding, specifically for a private room. |
+| `setGameOwnerNew` | `server-game/src/rooms.js:631` | `{this: this, newOwner}` | A new game owner has been chosen. |
+| `getRandomSpawn` | `server-game/src/rooms.js:649` | `{this: this, player, list, pos}` | A random spawn point is being picked for a player. |
+| `getBestSpawn` | `server-game/src/rooms.js:662` | `{this: this, player}` | The "furthest from enemies" best-spawn algorithm is starting for a player. |
+| `getBestSpawnLoop` | `server-game/src/rooms.js:672` | `{this: this, player, spwn, spawnPos, smallestDistance}` | The "furthest from enemies" best-spawn algorithm — fires once per candidate spawn point being scored. |
+| `getBestSpawnEnd` | `server-game/src/rooms.js:690` | `{this: this, player, best, bestDistance}` | The "furthest from enemies" best-spawn algorithm — fires once with the chosen spawn point. |
+| `getValidItemSpawns` | `server-game/src/rooms.js:706` | `{this: this, data}` | Scanning the map for valid item-spawn cells — fires before the scan starts. |
+| `getValidItemSpawnsLoop` | `server-game/src/rooms.js:714` | `{this: this, x, y, z}` | Scanning the map for valid item-spawn cells — fires once per cell being checked. |
+| `getValidItemSpawnsEnd` | `server-game/src/rooms.js:725` | `{this: this}` | Scanning the map for valid item-spawn cells — fires once the scan is complete. |
+| `notify` | `server-game/src/rooms.js:733` | `{this: this, client, text, timeoutTime}` | A toast/notification is being sent to one client, as part of a room-wide `room.notify(text, timeoutTime)` broadcast. |
+| `packChat` | `server-game/src/rooms.js:740` | `{this: this, output, text, id, chatType}` | Building a chat-message packet — fires before the packet body is assembled (runs after `censor.js` filtering has already happened). |
+| `packChatEnd` | `server-game/src/rooms.js:745` | `{this: this, output, text, id, chatType}` | Building a chat-message packet — fires after the packet body is assembled. |
+| `packSpawnItemPacket` | `server-game/src/rooms.js:749` | `{this: this, output, id, kind, x, y, z}` | Building an item-spawn packet — fires before the packet body is assembled. |
+| `packSpawnItemPacketEnd` | `server-game/src/rooms.js:756` | `{this: this, output, id, kind, x, y, z}` | Building an item-spawn packet — fires after the packet body is assembled. |
+| `packCollectItemPacket` | `server-game/src/rooms.js:760` | `{this: this, output, playerId, kind, index, id}` | Building an item-collected packet — fires before the packet body is assembled. |
+| `packCollectItemPacketEnd` | `server-game/src/rooms.js:766` | `{this: this, output, playerId, kind, index, id}` | Building an item-collected packet — fires after the packet body is assembled. |
+| `packAllItems` | `server-game/src/rooms.js:771` | `{this: this, output, pools}` | Building the full item-state packet sent on join — fires before the per-pool loop below. |
+| `packAllItemsLoop` | `server-game/src/rooms.js:776` | `{this: this, output, item, i}` | Building the full item-state packet sent on join — fires once per item being packed. |
+| `spawnItems` | `server-game/src/rooms.js:786` | `{this: this, pools, output}` | The periodic item-spawning algorithm is starting for this pass. |
+| `spawnItemsLoop` | `server-game/src/rooms.js:798` | `{this: this, pool, i, maximum, output}` | The item-spawning algorithm — fires once per item pool being processed. |
+| `spawnItemsLoopSpawn` | `server-game/src/rooms.js:807` | `{this: this, pool, i, maximum, output, x, y, z}` | The item-spawning algorithm — fires immediately before an individual item is actually spawned. |
+| `spawnItemsLoopSpawnEnd` | `server-game/src/rooms.js:814` | `{this: this, pool, i, maximum, output, x, y, z, item}` | The item-spawning algorithm — fires immediately after an individual item has been spawned. |
+| `spawnItemsEnd` | `server-game/src/rooms.js:820` | `{this: this, pools, output}` | The periodic item-spawning algorithm has finished this pass. |
+| `getItemSpawnFromQueue` | `server-game/src/rooms.js:828` | `{this: this, pos}` | Pulling the next queued spawn position — fires before the position is resolved. |
+| `getItemSpawnFromQueueEnd` | `server-game/src/rooms.js:832` | `{this: this, pos}` | Pulling the next queued spawn position — fires with the resolved position. |
+| `getUnusedPlayerId` | `server-game/src/rooms.js:838` | `{this: this}` | Allocating a free numeric player-id slot — fires before the scan starts. |
+| `getUnusedPlayerIdLoop` | `server-game/src/rooms.js:848` | `{this: this, i, client, player}` | Allocating a free numeric player-id slot — fires once per candidate id being checked. |
+| `getPreferredTeam` | `server-game/src/rooms.js:860` | `{this: this}` | Team-balancing logic for a joining player — fires before team counts are tallied. |
+| `getPreferredTeamEnd` | `server-game/src/rooms.js:868` | `{this: this, team1Count, team2Count}` | Team-balancing logic for a joining player — fires with the chosen team. |
+| `getPlayerClient` | `server-game/src/rooms.js:877` | `{this: this, client, player}` | Resolving a `Player` back to its owning `ClientConstructor`. |
+| `packAllPlayers` | `server-game/src/rooms.js:883` | `{this: this, output}` | Building the full player-roster packet sent on join — fires before the per-client loop below. |
+| `packAllPlayersLoop` | `server-game/src/rooms.js:887` | `{this: this, output, client}` | Building the full player-roster packet sent on join — fires once per player being packed. |
+| `sendToOne` | `server-game/src/rooms.js:896` | `{this: this, output, fromId, toId, debug}` | Unicast send to one client — fires before the target is resolved. |
+| `sendToOneFound` | `server-game/src/rooms.js:898` | `{this: this, output, fromId, toId, debug}` | Unicast send to one client — fires once the target client has been found. |
+| `sendToOthers` | `server-game/src/rooms.js:909` | `{this: this, output, fromId, debug}` | Broadcast to all clients but one — fires before the per-client loop below. |
+| `sendToOthersLoop` | `server-game/src/rooms.js:911` | `{this: this, client, output, fromId, debug}` | Broadcast to all clients but one — fires once per client being considered. |
+| `sendToOthersLoopFound` | `server-game/src/rooms.js:913` | `{this: this, client, output, fromId, debug}` | Broadcast to all clients but one — fires once for each client that actually receives the packet. |
+| `sendToAll` | `server-game/src/rooms.js:920` | `{this: this, output, fromId, debug}` | Broadcast to every client — fires before the per-client loop below; a plugin can set `plugins.cancel` here to replace default fan-out with custom per-client visibility filtering. |
+| `sendToAllLoop` | `server-game/src/rooms.js:922` | `{this: this, client, output, fromId, debug}` | Broadcast to every client — fires once per client being considered. |
+| `sendToAllLoopFound` | `server-game/src/rooms.js:924` | `{this: this, client, output, fromId, debug}` | Broadcast to every client — fires once for each client that actually receives the packet. |
+| `roomLoaded` | `server-game/src/rooms.js:931` | `{RoomConstructor}` | Module load, once — hands out the room class itself. |
 | `adminCommand` | `server-game/src/worker.js:67` | `{ payload: message }` | Main thread relayed an admin action into THIS specific room worker (e.g. a kick - see `roomManager.js`'s admin dispatch and legacyadmin's `game/moderationWorker.js`/`game/roomBridge.js`). Only meaningful once `ss.room` exists. |
 
 ---
@@ -2941,15 +2956,25 @@ Every `plugins.emit(...)` call site found in the files below, extracted directly
 
 > **Audience:** Plugin authors and AI agents · **Prereqs:** [Events (concept)](../events-concept.md)
 
-Every `plugins.emit(...)` call site found in the files below, extracted directly from source - not hand-maintained. Unprefixed at the call site; `PluginManager.emit` adds `game:` before checking for listeners, so e.g. the first row below actually fires as `game:bulletHitEffect`.
+Every `plugins.emit(...)` and `plugins.emitSync(...)` call site found in the files below, extracted directly from source - not hand-maintained. Unprefixed at the call site; `PluginManager.emit` adds `game:` before checking for listeners, so e.g. the first row below actually fires as `game:bulletHitEffect`.
 
 | Event | Location | Payload | Fires when |
 |---|---|---|---|
 | `bulletHitEffect` | `src/shell/bullets.js:146` | `{ x, y, z, dx, dy, dz, player: this.player }` | A bullet impact occurred (wall or player) — a visual/effect hook, fires on both client and server. |
 | `bulletHitSpriteAfter` | `src/shell/bullets.js:163` | `{ sprite: s }` | After the smoke puff for a bullet impact has been set up on the client; `sprite` is the sprite (replace sprite.animColors to recolour it). |
 | `bulletHitAfter` | `src/shell/bullets.js:166` | `{ x, y, z, dx, dy, dz, player: this.player }` | After hit resolution/damage has been applied for that bullet. |
+| `grenadeUpdate` | `src/shell/bullets.js:341` | `data` | Synchronous physics extension point. Payload: `{ this, args, run, result }`. `run(...args)` calls the default operation without redispatching this event. Set `result` and `plugins.cancel = true` to replace the operation; respect earlier cancellation. Listeners must not return promises. |
+| `grenadeThrow` | `src/shell/bullets.js:404` | `data` | Synchronous physics extension point. Payload: `{ this, args, run, result }`. `run(...args)` calls the default operation without redispatching this event. Set `result` and `plugins.cancel = true` to replace the operation; respect earlier cancellation. Listeners must not return promises. |
 | `setUpShopAvailableBeforeEventLoop` | `src/shell/catalog.js:255` | `{ shop, Math, items, mondayStart, eventsMonday }` | Inside the weekly shop-rotation algorithm, before seasonal-event item pools are folded into the candidate set. |
 | `setUpShopAvailableBeforeApply` | `src/shell/catalog.js:309` | `{ shop, Math, items, mondayStart, eventsMonday }` | Inside the weekly shop-rotation algorithm, before the final tier selection is written to the database. |
+| `colliderSetParams` | `src/shell/collider.js:66` | `data` | Synchronous physics extension point. Payload: `{ this, args, run, result }`. `run(...args)` calls the default operation without redispatching this event. Set `result` and `plugins.cancel = true` to replace the operation; respect earlier cancellation. Listeners must not return promises. |
+| `colliderPointMap` | `src/shell/collider.js:82` | `data` | Synchronous physics extension point. Payload: `{ this, args, run, result }`. `run(...args)` calls the default operation without redispatching this event. Set `result` and `plugins.cancel = true` to replace the operation; respect earlier cancellation. Listeners must not return promises. |
+| `colliderMeshMap` | `src/shell/collider.js:120` | `data` | Synchronous physics extension point. Payload: `{ this, args, run, result }`. `run(...args)` calls the default operation without redispatching this event. Set `result` and `plugins.cancel = true` to replace the operation; respect earlier cancellation. Listeners must not return promises. |
+| `colliderMeshCell` | `src/shell/collider.js:147` | `data` | Synchronous physics extension point. Payload: `{ this, args, run, result }`. `run(...args)` calls the default operation without redispatching this event. Set `result` and `plugins.cancel = true` to replace the operation; respect earlier cancellation. Listeners must not return promises. |
+| `colliderRayMap` | `src/shell/collider.js:192` | `data` | Synchronous physics extension point. Payload: `{ this, args, run, result }`. `run(...args)` calls the default operation without redispatching this event. Set `result` and `plugins.cancel = true` to replace the operation; respect earlier cancellation. Listeners must not return promises. |
+| `colliderRayCell` | `src/shell/collider.js:259` | `data` | Synchronous physics extension point. Payload: `{ this, args, run, result }`. `run(...args)` calls the default operation without redispatching this event. Set `result` and `plugins.cancel = true` to replace the operation; respect earlier cancellation. Listeners must not return promises. |
+| `colliderProjectileCell` | `src/shell/collider.js:283` | `data` | Synchronous physics extension point. Payload: `{ this, args, run, result }`. `run(...args)` calls the default operation without redispatching this event. Set `result` and `plugins.cancel = true` to replace the operation; respect earlier cancellation. Listeners must not return promises. |
+| `colliderGrenadeCell` | `src/shell/collider.js:326` | `data` | Synchronous physics extension point. Payload: `{ this, args, run, result }`. `run(...args)` calls the default operation without redispatching this event. Set `result` and `plugins.cancel = true` to replace the operation; respect earlier cancellation. Listeners must not return promises. |
 | `constantsFinished` | `src/shell/constants.js:544` | `{}` | All shared constants/enums have been computed at module load — signals other shared modules that it's now safe to reference them. |
 | `eventsInit` | `src/shell/events.js:256` | `{ events: this.events, this: this }` | The seasonal `EventManager` finished loading `defaultEvents`. This same call site fires under either `services:` or `game:` depending on which process is running it. |
 | `GameTypesInit` | `src/shell/gametypes.js:144` | `{ GameTypes, ItemTypes, defaultOptions }` | Before `GameTypes` is deep-merged against `defaultOptions` — the extension point for registering an entirely new gamemode. |
@@ -2964,11 +2989,14 @@ Every `plugins.emit(...)` call site found in the files below, extracted directly
 | `loadMeshesBeforeMaterial` | `src/shell/loading.js:79` | `{mesh}` | During mesh loading, before a material is assigned — lets a plugin swap in a different material/texture. |
 | `permissionsAfterSetup` | `src/shell/permissions.js:747` | `{ this: this }` | End of `PermissionsConstructor`'s constructor, after every built-in command is registered — the extension point for registering new slash commands via `data.this.newCommand(...)`. |
 | `updateBefore` | `src/shell/player.js:246` | `{ player: this, delta, resim }` | Start of `Player.update()`, before movement/physics for that tick — the main per-player-per-tick hook. |
-| `onStandOnBlock` | `src/shell/player.js:789` | `{mesh, this: this, out}` | Per-tick, when a player's feet resolve against a block mesh — used for special surface behavior (e.g. a parkour gamemode). |
-| `onStandOnTile` | `src/shell/player.js:792` | `{mesh, this: this}` | Per-tick, when a player's feet resolve against a tile mesh — same use case as `onStandOnBlock` for a different mesh category. |
-| `canJump` | `src/shell/player.js:801` | `{ this: this, canJump }` | Before jump eligibility is finalized — a listener can override the boolean. |
-| `scoreKillEggs` | `src/shell/player.js:1163` | `data` | *(undocumented — add an entry to `src/scripts/event-descriptions.json`)* |
-| `onPlayerDeath` | `src/shell/player.js:1252` | `{player: this, firedId}` | A player has died — `firedId` identifies the killer (or is absent/null for an environmental death). |
+| `playerMovement` | `src/shell/player.js:475` | `data` | Synchronous physics extension point. Payload: `{ this, args, run, result }`. `run(...args)` calls the default operation without redispatching this event. Set `result` and `plugins.cancel = true` to replace the operation; respect earlier cancellation. Listeners must not return promises. |
+| `playerSnapshot` | `src/shell/player.js:595` | `data` | Synchronous physics extension point. Payload: `{ this, args, run, result }`. `run(...args)` calls the default operation without redispatching this event. Set `result` and `plugins.cancel = true` to replace the operation; respect earlier cancellation. Listeners must not return promises. |
+| `playerMoveY` | `src/shell/player.js:742` | `data` | Synchronous physics extension point. Payload: `{ this, args, run, result }`. `run(...args)` calls the default operation without redispatching this event. Set `result` and `plugins.cancel = true` to replace the operation; respect earlier cancellation. Listeners must not return promises. |
+| `onStandOnBlock` | `src/shell/player.js:816` | `{mesh, this: this, out}` | Per-tick, when a player's feet resolve against a block mesh — used for special surface behavior (e.g. a parkour gamemode). |
+| `onStandOnTile` | `src/shell/player.js:819` | `{mesh, this: this}` | Per-tick, when a player's feet resolve against a tile mesh — same use case as `onStandOnBlock` for a different mesh category. |
+| `canJump` | `src/shell/player.js:828` | `{ this: this, canJump }` | Before jump eligibility is finalized — a listener can override the boolean. |
+| `scoreKillEggs` | `src/shell/player.js:1190` | `data` | *(undocumented — add an entry to `src/scripts/event-descriptions.json`)* |
+| `onPlayerDeath` | `src/shell/player.js:1279` | `{player: this, firedId}` | A player has died — `firedId` identifies the killer (or is absent/null for an environmental death). |
 | `prepareBabylonBefore` | `src/shell/general/prepare-babylons.js:91` | `{ baseBabylons, babylonDirFiles, addBabylonToZip }` | Model-build pipeline: register new `.babylon` filenames into `data.baseBabylons` before file paths are resolved. |
 | `prepareBabylon` | `src/shell/general/prepare-babylons.js:130` | `{ filename, baseBabylon: undefined, extraBabylons }` | Model-build pipeline: supply the actual file path for a previously-registered `.babylon` filename. |
 | `prepareBabylonExtra` | `src/shell/general/prepare-babylons.js:188` | `{ filename, baseBabylon, extraBabylonData, item }` | Model-build pipeline: reconcile a per-item "extra" babylon/skeleton against the base model (e.g. bone-index fixups). |
@@ -2981,7 +3009,7 @@ Every `plugins.emit(...)` call site found in the files below, extracted directly
 
 > **Audience:** Plugin authors and AI agents · **Prereqs:** [Events (concept)](../events-concept.md)
 
-Every `plugins.emit(...)` call site found in the files below, extracted directly from source - not hand-maintained. Unprefixed at the call site; `PluginManager.emit` adds `services:` before checking for listeners, so e.g. the first row below actually fires as `services:servicesOnLoad`.
+Every `plugins.emit(...)` and `plugins.emitSync(...)` call site found in the files below, extracted directly from source - not hand-maintained. Unprefixed at the call site; `PluginManager.emit` adds `services:` before checking for listeners, so e.g. the first row below actually fires as `services:servicesOnLoad`.
 
 | Event | Location | Payload | Fires when |
 |---|---|---|---|
@@ -7710,6 +7738,49 @@ Hooks `services:setUpShopAvailableBeforeApply` (see [the weekly shop rotation al
 
 ---
 
+## wiki/plugins/Plugin Docs/Default/blockviewer/info.md
+
+> **Canonical source:** [`plugins_default/blockviewer/README.md`](https://github.com/onlypuppy7/LegacyShell/blob/main/plugins_default/blockviewer/README.md) - edit that file, not this page (this page is built live from it, nothing here is a tracked copy).
+
+# Block Viewer
+
+Adds **Block viewer** below the map editor's top toolbar. Runs on the **client server only**, using the existing editor hooks.
+
+## Taking a look
+
+- Browse every loaded editor block, filter by theme, or search its full name.
+- Drag to orbit, scroll to zoom, and right drag to pan.
+- Toggle **Model** off to inspect collision alone. Toggle **Collision**, **Wireframe**, or **Auto turn**. **Fit** frames the model; **Reset** restores the view and rotation. **Y +90°** turns the preview without touching your palette or map.
+- The stats panel shows mesh, vertex, triangle and material counts, dimensions, rotation, collision type, shape count and softness.
+- Expand **Type definition** or **Softness definition** for the selected block's behavior. Hover the stat labels or values for the same definitions.
+- **Esc** or the close button returns to the editor. Typing and rotating in the viewer do not trigger map editor shortcuts.
+
+Collision follows the game's rules: full cells; tilted wedge/iwedge boxes; axis-aligned or oriented bounds from collision children; player-only ladder bounds; and no collision for `none`. Wedge boxes extend beyond a cell: gameplay checks only the part in that cell. For `aabb` and `obb`, the orange shapes show collision bounds; `mesh` shows the collider triangles.
+
+`mesh` collision shows the actual triangles of the collision child and its descendants. Unlike `aabb` and `obb`, it preserves holes and concave gaps. Open surfaces collide from both sides. The viewport includes a ground grid with darker center lines, centered beneath the preview for both editor blocks and imported files.
+
+## Local files
+
+Click **Import model**, or drop a **.babylon** or **.glb** onto the dialog. View the whole model or select blocks from its hierarchy, and use the source dropdown to return to editor blocks. Collision children stay grouped under their block. **Clear import** releases the imported scene.
+
+**Export .babylon** saves either the **Whole file** or the **Selected block** with its collider children and ancestor transforms. Export uses the original imported data, so preview rotation, model visibility and wireframe do not change the file. Embedded texture images stay embedded. Transform-only parents are saved as empty meshes for compatibility with the editor's Babylon 3.3 loader.
+
+Imports are read-only local previews, never uploaded or added to the editor. Block names with a recognized collision type use the same collision rules as editor blocks, including parented collider children. Other models have no inferred gameplay collision. Use self-contained models under 64 MB. Babylon files with separate texture images show geometry and material colors; embedded textures are supported. GLB uses the editor's Babylon 3.3 loader and supports the formats/extensions implemented by that version; newer extensions may require exporting a simpler GLB. Replacing an import releases the previous scene, and rendering stops while the dialog is closed or the page is hidden.
+
+## Installation
+
+Included as a default plugin. Restart the client server after installing/enabling it, then reload the editor. Prefix this folder with `_` to disable it.
+
+`client/vendor/babylonjs.loaders.min.js` is the unmodified **babylonjs-loaders 3.3.0** UMD distribution, pinned to match the editor's Babylon engine. It loads locally on the first GLB import. Source: [npm distribution](https://unpkg.com/babylonjs-loaders@3.3.0/babylonjs.loaders.min.js), [Babylon.js](https://github.com/BabylonJS/Babylon.js). Apache 2.0 license in `client/vendor/LICENSE.md`.
+
+## Checks
+
+Run `node plugins_default/blockviewer/test-viewer.mjs` from the repository root. Checks cover client-only hooks, collision bounds, preview isolation, framing and repeated resource disposal. Browser verification covers both local import formats and the responsive dialog.
+
+Author: onlypuppy7 (+Codex). This plugin is vibecoded.
+
+---
+
 ## wiki/plugins/Plugin Docs/Default/burntblocksets/info.md
 
 > **Canonical source:** [`plugins_default/burntblocksets/README.md`](https://github.com/onlypuppy7/LegacyShell/blob/main/plugins_default/burntblocksets/README.md) - edit that file, not this page (this page is built live from it, nothing here is a tracked copy).
@@ -7858,6 +7929,7 @@ Each waypoint is `{ x, y, z, type }`: `x`/`z` are cell centers, `y` is the stand
 
 The start position doesn't need to be exactly on a standable cell - the search looks around/below it first
 (mid-jump, mid-fall, or right on a cell boundary).
+Real players can also start on a prop's fractional standing surface; its verified height and footprint are kept for the first move.
 
 With a real player available (the normal in-game case) every WALK/RAMP/JUMP/FALL candidate is **verified
 by the real physics** (`physicsSimulation.js`) before the planner will use it; without one (the offline
@@ -8236,6 +8308,329 @@ Purely client-side (only registers `client:pluginSourceInsertion`, splicing `cli
 
 ---
 
+## wiki/plugins/Plugin Docs/Default/discordplaytest/info.md
+
+> **Canonical source:** [`plugins_default/discordplaytest/README.md`](https://github.com/onlypuppy7/LegacyShell/blob/main/plugins_default/discordplaytest/README.md) - edit that file, not this page (this page is built live from it, nothing here is a tracked copy).
+
+# Discord Playtest
+
+Vibeslopped / quickly made. Runs on the client server only. All commands are **Discord slash commands**, not LegacyShell in-game commands.
+
+On the first client run, the plugin creates `plugins_default/discordplaytest/store/config.json`:
+
+```json
+{
+    "enabled": false,
+    "token": "",
+    "guild_id": ""
+}
+```
+
+Paste your Discord bot token, set `enabled` to `true`, and restart the client. Until both are set, the plugin does not start a bot, register hooks or change the client password settings. The plugin loader may still install the declared discord.js dependency. Never commit the store folder or token.
+
+Invite the bot with the `bot` and `applications.commands` scopes. No privileged intents or administrator permission needed. Set `guild_id` to your Discord server ID for server-specific commands; leave it empty for global registration (which may take time to appear). Use one running client process per bot/config; state is local to that client. When switching guild/global scope, remove the old commands from the old scope in Discord.
+
+The owner is fetched from the Discord application. For team-owned bots, only the team owner counts, not every team member. The owner is automatically allowed to create passwords.
+
+| Discord command | Who | Effect |
+| --- | --- | --- |
+| `/playtest duration:2h` | Owner or approved user | Returns a private `playtest:<random password>` login valid for 2 hours. Accepts whole minutes/hours/days, 1m–7d. |
+| `/playtest-clear` | Owner or approved user | Revokes your current password. |
+| `/playtest-clear user:@someone` | Owner | Revokes that user's password. |
+| `/playtest-clear all:true` | Owner | Revokes all temporary passwords, keeping approvals. |
+| `/playtest-approve user:@someone` | Owner | Approves that user to create passwords. |
+| `/playtest-unapprove user:@someone` | Owner | Removes approval and immediately revokes that user's password. |
+
+Each Discord user has one active password. Issuing another replaces it. Password replies are ephemeral (visible only to the caller). Approved users can share the temporary login with testers; it is a shared site password, not a Discord identity check or a game account.
+
+The plugin enables the built-in client HTTP password gate while active. Existing static credentials in `store/config/client.yaml` continue to work; if absent, an unguessable fallback is generated in memory. `playtest` is the temporary username. Use HTTPS for the site. Maintenance/closed mode keeps its existing behavior.
+
+Approvals, SHA-256 password hashes and absolute expiration times persist in the plugin's ignored `store/state.json`. Raw passwords are never saved. Expiry is checked on every HTTP request, including after restarts. Discord outages leave the gate enabled and existing unexpired credentials usable. To disable the plugin, set `enabled` to `false` and restart; the normal client.yaml login settings then apply again.
+
+This protects the client site only. Expiry/clearing does not disconnect existing games, lock the services/game WebSockets, or create/delete game accounts. Browsers may keep a downloaded page and cached assets after expiry; their next request to the site will require a valid password.
+
+Checks: `node --test plugins_default/discordplaytest/test-playtest.js`.
+
+---
+
+## wiki/plugins/Plugin Docs/Default/dynamicmapblocks/info.md
+
+> **Canonical source:** [`plugins_default/dynamicmapblocks/README.md`](https://github.com/onlypuppy7/LegacyShell/blob/main/plugins_default/dynamicmapblocks/README.md) - edit that file, not this page (this page is built live from it, nothing here is a tracked copy).
+
+# dynamicmapblocks
+
+Shared kinematic platforms and physics editing for placed map blocks.
+This plugin is vibecoded. Version 2 replaces the original `spinningdisk` plugin;
+keep only `dynamicmapblocks` installed. Restart the client and game servers together.
+No core files are changed.
+
+## Lighting
+
+Moving map models get the map's surface variation automatically during play.
+The variation stays attached to the model instead of flickering as it crosses cells.
+Editor previews retain the editor's normal material.
+
+**Settings → Graphics → Detail → Moving Block Lighting** adds shading under
+static roofs and other cover. It defaults to off, saves per browser, and changes
+immediately. It reuses the map's existing sunlight field; it does not cast rays
+each frame or rebuild map lighting. Supported GPUs sample a small atlas twice per
+vertex. Older devices use a simpler whole-block sample, updated up to 10 times
+per second. Turning it off releases the GPU atlas; a compact CPU copy remains so
+it can be enabled again without rebuilding the map.
+Local Test's older settings panel shows the same option beside Auto Detail.
+
+This approximates static environmental shade. Moving blocks do not cast new
+environmental shadows, shade each other, or change the cached field as they move.
+
+Open `/dynamicmapblocks/lighting-profile.html` on any client device to compare
+original rendering, surface treatment and environmental shading with 1, 8 or 32
+moving models. The page checks rendered pixels before measuring, warms each mode,
+and provides downloadable results. Render measurements include GPU completion
+with `gl.finish()` and are comparisons rather than normal gameplay FPS. Test on
+the target device; desktop timings do not predict Android performance.
+
+On 2026-10-29, Chrome 155 / WebGL 2 on an RTX 3060 Laptop GPU at 1100 × 380
+showed 0.054 and 0.060 ms additional completed render time for 32 movers, compared
+with the average of the surface-only runs before and after each environmental
+run. Eight movers were within measurement noise. Each mode recorded 180 frames
+after 30 warm-up frames. Pixel checks also passed under WebGL 1 and WebGL 2.
+
+## Edit block physics
+
+Place a block normally, then open **Physics** and click the block. The selected
+block is highlighted. Choose **Spin**, set X/Y/Z (or a custom axis), a centre,
+corner or custom pivot, speed and direction, then press **Apply**. Custom pivots
+use offsets from the platform origin. The orange marker shows the pivot.
+Full, AABB, OBB and triangle-mesh blocks use the same panel and movement metadata.
+Models without a collision child can move too: the panel shows a small warning,
+and they remain visual-only. Cloned collision children stay hidden in previews and play.
+An existing multi-block platform can be edited by selecting any of its blocks.
+
+**Linear path** provides editable XYZ waypoint offsets, loop/back-and-forth mode
+and the duration of a complete cycle. Time offset shifts the starting phase.
+**Preview** plays the current settings without saving them; stopping it restores
+the original block. **Reset** restores the saved settings. Choose **Static** and
+**Apply** to remove movement. Close Physics (or press Escape) to build again.
+Physics mode selects blocks instead of placing, deleting or rotating them.
+Selected movements have coloured path lines, waypoint dots and direction arrows;
+green marks the start. **Show all guides** displays every saved movement's guides
+and stays enabled outside Physics mode. **Preview all** plays all saved movements
+together, including the selected draft. Stopping a preview restores the original blocks.
+
+**Circular path** adds a radius, horizontal or vertical plane, direction and cycle
+duration. The circle starts at the block's placement and its centre lies one radius
+back along the plane's first axis. **Face travel direction** rotates along a linear
+or circular path. For waypoint paths, **Turn time** is the rotation time after each
+corner: 0 snaps, larger values ease in and out using quaternion interpolation. Long turns are
+capped at half the current segment's duration so the next corner remains distinct.
+**Facing offset** aligns models whose authored front faces another direction.
+Save/open, backups, undo and the normal local/online test buttons retain physics.
+Deleting or replacing a block removes its assignment; moving the whole map moves
+the platform origins and assigned blocks too. New placements always start static.
+Old `extents.spinningDisks` maps migrate to general platform metadata when saved;
+the preset disk creation controls have been removed.
+
+The object palette contains **dynamic.spinner.mesh**, an imported static block.
+`client/spinner.json` is a static example map using that model; `client/spinner-moving.json`
+uses the same block with spin metadata. Both are ordinary map files.
+Its `.babylon` asset
+is merged into `map.babylon` by the same client/game preparation hooks as other model
+plugins. Rebuild the asset with `node plugins_default/dynamicmapblocks/build-model.js`.
+
+## Engine layout
+
+- `motion.js`: pure time-to-transform samplers (`none`, `spin`, `path`, `circle`),
+  path heading, turn interpolation and the room clock.
+- `geometry.js`: local box/cylinder/triangle geometry, overlap tests and segment raycasts.
+- `assets.js`: reloads missing map models from the current merged asset when a browser
+  has an older cached model set; existing templates and editor saves are preserved.
+- `platforms.js`: validated map definitions, block collision adapters, scoped historical
+  queries, bounds, contact detection and passenger transport.
+- `shared.js`: the only player/collider integration layer. It also prepares map loading
+  so assigned blocks leave both the static collision grid and static rendered map.
+- `protocol.js`: room clock and per-player simulation time sent in an independent
+  packet before ordinary sync. This also works when another plugin replaces/reorders
+  normal sync packets. Client reconciliation restores time before replaying inputs.
+- `render.js`: rendering adapters, sampling the same transforms as collision.
+- `disk.js`: compatibility with legacy disk data.
+- `editor-state.js` / `editor.js`: block assignments, save/load and the physics panel.
+- `guides.js`: coloured movement paths, waypoint markers and direction arrows.
+
+Geometry has no knowledge of movement types. Movement has no knowledge of player
+physics. Carrying transforms the passenger's local contact position from the previous
+platform pose into the next pose; the cylinder does not get a special player path.
+Simulation time is included in player snapshots and extrapolated states. Historical
+queries are scoped with `world.at(time, callback)` and restore their previous time even
+when a callback throws. Physics never reads a rendering mesh's current transform.
+Vertical contacts use continuous separating-axis sweeps for triangles and convex
+shapes. Transformed triangle bounds and projections are cached per pose, and prediction
+reuses recent poses. Custom shapes without sweep support retain the sampled fallback.
+
+## Map definitions
+
+General platforms live in `extents.platforms`. Positions and block coordinates use
+the saved map origin. Shape positions and spin pivots are relative to the platform.
+Body/shape rotations are radians; block `rx`/`ry`/`rz` retain the map's quarter turns.
+Motion speed is degrees per second. `phase` is an optional offset in seconds.
+
+An elevator made from a box:
+
+```json
+{
+  "id": "lift",
+  "position": { "x": 7, "y": 1.5, "z": 7 },
+  "shapes": [{
+    "type": "box",
+    "min": { "x": -2, "y": -0.5, "z": -2 },
+    "max": { "x": 2, "y": 0.5, "z": 2 }
+  }],
+  "motion": {
+    "type": "path",
+    "points": [{ "y": 0 }, { "y": 4 }],
+    "duration": 8,
+    "loop": "pingpong"
+  }
+}
+```
+
+`duration` is the time for a complete cycle. Paths follow straight segments at
+constant speed. `loop` closes the last waypoint back to the first; `pingpong`
+travels to the last waypoint and back. Waypoints are local offsets, not world positions.
+In the editor, Add waypoint copies the last waypoint's current coordinates, and
+Reverse waypoints reverses their order. Press Apply to save either change.
+Copy movement stores the current panel settings, including edits not yet applied.
+Select another block and use Paste movement, then Preview or Apply. The copied
+settings remain available after refreshing the editor. Centre and corner spin
+pivots adapt to the destination block; custom pivot offsets are copied as entered.
+Path guides and travel turns use the collision bounds' centre, including models
+whose geometry is offset from their origin. Models without colliders use their
+visual bounds. Movement offsets remain relative to each block's starting position.
+For spin, use `{ "type": "spin", "axis": { "y": 1 }, "pivot": { "x": -2 }, "speed": 30 }`.
+Arbitrary axis vectors and pivots are supported by the transform sampler.
+For a circle, use `{ "type": "circle", "radius": 3, "plane": "xz", "duration": 8 }`;
+`plane` can also be `xy` or `yz`, and `reverse: true` reverses travel.
+Path and circle motion accept `orient: true` and `headingOffset` in degrees.
+Waypoint paths additionally accept `turnDuration` in seconds (0 means an instant turn).
+
+To move existing map blocks, supply `blocks` instead of, or alongside, `shapes`:
+
+```json
+{
+  "id": "crate",
+  "position": { "x": 7.5, "y": 1.5, "z": 7.5 },
+  "blocks": [{ "mesh": "shipyard.crate-wood.full", "x": 7, "y": 1, "z": 7 }],
+  "motion": {
+    "type": "path",
+    "points": [{}, { "x": 4 }],
+    "duration": 8,
+    "loop": "pingpong"
+  }
+}
+```
+
+`full` uses a local unit cube; moving/rotating it no longer means occupying a fixed
+voxel. `aabb` uses the collision child's bounds in the block's model space. `obb`
+retains the collision child's orientation. Both include collision descendants, matching
+the existing bounds-based engine. `mesh` tests the actual indexed triangles of the
+first collision child and all its descendants, including nested transforms and scale.
+Use the model name `theme.name.mesh` in the editor just like `theme.name.obb`.
+Collision children stay invisible; the visible model is independent of the collider.
+Triangle queries use a cached bounding-volume hierarchy and preserve concave gaps.
+Closed, watertight collision meshes also detect objects fully inside their volume;
+open meshes behave as two-sided surfaces. Collision matches the authored triangles,
+so a round collider's precision depends on its segment count.
+
+Static `mesh` blocks and moving `mesh` blocks share the same triangle queries for
+players, points, bullets and grenade normals. Geometry extending beyond the placement
+cell is included. Adding a block to `extents.platforms` gives it motion; the imported
+model itself contains no automatic movement. The spinner uses 96 segments and no
+cylinder-specific collision rule.
+One platform can contain multiple blocks. A block cannot belong to two platforms.
+Source map data and model/collider templates are not mutated.
+
+Limits: 32 platforms, 128 shapes/blocks each, 64 waypoints, spin speed up to 90°/s,
+path speed up to 16 blocks/s, circle radius .25–16, and cycles of at least one second.
+
+## Extending it
+
+Register a shape with `PlatformShapes.register(name, createGeometry)`. Geometry supplies
+local `vertices`, face `normals`, unique edge directions and `ray(origin, direction)`.
+Register its visual builder with `PlatformRender.register(name, buildMesh)`.
+An optional geometry `overlap(matrix, queryBox)` can supply an analytic fast path;
+otherwise the shared convex separating-axis test is used.
+Custom non-convex shapes can supply `contact(matrix, queryBox)`, returning a
+separating displacement for moving-platform pushes; convex shapes get this from SAT.
+
+Register motion with `PlatformMotion.register(name, sampleMatrix, maxTravel)`.
+`sampleMatrix(motion, seconds)` must be pure. `maxTravel(motion, elapsedSeconds, radius)`
+must bound passenger travel so collision checks also cover curved paths and complete
+loops. New adapters don't require new branches in the player integration.
+
+## Current limits
+
+This is a kinematic platform foundation, not a rigid-body solver. Passenger transport,
+landing, head/side collision, rays, rotation and vertical lifts are covered.
+Moving and rotating collision geometry pushes players (including airborne players)
+and thrown grenades through a shared, substepped contact solver. Convex solids use SAT
+separation; imported meshes resolve actual triangle surfaces. Static terrain and other
+platforms block displacement. Motion bounds include turning geometry as well as travel.
+Rotated geometry and ray normals work on arbitrary axes, but comfortable slope walking,
+crushing responses and platform-to-platform dynamics need further contact-solver work.
+Trapped actors are not teleported through walls; a kinematic mover can intersect them
+when no valid displacement remains. Blocking a passenger does not stop a platform.
+Jumping detaches without adding launch momentum. Explosion occlusion and bot navigation
+still use their existing voxel-only systems. Cylinder overlap uses an analytic upright
+case and a 64-sided convex approximation when tilted.
+
+Both server and client need the same plugin. Sync packets provide authoritative times;
+the tests exercise encoding, client decoding and replay, but are not a multiplayer
+latency/load certification.
+
+Run checks: `node plugins_default/dynamicmapblocks/test.js`.
+
+Profile shared player simulation, including two prediction passes per tick:
+`node plugins_default/dynamicmapblocks/profile.js latest 3000`.
+CPU profiles and timing/call-count reports go in `store/dynamicmapblocks-profile/`.
+The benchmark includes full-block wall/corner contact, exact face contact, larger
+time steps and six-step replay bursts using the wire format's position quantization.
+An optional fourth argument filters cases, e.g. `latest 10000 wall` or `latest 10000 replay`.
+It records p95/p99/p99.9, worst ticks, over-budget ticks, map checks and blocked carry.
+These shared-physics measurements do not measure browser rendering or network RTT.
+
+## Engine hooks
+
+The plugin uses synchronous cancellable engine events rather than replacing prototypes
+or editor functions. These listeners must finish in the current call; do not use async
+functions or return promises. Normal async plugin events keep their existing behavior.
+
+Physics events expose `{ this, args, run, result }`. `run(...args)` invokes the ordinary
+operation without redispatching that event. A replacement sets `result` and then
+`plugins.cancel = true`. Listeners should respect an earlier cancellation. This lets
+movement use historical collision time with a try/finally scope around the operation.
+
+| Area | Events (game: prefix) |
+| --- | --- |
+| Map preparation | roomBuildMap |
+| Collider setup | colliderSetParams |
+| Collision queries | colliderMeshCell, colliderRayCell, colliderMeshMap, colliderPointMap, colliderRayMap, colliderProjectileCell, colliderGrenadeCell |
+| Player physics | playerMovement, playerMoveY, playerSnapshot |
+| Grenade physics | grenadeThrow, grenadeUpdate |
+| Lighting field | lightmapReady |
+| Editor selection | editorPointerDown, editorPointerMove, editorPointerUp |
+| Editor lifecycle | editorInitMapBefore/After, editorLoadMapBefore/After |
+| Editor serialization and movement | editorExtentsBefore/After, editorSaveMap, editorMoveMapBefore/After |
+
+Editor JavaScript uses `pluginSourceInsertion` with `position: 'editor'`. The remaining
+HTML insertion loads the panel stylesheet; shader changes use `shaderSources` and its
+existing GLSL anchors. Neither edits game function source text.
+
+`motion.rotatePlayers` defaults to false. When enabled for spin or travel-facing paths,
+a supported player follows horizontal platform rotation while retaining their mouse-look
+offset. Pitch and roll stay upright. Local player input records the turn before simulation;
+replays and remote players use the recorded yaw, avoiding a second turn.
+
+---
+
 ## wiki/plugins/Plugin Docs/Default/fancygraphics/info.md
 
 > **Canonical source:** [`plugins_default/fancygraphics/README.md`](https://github.com/onlypuppy7/LegacyShell/blob/main/plugins_default/fancygraphics/README.md) - edit that file, not this page (this page is built live from it, nothing here is a tracked copy).
@@ -8320,7 +8715,7 @@ Runs on **services, game and client**. LegacyProfiles is used for the Achievemen
 | Combat | Getting Cracking IV | 1,000 lifetime kills | 10,000 eggs |
 | Combat | Getting Cracking V | 5,000 lifetime kills | 25,000 eggs |
 | Combat | Getting Cracking VI | 10,000 lifetime kills | 50,000 eggs |
-| Challenges | Sidearm Survivor | Survive a full Zombies round without firing a primary, cheats off | 2,500 eggs |
+| Challenges | Sidearm Survivor | Survive a full Zombies round on Blue with at least 50 kills, without firing a primary | 2,500 eggs |
 
 Existing accounts qualify too. Signing in or connecting to achievements checks the authoritative account totals, so past kills count. Kills come from the existing services `addKill` event, never a client progress message. Guests cannot earn or claim account rewards.
 
@@ -8328,7 +8723,7 @@ Achievements use existing game PNGs where assigned. Locked achievements are grey
 
 The profile tab shows `Achievements X/Y` for the viewed account, independent of active filters. Achievements are grouped into category lists with search, category and status filters (locked, unlocked, rewards ready, redeemed). List rows carry the same category colour as their pins. Live progress updates preserve the filter controls, and claimed rewards keep the current filters. Kill tiers share a title with I–VI suffixes and use threshold-based IDs (`kills_5`, `kills_100`, etc.). No migration is included for the local development IDs.
 
-Sidearm Survivor uses the ZombiesMode plugin's `zombiesRoundStarted` and `zombiesRoundFinished` events. The game server records logged-in participants at the start, observes actual primary ammunition consumption through a small wrapper around `Player.fire`, and checks surviving humans at the finish. Dry fires and blocked shots do not count. Late joins and reconnects cannot qualify for that round; a cheat flag observed during the round disqualifies it. A registered game-server auth key is required to report the win to services. The browser cannot report progress for this challenge. It records an unlock only; rewards still need redemption in the profile.
+Sidearm Survivor uses the ZombiesMode plugin's `zombiesRoundStarted` and `zombiesRoundFinished` events. On the installed Blue map, the game server records logged-in participants at the start, counts their scored kills through `scoreKillEggs`, observes actual primary ammunition consumption through a small wrapper around `Player.fire`, and checks surviving humans with at least 50 kills at the finish. Kills must be earned in that round; the victory cleanup does not count. Custom maps named Blue do not qualify. Dry fires and blocked shots do not count. Late joins and reconnects cannot qualify for that round; a cheat flag observed during the round disqualifies it. A registered game-server auth key is required to report the win to services. The browser cannot report progress for this challenge. It records an unlock only; rewards still need redemption in the profile.
 
 Eggs, exact skin thumbnails and VIP time are small reward icons in the list and popup. The optional ItemToolTips plugin supplies the hover tooltips; reward icons also support keyboard focus. Without it, icons retain native title tooltips and accessible labels. Tooltips are removed when rows are filtered, tabs change, popups are dismissed or the profile closes. Skin and stamp thumbnails reuse the existing item renderer at its native 256px size, displayed small in CSS.
 
@@ -9365,6 +9760,7 @@ The horde's team options (`damageModifier`, `contactDamage`, `contactCooldown`, 
 
 ```bash
 node plugins_default/zombiesmode/test-zombies.js [map]    # Two Towers by default
+node plugins_default/zombiesmode/test-navigation.js [map] [seed] [plain|small|brutish|sudden] # Blue by default
 node plugins_default/zombiesmode/test-client-registration.js
 ```
 
@@ -9379,6 +9775,8 @@ The cost of the mode is route searching (the zombies' AI is otherwise cheap): ev
 `test-zombies.js` boots a real room headlessly with stand-in humans: the gametype, the horde and its head start, eggs, infection (by dying, by leaving through the menu, by joining late), sudden death, both ways a round can end, the next round (including everyone being spawned into it), where zombies spawn (and that the position is in the respawn packet), whether they reach and bite a standing human, whether they find their way up to a human a few levels higher, whether they jump a one block gap from a run-up, whether they get as close as they can to a human on a tower they cannot walk up, and that they wander when they are stuck on the way (`NOSWARM=1` turns that off to compare). Takes a minute or so.
 
 `test-client-registration.js` loads `shared.js` and `zombievisuals.js` the way the browser bundle does and checks the gametype registers, the browser-side spawn behaves, the WAITING... text, and the zombie look (the hooks on the actors, the stumble, the gun and hands, and that humans are left alone), with no server and the meshes stood in for.
+
+`test-navigation.js` starts a zombie on each supported prop and stair on the real map and checks it reaches a nearby human within 30 simulated seconds. Recovery checks actual position changes, so pushing against something still counts as stuck; an active route keeps its own jump and replan recovery until it finishes.
 
 ---
 

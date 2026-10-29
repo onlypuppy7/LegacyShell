@@ -1,4 +1,5 @@
 //legacyshell: collider
+import { plugins } from '#plugins';
 import BABYLON from "babylonjs";
 import { isClient, iteratePlayers } from '#constants';
 //legacyshell: ss
@@ -59,14 +60,32 @@ class ColliderConstructor {
         this.setUp = 1;
     };
 
-    setParams(mapP, mapMeshesP) {
+    setParams(...args) {
+        if (plugins.listeners[plugins.type + ':colliderSetParams']?.length) {
+            var data = { this: this, args, run: (...values) => this.setParamsDefault(...values) };
+            plugins.emitSync('colliderSetParams', data);
+            if (plugins.cancel) return data.result;
+        };
+        return this.setParamsDefault(...args);
+    };
+
+    setParamsDefault(mapP, mapMeshesP) {
         map = mapP;
         mapMeshes = mapMeshesP;
 
         this.setUp = 2;
     };
 
-    pointCollidesWithMap(point, ignoreSoft) {
+    pointCollidesWithMap(...args) {
+        if (plugins.listeners[plugins.type + ':colliderPointMap']?.length) {
+            var data = { this: this, args, run: (...values) => this.pointCollidesWithMapDefault(...values) };
+            plugins.emitSync('colliderPointMap', data);
+            if (plugins.cancel) return data.result;
+        };
+        return this.pointCollidesWithMapDefault(...args);
+    };
+
+    pointCollidesWithMapDefault(point, ignoreSoft) {
         if (isNaN(point.x) || isNaN(point.y) || isNaN(point.z)) return false;
         var cx = Math.floor(point.x),
             cy = Math.floor(point.y),
@@ -95,7 +114,16 @@ class ColliderConstructor {
         return this.meshCollidesWithMap(player.playerCollisionMesh, pos || player);
     };
 
-    meshCollidesWithMap(mesh, pos) {
+    meshCollidesWithMap(...args) {
+        if (plugins.listeners[plugins.type + ':colliderMeshMap']?.length) {
+            var data = { this: this, args, run: (...values) => this.meshCollidesWithMapDefault(...values) };
+            plugins.emitSync('colliderMeshMap', data);
+            if (plugins.cancel) return data.result;
+        };
+        return this.meshCollidesWithMapDefault(...args);
+    };
+
+    meshCollidesWithMapDefault(mesh, pos) {
         var cellsChecked = {};
         if (isNaN(pos.x) || isNaN(pos.y) || isNaN(pos.z)) return true;
         for (var bbox = mesh.getBoundingInfo().boundingBox, i = 0; i < bbox.vectors.length; i++) {
@@ -113,7 +141,16 @@ class ColliderConstructor {
         return false;
     }
 
-    meshCollidesWithCell(mesh, pos, cx, cy, cz, ignoreSoft) {
+    meshCollidesWithCell(...args) {
+        if (plugins.listeners[plugins.type + ':colliderMeshCell']?.length) {
+            var data = { this: this, args, run: (...values) => this.meshCollidesWithCellDefault(...values) };
+            plugins.emitSync('colliderMeshCell', data);
+            if (plugins.cancel) return data.result;
+        };
+        return this.meshCollidesWithCellDefault(...args);
+    };
+
+    meshCollidesWithCellDefault(mesh, pos, cx, cy, cz, ignoreSoft) {
         if (!map.data[cx] || !map.data[cx][cy] || !map.data[cx][cy][cz]) return false;
         var cell = map.data[cx][cy][cz];
         if (cell.idx) {
@@ -150,7 +187,16 @@ class ColliderConstructor {
         return false;
     }
 
-    rayCollidesWithMap(origin, direction, callback) {
+    rayCollidesWithMap(...args) {
+        if (plugins.listeners[plugins.type + ':colliderRayMap']?.length) {
+            var data = { this: this, args, run: (...values) => this.rayCollidesWithMapDefault(...values) };
+            plugins.emitSync('colliderRayMap', data);
+            if (plugins.cancel) return data.result;
+        };
+        return this.rayCollidesWithMapDefault(...args);
+    };
+
+    rayCollidesWithMapDefault(origin, direction, callback) {
         if (isNaN(origin.x) || isNaN(origin.y) || isNaN(origin.z)) return false;
         if (origin.x < 0 || origin.x >= map.width || origin.z < 0 || origin.z >= map.depth || origin.y < 0 || origin.y >= map.height) return false;
         var radius = direction.length(),
@@ -208,7 +254,16 @@ class ColliderConstructor {
         return ds < 0 ? this.intbound(-s, -ds) : (1 - (s = (s % 1 + 1) % 1)) / ds;
     }
 
-    getCellForRay(voxel) {
+    getCellForRay(...args) {
+        if (plugins.listeners[plugins.type + ':colliderRayCell']?.length) {
+            var data = { this: this, args, run: (...values) => this.getCellForRayDefault(...values) };
+            plugins.emitSync('colliderRayCell', data);
+            if (plugins.cancel) return data.result;
+        };
+        return this.getCellForRayDefault(...args);
+    };
+
+    getCellForRayDefault(voxel) {
         try {
             var cell = map.data[voxel.x][voxel.y][voxel.z];
         } catch (e) {
@@ -223,7 +278,16 @@ class ColliderConstructor {
         return cell;
     };
 
-    projectileCollidesWithCell(origin, direction, voxel) {
+    projectileCollidesWithCell(...args) {
+        if (plugins.listeners[plugins.type + ':colliderProjectileCell']?.length) {
+            var data = { this: this, args, run: (...values) => this.projectileCollidesWithCellDefault(...values) };
+            plugins.emitSync('colliderProjectileCell', data);
+            if (plugins.cancel) return data.result;
+        };
+        return this.projectileCollidesWithCellDefault(...args);
+    };
+
+    projectileCollidesWithCellDefault(origin, direction, voxel) {
         var cell = this.getCellForRay(voxel);
         if (!cell) return false;
         var colliderMesh = cell.colliderMesh;
@@ -257,7 +321,16 @@ class ColliderConstructor {
         return false;
     };
 
-    grenadeCollidesWithCell(origin, direction, voxel, ignoreSoft) {
+    grenadeCollidesWithCell(...args) {
+        if (plugins.listeners[plugins.type + ':colliderGrenadeCell']?.length) {
+            var data = { this: this, args, run: (...values) => this.grenadeCollidesWithCellDefault(...values) };
+            plugins.emitSync('colliderGrenadeCell', data);
+            if (plugins.cancel) return data.result;
+        };
+        return this.grenadeCollidesWithCellDefault(...args);
+    };
+
+    grenadeCollidesWithCellDefault(origin, direction, voxel, ignoreSoft) {
         var cell = this.getCellForRay(voxel);
         if (!cell) return false;
         var colliderMesh = cell.colliderMesh;

@@ -4,7 +4,7 @@
 
 > **Audience:** Plugin authors and AI agents · **Prereqs:** [Events (concept)](../events-concept.md)
 
-Every `plugins.emit(...)` call site found in the files below, extracted directly from source - not hand-maintained. Unprefixed at the call site; `PluginManager.emit` adds `services:` before checking for listeners, so e.g. the first row below actually fires as `services:servicesOnLoad`.
+Every `plugins.emit(...)` and `plugins.emitSync(...)` call site found in the files below, extracted directly from source - not hand-maintained. Unprefixed at the call site; `PluginManager.emit` adds `services:` before checking for listeners, so e.g. the first row below actually fires as `services:servicesOnLoad`.
 
 | Event | Location | Payload | Fires when |
 |---|---|---|---|

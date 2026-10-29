@@ -469,7 +469,16 @@ class Player {
 
         this.predicted = this.simulateMovement({ ...this.predicted, delta }, true);
     };
-    simulateMovement(input, dontAssign) {
+    simulateMovement(...args) {
+        if (plugins.listeners[plugins.type + ':playerMovement']?.length) {
+            var data = { this: this, args, run: (...values) => this.simulateMovementDefault(...values) };
+            plugins.emitSync('playerMovement', data);
+            if (plugins.cancel) return data.result;
+        };
+        return this.simulateMovementDefault(...args);
+    };
+
+    simulateMovementDefault(input, dontAssign) {
         const out = {
             x: input.x ?? this.x,
             y: input.y ?? this.y,
@@ -580,7 +589,16 @@ class Player {
         if (!this.map) return;
         for (let i = 0; i < 400 && this.collidesWithMap(); i++) this.y += 0.1;
     };
-    createSnapshot(returnShallow) { //save all necessary data to be able to restore player state
+    createSnapshot(...args) {
+        if (plugins.listeners[plugins.type + ':playerSnapshot']?.length) {
+            var data = { this: this, args, run: (...values) => this.createSnapshotDefault(...values) };
+            plugins.emitSync('playerSnapshot', data);
+            if (plugins.cancel) return data.result;
+        };
+        return this.createSnapshotDefault(...args);
+    };
+
+    createSnapshotDefault(returnShallow) { //save all necessary data to be able to restore player state
         const shallow = {
             x: this.x,
             y: this.y,
@@ -718,7 +736,16 @@ class Player {
         if (Object.keys(dontApply).length) return out;
         Object.assign(this, out);
     };
-    moveY(ndy, delta, dontApply = {}) {
+    moveY(...args) {
+        if (plugins.listeners[plugins.type + ':playerMoveY']?.length) {
+            var data = { this: this, args, run: (...values) => this.moveYDefault(...values) };
+            plugins.emitSync('playerMoveY', data);
+            if (plugins.cancel) return data.result;
+        };
+        return this.moveYDefault(...args);
+    };
+
+    moveYDefault(ndy, delta, dontApply = {}) {
         const out = {
             x: dontApply.x ?? this.x,
             y: dontApply.y ?? this.y,

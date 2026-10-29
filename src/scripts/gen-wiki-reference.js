@@ -146,7 +146,7 @@ function extractEmitsFromFile(relPath) {
             const isPluginsEmit =
                 callee.type === 'MemberExpression' &&
                 callee.property.type === 'Identifier' &&
-                callee.property.name === 'emit' &&
+                ['emit', 'emitSync'].includes(callee.property.name) &&
                 callee.object.type === 'Identifier' &&
                 callee.object.name === 'plugins';
 
@@ -210,7 +210,7 @@ function genEventCatalog() {
         lines.push(GENERATED_BANNER, '');
         lines.push(`# ${group.title}`, '');
         lines.push(`> **Audience:** Plugin authors and AI agents · **Prereqs:** [Events (concept)](../events-concept.md)`, '');
-        lines.push(`Every \`plugins.emit(...)\` call site found in the files below, extracted directly from source - not hand-maintained. Unprefixed at the call site; \`PluginManager.emit\` adds \`${group.prefix}:\` before checking for listeners, so e.g. the first row below actually fires as \`${group.prefix}:${rows[0]?.event ?? '...'}\`.`, '');
+        lines.push(`Every \`plugins.emit(...)\` and \`plugins.emitSync(...)\` call site found in the files below, extracted directly from source - not hand-maintained. Unprefixed at the call site; \`PluginManager.emit\` adds \`${group.prefix}:\` before checking for listeners, so e.g. the first row below actually fires as \`${group.prefix}:${rows[0]?.event ?? '...'}\`.`, '');
         lines.push('| Event | Location | Payload | Fires when |');
         lines.push('|---|---|---|---|');
 

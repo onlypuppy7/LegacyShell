@@ -295,6 +295,27 @@ export class PluginManager {
         this.listeners[event].push(listener);
     };
 
+    emitSync(event, ...args) { //when plugins must answer before the current operation continues
+        this.cancel = false;
+        event = `${this.type}:${event}`;
+        var cancelled = false;
+        for (var listener of this.listeners[event] || []) {
+            try {
+                if (isObject(args[0])) args[0].EVENT = event;
+                this.cancel = cancelled;
+                var result = listener(...args, this);
+                cancelled = cancelled || this.cancel;
+                if (result && typeof result.then === 'function') {
+                    result.catch(error => console.error(`Error in listener for event ${event}:`, error));
+                    console.error(`Listener for synchronous event ${event} returned a promise`);
+                };
+            } catch (error) {
+                console.error(`Error in listener for event ${event}:`, error);
+            };
+        };
+        this.cancel = cancelled;
+    };
+
     async emit(event, ...args) { //when the main program emits an event
         this.cancel = false;
 

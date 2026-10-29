@@ -140,6 +140,9 @@ export class RoomConstructor {
     };
 
     async buildMap(minMap = this.minMap) {
+        var data = { this: this, minMap };
+        await plugins.emit('roomBuildMap', data);
+        minMap = data.minMap;
         return new Promise(async (resolve, reject) => {
             try {
                 setParamsforLoader(minMap, this.Collider);
