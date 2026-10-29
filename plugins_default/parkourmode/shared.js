@@ -246,7 +246,7 @@ export const ParkourModePlugin = {
         var player = data.this;
 
         var currentGameType = isServer ? player.room.gameType : gameType;
-        if (this.parkourGameTypeIndex !== undefined && currentGameType !== this.parkourGameTypeIndex) return;
+        if (currentGameType !== this.parkourGameTypeIndex) return; //not registered (undefined) counts as not parkour too
 
         if (player.highestCheckpoint == undefined) player.highestCheckpoint = 0;
 
