@@ -372,6 +372,7 @@ export default async function run () {
                         };
                         var newServicesInfo = JSON.stringify(info);
                         if (Object.keys(info.gameInfo).length !== 0 && servicesInfo !== newServicesInfo) {
+                            fs.mkdirSync(path.join(ss.currentDir, 'store', 'client-modified'), { recursive: true }); //on a first boot this can come in before the build has made the folder
                             fs.writeFileSync(path.join(ss.currentDir, 'store', 'client-modified', 'servicesInfo.json'), newServicesInfo);
                         };
                         servicesInfo = newServicesInfo;
