@@ -73,6 +73,17 @@ export const LegacyShellCorePlugin = {
     },
 
     onPageLoadedEnd() {
+        var joinCode = isClient && document.getElementById("joinCode");
+        if (joinCode && !joinCode.pasteLinkPatched) { //maxlength would chop a pasted link, so pull the code out first
+            joinCode.pasteLinkPatched = true;
+            joinCode.addEventListener("paste", function (event) {
+                var text = (event.clipboardData || window.clipboardData).getData("text").trim();
+                if (!text.includes("#")) return;
+                event.preventDefault();
+                joinCode.value = text.split("#").pop().slice(0, joinCode.maxLength);
+            });
+        };
+
         if (!isClient || this.eggColorPatched) return;
         this.eggColorPatched = true;
 
