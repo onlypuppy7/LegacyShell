@@ -18,6 +18,25 @@ export const PlatformMap = {
         return value && ['x', 'y', 'z'].every(axis => value[axis] === undefined ||
             (Number.isFinite(value[axis]) && Math.abs(value[axis]) <= 4096));
     },
+    cellCentre(body) { //the middle of the cells a body's blocks sit in, from the body's own position
+        var sum = BABYLON.Vector3.Zero();
+        for (var block of body.blocks) sum.addInPlace(new BABYLON.Vector3(block.x + .5 - body.position.x, block.y + .5 - body.position.y, block.z + .5 - body.position.z));
+        return sum.scale(1 / body.blocks.length);
+    },
+    validTrigger(motion) {
+        var t = motion.trigger, finite = (value, low, high) => value === undefined || (Number.isFinite(value) && value >= low && value <= high);
+        if (!t || typeof t !== 'object' || Array.isArray(t)) return false;
+        var choice = (value, list) => value === undefined || list.includes(value);
+        if (!choice(t.source, ['contact', 'zone']) || !choice(t.mode, ['run', 'latch', 'cycle']) || !choice(t.release, ['pause', 'reverse', 'return', 'snap']) || !choice(t.surface, ['top', 'sides', 'any'])) return false;
+        if (['players', 'items', 'bullets'].some(key => t[key] !== undefined && !PlatformTeams.valid(t[key]))) return false;
+        if (!finite(t.delayStart, 0, 60) || !finite(t.delayReset, 0, 60) || !finite(t.cooldown, 0, 600) || !finite(t.returnSeconds, .5, 600) || !finite(t.angle, 1, 3600)) return false;
+        if (t.zone === undefined) return true;
+        var z = t.zone;
+        if (!z || typeof z !== 'object' || !choice(z.shape, ['sphere', 'box', 'cylinder']) || (z.follow !== undefined && typeof z.follow !== 'boolean')) return false;
+        if (!finite(z.radius, .25, 64) || !finite(z.height, .25, 64)) return false;
+        return [z.size, z.offset].every(vector => vector === undefined || (this.finiteVector(vector) && ['x', 'y', 'z'].every(axis => Math.abs(vector[axis] || 0) <= 64))) &&
+            (z.size === undefined || ['x', 'y', 'z'].every(axis => (z.size[axis] ?? 1) >= .25));
+    },
     read(minMap) {
         if (!minMap) return [];
         var list = Array.isArray(minMap.extents?.platforms) ? minMap.extents.platforms : [];
@@ -34,24 +53,30 @@ export const PlatformMap = {
                 !this.finiteVector(body.position) || !this.finiteVector(body.rotation || {})) continue;
             var motion = body.motion || { type: 'none' };
             if (!PlatformMotion.types.has(motion.type) || !Number.isFinite(motion.phase ?? 0)) continue;
-            if (['rotatePlayers', 'rotateItems', 'collidePlayers', 'collideItems', 'pushThroughMap'].some(key => motion[key] !== undefined && typeof motion[key] !== 'boolean')) continue;
+            if (['rotatePlayers', 'rotateItems', 'collidePlayers', 'collideItems', 'collideBullets'].some(key => motion[key] !== undefined && !PlatformTeams.valid(motion[key]))) continue;
+            if (motion.pushThroughMap !== undefined && typeof motion.pushThroughMap !== 'boolean') continue;
             if (motion.orient !== undefined && typeof motion.orient !== 'boolean') continue;
+            if (motion.crush !== undefined && (!Number.isFinite(motion.crush) || motion.crush < 1 || motion.crush > 9999 || motion.pushThroughMap)) continue;
+            if (motion.centre !== undefined && !['cell', 'mesh'].includes(motion.centre)) continue;
+            if (motion.pivot !== undefined && (!this.finiteVector(motion.pivot) || ['x', 'y', 'z'].some(axis => Math.abs(motion.pivot[axis] || 0) > 4096))) continue;
             if (!Number.isFinite(motion.turnDuration ?? 0) || (motion.turnDuration ?? 0) < 0 || (motion.turnDuration ?? 0) > 10 ||
                 !Number.isFinite(motion.headingOffset ?? 0) || Math.abs(motion.headingOffset ?? 0) > 3600) continue;
             if (motion.type === 'spin' && (!Number.isFinite(motion.speed) || Math.abs(motion.speed) > 90 ||
                 !this.finiteVector(motion.axis || { y: 1 }) || !this.finiteVector(motion.pivot || {}) ||
                 PlatformMotion.vector(motion.axis || { y: 1 }).lengthSquared() < 1e-12)) continue;
             if (motion.type === 'path' && (!Array.isArray(motion.points) || motion.points.length < 2 ||
-                motion.points.length > 64 || !motion.points.every(point => this.finiteVector(point)) ||
-                !Number.isFinite(motion.duration) || motion.duration < 1 || !['loop', 'pingpong', 'snap'].includes(motion.loop))) continue;
+                motion.points.length > 64 || !motion.points.every(point => this.finiteVector(point) && (point.rotation === undefined || (this.finiteVector(point.rotation) && ['x', 'y', 'z'].every(axis => Math.abs(point.rotation[axis] || 0) <= 3600)))) ||
+                !Number.isFinite(motion.duration) || motion.duration <= 0 || !['loop', 'pingpong', 'snap'].includes(motion.loop))) continue;
+            if (motion.trigger !== undefined && (motion.type === 'none' || !this.validTrigger(motion))) continue;
             if (motion.type === 'path') {
                 var length = 0, points = motion.points.map(point => PlatformMotion.vector(point));
                 for (var i = 1; i < points.length; i++) length += BABYLON.Vector3.Distance(points[i - 1], points[i]);
-                length = motion.loop === 'pingpong' ? length * 2 : motion.loop === 'snap' ? length : length + BABYLON.Vector3.Distance(points[points.length - 1], points[0]);
+                length = motion.trigger || motion.loop === 'snap' ? length : motion.loop === 'pingpong' ? length * 2 : length + BABYLON.Vector3.Distance(points[points.length - 1], points[0]);
                 if (length / motion.duration > 16) continue;
+                if (motion.trigger?.release === 'return' && length / (motion.trigger.returnSeconds || 1) > 16) continue;
             };
             if (motion.type === 'circle' && (!Number.isFinite(motion.radius) || motion.radius < .25 || motion.radius > 16 ||
-                !Number.isFinite(motion.duration) || motion.duration < 1 || Math.PI * 2 * motion.radius / motion.duration > 16 ||
+                !Number.isFinite(motion.duration) || motion.duration <= 0 || Math.PI * 2 * motion.radius / motion.duration > 16 ||
                 !['xz', 'xy', 'yz'].includes(motion.plane || 'xz') || (motion.reverse !== undefined && typeof motion.reverse !== 'boolean'))) continue;
             var shapes = body.shapes || [], blocks = body.blocks || [];
             if (!Array.isArray(shapes) || !Array.isArray(blocks) || shapes.length + blocks.length === 0 || shapes.length + blocks.length > 128) continue;
@@ -133,13 +158,23 @@ export const PlatformMap = {
     },
 };
 
+export const PlatformTeams = { //who an option is for: true is everyone, false is nobody, or one team (1 is blue, 2 is red; free for all has neither)
+    valid: value => value === true || value === false || value === 'blue' || value === 'red',
+    allows(value, team, fallback = true) {
+        if (value === undefined) value = fallback;
+        if (team === undefined || team === null) return value !== false; //asked by nobody in particular: anything that is for someone
+        return value === true || (value === 'blue' && team === 1) || (value === 'red' && team === 2);
+    },
+};
+
 export class PlatformWorld {
     constructor(definitions = [], sources = [], clock = new PlatformClock()) {
         this.clock = clock;
         this.time = null;
         this.audience = null;
-        this.turnsPassengers = definitions.some(body => body.motion?.rotatePlayers &&
-            (body.motion.type === 'spin' || (['path', 'circle'].includes(body.motion.type) && body.motion.orient)));
+        this.team = undefined;
+        this.hits = []; //where bullets landed on a block since the server last looked
+        this.turnsPassengers = definitions.some(body => body.motion?.rotatePlayers && PlatformMotion.rotates(body.motion));
         this.bodies = definitions.map(definition => {
             var parts = (definition.shapes || []).map(shape => {
                 var r = shape.rotation || {}, p = shape.position || {};
@@ -152,44 +187,106 @@ export class PlatformWorld {
                     var geometry = part.geometry || PlatformShapes.create(part.definition);
                     return geometry.vertices.map(vertex => BABYLON.Vector3.TransformCoordinates(vertex, part.matrix));
                 }));
-                definition = { ...definition, motion: { ...definition.motion, pivot: bounds.min.add(bounds.max).scale(.5),
-                    pathAnchor: definition.blocks?.length ? new BABYLON.Vector3(0, (bounds.min.y + bounds.max.y) / 2, 0) : bounds.min.add(bounds.max).scale(.5) } };
+                //Centre on: the cell (the default) leaves a block where it was placed, turning and travelling about the middle of its cell, so a thin wall stays flush.
+                //The mesh moves the block so the middle of its mesh sits on the middle of its cell (across, not up), and the path runs through the mesh's middle.
+                var mesh = bounds.min.add(bounds.max).scale(.5), onMesh = definition.motion.centre === 'mesh' && definition.blocks?.length;
+                var cell = definition.blocks?.length ? PlatformMap.cellCentre(definition) : mesh;
+                var pivot = definition.motion.pivot ? PlatformMotion.vector(definition.motion.pivot) : onMesh ? mesh : cell;
+                var shift = onMesh ? new BABYLON.Vector3(-mesh.x, 0, -mesh.z) : BABYLON.Vector3.Zero(); //where the block ends up from where it was placed
+                definition = { ...definition, motion: { ...definition.motion, pivot, pathAnchor: pivot.add(shift), pathReference: onMesh ? new BABYLON.Vector3(0, mesh.y, 0) : cell } };
             };
             return { definition, parts: parts.map(part => {
                 var geometry = part.geometry || PlatformShapes.create(part.definition);
                 var bounds = PlatformShapes.bounds(geometry.vertices);
                 return { ...part, softness: part.softness ?? definition.softness, geometry, corners: PlatformShapes.corners(bounds.min, bounds.max) };
-            }), cache: new Map() };
+            }), cache: new Map(), looks: new Map(), progress: definition.motion?.trigger ? { segs: [{ t0: -1e9, p0: 0, rate: 0 }], fn: null, guesses: { agreed: 0, near: 0, refused: 0, lost: 0, worst: 0 } } : null };
         });
+        this.triggered = this.bodies.filter(body => body.progress);
     };
     now() { return this.time ?? this.clock.now(); };
-    as(audience, run) { //'players' or 'items'; other queries (bullets) hit anything solid to either
-        var previous = this.audience;
-        this.audience = audience;
-        try { return run(); } finally { this.audience = previous; };
+    as(audience, run, team) { //'players', 'items' or 'bullets', and which team they are on; other queries hit anything solid to any of them
+        var previous = [this.audience, this.team];
+        this.audience = audience; this.team = team;
+        try { return run(); } finally { [this.audience, this.team] = previous; };
     };
     solid(body) {
-        var motion = body.definition.motion || {};
-        if (this.audience === 'items') return motion.collideItems !== false;
-        if (this.audience === 'players') return motion.collidePlayers !== false;
-        return motion.collidePlayers !== false || motion.collideItems !== false;
+        var motion = body.definition.motion || {}, team = this.team, allows = value => PlatformTeams.allows(value, team);
+        var shot = () => motion.collideBullets === undefined ? allows(motion.collidePlayers) || allows(motion.collideItems) : allows(motion.collideBullets); //older maps: shots stop at whatever anything else does
+        if (this.audience === 'items') return allows(motion.collideItems);
+        if (this.audience === 'players') return allows(motion.collidePlayers);
+        if (this.audience === 'bullets') return shot();
+        return allows(motion.collidePlayers) || allows(motion.collideItems) || shot();
     };
     at(time, run) {
         var previous = this.time;
         this.time = time;
         try { return run(); } finally { this.time = previous; };
     };
-    pose(body, time) {
+    progressAt(body, time) { //how far along its track a triggered block is: 0 at the start, 1 at the end
+        if (body.progress.fn) return body.progress.fn(time);
+        var segs = body.progress.segs, seg = segs[0];
+        for (var i = segs.length - 1; i >= 0; i--) if (segs[i].t0 <= time) { seg = segs[i]; break; };
+        return Math.max(0, Math.min(1, seg.p0 + seg.rate * (time - seg.t0)));
+    };
+    visualProgress(body, time) { //only what is drawn is eased towards the server's answer; physics and triggers always use the real progress
+        var blend = body.progress.blend, progress = this.progressAt(body, time);
+        if (blend && time >= blend.t0) progress += blend.error * Math.max(0, 1 - (time - blend.t0) / blend.length);
+        return Math.max(0, Math.min(1, progress));
+    };
+    forget(body) { body.cache.clear(); body.looks.clear(); };
+    addSegment(body, seg) { //the server's word on when progress changed; ignores one already known, keeps order, forgets the distant past
+        var segs = body.progress.segs;
+        var known = segs.find(item => Math.abs(item.t0 - seg.t0) < 1e-6);
+        if (known) { //the same moment: the server's word replaces a guess made for it
+            if (!known.pred || seg.pred) return false;
+            Object.assign(known, { p0: seg.p0, rate: seg.rate, snap: !!seg.snap, pred: false }); this.forget(body); body.progress.guesses.agreed++;
+            return true;
+        };
+        segs.push({ t0: seg.t0, p0: seg.p0, rate: seg.rate, snap: !!seg.snap, pred: !!seg.pred, after: seg.after, sched: !!seg.sched });
+        segs.sort((a, b) => a.t0 - b.t0);
+        if (segs.length > 64) segs.splice(1, segs.length - 64);
+        this.forget(body);
+        return true;
+    };
+    hear(body, segs, serverTime, now = this.now()) { //the server's latest word: take it, drop what it overtakes, and ease from where the block was drawn to where it should be
+        var before = this.visualProgress(body, now);
+        for (var seg of segs) this.addSegment(body, seg);
+        this.reconcile(body, serverTime);
+        body.progress.blend = null;
+        var error = before - this.progressAt(body, now);
+        if (Math.abs(error) > 1e-4 && Math.abs(error) < .15) body.progress.blend = { t0: now, error, length: .35 }; //a gap that size is a lag, not a snap, which is a jump and should look like one
+        this.forget(body);
+    };
+    reconcile(body, serverTime) { //the server has spoken: a guess it has since overtaken, or that it never agreed to, goes
+        var segs = body.progress.segs, heard = segs.filter(seg => !seg.pred), told = Math.max(...heard.filter(seg => !seg.sched || seg.t0 <= serverTime).map(seg => seg.t0)); //a planned end is not yet something the server has done
+        var guesses = body.progress.guesses, kept = segs.filter(seg => {
+            if (!seg.pred) return true;
+            var word = heard.find(word => Math.abs(word.t0 - seg.t0) <= .1 && Math.sign(word.rate) === Math.sign(seg.rate) && word.snap === seg.snap);
+            if (word) { guesses.near++; guesses.worst = Math.max(guesses.worst, Math.abs(word.t0 - seg.t0)); return false; }; //the same event, dated a little differently
+            if (seg.t0 <= told) { guesses.refused++; return false; }; //the server went on without it
+            if (seg.t0 <= serverTime - .6) { guesses.lost++; return false; }; //never heard about it
+            return true;
+        });
+        kept = kept.filter(seg => seg.after === undefined || kept.some(start => Math.abs(start.t0 - seg.after) < 1e-6)); //a planned end goes with the guess it was planned for
+        if (kept.length === segs.length) return;
+        body.progress.segs = kept; this.forget(body);
+    };
+    jumps(body, from, to) { //the block vanished and reappeared between from and to: nothing rides that
+        if (body.progress) return body.progress.segs.some(seg => seg.snap && seg.t0 > from && seg.t0 <= to);
+        return PlatformMotion.jumps(body.definition.motion, from, to);
+    };
+    pose(body, time, looks = false) { //looks: for drawing, with the easing; everything else gets the real thing
         if (!body.definition.motion || body.definition.motion.type === 'none') time = 0;
-        if (body.cache.has(time)) return body.cache.get(time);
-        var matrix = PlatformMotion.sample(body.definition, time);
+        var cache = looks && body.progress?.blend ? body.looks : body.cache;
+        if (cache.has(time)) return cache.get(time);
+        var matrix = PlatformMotion.sample(body.definition, body.progress ? PlatformMotion.triggerSeconds(body.definition.motion, looks ? this.visualProgress(body, time) : this.progressAt(body, time)) : time);
         var parts = body.parts.map(part => {
             var transform = part.matrix.multiply(matrix);
             return { ...part, matrix: transform, bounds: PlatformShapes.bounds(part.corners.map(v => BABYLON.Vector3.TransformCoordinates(v, transform))) };
         });
         var pose = { matrix, inverse: matrix.clone().invert(), parts, bounds: PlatformShapes.bounds(parts.flatMap(part => [part.bounds.min, part.bounds.max])) };
-        if (body.cache.size >= 8) body.cache.delete(body.cache.keys().next().value);
-        body.cache.set(time, pose);
+        if (cache.size >= 8) cache.delete(cache.keys().next().value);
+        cache.set(time, pose);
         return pose;
     };
     sweptBounds(body) {
@@ -198,7 +295,7 @@ export class PlatformWorld {
         var vertices = body.parts.flatMap(part => part.geometry.vertices.map(v => BABYLON.Vector3.TransformCoordinates(v, part.matrix)));
         var pivot = PlatformMotion.vector(motion.pivot), anchor = PlatformMotion.vector(motion.pathAnchor ?? motion.pivot);
         if (motion.type === 'path') {
-            if (motion.orient) {
+            if (motion.orient || PlatformMotion.keyframed(motion)) {
                 var radius = vertices.reduce((radius, v) => Math.max(radius, BABYLON.Vector3.Distance(v, pivot)), 0);
                 var corners = PlatformShapes.corners(new BABYLON.Vector3(-radius, -radius, -radius), new BABYLON.Vector3(radius, radius, radius));
                 return PlatformShapes.bounds(corners.flatMap(v => motion.points.map(point => BABYLON.Vector3.TransformCoordinates(v.add(anchor).add(PlatformMotion.vector(point)), base))));
@@ -254,6 +351,19 @@ export class PlatformWorld {
         var local = BABYLON.Vector3.TransformCoordinates(PlatformMotion.vector(pos), this.pose(body, time).inverse);
         return BABYLON.Vector3.TransformCoordinates(local, this.pose(body, time + .001).matrix).subtract(PlatformMotion.vector(pos)).scale(1 / .06);
     };
+    touch(body, pos, bounds, time, margin = .04) { //which side of the block something is on (top, side or bottom), if it is touching or within margin of it
+        var box = this.box(pos, bounds);
+        box = { min: box.min.subtract(new BABYLON.Vector3(margin, margin, margin)), max: box.max.add(new BABYLON.Vector3(margin, margin, margin)) };
+        var best = null, push = 0;
+        for (var part of this.pose(body, time).parts) {
+            if (part.visualOnly || !PlatformShapes.intersects(part.bounds, box)) continue;
+            var move = PlatformShapes.contact(part.geometry, part.matrix, box);
+            if (move && (!best || move.lengthSquared() < push)) { best = move; push = move.lengthSquared(); };
+        };
+        if (!best || push < 1e-12) return null;
+        var normal = best.normalizeToNew();
+        return normal.y > .7 ? 'top' : normal.y < -.7 ? 'bottom' : 'sides';
+    };
     ray(origin, direction, time = this.now(), ignoreSoft = false) {
         var hits = [];
         for (var body of this.bodies) for (var part of this.solid(body) ? this.pose(body, time).parts : []) {
@@ -306,9 +416,9 @@ export class PlatformWorld {
     passengerTurn(pos, bounds, from, to) {
         if (!this.turnsPassengers) return 0;
         var support = this.vertical(pos, -.02, bounds, from);
-        if (!support || Math.abs(pos.y - support.y) > .015 || !support.body.definition.motion.rotatePlayers) return 0;
+        if (!support || Math.abs(pos.y - support.y) > .015 || !PlatformTeams.allows(support.body.definition.motion.rotatePlayers, this.team, false)) return 0;
         var body = support.body, motion = body.definition.motion;
-        if (motion.type !== 'spin' && !motion.orient) return 0;
+        if (!PlatformMotion.rotates(motion)) return 0;
         var relative = this.pose(body, from).inverse.multiply(this.pose(body, to).matrix);
         var rotation = BABYLON.Quaternion.FromRotationMatrix(relative);
         var yaw = 2 * Math.atan2(rotation.y, rotation.w);
@@ -344,10 +454,11 @@ export class PlatformWorld {
     transport(pos, bounds, from, to, blocked, carry = true, reach = .015) { //reach: how far above a surface still counts as riding it
         this.carrier = null; //who carried the last thing moved, for callers that follow its frame
         this.pushed = null; //and the last block that shoved it out of the way, with the way it shoved
+        this.squeezed = null; //and the block that was shoving it when the map would not let it be moved, so it is caught between the two
         if (from === to) return pos;
         var support = carry && this.vertical(pos, -reach - .005, bounds, from);
         var carrier = support && Math.abs(pos.y - support.y) <= reach && support.body.definition.motion?.type !== 'none' ? support.body : null;
-        if (carrier && PlatformMotion.jumps(carrier.definition.motion, from, to)) carrier = null;
+        if (carrier && this.jumps(carrier, from, to)) carrier = null;
         var carrierTravel = carrier ? PlatformMotion.travel(carrier.definition, from, to,
             BABYLON.Vector3.Distance(BABYLON.Vector3.TransformCoordinates(PlatformMotion.vector(pos), this.pose(carrier, from).inverse),
                 PlatformMotion.vector(carrier.definition.motion?.pivot))) : 0;
@@ -380,7 +491,7 @@ export class PlatformWorld {
             if (carrier) {
                 var local = BABYLON.Vector3.TransformCoordinates(PlatformMotion.vector(pos), this.pose(carrier, previous).inverse);
                 var matrix = this.pose(carrier, time).matrix, pivot = PlatformMotion.vector(carrier.definition.motion?.pivot);
-                var next = this.audience === 'items' && carrier.definition.motion?.rotateItems === false ? //slides under the turn, follows only where the block goes
+                var next = this.audience === 'items' && !PlatformTeams.allows(carrier.definition.motion?.rotateItems, this.team) ? //slides under the turn, follows only where the block goes
                     BABYLON.Vector3.TransformCoordinates(pivot, matrix).subtract(BABYLON.Vector3.TransformCoordinates(pivot, this.pose(carrier, previous).matrix)).add(PlatformMotion.vector(pos))
                     : BABYLON.Vector3.TransformCoordinates(local, matrix);
                 if (!blocked(next, time, carrier)) pos = { x: next.x, y: next.y, z: next.z };
@@ -395,7 +506,7 @@ export class PlatformWorld {
                     var start = PlatformMotion.vector(pos), checks = Math.max(1, Math.ceil(move.length() / .04)), stopped = false;
                     for (var j = 1; j <= checks; j++) {
                         var next = start.add(move.scale(j / checks));
-                        if (blocked(next, time, body)) { stopped = true; break; }
+                        if (blocked(next, time, body)) { stopped = true; this.squeezed = body; break; }
                         pos = { x: next.x, y: next.y, z: next.z };
                     };
                     if (stopped) break;

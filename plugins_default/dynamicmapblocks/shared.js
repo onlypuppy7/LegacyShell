@@ -2,8 +2,10 @@
 import BABYLON from 'babylonjs';
 import { isClient, CONTROL } from '#constants';
 import { plugins } from '#plugins';
-import { PlatformMap, PlatformWorld } from './platforms.js';
+import { PlatformMap, PlatformWorld, PlatformTeams } from './platforms.js';
+import { Bullet, Rocket } from '#bullets';
 import { PlatformShapes } from './geometry.js';
+import { PlatformTriggers } from './triggers.js';
 import { PlatformProtocol } from './protocol.js';
 import { PlatformAssets } from './assets.js';
 import { PlatformLighting } from './lighting.js';
@@ -13,6 +15,8 @@ export const DynamicMapBlocksPlugin = {
         this.install(pluginManager);
         PlatformProtocol.register(pluginManager);
         pluginManager.on('game:updateBefore', data => this.turnPlayer(data));
+        if (isClient) pluginManager.on('game:updateBefore', data => { if (data.player.id === meId) data.player.dmbResim = !!data.resim; this.predictTriggers(data); });
+        if (!isClient) pluginManager.on('game:roomStateUpdate', data => this.updateTriggers(data.this)); //only the server decides what sets a block off
         pluginManager.on('game:roomBuildMap', data => {
             data.minMap = PlatformMap.prepare(data.minMap);
             data.this.minMap = data.minMap;
@@ -22,6 +26,8 @@ export const DynamicMapBlocksPlugin = {
             if (data.player?.Collider?.platformWorld) data.player.platformTime = data.player.Collider.platformWorld.now();
         });
         if (isClient) {
+            pluginManager.on('game:inGameSync1', data => { if (data.id === meId && players_by_id[meId]) players_by_id[meId].dmbReplay = data.stateIdx; }); //the core is about to replay from here
+            pluginManager.on('game:inGameSync2', data => { if (data.id === meId && players_by_id[meId]) players_by_id[meId].dmbReplay = undefined; });
             pluginManager.on('game:modifyMinMap', async data => {
                 await PlatformAssets.ensure(data.minMap, mapMeshes, gameScene);
                 data.minMap = PlatformMap.prepare(data.minMap);
@@ -36,7 +42,7 @@ export const DynamicMapBlocksPlugin = {
                 Collider.platformSources = mapMeshes;
                 this.configure(Collider, data.minMap, mapMeshes);
                 PlatformRender.create(data.gameScene, Collider.platformWorld, mapMeshes, () =>
-                    me?.playing && Number.isFinite(me.platformTime) ? me.platformTime : Collider.platformWorld.now(), {}, { lighting: true, smoothTime: true });
+                    me?.playing && Number.isFinite(me.platformTime) ? me.platformTime : Collider.platformWorld.now(), {}, { lighting: true, smoothTime: true, material: () => SPS?.mesh?.material });
             });
         };
     },
@@ -47,6 +53,35 @@ export const DynamicMapBlocksPlugin = {
             return [[block.x, block.y, block.z].join(','), body];
         }));
         collider.platformBounds = minMap && { width: minMap.width, height: minMap.height, depth: minMap.depth };
+    },
+    bulletBounds: { min: { x: 0, y: 0, z: 0 }, max: { x: 0, y: 0, z: 0 } },
+    grenadeBounds: { min: { x: -.07, y: -.07, z: -.07 }, max: { x: .07, y: .07, z: .07 } }, //core's ray starts .07 below its centre, so this box lands where core's grenades always did
+    predictTriggers({ player, resim }) { //the player this client controls, before the server confirms
+        if (resim || player.id !== meId || !player.playing) return;
+        var world = player.Collider?.platformWorld;
+        if (!world?.triggered.length) return;
+        var entities = [{ kind: 'players', pos: { x: player.x, y: player.y, z: player.z }, bounds: this.playerBounds(player), team: player.team }];
+        iteratePlayers(other => { if (other !== player && other.playing) entities.push({ kind: 'players', pos: { x: other.x, y: other.y, z: other.z }, bounds: this.playerBounds(other), team: other.team }); }); //so it does not stop for you while someone else is still on it
+        munitionsManager.grenadePool.forEachActive(grenade => entities.push({ kind: 'items', pos: { x: grenade.x, y: grenade.y, z: grenade.z }, bounds: this.grenadeBounds, team: grenade.player?.team }));
+        PlatformTriggers.predict(world, entities, player.platformTime ?? world.now());
+    },
+    crush(player, body, now = Date.now()) { //caught between a block that crushes and the map: hurt, with no kill credited to anyone
+        var damage = body.definition.motion?.crush;
+        if (!(damage > 0) || body.definition.motion.pushThroughMap || !player.playing || player.isDead() || player.nextCrush > now) return false;
+        player.nextCrush = now + this.crushInterval;
+        if (Math.ceil(damage / player.modifiers.resistanceModifier / player.modifiers.scale) >= player.hp) player.setHp(0, player.id); //dies as its own death
+        else player.hit(damage, player, 0, 0, true, 0);
+        return true;
+    },
+    crushInterval: 500, //milliseconds between one crushing hit and the next on the same player
+    updateTriggers(room) {
+        var world = room.Collider?.platformWorld;
+        if (!world?.triggered.length) return;
+        var entities = [];
+        for (var player of room.players_by_id) if (player?.playing) entities.push({ kind: 'players', pos: { x: player.x, y: player.y, z: player.z }, bounds: this.playerBounds(player), team: player.team, time: Number.isFinite(player.platformTime) ? player.platformTime : undefined });
+        room.munitionsManager.grenadePool.forEachActive(grenade => entities.push({ kind: 'items', pos: { x: grenade.x, y: grenade.y, z: grenade.z }, bounds: this.grenadeBounds, team: grenade.player?.team }));
+        for (var hit of world.hits.splice(0)) entities.push({ kind: 'bullets', pos: hit.point, bounds: this.bulletBounds, team: hit.team, hitBody: hit.id, time: hit.time }); //what was shot this tick
+        if (PlatformTriggers.step(world, entities, world.now()).length) PlatformProtocol.send(room); //a block just set going is worth telling everyone now, not at the next sync
     },
     describe(body) {
         var { id, motion = { type: 'none' } } = body.definition;
@@ -61,20 +96,23 @@ export const DynamicMapBlocksPlugin = {
         var riding = support && Math.abs(player.y - support.y) <= .015 ? support.body : null;
         left.push('', 'Platforms: ' + bodies.length + ' (' + bodies.filter(body => body.definition.motion?.type !== 'none').length + ' moving) T: ' + time.toFixed(3),
             'Riding: ' + (riding ? this.describe(riding) : 'none'));
+        var guesses = world.triggered.map(body => body.progress.guesses).reduce((sum, item) => ({ agreed: sum.agreed + item.agreed, near: sum.near + item.near, refused: sum.refused + item.refused, lost: sum.lost + item.lost, worst: Math.max(sum.worst, item.worst) }), { agreed: 0, near: 0, refused: 0, lost: 0, worst: 0 });
+        var clock = isClient && PlatformProtocol.rates(); if (clock) left.push(clock);
+        if (isClient && world.triggered.length) left.push('Guesses (you are ' + Math.round((time - world.now()) * 1000) + 'ms off the block clock): ' + guesses.agreed + ' spot on, ' + guesses.near + ' near (worst ' + Math.round(guesses.worst * 1000) + 'ms), ' + guesses.refused + ' refused, ' + guesses.lost + ' lost');
         var body = target?.platform && bodies.find(body => body.definition.id === target.platform);
         if (!body) return;
         var box = world.pose(body, time).bounds, centre = [(box.min.x + box.max.x) / 2, (box.min.y + box.max.y) / 2, (box.min.z + box.max.z) / 2];
         right.push('', 'Targeted Platform', this.describe(body), 'Centre: ' + centre.map(value => value.toFixed(3)).join(' / '));
     },
     //players and grenades are both boxes riding blocks: one ride() and one set of rules, only who is asking differs
-    ride(audience, collider, entity, bounds, from, to, collides, carry) {
+    ride(audience, collider, entity, bounds, from, to, collides, carry, team) {
         var world = collider.platformWorld;
         return world.as(audience, () => world.transport(entity, bounds, from, to, (next, time, body) => world.at(time, () => {
             if (body.definition.motion?.pushThroughMap) return false; //this block wins over the map: whatever it pushes goes through
             var previous = collider.platformIgnore;
             collider.platformIgnore = body;
             try { return collides(next); } finally { collider.platformIgnore = previous; };
-        }), carry, .015));
+        }), carry, .015), team);
     },
     grenadeStep(grenade, collider, world, bounds, to, delta) {
         //core's grenade update on the players' terms: one box, moved an axis at a time, tested by the same collision the players use
@@ -112,9 +150,18 @@ export const DynamicMapBlocksPlugin = {
         grenade.ttl -= delta / grenade.player.modifiers.grenadeTimerModifier;
         if (grenade.actor) grenade.actor.update();
     },
-    audience(collider, audience, run) { //who is asking: players and items can each be told to pass through a block
+    audience(collider, audience, run, team) { //who is asking, and for which team: players, items and bullets can each be told to pass through a block
         var world = collider?.platformWorld;
-        return world ? world.as(audience, run) : run();
+        return world ? world.as(audience, run, team) : run();
+    },
+    timeSlack: .5, //how far a player's own clock may fall behind the blocks' before it is put back
+    anchor(time, world) { //a player's clock only runs while they are simulated, so a hidden tab or a death leaves it behind for good
+        return Number.isFinite(time) && time >= world.now() - this.timeSlack ? time : world.now(); //only behind: the server dates what a player runs ahead by as they say
+    },
+    steer(time, world, delta = 1) { //the server counts a player's clock a step at a time and it creeps ahead of real time (about 5 ms a second); lean it back a hair each step, harder when it has wandered far
+        if (!world.clock?.live) return time;
+        var error = time - world.now(), limit = (Math.abs(error) > .3 ? .002 : .0005) * delta;
+        return time - Math.max(-limit, Math.min(limit, error * .1));
     },
     playerBounds(player) {
         var scale = player.modifiers.scale || 1;
@@ -125,8 +172,8 @@ export const DynamicMapBlocksPlugin = {
         if (!world?.turnsPassengers || resim || player.modifiers.noclip || player.climbing || player.jumping || player.dy > 0 ||
             !Number.isFinite(player.yaw) || (player.controlKeys & CONTROL.jump) && !player.jumpHeld) return;
         if (isClient ? player.id !== meId : player.client?.isHuman) return;
-        var from = player.platformTime ?? world.now(), to = from + delta / (player.modifiers.physicsSpeedModifier || 1) / 60;
-        var turn = world.as('players', () => world.passengerTurn(player, this.playerBounds(player), from, to));
+        var from = this.anchor(player.platformTime, world), to = from + delta / (player.modifiers.physicsSpeedModifier || 1) / 60;
+        var turn = world.as('players', () => world.passengerTurn(player, this.playerBounds(player), from, to), player.team);
         if (turn) player.yaw = (player.yaw + turn + Math.PI * 2) % (Math.PI * 2);
     },
     install(pluginManager) {
@@ -195,8 +242,19 @@ export const DynamicMapBlocksPlugin = {
             data.result = colliderPointMapHandler.call(data.this, data.run, ...data.args);
             pluginManager.cancel = true;
         });
+        [Bullet, Rocket].forEach(shot => {
+            var fire = shot.prototype.fireThis;
+            if (fire.dmbWrapped) return;
+            shot.prototype.fireThis = function (player, ...rest) { //a shot is a ray the moment it leaves the gun, so the shooter is who is asking
+                var world = player?.Collider?.platformWorld;
+                if (!world) return fire.call(this, player, ...rest);
+                world.shooterTime = player.platformTime; //a shot is dated by the shooter's clock, like a player touching a block
+                try { return world.as('bullets', () => fire.call(this, player, ...rest), player.team); } finally { world.shooterTime = undefined; }
+            };
+            shot.prototype.fireThis.dmbWrapped = true;
+        });
         var colliderRayMapHandler = function (rayCollides, origin, direction, callback) {
-            var hit = rayCollides.call(this, origin, direction, callback);
+            var hit = rayCollides.call(this, origin, direction, callback), landed = null;
             var best = hit?.pick ? BABYLON.Vector3.DistanceSquared(origin, hit.pick.pickedPoint) : Infinity;
             for (var intersection of this.platformWorld?.ray(origin, direction) || []) {
                 var point = intersection.point, distance = BABYLON.Vector3.DistanceSquared(origin, point);
@@ -212,8 +270,9 @@ export const DynamicMapBlocksPlugin = {
                 var result = callback(origin, direction, voxel);
                 delete voxel.platformHit;
                 if (!result || intersection.softness === 'verysoft') continue;
-                hit = result; best = distance;
+                hit = result; best = distance; landed = intersection;
             };
+            if (landed && !isClient && this.platformWorld.audience === 'bullets') this.platformWorld.hits.push({ id: landed.body.definition.id, point: landed.point, team: this.platformWorld.team, time: this.platformWorld.shooterTime });
             return hit;
         };
         pluginManager.on('game:colliderRayMap', data => {
@@ -235,19 +294,26 @@ export const DynamicMapBlocksPlugin = {
             var collider = this.Collider, world = collider.platformWorld;
             if (!world?.bodies.length) return simulate.call(this, input, dontAssign);
             var from = input.platformTime ?? this.platformTime ?? world.now();
+            if (!dontAssign) from = DynamicMapBlocksPlugin.anchor(from, world); //replays keep the times they were first played at
+            if (isClient && !dontAssign && this.id === meId) { //replayed steps keep the moment they first had: a state's time is the same whenever it is worked out
+                var mapped = PlatformProtocol.stateTime(this, this.dmbResim && this.dmbReplay !== undefined ? this.dmbReplay++ : this.stateIdx);
+                if (mapped !== undefined) from = mapped;
+            };
+            if (isClient && !dontAssign && this.id === meId) { var stats = PlatformProtocol.stats, key = this.dmbResim ? 'replay' : 'real'; stats[key]++; stats[key + 'Ms'] += (input.delta ?? 1) / (this.modifiers.physicsSpeedModifier || 1) / .06; };
             var to = from + (input.delta ?? 1) / (this.modifiers.physicsSpeedModifier || 1) / 60;
             var pos = { x: input.x ?? this.x, y: input.y ?? this.y, z: input.z ?? this.z };
             var bounds = DynamicMapBlocksPlugin.playerBounds(this);
             if (!this.modifiers.noclip) {
-                pos = DynamicMapBlocksPlugin.ride('players', collider, pos, bounds, from, to, next => this.collidesWithMap(next), !this.climbing && (input.dy ?? this.dy) <= 0);
+                pos = DynamicMapBlocksPlugin.ride('players', collider, pos, bounds, from, to, next => this.collidesWithMap(next), !this.climbing && (input.dy ?? this.dy) <= 0, this.team);
+                if (!isClient && !dontAssign && world.squeezed) DynamicMapBlocksPlugin.crush(this, world.squeezed);
             };
             var out = world.at(to, () => simulate.call(this, { ...input, ...pos }, dontAssign));
             if (dontAssign) { out.platformTime = to; return out; };
-            this.platformTime = to;
+            this.platformTime = isClient ? to : DynamicMapBlocksPlugin.steer(to, world, input.delta ?? 1);
         };
         pluginManager.on('game:playerMovement', data => {
             if (pluginManager.cancel) return;
-            data.result = DynamicMapBlocksPlugin.audience(data.this.Collider, 'players', () => playerMovementHandler.call(data.this, data.run, ...data.args));
+            data.result = DynamicMapBlocksPlugin.audience(data.this.Collider, 'players', () => playerMovementHandler.call(data.this, data.run, ...data.args), data.this.team);
             pluginManager.cancel = true;
         });
         var playerMoveYHandler = function (moveY, ndy, delta, dontApply = {}) {
@@ -276,7 +342,7 @@ export const DynamicMapBlocksPlugin = {
         };
         pluginManager.on('game:playerMoveY', data => {
             if (pluginManager.cancel) return;
-            data.result = DynamicMapBlocksPlugin.audience(data.this.Collider, 'players', () => playerMoveYHandler.call(data.this, data.run, ...data.args));
+            data.result = DynamicMapBlocksPlugin.audience(data.this.Collider, 'players', () => playerMoveYHandler.call(data.this, data.run, ...data.args), data.this.team);
             pluginManager.cancel = true;
         });
         var grenadeThrowHandler = function (launch, ...args) {
@@ -285,26 +351,26 @@ export const DynamicMapBlocksPlugin = {
         };
         pluginManager.on('game:grenadeThrow', data => {
             if (pluginManager.cancel) return;
-            data.result = DynamicMapBlocksPlugin.audience(data.this.player?.Collider || data.this.scene?.room?.Collider, 'items', () => grenadeThrowHandler.call(data.this, data.run, ...data.args));
+            data.result = DynamicMapBlocksPlugin.audience(data.this.player?.Collider || data.this.scene?.room?.Collider, 'items', () => grenadeThrowHandler.call(data.this, data.run, ...data.args), data.this.player?.team);
             pluginManager.cancel = true;
         });
         var grenadeUpdateHandler = function (update, delta) {
             var collider = this.player?.Collider || this.scene?.room?.Collider, world = collider?.platformWorld;
             if (!world?.bodies.length || this.ttl <= 0) return update.call(this, delta);
             var from = this.platformTime ?? world.now(), to = from + delta / 60;
-            var bounds = { min: { x: -.07, y: -.07, z: -.07 }, max: { x: .07, y: .07, z: .07 } }; //core's ray starts .07 below its centre, so this box lands where core's grenades always did
+            var bounds = DynamicMapBlocksPlugin.grenadeBounds;
             if (!collider.platformGrenadeMesh) {
                 collider.platformGrenadeMesh = BABYLON.MeshBuilder.CreateBox('platform-grenade-query', { size: .14 }, this.scene);
                 collider.platformGrenadeMesh.setEnabled(false);
             };
-            var pos = DynamicMapBlocksPlugin.ride('items', collider, this, bounds, from, to, next => collider.meshCollidesWithMap(collider.platformGrenadeMesh, next), this.dy <= 0);
+            var pos = DynamicMapBlocksPlugin.ride('items', collider, this, bounds, from, to, next => collider.meshCollidesWithMap(collider.platformGrenadeMesh, next), this.dy <= 0, this.player?.team);
             this.x = pos.x; this.y = pos.y; this.z = pos.z;
             this.platformTime = to;
             world.at(to, () => DynamicMapBlocksPlugin.grenadeStep(this, collider, world, bounds, to, delta));
         };
         pluginManager.on('game:grenadeUpdate', data => {
             if (pluginManager.cancel) return;
-            data.result = DynamicMapBlocksPlugin.audience(data.this.player?.Collider || data.this.scene?.room?.Collider, 'items', () => grenadeUpdateHandler.call(data.this, data.run, ...data.args));
+            data.result = DynamicMapBlocksPlugin.audience(data.this.player?.Collider || data.this.scene?.room?.Collider, 'items', () => grenadeUpdateHandler.call(data.this, data.run, ...data.args), data.this.player?.team);
             pluginManager.cancel = true;
         });
         pluginManager.on('game:colliderProjectileCell', data => {

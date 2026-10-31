@@ -11,7 +11,7 @@ export const PluginMeta = {
     identifier: 'dynamicmapblocks',
     name: 'dynamicmapblocks',
     author: 'onlypuppy7 (+Codex)', //NOTE! this plugin is VIBECODED.
-    version: '1.0.0',
+    version: '1.5.7',
     descriptionShort: 'Moving blocks and platforms',
     descriptionLong: 'Shared platform geometry, motion and passenger transport, with block physics editing.',
     legacyShellVersion: 665,
@@ -47,10 +47,10 @@ export class Plugin {
     };
 
     pluginSourceInsertion(data) {
-        for (var file of ['motion.js', 'geometry.js', 'platforms.js', 'assets.js', 'disk.js', 'lighting.js', 'render.js', 'protocol.js', 'shared.js']) {
+        for (var file of ['motion.js', 'geometry.js', 'platforms.js', 'triggers.js', 'assets.js', 'disk.js', 'lighting.js', 'render.js', 'protocol.js', 'shared.js']) {
             data.pluginInsertion.files.push({ filepath: path.join(this.thisDir, file), position: 'after' });
         };
-        for (var file of ['motion.js', 'geometry.js', 'platforms.js', 'disk.js', 'lighting.js', 'render.js', 'editor-state.js', 'guides.js', 'editor.js']) {
+        for (var file of ['motion.js', 'geometry.js', 'platforms.js', 'triggers.js', 'disk.js', 'lighting.js', 'render.js', 'editor-state.js', 'guides.js', 'editor.js']) {
             data.pluginInsertion.files.push({ filepath: path.join(this.thisDir, file), position: 'editor' });
         };
     };

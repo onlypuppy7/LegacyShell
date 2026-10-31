@@ -3,6 +3,9 @@
     var state = new PlatformEditorState(), selected, enabled = false, preview, legacyView;
     var hidden = [], attachedScene, selectionBox, pivotDot, boundsKey, swept = [], guides, guideKey;
     var $ = id => document.getElementById('dmb-' + id);
+    var teamOptions = chosen => [['all', 'All'], ['none', 'Off'], ['blue', 'Blue'], ['red', 'Red']].map(([value, name]) => `<option value="${value}"${value === chosen ? ' selected' : ''}>${name}</option>`).join(''); //who an option is for: everyone, nobody or one team
+    var teamRead = id => ({ all: true, none: false, blue: 'blue', red: 'red' })[$(id).value];
+    var teamWrite = (id, value, fallback) => { value ??= fallback; $(id).value = value === true ? 'all' : value === false ? 'none' : value; };
     var axes = ['x', 'y', 'z'], offset = { x: .5, y: .5, z: .5 };
     var movementClipboard, previewMode = null, previewStart = 0, previewBodies = [], previewKey;
     try { movementClipboard = JSON.parse(localStorage.getItem('dmbMovementClipboard')); } catch {};
@@ -73,7 +76,12 @@
             var key = JSON.stringify(bodies);
             if (key === previewKey) return;
             var moving = bodies.filter(body => body.motion.type !== 'none');
-            var next = moving.length ? PlatformRender.create(scene, new PlatformWorld(moving, mapMeshes), mapMeshes,
+            var previewWorld = new PlatformWorld(moving, mapMeshes);
+            for (var triggered of previewWorld.triggered) triggered.progress.fn = time => { //shows the whole track out and back, as if something kept setting it off and letting go
+                var along = time / PlatformMotion.triggerLength(triggered.definition.motion) % 2;
+                return along < 1 ? along : 2 - along;
+            };
+            var next = moving.length ? PlatformRender.create(scene, previewWorld, mapMeshes,
                 () => performance.now() / 1000 - previewStart, offset) : null;
             disposePreview(); preview = next; previewBodies = JSON.parse(JSON.stringify(bodies)); previewKey = key;
             for (var mesh of mapContainer.getChildMeshes()) if (moving.some(body => body.blocks.some(block => axes.every(axis => block[axis] === mesh.position[axis])))) {
@@ -119,53 +127,89 @@
     function message(text) { if ($('status')) $('status').textContent = text; };
     function vectorFields(prefix, value) { for (var axis of axes) $(prefix + '-' + axis).value = value?.[axis] || 0; };
     function vectorValue(prefix) { return Object.fromEntries(axes.map(axis => [axis, Number($(prefix + '-' + axis).value)])); };
-    function pointRow(point = {}) {
-        var row = document.createElement('tr');
-        for (var axis of axes) {
+    function pointRows() { return Array.from($('points').tBodies || []); };
+    function pointRow(point = {}) { //a waypoint is two lines: where it is, and optionally how the block is turned there
+        var row = document.createElement('tbody'), main = document.createElement('tr'), turn = document.createElement('tr');
+        row.className = 'dmb-point'; turn.className = 'dmb-rotation';
+        var field = (line, attribute, axis, value, label) => {
             var cell = document.createElement('td'), input = document.createElement('input');
-            input.type = 'number'; input.step = 'any'; input.required = true; input.value = point[axis] || 0;
-            input.dataset.axis = axis; cell.appendChild(input); row.appendChild(cell);
+            input.type = 'number'; input.step = 'any'; input.required = true; input.value = value || 0;
+            input.dataset[attribute] = axis; input.title = label; cell.appendChild(input); line.appendChild(cell);
+        };
+        for (var axis of axes) {
+            field(main, 'axis', axis, point[axis], axis.toUpperCase());
+            field(turn, 'rotation', axis, point.rotation?.[axis], 'Rotation about ' + axis.toUpperCase() + ' here (degrees)');
         };
         var cell = document.createElement('td'), remove = document.createElement('button');
         remove.type = 'button'; remove.className = 'button'; remove.textContent = '×'; remove.setAttribute('aria-label', 'Remove waypoint');
         remove.onclick = () => { row.remove(); fieldsChanged(); };
-        cell.appendChild(remove); row.appendChild(cell); $('points').appendChild(row); numberPoints();
+        cell.appendChild(remove); main.appendChild(cell);
+        var use = document.createElement('input'), box = document.createElement('td');
+        use.type = 'checkbox'; use.dataset.rotationOn = '1'; use.checked = !!point.rotation; use.title = 'Turn the block here. Unticked, it keeps the rotation from the waypoint before (the first starts as placed).';
+        use.onchange = fieldsChanged; box.appendChild(use); turn.appendChild(box);
+        row.appendChild(main); row.appendChild(turn); $('points').appendChild(row); numberPoints();
     };
     function pointValue(row) {
-        return Object.fromEntries(axes.map(axis => [axis, Number(row.querySelector('[data-axis="' + axis + '"]').value)]));
+        var value = Object.fromEntries(axes.map(axis => [axis, Number(row.querySelector('[data-axis="' + axis + '"]').value)]));
+        if ($('keyframes').checked && row.querySelector('[data-rotation-on]').checked) value.rotation = Object.fromEntries(axes.map(axis => [axis, Number(row.querySelector('[data-rotation="' + axis + '"]').value)]));
+        return value;
     };
     function numberPoints() {
-        Array.from($('points').children).forEach((row, i) => {
-            for (var axis of axes) row.querySelector('[data-axis="' + axis + '"]').setAttribute('aria-label', 'Waypoint ' + (i + 1) + ' ' + axis.toUpperCase());
-            row.querySelector('button').disabled = $('points').children.length <= 2;
+        var rows = pointRows();
+        rows.forEach((row, i) => {
+            var on = row.querySelector('[data-rotation-on]').checked;
+            for (var axis of axes) {
+                row.querySelector('[data-axis="' + axis + '"]').setAttribute('aria-label', 'Waypoint ' + (i + 1) + ' ' + axis.toUpperCase());
+                var turn = row.querySelector('[data-rotation="' + axis + '"]');
+                turn.setAttribute('aria-label', 'Waypoint ' + (i + 1) + ' rotation ' + axis.toUpperCase()); turn.disabled = !on;
+            };
+            row.querySelector('[data-rotation-on]').setAttribute('aria-label', 'Rotate at waypoint ' + (i + 1));
+            row.querySelector('.dmb-rotation').hidden = !$('keyframes').checked;
+            row.querySelector('button').disabled = rows.length <= 2;
         });
-        $('add-point').disabled = $('points').children.length >= 64;
+        $('add-point').disabled = rows.length >= 64;
+    };
+    function pivotValue(body) { //where it turns about: the centre, the middle of a side, a corner, or a point of your own
+        var mode = $('pivot').value;
+        return mode === 'custom' ? vectorValue('pivot') : state.pivot(body, mapMeshes, mode === 'corner' ? $('corner').value : mode === 'side' ? $('side').value : null, $('centre').value);
+    };
+    function turns() { //whether the block turns at all as set up
+        var type = $('movement').value;
+        return type === 'spin' || (['path', 'circle'].includes(type) && ($('orient').checked || (type === 'path' && $('keyframes').checked && pointRows().some(row => row.querySelector('[data-rotation-on]').checked))));
     };
     function readBody() {
         var body = currentBody(), type = $('movement').value;
         if (!body) throw new Error('Pick a block first.');
         if (type === 'spin') {
             var axis = $('axis').value === 'custom' ? vectorValue('axis') : { [$('axis').value]: 1 };
-            var pivot = $('pivot').value === 'custom' ? vectorValue('pivot') : state.pivot(body, mapMeshes,
-                $('pivot').value === 'corner' ? $('corner').value : null);
+            var pivot = pivotValue(body);
             body.motion = { type, axis, pivot, speed: Number($('speed').value) * Number($('direction').value), phase: Number($('phase').value) };
         } else if (type === 'path') {
-            var points = Array.from($('points').children).map(pointValue);
+            var points = pointRows().map(pointValue);
             body.motion = { type, points, duration: Number($('duration').value), loop: $('loop').value, phase: Number($('phase').value) };
         } else if (type === 'circle') {
             body.motion = { type, radius: Number($('radius').value), plane: $('plane').value, reverse: $('circle-direction').value === '-1',
                 duration: Number($('duration').value), phase: Number($('phase').value) };
         } else body.motion = { type: 'none' };
+        if (type !== 'none' && $('centre').value === 'mesh') body.motion.centre = 'mesh'; //cell is the default, so only the other is written down
         if (type === 'path' || type === 'circle') {
             body.motion.orient = $('orient').checked;
+            if (turns()) body.motion.pivot = pivotValue(body);
             body.motion.turnDuration = Number($('turn').value);
             body.motion.headingOffset = Number($('heading-offset').value);
         };
         if (type !== 'none') {
-            body.motion.collidePlayers = $('collide-players').checked; body.motion.collideItems = $('collide-items').checked;
+            body.motion.collidePlayers = teamRead('collide-players'); body.motion.collideItems = teamRead('collide-items'); body.motion.collideBullets = teamRead('collide-bullets');
             body.motion.pushThroughMap = $('priority').value === 'block';
+            if ($('priority').value === 'crush') body.motion.crush = Number($('crush').value);
+            if ($('trig-on').checked) body.motion.trigger = {
+                source: $('trig-source').value, surface: $('trig-surface').value, players: teamRead('trig-players'), items: teamRead('trig-items'), bullets: teamRead('trig-bullets'),
+                zone: { shape: $('zone-shape').value, follow: $('zone-follow').checked, radius: Number($('zone-radius').value), height: Number($('zone-height').value),
+                    size: Object.fromEntries(axes.map(axis => [axis, Number($('zone-size-' + axis).value)])), offset: Object.fromEntries(axes.map(axis => [axis, Number($('zone-offset-' + axis).value)])) },
+                mode: $('trig-mode').value, release: $('trig-release').value, returnSeconds: Number($('trig-return').value), angle: Number($('trig-angle').value),
+                delayStart: Number($('trig-start').value), delayReset: Number($('trig-reset').value), cooldown: Number($('trig-cooldown').value) };
             if (type === 'spin' || (['path', 'circle'].includes(type) && body.motion.orient)) {
-                body.motion.rotatePlayers = $('rotate-players').checked; body.motion.rotateItems = $('rotate-items').checked;
+                body.motion.rotatePlayers = teamRead('rotate-players'); body.motion.rotateItems = teamRead('rotate-items');
             };
         };
         return body;
@@ -180,8 +224,10 @@
             selectionBox.scaling.copyFrom(bounds.max.subtract(bounds.min).add(new BABYLON.Vector3(.04, .04, .04)));
             selectionBox.rotation.set(body.rotation?.x || 0, body.rotation?.y || 0, body.rotation?.z || 0);
             selectionBox.setEnabled(true);
-            pivotDot.position.copyFrom(BABYLON.Vector3.TransformCoordinates(PlatformMotion.vector(body.motion.pivot), local));
-            pivotDot.setEnabled(body.motion.type === 'spin');
+            var sat = PlatformMotion.vector(body.motion.pivot); //in the mesh case the block sits moved onto the cell centre, and so does its pivot
+            if (body.motion.centre === 'mesh' && body.blocks.length) { var meshMiddle = state.pivot(body, mapMeshes, null, 'mesh'); sat = sat.subtract(new BABYLON.Vector3(meshMiddle.x, 0, meshMiddle.z)); };
+            pivotDot.position.copyFrom(BABYLON.Vector3.TransformCoordinates(sat, local));
+            pivotDot.setEnabled(turns());
         } catch { pivotDot.setEnabled(false); };
     };
     function markMore() { $('more').classList.toggle('dmb-active', $('show-guides').checked || $('preview-all').checked); };
@@ -193,19 +239,27 @@
         $('repeat-row').hidden = $('movement').value !== 'path';
         $('turn-row').hidden = !$('orient').checked || $('movement').value !== 'path';
         $('offset-row').hidden = !$('orient').checked;
-        $('rider-row').hidden = $('priority-row').hidden = $('movement').value === 'none';
-        $('rotate-row').hidden = !($('movement').value === 'spin' || (['path', 'circle'].includes($('movement').value) && $('orient').checked));
+        $('rider-row').hidden = $('priority-row').hidden = $('trigger-box').hidden = $('centre-row').hidden = $('movement').value === 'none';
+        $('crush-row').hidden = $('movement').value === 'none' || $('priority').value !== 'crush';
+        var triggered = $('trig-on').checked && $('movement').value !== 'none';
+        $('trig').hidden = !triggered;
+        $('trig-surface-row').hidden = $('trig-source').value !== 'contact'; $('zone').hidden = $('trig-source').value !== 'zone';
+        $('zone-radius-row').hidden = $('zone-shape').value === 'box'; $('zone-height-row').hidden = $('zone-shape').value !== 'cylinder'; $('zone-size-row').hidden = $('zone-shape').value !== 'box';
+        $('trig-return-row').hidden = $('trig-release').value !== 'return'; $('trig-angle-row').hidden = $('movement').value !== 'spin';
+        $('rotate-row').hidden = !turns();
         $('phase-row').hidden = $('movement').value === 'none';
+        if (triggered) $('repeat-row').hidden = $('phase-row').hidden = true; //progress along the track replaces looping and the time offset
         $('axis-vector').hidden = $('axis').value !== 'custom';
         $('pivot-vector').hidden = $('pivot').value !== 'custom';
-        $('corner-row').hidden = $('pivot').value !== 'corner';
-        for (var group of ['spin', 'path', 'circle', 'travel', 'facing', 'repeat-row', 'turn-row', 'offset-row', 'rider-row', 'phase-row', 'axis-vector', 'pivot-vector', 'corner-row']) {
+        $('corner-row').hidden = $('pivot').value !== 'corner'; $('side-row').hidden = $('pivot').value !== 'side';
+        $('pivot-group').hidden = !turns();
+        for (var group of ['spin', 'path', 'circle', 'travel', 'facing', 'repeat-row', 'turn-row', 'offset-row', 'rider-row', 'phase-row', 'axis-vector', 'pivot-group', 'pivot-vector', 'corner-row', 'side-row']) {
             for (var field of $(group).querySelectorAll('input, select, button')) field.disabled = false;
         };
-        for (var group of ['spin', 'path', 'circle', 'travel', 'facing', 'repeat-row', 'turn-row', 'offset-row', 'phase-row', 'axis-vector', 'pivot-vector', 'corner-row']) {
+        for (var group of ['spin', 'path', 'circle', 'travel', 'facing', 'repeat-row', 'turn-row', 'offset-row', 'phase-row', 'axis-vector', 'pivot-group', 'pivot-vector', 'corner-row', 'side-row']) {
             if ($(group).hidden) for (var field of $(group).querySelectorAll('input, select, button')) field.disabled = true;
         };
-        $('rotate-players').disabled = !$('collide-players').checked; $('rotate-items').disabled = !$('collide-items').checked; //nothing to turn with if it does not collide
+        $('rotate-players').disabled = $('collide-players').value === 'none'; $('rotate-items').disabled = $('collide-items').value === 'none'; //nothing to turn with if it does not collide
         $('paste-movement').disabled = !movementClipboard;
         markMore();
         numberPoints(); refreshPreview(); updateMarker(); refreshGuides();
@@ -232,21 +286,29 @@
             var axis = PlatformMotion.vector(motion.axis || { y: 1 });
             $('axis').value = axes.find(key => axis[key] === 1 && axes.filter(other => other !== key).every(other => axis[other] === 0)) || 'custom';
             vectorFields('axis', axis);
-            var pivot = motion.pivot || state.pivot(body, mapMeshes), centre = state.pivot(body, mapMeshes);
+            $('centre').value = motion.centre === 'mesh' ? 'mesh' : 'cell';
+            var pivot = motion.pivot || state.pivot(body, mapMeshes, null, motion.centre), centre = state.pivot(body, mapMeshes, null, motion.centre);
             $('pivot').value = axes.every(key => Math.abs((pivot[key] || 0) - centre[key]) < 1e-6) ? 'centre' : 'custom';
-            for (var option of $('corner').options) {
-                var corner = state.pivot(body, mapMeshes, option.value);
-                if (axes.every(key => Math.abs((pivot[key] || 0) - corner[key]) < 1e-6)) { $('pivot').value = 'corner'; $('corner').value = option.value; break; }
+            for (var [mode, list] of [['side', $('side')], ['corner', $('corner')]]) for (var option of list.options) {
+                var spot = state.pivot(body, mapMeshes, option.value, motion.centre);
+                if (axes.every(key => Math.abs((pivot[key] || 0) - spot[key]) < 1e-6)) { $('pivot').value = mode; list.value = option.value; };
             };
             vectorFields('pivot', pivot);
             $('speed').value = Math.abs(motion.speed ?? 30); $('direction').value = (motion.speed ?? 30) < 0 ? '-1' : '1';
             $('phase').value = motion.phase || 0; $('duration').value = motion.duration || 8; $('loop').value = motion.loop || 'pingpong';
             $('radius').value = motion.radius || 3; $('plane').value = motion.plane || 'xz'; $('circle-direction').value = motion.reverse ? '-1' : '1';
-            $('rotate-players').checked = !!motion.rotatePlayers; $('rotate-items').checked = motion.rotateItems !== false;
-            $('priority').value = motion.pushThroughMap ? 'block' : 'map';
-            $('collide-players').checked = motion.collidePlayers !== false; $('collide-items').checked = motion.collideItems !== false;
+            teamWrite('rotate-players', motion.rotatePlayers, false); teamWrite('rotate-items', motion.rotateItems, true);
+            $('priority').value = motion.pushThroughMap ? 'block' : motion.crush > 0 ? 'crush' : 'map'; $('crush').value = motion.crush > 0 ? motion.crush : 999;
+            var trig = PlatformTriggers.config(motion);
+            $('trig-on').checked = !!motion.trigger; $('trig-source').value = trig.source; $('trig-surface').value = trig.surface; teamWrite('trig-players', trig.players); teamWrite('trig-items', trig.items); teamWrite('trig-bullets', trig.bullets);
+            $('zone-shape').value = trig.zone.shape; $('zone-follow').checked = !!trig.zone.follow; $('zone-radius').value = trig.zone.radius; $('zone-height').value = trig.zone.height;
+            for (var key of axes) { $('zone-size-' + key).value = trig.zone.size[key]; $('zone-offset-' + key).value = trig.zone.offset[key]; };
+            $('trig-mode').value = trig.mode; $('trig-release').value = trig.release; $('trig-return').value = trig.returnSeconds; $('trig-angle').value = trig.angle;
+            $('trig-start').value = trig.delayStart; $('trig-reset').value = trig.delayReset; $('trig-cooldown').value = trig.cooldown;
+            teamWrite('collide-players', motion.collidePlayers, true); teamWrite('collide-items', motion.collideItems, true); teamWrite('collide-bullets', motion.collideBullets, motion.collidePlayers !== false || motion.collideItems !== false);
             $('orient').checked = !!motion.orient; $('turn').value = motion.turnDuration ?? .25; $('heading-offset').value = motion.headingOffset || 0;
-            $('points').replaceChildren(); (motion.points || [{}, { x: 4 }]).forEach(pointRow);
+            $('keyframes').checked = !!motion.points?.some(point => point.rotation);
+            pointRows().forEach(row => row.remove()); (motion.points || [{}, { x: 4 }]).forEach(pointRow);
             fieldsChanged(); message('Choose a movement and press Apply.'); return true;
         } catch (error) { clearSelection(); message(error.message); return false; };
     };
@@ -359,31 +421,56 @@
             <p id="dmb-warning" role="status" hidden></p>
             <form id="dmb-form"><div class="dmb-controls"><fieldset id="dmb-fields" disabled>
                 <label>Movement<select id="dmb-movement"><option value="none">Static</option><option value="spin">Spin</option><option value="path">Linear path</option><option value="circle">Circular path</option></select></label>
+                <label id="dmb-centre-row" hidden>Centre on<select id="dmb-centre"><option value="cell">Cell centre (stays flush)</option><option value="mesh">Mesh centre (moved onto the cell centre)</option></select></label>
                 <div id="dmb-spin" hidden>
-                    <div class="dmb-grid"><label>Axis<select id="dmb-axis"><option value="y">Y · vertical</option><option value="x">X</option><option value="z">Z</option><option value="custom">Custom</option></select></label>
-                    <label>Pivot<select id="dmb-pivot"><option value="centre">Centre</option><option value="corner">Corner</option><option value="custom">Custom</option></select></label></div>
+                    <label>Axis<select id="dmb-axis"><option value="y">Y · vertical</option><option value="x">X</option><option value="z">Z</option><option value="custom">Custom</option></select></label>
                     <div id="dmb-axis-vector" class="dmb-vector" hidden>${axes.map(axis => `<label>Axis ${axis.toUpperCase()}<input id="dmb-axis-${axis}" type="number" step="any" required></label>`).join('')}</div>
-                    <label id="dmb-corner-row" hidden>Corner<select id="dmb-corner">${['---', '--+', '+--', '+-+', '-+-', '-++', '++-', '+++'].map(corner => `<option value="${corner}">${corner[1] === '-' ? 'Bottom' : 'Top'} · X${corner[0]} Z${corner[2]}</option>`).join('')}</select></label>
-                    <div id="dmb-pivot-vector" hidden><p>Pivot offsets from the block's starting centre.</p><div class="dmb-vector">${axes.map(axis => `<label>Pivot ${axis.toUpperCase()}<input id="dmb-pivot-${axis}" type="number" step="any" min="-4096" max="4096" required></label>`).join('')}</div></div>
                     <div class="dmb-grid"><label>Speed (°/second)<input id="dmb-speed" type="number" step="any" min="0" max="90" value="30" required></label>
                     <label>Direction<select id="dmb-direction"><option value="1">Clockwise</option><option value="-1">Anticlockwise</option></select></label></div>
                 </div>
                 <div id="dmb-path" hidden>
                     <p>Waypoints are offsets from the block's starting position.</p>
-                    <table><thead><tr><th>X</th><th>Y</th><th>Z</th><th></th></tr></thead><tbody id="dmb-points"></tbody></table>
+                    <label class="dmb-check"><input id="dmb-keyframes" type="checkbox">Rotate at waypoints (°)</label>
+                    <table id="dmb-points" class="dmb-waypoints"><thead><tr><th>X</th><th>Y</th><th>Z</th><th></th></tr></thead></table>
                     <div class="dmb-actions"><button type="button" id="dmb-add-point">Add waypoint</button>
                     <button type="button" id="dmb-reverse-points">Reverse waypoints</button></div>
                 </div>
                 <div id="dmb-circle" hidden><div class="dmb-grid"><label>Radius<input id="dmb-radius" type="number" step="any" min=".25" max="16" value="3" required></label><label>Plane<select id="dmb-plane"><option value="xz">XZ · horizontal</option><option value="xy">XY · vertical</option><option value="yz">YZ · vertical</option></select></label></div>
                     <label>Direction<select id="dmb-circle-direction"><option value="1">Clockwise</option><option value="-1">Anticlockwise</option></select></label></div>
-                <div id="dmb-travel" class="dmb-grid" hidden><label>Cycle (seconds)<input id="dmb-duration" type="number" step="any" min="1" value="8" required></label><label id="dmb-repeat-row">Repeat<select id="dmb-loop"><option value="pingpong">Back and forth</option><option value="loop">Loop</option><option value="snap">Snap back to start</option></select></label></div>
+                <div id="dmb-travel" class="dmb-grid" hidden><label>Cycle (seconds)<input id="dmb-duration" type="number" step="any" min=".01" value="8" required></label><label id="dmb-repeat-row">Repeat<select id="dmb-loop"><option value="pingpong">Back and forth</option><option value="loop">Loop</option><option value="snap">Snap back to start</option></select></label></div>
                 <div id="dmb-facing" hidden><label class="dmb-check"><input id="dmb-orient" type="checkbox">Face travel direction</label>
                     <div class="dmb-grid"><label id="dmb-turn-row">Turn time (seconds)<input id="dmb-turn" type="number" step=".05" min="0" max="10" value=".25" required><small>0 = snap at corners</small></label><label id="dmb-offset-row">Facing offset (°)<input id="dmb-heading-offset" type="number" step="any" min="-3600" max="3600" value="0" required></label></div></div>
-                <table id="dmb-rider-row" class="dmb-rules" hidden><thead><tr><th></th><th>Players</th><th>Items</th></tr></thead><tbody>
-                    <tr><th scope="row">Collide</th><td><input id="dmb-collide-players" type="checkbox" checked aria-label="Players collide" title="Players stand on and bump into the block"></td><td><input id="dmb-collide-items" type="checkbox" checked aria-label="Items collide" title="Grenades bounce off and ride the block"></td></tr>
-                    <tr id="dmb-rotate-row"><th scope="row">Rotate with block</th><td><input id="dmb-rotate-players" type="checkbox" aria-label="Players rotate with block" title="Turns the view horizontally while riding"></td><td><input id="dmb-rotate-items" type="checkbox" checked aria-label="Items rotate with block" title="Grenades are carried round by the turn instead of staying put"></td></tr>
+                <div id="dmb-pivot-group" hidden>
+                    <label>Pivot<select id="dmb-pivot"><option value="centre">Centre</option><option value="side">Side</option><option value="corner">Corner</option><option value="custom">Custom</option></select></label>
+                    <label id="dmb-side-row" hidden>Side<select id="dmb-side">${[['+00', 'X+ side'], ['-00', 'X− side'], ['0+0', 'Top · Y+'], ['0-0', 'Bottom · Y−'], ['00+', 'Z+ side'], ['00-', 'Z− side']].map(([side, name]) => `<option value="${side}">${name}</option>`).join('')}</select></label>
+                    <label id="dmb-corner-row" hidden>Corner<select id="dmb-corner">${['---', '--+', '+--', '+-+', '-+-', '-++', '++-', '+++'].map(corner => `<option value="${corner}">${corner[1] === '-' ? 'Bottom' : 'Top'} · X${corner[0]} Z${corner[2]}</option>`).join('')}</select></label>
+                    <div id="dmb-pivot-vector" hidden><p>Pivot offsets from the block's starting centre.</p><div class="dmb-vector">${axes.map(axis => `<label>Pivot ${axis.toUpperCase()}<input id="dmb-pivot-${axis}" type="number" step="any" min="-4096" max="4096" required></label>`).join('')}</div></div>
+                </div>
+                <table id="dmb-rider-row" class="dmb-rules" hidden><thead><tr><th></th><th>Players</th><th>Items</th><th>Shots</th></tr></thead><tbody>
+                    <tr><th scope="row">Collide</th><td><select id="dmb-collide-players" aria-label="Players collide" title="Who stands on and bumps into the block: everyone, nobody, or just one team">${teamOptions("all")}</select></td><td><select id="dmb-collide-items" aria-label="Items collide" title="Whose grenades bounce off and ride the block">${teamOptions("all")}</select></td><td><select id="dmb-collide-bullets" aria-label="Shots collide" title="Whose bullets and rockets are stopped by the block">${teamOptions("all")}</select></td></tr>
+                    <tr id="dmb-rotate-row"><th scope="row">Rotate with block</th><td><select id="dmb-rotate-players" aria-label="Players rotate with block" title="Whose view turns horizontally while riding">${teamOptions("none")}</select></td><td><select id="dmb-rotate-items" aria-label="Items rotate with block" title="Whose grenades are carried round by the turn instead of staying put">${teamOptions("all")}</select></td><td class="dmb-na" title="Shots do not ride blocks">–</td></tr>
                 </tbody></table>
-                <label id="dmb-priority-row" hidden>Pushing into the map<select id="dmb-priority"><option value="map">Map wins</option><option value="block">Block pushes through</option></select></label>
+                <label id="dmb-priority-row" hidden>Pushing into the map<select id="dmb-priority"><option value="map">Map wins</option><option value="block">Block pushes through</option><option value="crush">Crush</option></select></label>
+                <label id="dmb-crush-row" hidden>Crush damage (hp)<input id="dmb-crush" type="number" step="1" min="1" max="9999" value="999" required><small>Hurts a player squeezed against the map, every half second. 999 is an instant kill</small></label>
+                <div id="dmb-trigger-box" hidden><label class="dmb-check"><input id="dmb-trig-on" type="checkbox">Only move when triggered</label>
+                    <div id="dmb-trig" hidden>
+                        <div class="dmb-grid"><label>Triggered by<select id="dmb-trig-source"><option value="contact">Contact</option><option value="zone">Zone</option></select></label>
+                            <label id="dmb-trig-surface-row">Contact on<select id="dmb-trig-surface"><option value="top">Roof</option><option value="sides">Walls</option><option value="any">Roof or walls</option></select></label></div>
+                        <div class="dmb-teams" title="Who sets it off: everyone, nobody, or just one team. A bullet counts the moment it lands on the block, or inside the zone"><label>Players<select id="dmb-trig-players" aria-label="Players set it off" title="Players that set it off">${teamOptions("all")}</select></label><label>Items<select id="dmb-trig-items" aria-label="Items set it off" title="Grenades that set it off">${teamOptions("all")}</select></label><label>Shots<select id="dmb-trig-bullets" aria-label="Shots set it off" title="Bullets and rockets that set it off when they land">${teamOptions("none")}</select></label></div>
+                        <div id="dmb-zone" hidden>
+                            <div class="dmb-grid"><label>Zone shape<select id="dmb-zone-shape"><option value="sphere">Sphere</option><option value="box">Cube</option><option value="cylinder">Cylinder</option></select></label>
+                                <label class="dmb-check"><input id="dmb-zone-follow" type="checkbox">Follows the block</label></div>
+                            <div class="dmb-grid"><label id="dmb-zone-radius-row">Radius<input id="dmb-zone-radius" type="number" step="any" min=".25" max="64" value="3" required></label>
+                                <label id="dmb-zone-height-row">Half height<input id="dmb-zone-height" type="number" step="any" min=".25" max="64" value="2" required></label></div>
+                            <div id="dmb-zone-size-row" class="dmb-vector">${axes.map(axis => `<label>Half ${axis.toUpperCase()}<input id="dmb-zone-size-${axis}" type="number" step="any" min=".25" max="64" value="2" required></label>`).join('')}</div>
+                            <div class="dmb-vector">${axes.map(axis => `<label>Offset ${axis.toUpperCase()}<input id="dmb-zone-offset-${axis}" type="number" step="any" min="-64" max="64" value="0" required></label>`).join('')}</div>
+                        </div>
+                        <div class="dmb-grid"><label>While triggered<select id="dmb-trig-mode"><option value="run">Run while triggered</option><option value="latch">Run once, then stay</option><option value="cycle">Cycle once</option></select></label>
+                            <label>On release<select id="dmb-trig-release"><option value="pause">Pause</option><option value="reverse">Reverse</option><option value="return">Return at own speed</option><option value="snap">Snap to start</option></select></label></div>
+                        <div class="dmb-grid"><label id="dmb-trig-return-row">Return (seconds)<input id="dmb-trig-return" type="number" step="any" min=".5" max="600" value="2" required></label>
+                            <label id="dmb-trig-angle-row">Turn angle (°)<input id="dmb-trig-angle" type="number" step="any" min="1" max="3600" value="90" required></label></div>
+                        <div class="dmb-vector"><label>Start delay<input id="dmb-trig-start" type="number" step=".05" min="0" max="60" value="0" required></label><label>Reset delay<input id="dmb-trig-reset" type="number" step=".05" min="0" max="60" value="0" required></label><label>Cooldown<input id="dmb-trig-cooldown" type="number" step=".05" min="0" max="600" value="0" required></label></div>
+                    </div></div>
                 <label id="dmb-phase-row" hidden>Time offset (seconds)<input id="dmb-phase" type="number" step="any" value="0" required></label>
                 </fieldset></div>
                 <footer><button type="submit" id="dmb-apply" disabled>Apply</button><button type="button" id="dmb-preview" disabled>Preview</button><button type="button" id="dmb-reset" disabled>Reset</button></footer>
@@ -412,7 +499,7 @@
             try {
                 var body = readBody();
                 if (!PlatformMap.read({ ...map, extents: { platforms: [body] } }).length) throw new Error('Check the movement settings before copying.');
-                movementClipboard = state.copyMovement(body, $('pivot').value, $('corner').value);
+                movementClipboard = state.copyMovement(body, $('pivot').value, $('pivot').value === 'side' ? $('side').value : $('corner').value);
                 try { localStorage.setItem('dmbMovementClipboard', JSON.stringify(movementClipboard)); } catch {};
                 $('paste-movement').disabled = false; message('Movement copied. Select another block and press Paste movement.');
             } catch (error) { message(error.message); };
@@ -421,14 +508,14 @@
             if (!selected || !movementClipboard) return;
             if (showSelection(selected, movementClipboard)) message('Movement pasted. Preview it or press Apply to save.');
         };
-        $('add-point').onclick = () => { pointRow(pointValue($('points').lastElementChild)); fieldsChanged(); };
-        $('reverse-points').onclick = () => { $('points').replaceChildren(...Array.from($('points').children).reverse()); fieldsChanged(); };
+        $('add-point').onclick = () => { pointRow(pointValue(pointRows().at(-1))); fieldsChanged(); };
+        $('reverse-points').onclick = () => { pointRows().reverse().forEach(row => $('points').appendChild(row)); fieldsChanged(); };
         $('reset').onclick = () => { if (selected) showSelection(selected); };
         $('form').onsubmit = event => {
             event.preventDefault();
             try {
                 var body = readBody();
-                if (!PlatformMap.read({ ...map, extents: { platforms: [body] } }).length) throw new Error('Check the settings. Spin: up to 90°/s. Path: at least 1 second, up to 16 blocks/s.');
+                if (!PlatformMap.read({ ...map, extents: { platforms: [body] } }).length) throw new Error('Check the settings. Spin: up to 90°/s. Path: up to 16 blocks/s.');
                 undoPoint(); state.apply(body, map); restShapes();
                 var backups = localStorage.getItem('mapBackups');
                 saveToLocal();

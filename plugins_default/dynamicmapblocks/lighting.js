@@ -119,7 +119,10 @@ export const PlatformLighting = {
             binding.meshes.set(mesh, { source, pair, rest: mesh.computeWorldMatrix(true).clone(), shade: 1 });
         };
         state.bindings.add(binding); this.refresh(state);
-        if (typeof WeatherRender !== 'undefined') { WeatherRender.hookMaterials(scene); };
+        if (typeof WeatherRender !== 'undefined') {
+            WeatherRender.hookMaterials(scene);
+            if (WeatherRender.frameScene === scene) WeatherRender.bindWetMaterials(); //weather is already running: bring the new materials into its wetness and flashes
+        };
         var disposed = false;
         var handle = {
             update: time => {

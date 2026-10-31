@@ -76,11 +76,20 @@ export const PlatformRender = {
             };
             nodes.push(root);
         });
-        var lighting;
+        var lighting, dressed = !options.material;
+        var dress = () => { //the cloned blocks come without a material, so they would ignore the sun, fog and weather: give them the map's own
+            if (dressed) return;
+            var material = options.material();
+            if (!material) return;
+            dressed = true;
+            for (var mesh of nodes.flatMap(node => node.getChildMeshes())) if (mesh.isEnabled() && mesh.isVisible && !mesh.material && mesh.getTotalVertices() > 0) mesh.material = material;
+            if (options.lighting && !options.material) lighting = PlatformLighting.create(scene, nodes);
+        };
         var update = () => {
+            dress();
             var time = clock ? clock.now() : sampleTime();
             nodes.forEach((node, index) => {
-                world.pose(bodies[index], time).matrix.decompose(node.scaling, node.rotationQuaternion, node.position);
+                world.pose(bodies[index], time, true).matrix.decompose(node.scaling, node.rotationQuaternion, node.position);
                 node.position.x -= offset.x || 0; node.position.y -= offset.y || 0; node.position.z -= offset.z || 0;
             });
             if (lighting) lighting.update(time);

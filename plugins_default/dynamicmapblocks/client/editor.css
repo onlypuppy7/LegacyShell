@@ -13,11 +13,19 @@
 #dmb-panel .dmb-more.dmb-active > summary { box-shadow: inset 0 -3px #ffb133; }
 #dmb-panel .dmb-menu { position: absolute; right: 0; top: 100%; margin-top: .3em; z-index: 2; display: grid; gap: .5em; width: 15em; padding: .6em; background: #f1efec; border: 1px solid #0004; border-radius: .3em; box-shadow: 0 .2em .6em #0005; }
 #dmb-panel .dmb-menu .dmb-help { border-top: 1px solid #0002; padding-top: .5em; }
+#dmb-panel .dmb-waypoints tbody { border-top: 1px solid #0002; }
+#dmb-panel .dmb-rotation input[type="number"] { height: 1.4em; background: #f6efe0; }
+#dmb-panel .dmb-rotation td:last-child { text-align: center; }
+#dmb-panel .dmb-rotation input[type="checkbox"] { width: 1em; }
 #dmb-panel .dmb-rules th, #dmb-panel .dmb-rules td { text-align: center; }
-#dmb-panel .dmb-rules th:first-child { text-align: left; width: 45%; }
+#dmb-panel .dmb-rules th:first-child { text-align: left; width: 28%; }
 #dmb-panel .dmb-rules th:last-child { width: auto; }
 #dmb-panel .dmb-rules thead th { font-size: .85em; }
-#dmb-panel .dmb-rules input[type="checkbox"]:disabled { opacity: .35; }
+#dmb-panel .dmb-rules select { padding: 0; font-size: .85em; text-align: center; }
+#dmb-panel .dmb-rules select:disabled { opacity: .35; }
+#dmb-panel .dmb-rules .dmb-na { color: #0006; }
+#dmb-panel .dmb-teams { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .6em; }
+#dmb-panel .dmb-teams select { padding: 0; font-size: .85em; }
 #dmb-panel .dmb-rules tbody th { font-size: .9em; font-weight: normal; }
 #dmb-panel h1 { font-size: 1.3em; font-weight: bold; margin: 0; }
 #dmb-panel p { margin: 0; }

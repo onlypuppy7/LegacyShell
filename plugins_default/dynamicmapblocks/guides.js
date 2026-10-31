@@ -2,6 +2,7 @@
 import BABYLON from 'babylonjs';
 import { PlatformMotion } from './motion.js';
 import { PlatformWorld } from './platforms.js';
+import { PlatformTriggers } from './triggers.js';
 
 export const PlatformGuides = {
     create(scene, definitions, offset = {}, sources = []) {
@@ -20,7 +21,7 @@ export const PlatformGuides = {
             var color = BABYLON.Color3.FromHexString(palette[hash % palette.length]);
             var base = PlatformMotion.sample({ ...body, motion: { type: 'none' } }, 0);
             var world = value => BABYLON.Vector3.TransformCoordinates(value, base).subtract(shift);
-            var centre = ['path', 'circle'].includes(motion.type) ? PlatformMotion.vector(motion.pathAnchor ?? motion.pivot) : BABYLON.Vector3.Zero();
+            var centre = ['path', 'circle'].includes(motion.type) ? PlatformMotion.vector(motion.pathReference ?? motion.pathAnchor ?? motion.pivot) : BABYLON.Vector3.Zero();
             var points;
             if (motion.type === 'path') {
                 points = motion.points.map(point => world(centre.add(PlatformMotion.vector(point))));
@@ -33,6 +34,18 @@ export const PlatformGuides = {
                 });
             };
             line('physics-path-' + body.id, points, color);
+            if (motion.trigger?.source === 'zone') { //where the block is set off from
+                var z = PlatformTriggers.config(motion).zone, start = new PlatformWorld([{ ...body, motion: { type: 'none' } }], sources).bodies[0];
+                var middle = BABYLON.Vector3.TransformCoordinates(PlatformTriggers.centre(start), PlatformMotion.sample({ ...body, motion: { type: 'none' } }, 0)).add(PlatformMotion.vector(z.offset)).subtract(shift);
+                var ring = (axisA, axisB, radius, height = 0) => Array.from({ length: 33 }, (_, i) => middle.add(axisA.scale(Math.cos(i / 32 * Math.PI * 2) * radius)).add(axisB.scale(Math.sin(i / 32 * Math.PI * 2) * radius)).add(BABYLON.Axis.Y.scale(height)));
+                if (z.shape === 'box') {
+                    var s = z.size, corners = [-1, 1].flatMap(x => [-1, 1].flatMap(y => [-1, 1].map(zz => middle.add(new BABYLON.Vector3(x * s.x, y * s.y, zz * s.z)))));
+                    for (var [a, b] of [[0, 1], [2, 3], [4, 5], [6, 7], [0, 2], [1, 3], [4, 6], [5, 7], [0, 4], [1, 5], [2, 6], [3, 7]]) line('physics-zone', [corners[a], corners[b]], color);
+                } else if (z.shape === 'cylinder') {
+                    line('physics-zone', ring(BABYLON.Axis.X, BABYLON.Axis.Z, z.radius, z.height), color); line('physics-zone', ring(BABYLON.Axis.X, BABYLON.Axis.Z, z.radius, -z.height), color);
+                    for (var side of [BABYLON.Axis.X, BABYLON.Axis.Z]) for (var sign of [-1, 1]) line('physics-zone', [middle.add(side.scale(sign * z.radius)).add(BABYLON.Axis.Y.scale(-z.height)), middle.add(side.scale(sign * z.radius)).add(BABYLON.Axis.Y.scale(z.height))], color);
+                } else for (var [u, v] of [[BABYLON.Axis.X, BABYLON.Axis.Y], [BABYLON.Axis.X, BABYLON.Axis.Z], [BABYLON.Axis.Y, BABYLON.Axis.Z]]) line('physics-zone', ring(u, v, z.radius), color);
+            };
             var material = new BABYLON.StandardMaterial('physics-waypoints', scene);
             material.disableLighting = true; material.emissiveColor = color; materials.push(material);
             var startMaterial = new BABYLON.StandardMaterial('physics-start', scene);

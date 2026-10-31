@@ -9,15 +9,16 @@ import { SpinDisk } from './disk.js';
 import { SpinDiskRender, PlatformRender, PlatformRenderClock } from './render.js';
 import { plugins } from '#plugins';
 import { DynamicMapBlocksPlugin } from './shared.js';
-import { PlatformMap, PlatformWorld } from './platforms.js';
+import { PlatformMap, PlatformWorld, PlatformTeams } from './platforms.js';
 import { PlatformClock, PlatformMotion } from './motion.js';
 import { PlatformShapes } from './geometry.js';
+import { PlatformTriggers } from './triggers.js';
 import { PlatformProtocol } from './protocol.js';
 import { PlatformAssets } from './assets.js';
 import { PlatformEditorState } from './editor-state.js';
 import { PluginManager } from '#plugins';
 import Comm from '#comm';
-import { Grenade } from '#bullets';
+import { Grenade, Bullet, Rocket } from '#bullets';
 import { PlatformGuides } from './guides.js';
 import { PlatformLighting } from './lighting.js';
 import { patchPlatformShader } from './lighting-shader.js';
@@ -258,7 +259,7 @@ test('physics editing turns a placed block into a platform and back without chan
     state.apply(staticBlock, map); assert.equal(state.bodies.length, 0);
     assert.deepEqual(block, { mesh: spinner.name, x: 10, y: 2, z: 10, ry: 1 });
 });
-test('editor centre and corner pivots follow full, aabb, obb and triangle collision geometry', () => {
+test('editor centre and corner pivots are the cell the block sits in, whatever its collision geometry', () => {
     for (const type of ['full', 'aabb', 'obb', 'mesh']) {
         const root = BABYLON.MeshBuilder.CreateBox('test.pivot.' + type, {}, scene);
         root.colliderType = type;
@@ -267,7 +268,7 @@ test('editor centre and corner pivots follow full, aabb, obb and triangle collis
         const state = new PlatformEditorState(), body = state.draft({ mesh: root.name, x: 10, y: 2, z: 10, ry: 1 });
         const centre = state.pivot(body, [root]), corner = state.pivot(body, [root], '---');
         close(centre.x, 0); close(centre.y, 0); close(centre.z, 0);
-        close(corner.x, type === 'full' ? -.5 : -3); close(corner.y, type === 'full' ? -.5 : -1); close(corner.z, type === 'full' ? -.5 : -2);
+        close(corner.x, -.5); close(corner.y, -.5); close(corner.z, -.5);
         root.dispose();
     };
 });
@@ -488,7 +489,7 @@ test('client clock decoding restores player time before the standard sync payloa
     const manager = new PluginManager('game');
     const world = new PlatformWorld([], [], new PlatformClock(() => 0));
     const players = []; players[2] = { platformTime: 0 };
-    const context = vm.createContext({ Comm, isClient: true, Collider: { platformWorld: world }, players_by_id: players, ping: 0 });
+    const context = vm.createContext({ Comm, isClient: true, Collider: { platformWorld: world }, players_by_id: players, ping: 0, meId: 1 });
     const source = fs.readFileSync(new URL('./protocol.js', import.meta.url), 'utf8')
         .replace(/^import .*;\r?$/gm, '').replace(/^export /gm, '');
     vm.runInContext(source + '\nglobalThis.protocol = PlatformProtocol;', context);
@@ -1006,7 +1007,7 @@ test('client map loading initializes triangle queries without the server-only se
     const definition = { width: 24, height: 8, depth: 24, data: { 'dynamic.spinner.mesh': [{ x: 10, y: 1, z: 10 }] } };
     map.data[10][1][10] = { idx: 2, mesh: spinner };
     const context = vm.createContext({ BABYLON, Player, ColliderConstructor, isClient: true, plugins: manager,
-        PlatformMap, PlatformWorld, PlatformShapes, PlatformAssets, PlatformLighting, PlatformProtocol: { register() {} },
+        PlatformMap, PlatformWorld, PlatformTeams, Bullet, Rocket, PlatformShapes, PlatformAssets, PlatformLighting, PlatformProtocol: { register() {} },
         Collider: clientCollider, map, mapMeshes: clientMeshes, gameScene: scene, PlatformRender: { create() {} } });
     const source = fs.readFileSync(new URL('./shared.js', import.meta.url), 'utf8').replace(/^import .*;\r?$/gm, '').replace(/^export /gm, '');
     vm.runInContext(source, context);
@@ -1158,7 +1159,7 @@ test('render time ignores transient replay rewinds and converges without backwar
     time += 2; target = 22; close(clock.now(), 22);
 });
 
-test('the real castle bench centre follows every side of a path and its guide', async () => {
+test('the real castle bench turns and travels about its cell centre, not its off-centre mesh, and its guide starts there', async () => {
     const imported = await new Promise((resolve, reject) => BABYLON.SceneLoader.ImportMesh('', '',
         'data:' + fs.readFileSync('plugins_default/modernmapblocks/models/map.babylon', 'utf8'), scene, resolve, null, (_, message) => reject(Error(message))));
     const bench = imported.find(mesh => mesh.name === 'castle.bench.aabb');
@@ -1167,10 +1168,11 @@ test('the real castle bench centre follows every side of a path and its guide', 
         for (const ry of [0, 1, 2, 3]) {
             const draft = new PlatformEditorState().draft({ mesh: bench.name, x: 10, y: 5, z: 10, ry });
             const centre = PlatformMotion.vector(new PlatformEditorState().pivot(draft, [bench]));
-            assert.ok(Math.hypot(centre.x, centre.z) > .28);
+            close(centre.x, 0); close(centre.y, 0); close(centre.z, 0);
             draft.motion = { type: 'path', points: [{ y: -1, z: 1 }, { x: -3, y: -1, z: 1 }, { x: -3, y: -1, z: -1 }, { y: -1, z: -1 }],
                 duration: 8, loop: 'loop', orient: true, turnDuration: .4 };
             const world = new PlatformWorld([draft], [bench]), body = world.bodies[0], bounds = world.sweptBounds(body);
+            close(BABYLON.Vector3.Distance(body.definition.motion.pivot, centre), 0); close(BABYLON.Vector3.Distance(body.definition.motion.pathAnchor, centre), 0);
             const guide = PlatformGuides.create(scene, [draft], {}, [bench]);
             const render = PlatformRender.create(scene, world, [bench], () => 0);
             for (let time = 0; time < 8; time += .025) {
@@ -1374,6 +1376,505 @@ test('a block pushing something into the map either stops at the map or pushes t
     diskWorld();
 });
 
+const triggerBody = (trigger, extra = {}) => ({ id: 'plate', position: { x: 10, y: 1.5, z: 10 }, shapes: [{ type: 'box', min: { x: -1, y: -.5, z: -1 }, max: { x: 1, y: .5, z: 1 } }],
+    motion: { type: 'path', points: [{}, { x: 4 }], duration: 4, loop: 'pingpong', trigger, ...extra } });
+const onTop = { kind: 'players', pos: { x: 10, y: 2.01, z: 10 }, bounds: DynamicMapBlocksPlugin.playerBounds(player()) };
+const ON = 'riding'; //stands on the block wherever it is, as a carried player would
+function runTrigger(trigger, plan, until, extra) { //plan(t) gives who is touching at time t
+    const world = useBody(triggerBody(trigger, extra)), log = [];
+    for (let i = 0; i <= until * 60; i++) {
+        const t = i / 60, box = world.pose(world.bodies[0], t).bounds;
+        PlatformTriggers.step(world, plan(t).map(who => who === ON ? { ...onTop, pos: { x: (box.min.x + box.max.x) / 2, y: 2.01, z: 10 } } : who), t);
+        log.push(world.progressAt(world.bodies[0], t));
+    };
+    return { world, at: t => log[Math.round(t * 60)] };
+};
+test('a block that runs while touched holds, reverses, returns at its own speed or snaps back when let go', () => {
+    const touch = t => t < 2 ? [ON] : [];
+    close(runTrigger({ release: 'pause' }, touch, 4).at(2), .5, .02);
+    close(runTrigger({ release: 'pause' }, touch, 4).at(4), .5, .02);
+    close(runTrigger({ release: 'reverse' }, touch, 4).at(3), .25, .02);
+    close(runTrigger({ release: 'reverse' }, touch, 4.5).at(4.5), 0, .001);
+    close(runTrigger({ release: 'return', returnSeconds: 1 }, touch, 3).at(2.5), 0, .001);
+    const snap = runTrigger({ release: 'snap' }, touch, 3);
+    close(snap.at(1.95), .49, .03); close(snap.at(2.1), 0, .001);
+    assert.equal(snap.world.jumps(snap.world.bodies[0], 1.99, 2.05), true, 'the jump home is a jump, so nothing rides it');
+    assert.equal(snap.world.jumps(snap.world.bodies[0], 1, 1.5), false);
+});
+test('triggered blocks sit at the right place along their track and every client works out the same one', () => {
+    const run = runTrigger({ release: 'pause' }, t => t < 2 ? [ON] : [], 3), body = run.world.bodies[0];
+    const box = run.world.pose(body, 2).bounds; close((box.min.x + box.max.x) / 2, 12, .05);
+    const copy = new PlatformWorld([triggerBody({ release: 'pause' })], [], new PlatformClock(() => 0)), twin = copy.bodies[0];
+    for (const seg of body.progress.segs) copy.addSegment(twin, seg);
+    for (const t of [0, .5, 1.7, 2, 2.6, 3]) close(copy.progressAt(twin, t), run.world.progressAt(body, t), 1e-9);
+});
+test('delays, cooldown, latch and cycle shape when a triggered block starts and stops', () => {
+    close(runTrigger({ delayStart: 1 }, t => t < .8 ? [ON] : [], 3).at(3), 0, .001);
+    close(runTrigger({ delayStart: 1 }, t => t < 2 ? [ON] : [], 3).at(2), .25, .02);
+    close(runTrigger({ delayReset: 1, release: 'reverse' }, t => t < 1 ? [ON] : [], 3).at(2), .5, .03);
+    close(runTrigger({ mode: 'latch', release: 'reverse' }, t => t < .1 ? [ON] : [], 5).at(5), 1, .001);
+    const cycle = runTrigger({ mode: 'cycle', release: 'reverse' }, t => t < .1 ? [ON] : [], 9);
+    close(cycle.at(4), 1, .02); close(cycle.at(8.2), 0, .001);
+    const again = runTrigger({ release: 'reverse', cooldown: 6 }, t => t < 4.5 || (t > 9 && t < 9.8) || (t > 11 && t < 11.6) ? [ON] : [], 12);
+    close(again.at(4.5), 1, .001); close(again.at(9.9), 0, .001);
+    assert.ok(again.at(11.6) > .05, 'once the cooldown after a full run is over it starts again: ' + again.at(11.6));
+});
+test('contact can be roof, walls or either, for players, items or both', () => {
+    const beside = { kind: 'players', pos: { x: 11.2, y: 1.2, z: 10 }, bounds: DynamicMapBlocksPlugin.playerBounds(player()) };
+    const grenade = { kind: 'items', pos: { x: 10, y: 2.07, z: 10 }, bounds: DynamicMapBlocksPlugin.grenadeBounds };
+    const goes = (trigger, who) => runTrigger(trigger, () => who, 1).at(1) > .1;
+    assert.equal(goes({ surface: 'top' }, [onTop]), true); assert.equal(goes({ surface: 'top' }, [beside]), false);
+    assert.equal(goes({ surface: 'sides' }, [beside]), true); assert.equal(goes({ surface: 'sides' }, [onTop]), false);
+    assert.equal(goes({ surface: 'any' }, [beside]), true); assert.equal(goes({ surface: 'any' }, [onTop]), true);
+    assert.equal(goes({ players: false }, [onTop]), false); assert.equal(goes({ items: false }, [grenade]), false);
+    assert.equal(goes({ players: false }, [grenade]), true); assert.equal(goes({}, []), false);
+});
+test('a zone sets a block off from a distance: sphere, cube or cylinder, sized, offset and anchored where you say', () => {
+    const at = (x, y, z) => [{ kind: 'players', pos: { x, y, z }, bounds: DynamicMapBlocksPlugin.playerBounds(player()) }];
+    const goes = (zone, who, follow) => runTrigger({ source: 'zone', zone: { ...zone, follow } }, () => who, 1).at(1) > .1;
+    assert.equal(goes({ shape: 'sphere', radius: 3 }, at(10, 1.5, 12)), true); assert.equal(goes({ shape: 'sphere', radius: 3 }, at(10, 1.5, 16)), false);
+    assert.equal(goes({ shape: 'box', size: { x: 1, y: 1, z: 5 } }, at(10, 1.5, 14.5)), true); assert.equal(goes({ shape: 'box', size: { x: 1, y: 1, z: 5 } }, at(12.5, 1.5, 10)), false);
+    assert.equal(goes({ shape: 'cylinder', radius: 2, height: 1 }, at(11.5, 1.5, 10)), true); assert.equal(goes({ shape: 'cylinder', radius: 2, height: 1 }, at(10, 4.5, 10)), false);
+    assert.equal(goes({ shape: 'sphere', radius: 1, offset: { x: 5, y: 0, z: 0 } }, at(15, 1.5, 10)), true); assert.equal(goes({ shape: 'sphere', radius: 1, offset: { x: 5, y: 0, z: 0 } }, at(10, 1.5, 10)), false);
+    const after = follow => { const w = useBody(triggerBody({ source: 'zone', mode: 'run', release: 'pause', zone: { shape: 'sphere', radius: 1, follow } })); for (let i = 0; i < 180; i++) PlatformTriggers.step(w, at(10, 1.5, 10), i / 60); return w.progressAt(w.bodies[0], 3); };
+    assert.ok(after(true) < .4, 'a zone that follows the block lets go of someone left behind: ' + after(true));
+    assert.ok(after(false) > .7, 'a zone left where the block started keeps holding them: ' + after(false));
+    assert.equal(PlatformMap.read({ width: 24, height: 8, depth: 24, extents: { platforms: [triggerBody({ source: 'zone', mode: 'sometimes' })] } }).length, 0, 'bad settings are refused');
+    assert.equal(PlatformMap.read({ width: 24, height: 8, depth: 24, extents: { platforms: [triggerBody({ source: 'zone', zone: { shape: 'cylinder', radius: 2, height: 1 } })] } }).length, 1);
+    diskWorld();
+});
+
+test('the server tick sets triggered blocks off from the players and grenades actually in the room', () => {
+    let time = 0; const clock = new PlatformClock(() => time);
+    collider.platformWorld = new PlatformWorld([triggerBody({ release: 'pause' })], [], clock);
+    const standing = player({ x: 10, y: 2.01, z: 10, playing: true }), room = { Collider: collider, players_by_id: [null, standing],
+        munitionsManager: { grenadePool: { forEachActive(run) { } } } };
+    for (let i = 0; i < 120; i++) { time = i / 60; DynamicMapBlocksPlugin.updateTriggers(room); };
+    const world = collider.platformWorld, early = world.progressAt(world.bodies[0], 1);
+    assert.ok(early > .1, 'a player on it sets it off: ' + early);
+    standing.playing = false;
+    for (let i = 120; i < 240; i++) { time = i / 60; DynamicMapBlocksPlugin.updateTriggers(room); };
+    close(world.progressAt(world.bodies[0], 3.9), world.progressAt(world.bodies[0], 2.1), 1e-9);
+    const held = world.pose(world.bodies[0], 4).bounds, grenade = { x: (held.min.x + held.max.x) / 2, y: 2.07, z: 10 }; room.munitionsManager.grenadePool.forEachActive = run => run(grenade);
+    world.bodies[0].definition.motion.trigger = { players: false, release: 'pause' }; world.bodies[0].trigState = null;
+    const before = world.progressAt(world.bodies[0], 4.1);
+    for (let i = 240; i < 300; i++) { time = i / 60; DynamicMapBlocksPlugin.updateTriggers(room); };
+    assert.ok(world.progressAt(world.bodies[0], 5) > before, 'a grenade lying on it does too');
+    diskWorld();
+});
+
+test('a client starts a block the moment its own player sets it off, and stops, reverses or snaps it the moment they step off', () => {
+    const play = release => {
+        const world = useBody(triggerBody({ release })), body = world.bodies[0];
+        for (let i = 0; i <= 120; i++) { const t = i / 60, box = world.pose(body, t).bounds; PlatformTriggers.predict(world, i >= 30 && i < 60 ? [{ ...onTop, pos: { x: (box.min.x + box.max.x) / 2, y: 2.01, z: 10 } }] : [], t); };
+        return world;
+    };
+    const paused = play('pause'), body = paused.bodies[0];
+    close(paused.progressAt(body, .75), .0625, .02); //moving already, with no word from the server
+    close(paused.progressAt(body, 1.9), paused.progressAt(body, 1.1), 1e-3); //and held where it was left the moment they stepped off
+    const reversed = play('reverse'); assert.ok(reversed.progressAt(reversed.bodies[0], 1.9) < reversed.progressAt(reversed.bodies[0], 1.05), 'goes back as soon as they step off');
+    const snapped = play('snap'); close(snapped.progressAt(snapped.bodies[0], 1.1), 0, 1e-6);
+    assert.equal(snapped.jumps(snapped.bodies[0], .99, 1.05), true, 'a snap is a jump even as a guess');
+    assert.ok(body.progress.segs.slice(1).every(seg => seg.pred), 'all of it is a guess until the server has spoken');
+});
+test('a release is dated to when the player stepped off by their own clock, not when the server heard of it', () => {
+    const world = useBody(triggerBody({ release: 'reverse' })), body = world.bodies[0], standing = t => { const box = world.pose(body, t).bounds; return { ...onTop, pos: { x: (box.min.x + box.max.x) / 2, y: 2.01, z: 10 } }; };
+    for (let i = 0; i <= 150; i++) { const t = i / 60; PlatformTriggers.step(world, t < 1 ? [{ ...standing(t), time: t - .1 }] : [], t); }; //on their clock they stepped off at .9; the server only noticed at 1
+    const stop = body.progress.segs.at(-1);
+    assert.ok(Math.abs(stop.t0 - (.9 - 1 / 60 * 0 + 1 / 60)) < .03 && stop.t0 < 1 - .05, 'dated to their step off: ' + stop.t0);
+    const late = useBody(triggerBody({ release: 'reverse', delayReset: .5 })), held = late.bodies[0];
+    for (let i = 0; i <= 150; i++) { const t = i / 60, box = late.pose(held, t).bounds; PlatformTriggers.step(late, t < 1 ? [{ ...onTop, pos: { x: (box.min.x + box.max.x) / 2, y: 2.01, z: 10 }, time: t - .1 }] : [], t); };
+    assert.ok(held.progress.segs.at(-1).t0 > 1.3, 'and a reset delay still keeps it running first: ' + held.progress.segs.at(-1).t0);
+});
+test('the server overtakes a client guess; one it never confirms is dropped', () => {
+    const client = new PlatformWorld([triggerBody({ release: 'pause' })], [], new PlatformClock(() => 0)), body = client.bodies[0];
+    client.addSegment(body, { t0: 1, p0: 0, rate: .25, pred: true });
+    client.reconcile(body, 1.3); assert.equal(body.progress.segs.length, 2, 'still waiting to hear');
+    client.addSegment(body, { t0: 1.1, p0: 0, rate: .25 }); client.reconcile(body, 1.4);
+    assert.equal(body.progress.segs.filter(seg => seg.pred).length, 0, 'the server has spoken since');
+    assert.ok(Math.abs(client.progressAt(body, 2) - .225) < 1e-9, 'and its word is the one used');
+    client.addSegment(body, { t0: 5, p0: client.progressAt(body, 5), rate: 0 }); client.addSegment(body, { t0: 6, p0: client.progressAt(body, 6), rate: .25, pred: true });
+    client.reconcile(body, 8);
+    assert.equal(body.progress.segs.filter(seg => seg.pred).length, 0, 'a guess the server never agreed to is dropped');
+});
+
+test('moving block meshes are given the map material once it exists, so the sun, fog and weather reach them', () => {
+    const template = BABYLON.MeshBuilder.CreateBox('test.block.full', { size: 1 }, scene); template.setEnabled(false); template.material = null;
+    const world = new PlatformWorld([{ id: 'dressed', position: { x: .5, y: 1.5, z: .5 }, blocks: [{ mesh: 'test.block.full', x: 0, y: 1, z: 0 }], shapes: [], motion: { type: 'spin', axis: { y: 1 }, speed: 30 } }], [template]);
+    const material = new BABYLON.StandardMaterial('stand-in-for-the-map-shader', scene);
+    let ready = null;
+    const view = PlatformRender.create(scene, world, [template], () => 0, {}, { material: () => ready });
+    const clones = () => view.nodes.flatMap(node => node.getChildMeshes()).filter(mesh => mesh.name === 'platform-block');
+    assert.equal(clones().length, 1); assert.equal(clones()[0].material, null, 'nothing to give it yet');
+    ready = material; scene.onBeforeRenderObservable.notifyObservers(scene);
+    assert.equal(clones()[0].material, material, 'dressed as soon as the map material is there');
+    view.dispose(); template.dispose();
+});
+
+test('with a ping of up to 300 ms a triggered block the client predicted and the server decided never visibly disagree or snap', () => {
+    for (const oneWay of [.025, .05, .1, .15]) {
+        const make = () => new PlatformWorld([triggerBody({ release: 'pause' })], [], new PlatformClock(() => 0));
+        const server = make(), client = make(), serverBody = server.bodies[0], clientBody = client.bodies[0], inbox = [];
+        const bounds = DynamicMapBlocksPlugin.playerBounds(player());
+        const standing = (world, body, t) => { const box = world.pose(body, t).bounds; return { kind: 'players', pos: { x: (box.min.x + box.max.x) / 2, y: 2.01, z: 10 }, bounds }; };
+        let apart = 0, snap = 0; const drawn = [];
+        for (let i = 0; i <= 6 * 60; i++) {
+            const t = i / 60, seenAt = t - oneWay;
+            if (t >= .5) PlatformTriggers.predict(client, [standing(client, clientBody, t)], t); //the player steps on at .5 on their own clock
+            PlatformTriggers.step(server, seenAt >= .5 ? [{ ...standing(server, serverBody, t), time: seenAt }] : [], t); //the server hears a one-way trip later
+            if (i % 6 === 0) inbox.push({ at: t + oneWay, segs: serverBody.progress.segs.slice(-8), time: t });
+            while (inbox.length && inbox[0].at <= t) {
+                const word = inbox.shift(), had = client.visualProgress(clientBody, t);
+                client.hear(clientBody, word.segs, word.time, t);
+                snap = Math.max(snap, Math.abs(client.visualProgress(clientBody, t) - had) * 4);
+            };
+            drawn.push([t, client.progressAt(clientBody, t)]);
+        };
+        for (const [t, shown] of drawn) apart = Math.max(apart, Math.abs(shown - server.progressAt(serverBody, t)) * 4); //against what the server settled on for that moment, which it simulates the player at
+        assert.ok(apart < .05, 'one way ' + oneWay + ': the two disagree by ' + apart.toFixed(3) + ' blocks');
+        assert.ok(snap < .02, 'one way ' + oneWay + ': the client snaps by ' + snap.toFixed(3) + ' blocks when the server answers');
+    };
+});
+
+test('waypoints can carry their own rotation, held until the next one and eased between', () => {
+    const turned = (motion, seconds) => BABYLON.Vector3.TransformNormal(new BABYLON.Vector3(1, 0, 0), PlatformMotion.sample({ position: { x: 0, y: 0, z: 0 }, motion }, seconds));
+    const towards = (yaw, pitch = 0, roll = 0) => BABYLON.Vector3.TransformNormal(new BABYLON.Vector3(1, 0, 0), BABYLON.Matrix.RotationYawPitchRoll(yaw * Math.PI / 180, pitch * Math.PI / 180, roll * Math.PI / 180));
+    const same = (a, b, why) => assert.ok(BABYLON.Vector3.Distance(a, b) < 1e-4, why + ' ' + a.asArray().map(v => v.toFixed(3)) + ' vs ' + b.asArray().map(v => v.toFixed(3)));
+    const two = { type: 'path', points: [{ rotation: { y: 0 } }, { x: 4, rotation: { y: 90 } }], duration: 8, loop: 'pingpong' };
+    same(turned(two, 0), towards(0), 'starts as its first waypoint says'); same(turned(two, 2), towards(45), 'halfway, halfway turned');
+    same(turned(two, 4), towards(90), 'arrives at the second one'); same(turned(two, 6), towards(45), 'and goes back through the same turn');
+    const held = { type: 'path', points: [{ rotation: { y: 0 } }, { x: 4 }, { x: 8, rotation: { y: 180 } }], duration: 16, loop: 'pingpong' };
+    same(turned(held, 2), towards(0), 'a waypoint without a rotation keeps the one before'); same(turned(held, 6), towards(90), 'then turns on to the next');
+    const late = { type: 'path', points: [{}, { x: 4, rotation: { y: 90 } }], duration: 8, loop: 'pingpong' };
+    same(turned(late, 0), towards(0), 'a first waypoint with no rotation is the block as placed'); same(turned(late, 2), towards(45), 'and it turns towards the first one given');
+    const pitched = { type: 'path', points: [{ rotation: { x: 0 } }, { x: 4, rotation: { x: 90, z: 0 } }], duration: 8, loop: 'loop' };
+    same(turned(pitched, 4), towards(0, 90), 'all three axes work');
+    same(turned({ type: 'path', points: [{}, { x: 4 }], duration: 8, loop: 'pingpong' }, 3), towards(0), 'no rotations given, nothing turns: as before');
+    const facing = { ...two, orient: true, turnDuration: 0 };
+    assert.ok(BABYLON.Vector3.Distance(turned(facing, 2), towards(45)) > .1, 'still faces the way it goes as well');
+});
+test('rotation at waypoints is checked, bounded, turns riders and widens the swept bounds', () => {
+    const body = rotation => ({ ...boxBody({ type: 'path', points: [{ rotation }, { x: 4, rotation: { y: 90 } }], duration: 8, loop: 'pingpong', rotatePlayers: true }) });
+    const read = rotation => PlatformMap.read({ width: 24, height: 8, depth: 24, extents: { platforms: [body(rotation)] } }).length;
+    assert.equal(read({ y: 45 }), 1); assert.equal(read({ x: 'no' }), 0); assert.equal(read({ y: 1e9 }), 0); assert.equal(read({ y: NaN }), 0);
+    const world = new PlatformWorld([body({ y: 0 })], [], new PlatformClock(() => 0));
+    assert.equal(world.turnsPassengers, true, 'a block turning at its waypoints turns what rides it');
+    const still = new PlatformWorld([boxBody({ type: 'path', points: [{}, { x: 4 }], duration: 8, loop: 'pingpong', rotatePlayers: true })], [], new PlatformClock(() => 0));
+    assert.equal(still.turnsPassengers, false);
+    const wide = world.sweptBounds(world.bodies[0]), narrow = still.sweptBounds(still.bodies[0]);
+    assert.ok(wide.max.z - wide.min.z > narrow.max.z - narrow.min.z + .5, 'room for the long box swinging round: ' + (wide.max.z - wide.min.z) + ' vs ' + (narrow.max.z - narrow.min.z));
+    assert.ok(PlatformMotion.travel(world.bodies[0].definition, 0, 1, 2) > PlatformMotion.travel(still.bodies[0].definition, 0, 1, 2), 'and its turning counts towards how far it can push');
+});
+
+test('two waypoints in the same place with different rotations turn the block on the spot', () => {
+    const motion = { type: 'path', points: [{ rotation: { y: 0 } }, { rotation: { y: 90 } }], duration: 4, loop: 'pingpong' };
+    const at = seconds => BABYLON.Vector3.TransformNormal(new BABYLON.Vector3(1, 0, 0), PlatformMotion.sample({ position: { x: 0, y: 0, z: 0 }, motion }, seconds));
+    const yaw = seconds => { const v = at(seconds); return Math.round(Math.atan2(-v.z, v.x) * 180 / Math.PI) || 0; };
+    assert.deepEqual([0, 1, 2, 3, 4].map(yaw), [0, 45, 90, 45, 0]);
+    const world = new PlatformWorld([{ ...boxBody(motion) }], [], new PlatformClock(() => 0)), start = world.pose(world.bodies[0], 0).bounds.min.x;
+    assert.equal(PlatformMap.read({ width: 24, height: 8, depth: 24, extents: { platforms: [{ ...boxBody(motion) }] } }).length, 1, 'allowed, though it goes nowhere');
+    const centre = seconds => { const box = world.pose(world.bodies[0], seconds).bounds; return (box.min.x + box.max.x) / 2 + (box.min.z + box.max.z) / 2; };
+    assert.ok(Math.abs(centre(2) - centre(0)) < 1e-6, 'it stays where it is while it turns');
+});
+
+test('a thin wall at the edge of its cell stays flush at rest and swings about the cell centre when it turns', () => {
+    const wall = BABYLON.MeshBuilder.CreateBox('test.wall.aabb', { width: 1, height: 1, depth: .1 }, scene); wall.position.z = .45; wall.bakeCurrentTransformIntoVertices();
+    const collision = BABYLON.MeshBuilder.CreateBox('test.wall.collider', { width: 1, height: 1, depth: .1 }, scene); collision.position.z = .45; collision.bakeCurrentTransformIntoVertices();
+    collision.parent = wall; wall.colliderType = 'aabb'; wall.colliderMesh = collision; wall.setEnabled(false);
+    const body = motion => ({ id: 'wall', position: { x: 10.5, y: 2.5, z: 10.5 }, blocks: [{ mesh: 'test.wall.aabb', x: 10, y: 2, z: 10 }], shapes: [], motion });
+    const middle = (world, time) => { const box = world.pose(world.bodies[0], time).bounds; return box.min.add(box.max).scale(.5); };
+    const still = new PlatformWorld([body({ type: 'none' })], [wall]);
+    const turning = new PlatformWorld([body({ type: 'path', points: [{ rotation: { y: 0 } }, { rotation: { y: 90 } }], duration: 4, loop: 'pingpong' })], [wall]);
+    const flush = middle(still, 0), cell = new BABYLON.Vector3(10.5, 2.5, 10.5);
+    close(flush.z, 10.95); //against the far edge of its cell
+    close(BABYLON.Vector3.Distance(middle(turning, 0), flush), 0, 1e-6); //and it starts exactly there
+    for (const time of [.5, 1, 1.5, 2, 2.5, 3.5]) close(BABYLON.Vector3.Distance(middle(turning, time), cell.add(new BABYLON.Vector3(0, 0, 0))) - Math.hypot(.45, 0), 0, 1e-3); //always .45 from the cell centre
+    const quarter = middle(turning, 2).subtract(cell);
+    close(Math.abs(quarter.x), .45, 1e-3); close(quarter.z, 0, 1e-3); //a quarter turn swings it round to the next edge
+    const cellFixed = new PlatformWorld([body({ type: 'path', points: [{}, { x: 4 }], duration: 8, loop: 'pingpong' })], [wall]);
+    close(middle(cellFixed, 0).z, 10.95); close(middle(cellFixed, 4).x - middle(cellFixed, 0).x, 4, 1e-6); //a plain move leaves it flush as it goes
+    wall.dispose();
+});
+
+test('pivot and centre are separate: any side, corner or centre; the cell leaves a block flush, the mesh moves its middle onto the cell centre', () => {
+    const wall = BABYLON.MeshBuilder.CreateBox('test.wall.aabb', { width: 1, height: 1, depth: .1 }, scene); wall.position.z = .45; wall.bakeCurrentTransformIntoVertices();
+    const collision = BABYLON.MeshBuilder.CreateBox('test.wall.collider', { width: 1, height: 1, depth: .1 }, scene); collision.position.z = .45; collision.bakeCurrentTransformIntoVertices();
+    collision.parent = wall; wall.colliderType = 'aabb'; wall.colliderMesh = collision; wall.setEnabled(false);
+    try {
+        const state = new PlatformEditorState(), body = state.draft({ mesh: 'test.wall.aabb', x: 10, y: 2, z: 10 });
+        const at = (where, centre) => ['x', 'y', 'z'].map(axis => +state.pivot(body, [wall], where, centre)[axis].toFixed(3) + 0);
+        assert.deepEqual([at(null, 'cell'), at('000', 'cell'), at('+00', 'cell'), at('0+0', 'cell'), at('00-', 'cell'), at('+++', 'cell'), at('---', 'cell')],
+            [[0, 0, 0], [0, 0, 0], [.5, 0, 0], [0, .5, 0], [0, 0, -.5], [.5, .5, .5], [-.5, -.5, -.5]]);
+        assert.deepEqual([at(null, 'mesh'), at('+00', 'mesh'), at('00-', 'mesh'), at('00+', 'mesh'), at('+++', 'mesh'), at('---', 'mesh')],
+            [[0, 0, .45], [.5, 0, .45], [0, 0, .4], [0, 0, .5], [.5, .5, .5], [-.5, -.5, .4]]);
+        const block = { mesh: 'test.wall.aabb', x: 10, y: 2, z: 10 }, turn = { type: 'path', points: [{ rotation: { y: 0 } }, { rotation: { y: 90 } }], duration: 4, loop: 'pingpong' };
+        const make = motion => new PlatformWorld([{ id: 'wall', position: { x: 10.5, y: 2.5, z: 10.5 }, blocks: [block], shapes: [], motion }], [wall]);
+        const still = make({ type: 'none' }), where = (world, point, time) => BABYLON.Vector3.TransformCoordinates(new BABYLON.Vector3(point.x, point.y, point.z), world.pose(world.bodies[0], time).matrix);
+        const middleOf = (world, time) => { const box = world.pose(world.bodies[0], time).bounds; return box.min.add(box.max).scale(.5); };
+        const flush = middleOf(still, 0);
+        for (const [name, motion, point] of [['a side', { ...turn, pivot: { x: .5, y: 0, z: 0 } }, { x: .5, y: 0, z: 0 }], ['the cell', turn, { x: 0, y: 0, z: 0 }]]) {
+            const turning = make(motion), rest = where(turning, point, 0);
+            for (const time of [.5, 1, 2, 3]) assert.ok(BABYLON.Vector3.Distance(where(turning, point, time), rest) < 1e-4, 'the point it turns about stays put: ' + name);
+            assert.ok(BABYLON.Vector3.Distance(middleOf(turning, 0), flush) < 1e-5, 'and at rest it has not moved off its cell: ' + name);
+        };
+        const onMesh = make({ ...turn, centre: 'mesh' }), rest = middleOf(onMesh, 0);
+        assert.ok(Math.abs(rest.x - 10.5) < 1e-5 && Math.abs(rest.z - 10.5) < 1e-5 && Math.abs(rest.y - flush.y) < 1e-5, 'centred on the mesh, the middle of the wall is moved onto the cell centre: ' + rest.asArray());
+        for (const time of [.5, 1, 2, 3]) assert.ok(BABYLON.Vector3.Distance(where(onMesh, { x: 0, y: 0, z: .45 }, time), where(onMesh, { x: 0, y: 0, z: .45 }, 0)) < 1e-4, 'and it turns in place about its own middle');
+        const moved = make({ type: 'path', points: [{}, { x: 4 }], duration: 8, loop: 'pingpong', centre: 'mesh' }), cell = make({ type: 'path', points: [{}, { x: 4 }], duration: 8, loop: 'pingpong' });
+        close(middleOf(moved, 0).z, 10.5); close(middleOf(cell, 0).z, 10.95); close(middleOf(moved, 4).x - middleOf(moved, 0).x, 4, 1e-6);
+        const anchored = moved.bodies[0].definition.motion;
+        close(anchored.pathReference.z, 0); close(cell.bodies[0].definition.motion.pathReference.z, 0); //the guide runs through the middle of the cell either way, through the wall's own middle only once it has been moved there
+        const read = centre => PlatformMap.read({ width: 24, height: 8, depth: 24, extents: { platforms: [{ id: 'a', position: { x: 10.5, y: 2.5, z: 10.5 }, blocks: [block], shapes: [], motion: { type: 'path', points: [{}, { x: 1 }], duration: 4, loop: 'loop', centre } }] } }).length;
+        assert.equal(read('cell'), 1); assert.equal(read('mesh'), 1); assert.equal(read('edge'), 0);
+    } finally { wall.dispose(); collision.dispose(); }
+});
+
+test('a block crushes only what it pushes into the map, and the damage is the setting, with no kill credited', () => {
+    const pusher = motion => ({ id: 'crusher', position: { x: 10, y: 1.5, z: 10 }, shapes: [{ type: 'box', min: { x: -.5, y: -.5, z: -.5 }, max: { x: .5, y: .5, z: .5 } }],
+        motion: { type: 'path', points: [{}, { x: 4 }], duration: 4, loop: 'pingpong', ...motion } });
+    const bounds = DynamicMapBlocksPlugin.playerBounds(player());
+    const squeeze = (against, motion = {}) => {
+        const world = useBody(pusher(motion));
+        let pos = { x: 10.6, y: 1.1, z: 10 }, caught = null;
+        for (let i = 0; i < 60; i++) { pos = DynamicMapBlocksPlugin.ride('players', collider, pos, bounds, i / 60, (i + 1) / 60, () => against, false); caught = caught || world.squeezed; };
+        return caught?.definition.id ?? null;
+    };
+    assert.equal(squeeze(true), 'crusher', 'shoved at something the map will not move');
+    assert.equal(squeeze(false), null, 'room to be pushed along: nothing is crushed');
+    assert.equal(squeeze(true, { pushThroughMap: true }), null, 'and a block that wins over the map pushes through instead');
+    const hurt = (hp, extra = {}) => { const log = []; return Object.assign({ id: 3, hp, playing: true, isDead: () => false, modifiers: { resistanceModifier: 1, scale: 1 },
+        setHp: (value, by) => log.push(['setHp', value, by]), hit: (...args) => log.push(['hit', ...args]), log }, extra); };
+    const world = useBody(pusher({ crush: 999 })), body = world.bodies[0], at = 1000;
+    const dies = hurt(100); assert.equal(DynamicMapBlocksPlugin.crush(dies, body, at), true);
+    assert.deepEqual(dies.log, [['setHp', 0, 3]], '999 is an instant kill, and it is the player\'s own death: no one is credited');
+    const grazed = hurt(100), light = useBody(pusher({ crush: 30 })).bodies[0];
+    DynamicMapBlocksPlugin.crush(grazed, light, at); assert.deepEqual(grazed.log, [['hit', 30, grazed, 0, 0, true, 0]], 'less than their health: just hurts, through the usual hit so everyone sees it');
+    assert.equal(DynamicMapBlocksPlugin.crush(grazed, light, at + 100), false, 'not again within half a second'); assert.equal(DynamicMapBlocksPlugin.crush(grazed, light, at + 600), true);
+    const tough = hurt(100, { modifiers: { resistanceModifier: .5, scale: 1 } }); DynamicMapBlocksPlugin.crush(tough, useBody(pusher({ crush: 50 })).bodies[0], at);
+    assert.deepEqual(tough.log, [['setHp', 0, 3]], 'damage goes through the same resistance and size scaling as any hit, so it can be enough');
+    for (const ignored of [hurt(100, { playing: false }), hurt(100, { isDead: () => true })]) assert.equal(DynamicMapBlocksPlugin.crush(ignored, body, at), false);
+    assert.equal(DynamicMapBlocksPlugin.crush(hurt(100), useBody(pusher({})).bodies[0], at), false, 'a block with no crush damage set does nothing');
+    const read = extra => PlatformMap.read({ width: 24, height: 8, depth: 24, extents: { platforms: [pusher(extra)] } }).length;
+    assert.equal(read({ crush: 999 }), 1); assert.equal(read({ crush: 1 }), 1); assert.equal(read({ crush: 0 }), 0); assert.equal(read({ crush: 10000 }), 0); assert.equal(read({ crush: 'a lot' }), 0); assert.equal(read({ crush: 50, pushThroughMap: true }), 0);
+    diskWorld();
+});
+
+test('stepping off a triggered block is predicted too: with a ping of up to 300 ms pause, reverse and snap all agree with the server', () => {
+    for (const release of ['pause', 'reverse', 'snap']) for (const oneWay of [.05, .1, .15]) {
+        const make = () => new PlatformWorld([triggerBody({ release })], [], new PlatformClock(() => 0));
+        const server = make(), client = make(), serverBody = server.bodies[0], clientBody = client.bodies[0], inbox = [], bounds = DynamicMapBlocksPlugin.playerBounds(player());
+        const standing = (world, body, t) => { const box = world.pose(body, t).bounds; return { kind: 'players', pos: { x: (box.min.x + box.max.x) / 2, y: 2.01, z: 10 }, bounds }; };
+        const on = t => t >= .5 && t < 2, drawn = []; let snap = 0;
+        for (let i = 0; i <= 5 * 60; i++) {
+            const t = i / 60, seen = t - oneWay;
+            PlatformTriggers.predict(client, on(t) ? [standing(client, clientBody, t)] : [], t);
+            PlatformTriggers.step(server, on(seen) ? [{ ...standing(server, serverBody, t), time: seen }] : [], t);
+            if (i % 6 === 0) inbox.push({ at: t + oneWay, segs: serverBody.progress.segs.slice(-8), time: t });
+            while (inbox.length && inbox[0].at <= t) { const word = inbox.shift(), had = client.visualProgress(clientBody, t); client.hear(clientBody, word.segs, word.time, t); snap = Math.max(snap, Math.abs(client.visualProgress(clientBody, t) - had) * 4); };
+            drawn.push([t, client.progressAt(clientBody, t)]);
+        };
+        const jumpAt = serverBody.progress.segs.find(seg => seg.snap)?.t0 ?? -9; //a snap is a step, so a tick either side of it is not a disagreement
+        let apart = 0; for (const [t, shown] of drawn) if (Math.abs(t - jumpAt) > .04) apart = Math.max(apart, Math.abs(shown - server.progressAt(serverBody, t)) * 4);
+        assert.ok(apart < .05, release + ', one way ' + oneWay + ': disagree by ' + apart.toFixed(3) + ' blocks');
+        assert.ok(snap < .02, release + ', one way ' + oneWay + ': snaps by ' + snap.toFixed(3) + ' blocks when the server answers');
+    };
+});
+
+test('a cycle can be as short as you like, as long as it is not zero and stays within the speed limit', () => {
+    const read = motion => PlatformMap.read({ width: 24, height: 8, depth: 24, extents: { platforms: [boxBody(motion)] } }).length;
+    assert.equal(read({ type: 'path', points: [{}, { x: 1 }], duration: .5, loop: 'pingpong' }), 1); assert.equal(read({ type: 'path', points: [{}, { x: 1 }], duration: .05, loop: 'pingpong' }), 0, 'still no faster than 16 blocks a second');
+    assert.equal(read({ type: 'path', points: [{ rotation: { y: 0 } }, { rotation: { y: 90 } }], duration: .1, loop: 'pingpong' }), 1, 'a quick turn on the spot goes nowhere, so nothing to limit');
+    assert.equal(read({ type: 'circle', radius: .25, duration: .1, plane: 'xz' }), 1); assert.equal(read({ type: 'circle', radius: 1, duration: .5, plane: 'xz' }), 1); assert.equal(read({ type: 'circle', radius: 2, duration: .5, plane: 'xz' }), 0, 'but 25 blocks a second is too fast');
+    assert.equal(read({ type: 'path', points: [{}, { x: 1 }], duration: 0, loop: 'pingpong' }), 0); assert.equal(read({ type: 'path', points: [{}, { x: 1 }], duration: -2, loop: 'pingpong' }), 0);
+});
+
+test('a rider on a triggered lift goes where the server says even as it ends, snaps back and restarts, at a ping up to 100 ms', () => {
+    const dyZero = p => { p.dx = p.dy = p.dz = 0; };
+    const lift = trigger => ({ id: 'lift', position: { x: 10, y: 1.5, z: 10 }, shapes: [{ type: 'box', min: { x: -1, y: -.5, z: -1 }, max: { x: 1, y: .5, z: 1 } }],
+        motion: { type: 'path', points: [{}, { y: 5 }], duration: 1.5, loop: 'pingpong', trigger } });
+    for (const trigger of [{ mode: 'cycle', release: 'snap' }, { mode: 'cycle', release: 'return', returnSeconds: 1, delayReset: .3 }, { mode: 'run', release: 'snap' }, { mode: 'latch', release: 'pause' }, { mode: 'cycle', release: 'reverse', cooldown: 1 }]) for (const lag of [0, 1, 2, 6]) {
+        const make = () => new PlatformWorld([lift(trigger)], [], new PlatformClock(() => 0));
+        const server = make(), client = make(), serverBody = server.bodies[0], clientBody = client.bodies[0], inbox = [], queue = [], rider = player({ x: 10, y: 2, z: 10 });
+        const entity = (x, y, z, time) => ({ kind: 'players', pos: { x, y, z }, bounds: DynamicMapBlocksPlugin.playerBounds(rider), time });
+        const shown = [];
+        for (let i = 0; i <= 8 * 60; i++) {
+            const t = i / 60;
+            if (i === 4 || i === 300) { rider.x = 16; rider.y = 2; } else if (i === 200 || i === 400) { rider.x = 10; rider.y = 2; dyZero(rider); } //steps off, and later back on
+            collider.platformWorld = client; rider.platformTime = t; PlatformTriggers.predict(client, [entity(rider.x, rider.y, rider.z, t)], t);
+            queue.push({ at: i + lag, snap: entity(rider.x, rider.y, rider.z, t) }); rider.simulateMovement({ delta: 1 });
+            while (queue.length && queue[0].at <= i) PlatformTriggers.step(server, [queue.shift().snap], t);
+            if (i % 6 === 0) inbox.push({ at: i + lag, segs: serverBody.progress.segs.slice(-8), time: t });
+            while (inbox.length && inbox[0].at <= i) { const word = inbox.shift(); client.hear(clientBody, word.segs, word.time, t); };
+            shown.push([t, client.progressAt(clientBody, t)]);
+        };
+        const steps = serverBody.progress.segs.filter(seg => seg.snap).map(seg => seg.t0); //a snap is a jump, so the ticks around it are not a disagreement
+        let worst = 0; for (const [t, at] of shown) if (steps.every(step => Math.abs(step - t) > (lag + 2) / 60)) worst = Math.max(worst, Math.abs(at - server.progressAt(serverBody, t)) * 5);
+        assert.ok(worst < .1, JSON.stringify(trigger) + ', lag ' + lag + ': client and server lifts are ' + worst.toFixed(2) + ' blocks apart');
+    };
+    diskWorld();
+});
+
+test('a cycle the server already ended is not restarted by a client that never saw the end', () => {
+    const world = useBody(triggerBody({ mode: 'cycle', release: 'snap' })), body = world.bodies[0];
+    PlatformTriggers.advance(world, body, .5, onTop, true); //set off on the client, guessed
+    world.hear(body, [{ t0: .5, p0: 0, rate: .25 }, { t0: 4.5, p0: 0, rate: 0, snap: true }], 4.5, 4.6); //and the server's word already has it over and snapped
+    assert.equal(PlatformTriggers.advance(world, body, 4.6, null, true), null);
+    assert.equal(body.trigState.cycling, false);
+});
+
+test('a player clock left behind by a hidden tab or a death is put back on the blocks clock, a small offset is left alone', () => {
+    const world = useBody(boxBody({ type: 'path', points: [{}, { x: 2 }], duration: 4, loop: 'pingpong' }));
+    const clock = new PlatformClock(() => 0); clock.observe(80); world.clock = clock;
+    close(DynamicMapBlocksPlugin.anchor(79.8, world), 79.8); close(DynamicMapBlocksPlugin.anchor(80.3, world), 80.3);
+    close(DynamicMapBlocksPlugin.anchor(37.9, world), 80); close(DynamicMapBlocksPlugin.anchor(undefined, world), 80);
+    const p = player({ x: 10.5, platformTime: 37.9 });
+    p.simulateMovement({ delta: 1 });
+    close(p.platformTime, 80 + 1 / 60);
+    const replay = player({ x: 10.5 }).simulateMovement({ delta: 1, platformTime: 37.9 }, true);
+    close(replay.platformTime, 37.9 + 1 / 60); //a replay keeps the time it was first played at
+});
+
+test('a start dated ahead of the server clock is still dated where the player said, not pulled back to now', () => {
+    const world = useBody(triggerBody({ release: 'pause' })), body = world.bodies[0];
+    PlatformTriggers.step(world, [{ ...onTop, time: 1.2 }], 1);
+    close(body.progress.segs.at(-1).t0, 1.2);
+});
+
+test('collision, rotation and triggers can be given to one team, and bullets are a third group beside players and items', () => {
+    const blue = 1, red = 2, free = 0, still = { type: 'path', points: [{}, { z: .001 }], duration: 8, loop: 'pingpong' };
+    const bounds = DynamicMapBlocksPlugin.playerBounds(player()), inside = { x: 10, y: 1.6, z: 10 };
+    for (const [flags, who, team, blocked] of [
+        [{ collidePlayers: 'blue' }, 'players', blue, true], [{ collidePlayers: 'blue' }, 'players', red, false], [{ collidePlayers: 'blue' }, 'players', free, false],
+        [{ collideItems: 'red' }, 'items', red, true], [{ collideItems: 'red' }, 'items', blue, false], [{ collideItems: true }, 'items', free, true],
+        [{ collideBullets: false }, 'bullets', blue, false], [{ collideBullets: 'red' }, 'bullets', blue, false], [{ collideBullets: 'red' }, 'bullets', red, true],
+        [{}, 'bullets', blue, true], [{ collidePlayers: false, collideItems: false }, 'bullets', blue, false], [{ collidePlayers: false, collideItems: false, collideBullets: true }, 'bullets', blue, true]]) {
+        const world = useBody(boxBody({ ...still, ...flags }));
+        assert.equal(!!world.as(who, () => world.overlap(inside, bounds, 0), team), blocked, JSON.stringify(flags) + ' ' + who + ' of team ' + team);
+    };
+    const shot = flags => { const world = useBody(boxBody({ ...still, ...flags })); return team => world.as('bullets', () => world.ray(new BABYLON.Vector3(10, 1.5, 5), new BABYLON.Vector3(0, 0, 8), 0), team).length; };
+    assert.ok(shot({})(blue) > 0); assert.equal(shot({ collideBullets: false })(blue), 0); assert.equal(shot({ collideBullets: 'blue' })(red), 0); assert.ok(shot({ collideBullets: 'blue' })(blue) > 0);
+    const turns = { type: 'spin', speed: 90, axis: { y: 1 } }, turnWorld = flags => useBody(boxBody({ ...turns, ...flags }));
+    const turned = (flags, team) => { const world = turnWorld(flags); return world.as('players', () => world.passengerTurn({ x: 10, y: 2.0, z: 10 }, bounds, 0, .5), team); };
+    assert.ok(Math.abs(turned({ rotatePlayers: 'red' }, red)) > 0); assert.equal(turned({ rotatePlayers: 'red' }, blue), 0); assert.equal(turned({ rotatePlayers: true }, blue) !== 0, true);
+    const set = (trigger, entity) => { const world = useBody(triggerBody(trigger)); PlatformTriggers.step(world, [entity], 1); return world.bodies[0].progress.segs.length > 1; };
+    const hit = (team, id = 'plate') => ({ kind: 'bullets', pos: { x: 10, y: 2, z: 10 }, bounds: { min: { x: 0, y: 0, z: 0 }, max: { x: 0, y: 0, z: 0 } }, team, hitBody: id });
+    assert.equal(set({}, hit(blue)), false, 'bullets do not set a block off unless told to');
+    assert.equal(set({ bullets: true }, hit(blue)), true); assert.equal(set({ bullets: true }, hit(blue, 'other')), false);
+    assert.equal(set({ bullets: 'red' }, hit(blue)), false); assert.equal(set({ bullets: 'red' }, hit(red)), true);
+    assert.equal(set({ source: 'zone', bullets: true, zone: { shape: 'sphere', radius: 3 } }, hit(blue, 'elsewhere')), true, 'a zone cares where it landed, not what it hit');
+    assert.equal(set({ source: 'zone', bullets: true, zone: { shape: 'sphere', radius: 1 } }, { ...hit(blue), pos: { x: 20, y: 2, z: 10 } }), false);
+    assert.equal(set({ players: 'blue' }, { ...onTop, team: red }), false); assert.equal(set({ players: 'blue' }, { ...onTop, team: blue }), true);
+    assert.equal(set({ items: 'red' }, { ...onTop, kind: 'items', team: red }), true); assert.equal(set({ items: 'red' }, { ...onTop, kind: 'items', team: blue }), false);
+    const read = motion => PlatformMap.read({ extents: { platforms: [boxBody(motion)] }, width: 24, height: 8, depth: 24 }).length;
+    assert.equal(read({ ...still, collideBullets: 'blue', collidePlayers: 'red' }), 1); assert.equal(read({ ...still, collideBullets: 'green' }), 0);
+    assert.equal(read({ ...still, trigger: { bullets: 'red' } }), 1); assert.equal(read({ ...still, trigger: { bullets: 'purple' } }), 0);
+});
+test('a bullet that lands on a block is noted for the server, with the team of whoever fired it', () => {
+    const world = useBody(boxBody({ type: 'path', points: [{}, { z: .001 }], duration: 8, loop: 'pingpong' }));
+    const hit = (audience, team) => world.as(audience, () => collider.rayCollidesWithMap(new BABYLON.Vector3(10, 1.5, 5), new BABYLON.Vector3(0, 0, 10), (origin, direction, voxel) => voxel.platformHit ? { pick: { hit: true, pickedPoint: voxel.platformHit.pick.pickedPoint } } : false), team);
+    assert.ok(hit('bullets', 2)); assert.equal(world.hits.length, 1); assert.equal(world.hits[0].team, 2); assert.equal(world.hits[0].id, 'box');
+    hit(null); assert.equal(world.hits.length, 1, 'only a bullet is noted');
+    diskWorld();
+});
+
+test('a real bullet fired at a shot-triggered block is noted, and the server tick then sets it off', () => {
+    const world = useBody({ ...triggerBody({ source: 'contact', surface: 'sides', players: false, items: false, bullets: true, mode: 'cycle', release: 'return', delayReset: .5 }), id: 'wall' });
+    const room = { Collider: collider }, bullet = new Bullet({ room }), shooter = player({ x: 10, y: 1.7, z: 4, team: 2, platformTime: .3, modifiers: { scale: 1, damageModifier: 1, bulletSpeedModifier: 1 } });
+    bullet.fireThis(shooter, new BABYLON.Vector3(10, 1.5, 4), new BABYLON.Vector3(0, 0, 20), { velocity: 1, damage: 20, range: 20 });
+    assert.equal(world.hits.length, 1, 'the shot landed on the block'); assert.equal(world.hits[0].id, 'wall'); assert.equal(world.hits[0].team, 2);
+    const miss = new Bullet({ room }); miss.fireThis(shooter, new BABYLON.Vector3(10, 1.5, 4), new BABYLON.Vector3(0, 20, 0), { velocity: 1, damage: 20, range: 20 });
+    assert.equal(world.hits.length, 1, 'a shot that hits nothing is not noted');
+    assert.equal(world.hits[0].time, .3, 'dated by the shooter clock');
+    const sent = []; DynamicMapBlocksPlugin.updateTriggers({ Collider: collider, players_by_id: [], sendToAll: (...args) => sent.push(args), munitionsManager: { grenadePool: { forEachActive() {} } } });
+    assert.equal(world.hits.length, 0); assert.ok(world.bodies[0].progress.segs.length > 1, 'and the block was set going');
+    close(world.bodies[0].progress.segs.find(seg => seg.rate > 0).t0, .3); assert.equal(sent.length, 1, 'and everyone was told straight away');
+    diskWorld();
+});
+
+test('a client does not guess for a block that shots can set off, since it cannot see them land', () => {
+    const world = useBody(triggerBody({ bullets: true, mode: 'cycle', release: 'return' })), body = world.bodies[0];
+    world.addSegment(body, { t0: 1, p0: 0, rate: .25 }); //the server has it opening
+    for (let i = 0; i < 60; i++) PlatformTriggers.predict(world, [], 2 + i / 60);
+    assert.equal(body.progress.segs.filter(seg => seg.pred).length, 0, 'it does not start closing it every tick');
+    const plain = useBody(triggerBody({ mode: 'run', release: 'return' })), made = plain.bodies[0];
+    plain.addSegment(made, { t0: 1, p0: 0, rate: .25 });
+    PlatformTriggers.predict(plain, [], 2);
+    assert.equal(made.progress.segs.filter(seg => seg.pred).length, 1, 'a block only players can set off is still guessed for');
+    diskWorld();
+});
+
+test('a cycle is planned from its start, so a client whose clock runs ahead never waits to be told when it closes', () => {
+    const wall = { id: 'wall', position: { x: 10.5, y: 6.5, z: 7.5 }, shapes: [{ type: 'box', min: { x: -.5, y: -.5, z: -.1 }, max: { x: .5, y: .5, z: .1 } }],
+        motion: { type: 'path', points: [{ x: .4 }, { x: .4, rotation: { x: 0, y: -90, z: 0 } }], duration: 2.5, loop: 'pingpong', pivot: { x: .45, y: 0, z: -.5 },
+            trigger: { source: 'contact', surface: 'sides', players: false, items: false, bullets: true, mode: 'cycle', release: 'return', returnSeconds: 2, delayReset: .5 } } };
+    for (const [off, lat] of [[0, 1], [.2, 1], [.35, 1], [.45, 1], [.35, 2]]) { // a ping of a few ms: a late start over a long ping is a catch-up, not a glitch
+        const make = () => new PlatformWorld([wall], [], new PlatformClock(() => 0));
+        const server = make(), client = make(), serverBody = server.bodies[0], clientBody = client.bodies[0], inbox = [], drawn = [];
+        for (let i = 0; i < 60 * 16; i++) {
+            const t = i / 60, hits = i % 6 === 0 && t > .5 && t < 14 ? [{ kind: 'bullets', pos: { x: 10.5, y: 6.5, z: 7.5 }, bounds: { min: { x: 0, y: 0, z: 0 }, max: { x: 0, y: 0, z: 0 } }, team: 0, hitBody: 'wall', time: t - lat / 60 + off }] : [];
+            const made = PlatformTriggers.step(server, hits, t);
+            if (made.length || i % 6 === 0) inbox.push({ at: i + lat, segs: serverBody.progress.segs.slice(-8), time: t });
+            while (inbox.length && inbox[0].at <= i) { const word = inbox.shift(); client.hear(clientBody, word.segs, word.time, t + off); };
+            drawn.push(client.visualProgress(clientBody, t + off));
+        };
+        let worst = 0; for (let i = 1; i < drawn.length; i++) worst = Math.max(worst, Math.abs(drawn[i] - drawn[i - 1]));
+        assert.ok(worst < .03, 'clock ahead by ' + off + ', lag ' + lat + ': drawn progress jumps by ' + worst.toFixed(3) + ' in one tick');
+    };
+});
+
+test('a trapdoor still agrees between server and client when the players clock runs seconds ahead of the servers', () => {
+    const door = { id: 'td', position: { x: 10.5, y: 3, z: 10.5 }, shapes: [{ type: 'box', min: { x: -.5, y: .25, z: -.5 }, max: { x: .5, y: .5, z: .5 } }],
+        motion: { type: 'path', points: [{}, { rotation: { x: 0, y: 0, z: -90 } }], duration: 1, loop: 'snap', pivot: { x: .5, y: -.5, z: -.5 }, collidePlayers: true, collideItems: true,
+            trigger: { source: 'contact', surface: 'any', players: true, items: false, mode: 'cycle', release: 'return', returnSeconds: 1.5, delayStart: 0, delayReset: .3, cooldown: 0 } } };
+    for (const ahead of [0, .45, 1.2, 2.1]) for (const lag of [1, 3]) {
+        const make = () => new PlatformWorld([door], [], new PlatformClock(() => 0));
+        const server = make(), client = make(), serverBody = server.bodies[0], clientBody = client.bodies[0], inbox = [], queue = [], serverRider = player({ x: 10.5, y: 3.5, z: 10.5 }), clientRider = player({ x: 10.5, y: 3.5, z: 10.5 });
+        const entity = (p, time) => ({ kind: 'players', pos: { x: p.x, y: p.y, z: p.z }, bounds: DynamicMapBlocksPlugin.playerBounds(p), time });
+        const mine = [], theirs = []; let worst = 0;
+        for (let i = 0; i < 480; i++) {
+            if (i % 200 === 0) Object.assign(clientRider, { x: 10.5, y: 3.5, z: 10.5, dx: 0, dy: 0, dz: 0 });
+            collider.platformWorld = client; PlatformTriggers.predict(client, [entity(clientRider, clientRider.platformTime)], clientRider.platformTime); clientRider.simulateMovement({ delta: 1 });
+            mine[i] = { x: clientRider.x, y: clientRider.y, z: clientRider.z }; queue.push({ at: i + lag, i, reset: i % 200 === 0 });
+            while (queue.length && queue[0].at <= i) {
+                const word = queue.shift(); collider.platformWorld = server;
+                if (word.reset) Object.assign(serverRider, { x: 10.5, y: 3.5, z: 10.5, dx: 0, dy: 0, dz: 0 });
+                serverRider.simulateMovement({ delta: 1 }); const made = PlatformTriggers.step(server, [entity(serverRider, serverRider.platformTime)], i / 60 - ahead);
+                if (made.length) inbox.push({ at: i + lag, segs: serverBody.progress.segs.slice(-8), time: i / 60 - ahead });
+                theirs[word.i] = { x: serverRider.x, y: serverRider.y, z: serverRider.z };
+            };
+            if (i % 6 === 0) inbox.push({ at: i + lag, segs: serverBody.progress.segs.slice(-8), time: i / 60 - ahead });
+            while (inbox.length && inbox[0].at <= i) { const word = inbox.shift(); client.hear(clientBody, word.segs, word.time, i / 60); };
+        };
+        for (let i = 0; i < 480; i++) if (theirs[i]) worst = Math.max(worst, Math.hypot(mine[i].x - theirs[i].x, mine[i].y - theirs[i].y, mine[i].z - theirs[i].z));
+        assert.ok(worst < .3 && clientBody.progress.guesses.refused === 0, 'ahead ' + ahead + ', lag ' + lag + ': riders ' + worst.toFixed(2) + ' blocks apart, ' + clientBody.progress.guesses.refused + ' guesses refused');
+    };
+    diskWorld();
+});
+
+test('the server leans a creeping player clock back towards the blocks clock a hair a step, and leaves a held-still test clock alone', () => {
+    const world = useBody(boxBody({ type: 'none' })), live = new PlatformClock(); live.observe(80); world.clock = live;
+    assert.ok(DynamicMapBlocksPlugin.steer(80.1, world) < 80.1 && DynamicMapBlocksPlugin.steer(80.1, world) > 80.1 - .0006);
+    close(DynamicMapBlocksPlugin.steer(82, world), 82 - .002); close(DynamicMapBlocksPlugin.steer(78, world), 78 + .002); close(DynamicMapBlocksPlugin.steer(80, world), 80);
+    let time = 80, drift = 0; for (let i = 0; i < 60 * 120; i++) { live.observe(80 + i / 60); time = DynamicMapBlocksPlugin.steer(time + 1 / 60 + .00008, world); } //running 0.5% fast for two minutes
+    assert.ok(Math.abs(time - (80 + 120)) < .05, 'ends ' + (time - 200).toFixed(3) + ' s off');
+    world.clock = new PlatformClock(() => 0); close(DynamicMapBlocksPlugin.steer(82, world), 82);
+    diskWorld();
+});
+test('the server is a little more generous than a client about who is inside a zone or touching a block', () => {
+    const zone = { source: 'zone', zone: { shape: 'box', size: { x: 1, y: 1, z: 1 }, offset: { x: 0, y: 0, z: 0 } } };
+    const near = { ...onTop, pos: { x: 10, y: 1.5 + 1.05 - .3, z: 10 } }; //just outside the top of the zone (the player's middle is .3 above their feet)
+    const startWith = (trigger, entity, onServer) => { const world = useBody(triggerBody(trigger)); if (onServer) PlatformTriggers.step(world, [entity], 1); else PlatformTriggers.predict(world, [entity], 1); return world.bodies[0].progress.segs.length > 1; };
+    assert.equal(startWith(zone, near, false), false, 'a client is exact'); assert.equal(startWith(zone, near, true), true, 'the server forgives a hair');
+    assert.equal(startWith(zone, { ...near, pos: { x: 10, y: 1.5 + 1.5 - .3, z: 10 } }, true), false, 'but only a hair');
+});
+test('a states time follows from the last the server told us, by state number, wrapping with the buffer', () => {
+    const me = { modifiers: { physicsSpeedModifier: 1 }, dmbBase: { time: 10, idx: 250 } };
+    close(PlatformProtocol.stateTime(me, 250), 10); close(PlatformProtocol.stateTime(me, 253), 10 + 3 / 60);
+    close(PlatformProtocol.stateTime(me, 2), 10 + 8 / 60); //past the wrap
+    close(PlatformProtocol.stateTime(me, 248), 10 - 2 / 60); //a state from before the base
+    assert.equal(PlatformProtocol.stateTime({ modifiers: {} }, 5), undefined, 'nothing to go by until the server has spoken');
+    close(PlatformProtocol.stateTime({ modifiers: { physicsSpeedModifier: .5 }, dmbBase: { time: 0, idx: 0 } }, 3), 6 / 60);
+});
 test('F3 lines report the platforms, what the player rides and the targeted platform', () => {
     useBody(boxBody({ type: 'spin', axis: { y: 1 }, speed: 45 }));
     const on = { left: [], right: [] };

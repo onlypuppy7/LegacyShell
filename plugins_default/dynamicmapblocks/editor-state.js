@@ -1,4 +1,5 @@
 //plugin: dynamicmapblocks, editor only
+import BABYLON from 'babylonjs';
 import { PlatformMap, PlatformWorld } from './platforms.js';
 import { PlatformMotion } from './motion.js';
 
@@ -44,7 +45,7 @@ export class PlatformEditorState {
     };
     apply(body, map) {
         var valid = PlatformMap.read({ ...map, extents: { platforms: [body] } });
-        if (!valid.length) throw new Error('Check the settings. Spin: up to 90°/s. Path: at least 1 second, up to 16 blocks/s.');
+        if (!valid.length) throw new Error('Check the settings. Spin: up to 90°/s. Path: up to 16 blocks/s.');
         var index = this.bodies.findIndex(item => item.id === body.id);
         if (body.motion.type === 'none' && !valid[0].shapes.length && !['x', 'y', 'z'].some(axis => body.rotation?.[axis])) {
             if (index >= 0) this.bodies.splice(index, 1);
@@ -60,8 +61,8 @@ export class PlatformEditorState {
     pasteMovement(body, config, sources) {
         if (!config?.motion || !PlatformMotion.types.has(config.motion.type)) throw new Error('Copy a movement first.');
         var copy = JSON.parse(JSON.stringify(body)), motion = JSON.parse(JSON.stringify(config.motion));
-        if (motion.type === 'spin' && ['centre', 'corner'].includes(config.pivotMode))
-            motion.pivot = this.pivot(copy, sources, config.pivotMode === 'corner' ? config.corner : null);
+        if ((motion.type === 'spin' || motion.pivot) && ['centre', 'side', 'corner'].includes(config.pivotMode)) //somewhere on the block itself: follows the block it lands on
+            motion.pivot = this.pivot(copy, sources, config.pivotMode === 'centre' ? null : config.corner, motion.centre);
         copy.motion = motion;
         return copy;
     };
@@ -71,14 +72,18 @@ export class PlatformEditorState {
             for (var block of body.blocks) for (var axis of ['x', 'y', 'z']) block[axis] += offset[axis];
         };
     };
+    cells(body) { //the box of cells the blocks fill, from the body's own position
+        var low = ['x', 'y', 'z'].map(axis => Math.min(...body.blocks.map(block => block[axis])) - body.position[axis]);
+        var high = ['x', 'y', 'z'].map(axis => Math.max(...body.blocks.map(block => block[axis])) + 1 - body.position[axis]);
+        return { min: new BABYLON.Vector3(...low), max: new BABYLON.Vector3(...high) };
+    };
     bounds(body, sources) {
         var world = new PlatformWorld([{ ...body, rotation: {}, motion: { type: 'none' }, position: { x: 0, y: 0, z: 0 },
             blocks: body.blocks.map(block => ({ ...block, x: block.x - body.position.x, y: block.y - body.position.y, z: block.z - body.position.z })) }], sources);
         return world.pose(world.bodies[0], 0).bounds;
     };
-    pivot(body, sources, corner) {
-        var bounds = this.bounds(body, sources);
-        return Object.fromEntries(['x', 'y', 'z'].map((axis, index) => [axis, corner ?
-            bounds[corner[index] === '-' ? 'min' : 'max'][axis] : (bounds.min[axis] + bounds.max[axis]) / 2]));
+    pivot(body, sources, where, centre = body.motion?.centre) { //about the cell, or the mesh inside it if centre says so. where is a sign for each of x, y, z: - low, + high, 0 the middle
+        var bounds = body.blocks.length && centre !== 'mesh' ? this.cells(body) : this.bounds(body, sources); //so '000' is the centre, '+00' the middle of a side, '+++' a corner
+        return Object.fromEntries(['x', 'y', 'z'].map((axis, index) => [axis, where?.[index] === '-' ? bounds.min[axis] : where?.[index] === '+' ? bounds.max[axis] : (bounds.min[axis] + bounds.max[axis]) / 2]));
     };
 };
