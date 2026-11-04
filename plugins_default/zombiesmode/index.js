@@ -15,7 +15,7 @@ export const PluginMeta = {
     identifier: "zombiesmode",
     name: 'ZombiesMode',
     author: 'onlypuppy7 (+Claude)', //NOTE! most of this plugin is VIBECODED.
-    version: '1.2.19',
+    version: '1.2.21',
     descriptionShort: 'Adds the zombies gamemode: survive the horde, the infected join it', //displayed when loading
     descriptionLong: 'Adds the Zombies gamemode. A horde of slow DeadInternet bots walks at the humans and bites them; a human who dies (or leaves the fight through the menu) is infected and joins the horde. Last human standing wins, or the humans win by outlasting the round.',
     legacyShellVersion: 613, //legacy shell version, can be found in /versionEnum.txt, or just on the homescreen

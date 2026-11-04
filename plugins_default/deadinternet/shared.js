@@ -56,6 +56,23 @@ export const DeadInternetPlugin = {
         // once either) - each room worker independently loads plugins exactly once for its own
         // lifetime (see CLAUDE.md's "Game server internals").
         this.plugins.on('game:playerStateUpdate', this.recordPlayerState.bind(this));
+        this.plugins.on('game:onPageLoadedEnd', this.onPageLoadedEnd.bind(this)); //(browser only)
+    },
+
+    // Bots have ids past the player limit, so the leaderboard can have more rows than the limit, and the game only hides the leftover
+    // rows from the limit on: when the bots go, the rows past it stay up (and go on showing them in the next gamemode).
+    onPageLoadedEnd: function () {
+        if (!isClient || this.patchedList) return;
+        this.patchedList = true;
+        const rebuild = rebuildPlayerList;
+        rebuildPlayerList = function () {
+            const result = rebuild.apply(this, arguments);
+            let count = 0;
+            iteratePlayers(() => { count++; });
+            const rows = document.getElementById("playerList").children;
+            for (let i = count; i < rows.length; i++) rows[i].style.display = "none";
+            return result;
+        };
     },
 
     // Records one full-resolution row into whichever player's recording is currently active (a

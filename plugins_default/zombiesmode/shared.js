@@ -69,6 +69,7 @@ export const ZombiesModePlugin = {
         this.plugins.on('game:GameTypesInit', this.GameTypesInit.bind(this));
         this.plugins.on('game:onPageLoadedEnd', this.onPageLoadedEnd.bind(this)); //(browser only)
         this.plugins.on('game:roomParamsUpdated', this.roomParamsUpdated.bind(this)); //(browser only)
+        this.plugins.on('game:leaveGame', this.leaveGame.bind(this)); //(browser only)
     },
 
     // The horde has no gun: an infected player's trigger does nothing (the zombies' own damage is already off, this stops the shot itself, and
@@ -164,13 +165,25 @@ export const ZombiesModePlugin = {
         } catch (e) { };
     },
 
+    // Going home with the game menu already gone (it is, once the server has spawned you) skips the one place the corner buttons come back.
+    leaveGame() {
+        if (!isClient) return;
+        try { showCornerButtons(); } catch (e) { };
+    },
+
     enterGame() {
         if (document.pointerLockElement) return; //pressed PLAY: the game is already doing this
         try {
+            closeAlertDialog(); //the "continue to the next round?" prompt, among others
+            closeSettingsMenu();
+            document.getElementById("help").style.display = "none";
+            document.getElementById("feedback").style.display = "none";
+            captureKeys(); //(the dialogs let go of them)
             escPressed = false; //losing the lock again must not read as the player pressing escape
             unfocused = true; //a click anywhere takes the lock, in case the browser refuses it without one
             canvas.requestPointerLock({ unadjustedMovement: settings.fastPollMouse });
             hideGameMenu();
+            if (me && me.actor && me.actor.eye) doFirstPersonCamera(); //(hideGameMenu leaves the camera alone if this browser has not heard the round started yet)
             setTimeout(function () { unfocused = !document.pointerLockElement; escPressed = true; }, 400);
         } catch (e) { };
     },
