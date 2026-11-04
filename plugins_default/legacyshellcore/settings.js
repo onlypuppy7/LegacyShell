@@ -170,6 +170,18 @@ const LegacyShellCoreSettings = {
             },
         }, 1, "Mouse & Aiming");
         settings.scopeSensitivity = LegacySettings.get("scopeSensitivity"); //restore the saved value
+        LegacySettings.addOption("Controls", {
+            type: "checkbox",
+            key: "ultraLowMouse",
+            label: "Ultra Low Speed",
+            tooltip: "Makes your mouse 10x slower on top of the Mouse Speed slider. For very high DPI mice that are still too fast on the lowest setting.",
+            getValue: () => !!LegacySettings.get("ultraLowMouse"),
+            setValue: (val) => {
+                settings.mouseMultiplier = val ? 0.1 : 1;
+                LegacySettings.set("ultraLowMouse", !!val);
+            },
+        }, 1, "Mouse & Aiming");
+        settings.mouseMultiplier = LegacySettings.get("ultraLowMouse") ? 0.1 : 1; //restore the saved value
         this.checkbox("Controls", 1, "Mouse & Aiming", "mouseInvert", () => loc("ui_settings_invertmouse", "Invert Mouse"));
         this.checkbox("Controls", 1, "Mouse & Aiming", "fastPollMouse", () => loc("ui_settings_fastPollMouse", "Fix Mouse Glitch"), "Uses raw, unaccelerated mouse input. Try this if your mouse jumps, lags or feels inconsistent.");
         this.checkbox("Controls", 1, "Mouse & Aiming", "holdToAim", () => loc("ui_settings_holdtoaim", "Hold To Aim"), "On: you only aim while the aim key is held. Off: pressing it toggles aiming.");
