@@ -75,6 +75,8 @@ export const PlatformMap = {
                 if (length / motion.duration > 16) continue;
                 if (motion.trigger?.release === 'return' && length / (motion.trigger.returnSeconds || 1) > 16) continue;
             };
+            if (motion.type === 'circle' && [['circleOffset', 64], ['circleRotation', 3600]].some(([key, limit]) => motion[key] !== undefined &&
+                (!this.finiteVector(motion[key]) || ['x', 'y', 'z'].some(axis => Math.abs(motion[key][axis] || 0) > limit)))) continue;
             if (motion.type === 'circle' && (!Number.isFinite(motion.radius) || motion.radius < .25 || motion.radius > 16 ||
                 !Number.isFinite(motion.duration) || motion.duration <= 0 || Math.PI * 2 * motion.radius / motion.duration > 16 ||
                 !['xz', 'xy', 'yz'].includes(motion.plane || 'xz') || (motion.reverse !== undefined && typeof motion.reverse !== 'boolean'))) continue;
@@ -307,9 +309,10 @@ export class PlatformWorld {
             var basis = { xz: [BABYLON.Axis.X, BABYLON.Axis.Z], xy: [BABYLON.Axis.X, BABYLON.Axis.Y], yz: [BABYLON.Axis.Y, BABYLON.Axis.Z] }[motion.plane || 'xz'];
             var u = BABYLON.Vector3.TransformNormal(basis[0], base), v = BABYLON.Vector3.TransformNormal(basis[1], base);
             var extra = motion.orient ? vertices.reduce((radius, point) => Math.max(radius, BABYLON.Vector3.Distance(point, pivot)), 0) : 0;
-            var reach = new BABYLON.Vector3(...['x', 'y', 'z'].map(axis => motion.radius * Math.hypot(u[axis], v[axis]) + extra));
+            var tilted = motion.circleRotation && ['x', 'y', 'z'].some(axis => motion.circleRotation[axis]); //a turned circle can reach any way round its centre
+            var reach = new BABYLON.Vector3(...['x', 'y', 'z'].map(axis => (tilted ? motion.radius : motion.radius * Math.hypot(u[axis], v[axis])) + extra));
             return PlatformShapes.bounds((motion.orient ? [anchor] : vertices.map(point => point.subtract(pivot).add(anchor))).flatMap(point => {
-                var centre = BABYLON.Vector3.TransformCoordinates(point.subtract(basis[0].scale(motion.radius)), base);
+                var centre = BABYLON.Vector3.TransformCoordinates(point.subtract(basis[0].scale(motion.radius)).add(PlatformMotion.vector(motion.circleOffset)), base);
                 return [centre.subtract(reach), centre.add(reach)];
             }));
         };

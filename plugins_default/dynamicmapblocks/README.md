@@ -62,7 +62,7 @@ together, including the selected draft) and Copy/Paste movement. It is underline
 
 **Circular path** adds a radius, horizontal or vertical plane, direction and cycle
 duration. The circle starts at the block's placement and its centre lies one radius
-back along the plane's first axis. **Face travel direction** rotates along a linear
+back along the plane's first axis. **Offset** (X/Y/Z blocks) moves that centre, and **Rotate** (X/Y/Z degrees) turns the whole circle about its centre, so the block starts somewhere else on it; use both to place an orbit around any point at any angle. **Face travel direction** rotates along a linear
 or circular path. For waypoint paths, **Turn time** is the rotation time after each
 corner: 0 snaps, larger values ease in and out using quaternion interpolation. Long turns are
 capped at half the current segment's duration so the next corner remains distinct.
@@ -257,6 +257,7 @@ These shared-physics measurements do not measure browser rendering or network RT
 With `debugf3` installed, F3 shows the platform count, the platform clock, what you are riding, and the platform you are looking at (motion and centre). Nothing is shown on maps without platforms.
 
 Two separate settings decide where a block turns and travels. **Centre on** chooses what its path is measured from: *Cell centre* (the default) leaves the block exactly where it was placed, so a thin wall stays flush with its neighbours; *Mesh centre* moves the block so the middle of its mesh sits on the middle of its cell (across, not up), as blocks used to, and the path then runs through the mesh's middle. **Pivot** chooses the point it turns about: the centre, the middle of any of the 6 sides, any of the 8 corners, or a point of your own, measured on the cell or on the mesh according to Centre on. Pivot applies to spins and to path and circle motion that turns (waypoint rotations or facing its way of travel), and waypoints are offsets from the block's start either way.
+`circleOffset` (blocks, up to 64) moves the centre and `circleRotation` (`{x, y, z}` degrees, yaw/pitch/roll order) turns the circle about it.
 
 **Rotate at waypoints** (linear paths only) lets any waypoint carry its own rotation in degrees (X, Y, Z). It is optional per waypoint: tick the box on a waypoint's rotation line to give it one. A waypoint without one keeps the rotation from the waypoint before, and the first starts as the block was placed. Between two rotations the block turns smoothly in step with how far along the segment it is, about its centre, and coming back on a back-and-forth path retraces the same turns. It combines with **Face travel direction** (the waypoint rotation is the block's own, then it faces its way of travel), turns riders if **Rotate with block** is on, and is saved as a `rotation` on the point. Two waypoints in the same place make a turn on the spot, which takes about as long as moving a block of path for every radian turned (a quarter turn is about 1.6 blocks' worth of the cycle).
 

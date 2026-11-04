@@ -86,6 +86,13 @@ export const PlatformMotion = {
         var rotation = BABYLON.Matrix.Compose(BABYLON.Vector3.One(), this.heading(v.scale(sign)), BABYLON.Vector3.Zero());
         rotation = BABYLON.Matrix.RotationY((motion.headingOffset || 0) * Math.PI / 180).multiply(rotation)
             .multiply(BABYLON.Matrix.RotationAxis(BABYLON.Vector3.Cross(u, v), angle));
+        if (motion.circleRotation) { //the whole circle turns about its centre, then circleOffset moves that centre
+            var turn = motion.circleRotation, degrees = Math.PI / 180, centre = u.scale(-motion.radius);
+            var tilt = BABYLON.Matrix.RotationYawPitchRoll((turn.y || 0) * degrees, (turn.x || 0) * degrees, (turn.z || 0) * degrees);
+            position = BABYLON.Vector3.TransformCoordinates(position.subtract(centre), tilt).add(centre);
+            rotation = rotation.multiply(tilt);
+        };
+        position = position.add(this.vector(motion.circleOffset));
         return { position, rotation };
     },
     angularTravel(motion, from, to) {

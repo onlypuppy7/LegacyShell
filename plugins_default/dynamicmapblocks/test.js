@@ -1898,3 +1898,21 @@ scene.dispose();
 engine.dispose();
 console.log(checks + ' moving platform checks passed');
 
+test('circle offset moves the centre and rotation turns the circle about it, within swept bounds', () => {
+    const base = { type: 'circle', radius: 2, duration: 8, plane: 'xz' };
+    const at = (extra, t) => PlatformMotion.sample(boxBody({ ...base, ...extra }), t).getTranslation();
+    const plain = at({}, 2), moved = at({ circleOffset: { x: 3, y: 1, z: -2 } }, 2);
+    close(moved.x - plain.x, 3); close(moved.y - plain.y, 1); close(moved.z - plain.z, -2);
+    const origin = PlatformMotion.sample(boxBody({ type: 'none' }), 0).getTranslation();
+    const quarter = at({ circleRotation: { y: 90 } }, 0), centre = { x: origin.x - 2, z: origin.z };
+    close(Math.hypot(quarter.x - centre.x, quarter.z - centre.z), 2);
+    assert.ok(Math.hypot(quarter.x - origin.x, quarter.z - origin.z) > 1, 'a quarter turn about the centre moves the start');
+    const tilt = at({ circleRotation: { x: 90 } }, 2);
+    assert.ok(Math.abs(tilt.y - origin.y) > 1, 'tilting a horizontal circle lifts it');
+    const definition = boxBody({ ...base, circleOffset: { x: 3, y: 1 }, circleRotation: { x: 35, z: 20 }, orient: true });
+    const world = new PlatformWorld([definition]), body = world.bodies[0], bounds = world.sweptBounds(body);
+    for (let i = 0; i <= 120; i++) {
+        const pose = world.pose(body, i / 15);
+        for (const axis of ['x', 'y', 'z']) { assert.ok(pose.bounds.min[axis] >= bounds.min[axis] - 1e-5); assert.ok(pose.bounds.max[axis] <= bounds.max[axis] + 1e-5); };
+    };
+});

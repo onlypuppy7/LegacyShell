@@ -219,6 +219,10 @@
         try {
             var body = readBody(), bounds = state.bounds(body, mapMeshes);
             var local = BABYLON.Matrix.RotationYawPitchRoll(body.rotation?.y || 0, body.rotation?.x || 0, body.rotation?.z || 0)
+            for (var [key, prefix] of [['circleOffset', 'circle-offset'], ['circleRotation', 'circle-rotation']]) {
+                var value = vectorValue(prefix);
+                if (axes.some(axis => value[axis])) body.motion[key] = value; //zero is the default, so only a real one is written down
+            };
                 .multiply(BABYLON.Matrix.Translation(body.position.x - .5, body.position.y - .5, body.position.z - .5));
             selectionBox.position.copyFrom(BABYLON.Vector3.TransformCoordinates(bounds.min.add(bounds.max).scale(.5), local));
             selectionBox.scaling.copyFrom(bounds.max.subtract(bounds.min).add(new BABYLON.Vector3(.04, .04, .04)));
@@ -332,6 +336,7 @@
         choose({ block: { mesh: mapMeshes[cell.idx].name, x: pos.x, y: pos.y, z: pos.z,
             rx: cell.rx || 0, ry: cell.ry || 0, rz: cell.rz || 0 } });
     };
+            vectorFields('circle-offset', motion.circleOffset); vectorFields('circle-rotation', motion.circleRotation);
     function attach() {
         if (!scene || scene === attachedScene) return;
         attachedScene = scene;
@@ -436,7 +441,10 @@
                     <button type="button" id="dmb-reverse-points">Reverse waypoints</button></div>
                 </div>
                 <div id="dmb-circle" hidden><div class="dmb-grid"><label>Radius<input id="dmb-radius" type="number" step="any" min=".25" max="16" value="3" required></label><label>Plane<select id="dmb-plane"><option value="xz">XZ · horizontal</option><option value="xy">XY · vertical</option><option value="yz">YZ · vertical</option></select></label></div>
-                    <label>Direction<select id="dmb-circle-direction"><option value="1">Clockwise</option><option value="-1">Anticlockwise</option></select></label></div>
+                    <label>Direction<select id="dmb-circle-direction"><option value="1">Clockwise</option><option value="-1">Anticlockwise</option></select></label>
+                    <p>Offset moves the circle's centre. Rotate turns the whole circle about its centre.</p>
+                    <div class="dmb-vector">${axes.map(axis => `<label>Offset ${axis.toUpperCase()}<input id="dmb-circle-offset-${axis}" type="number" step="any" min="-64" max="64" value="0"></label>`).join('')}</div>
+                    <div class="dmb-vector">${axes.map(axis => `<label>Rotate ${axis.toUpperCase()} (°)<input id="dmb-circle-rotation-${axis}" type="number" step="any" min="-3600" max="3600" value="0"></label>`).join('')}</div></div>
                 <div id="dmb-travel" class="dmb-grid" hidden><label>Cycle (seconds)<input id="dmb-duration" type="number" step="any" min=".01" value="8" required></label><label id="dmb-repeat-row">Repeat<select id="dmb-loop"><option value="pingpong">Back and forth</option><option value="loop">Loop</option><option value="snap">Snap back to start</option></select></label></div>
                 <div id="dmb-facing" hidden><label class="dmb-check"><input id="dmb-orient" type="checkbox">Face travel direction</label>
                     <div class="dmb-grid"><label id="dmb-turn-row">Turn time (seconds)<input id="dmb-turn" type="number" step=".05" min="0" max="10" value=".25" required><small>0 = snap at corners</small></label><label id="dmb-offset-row">Facing offset (°)<input id="dmb-heading-offset" type="number" step="any" min="-3600" max="3600" value="0" required></label></div></div>
