@@ -247,6 +247,10 @@ const ZombieVisuals = {
         body.rotation.z = 0.05 * Math.sin(t * 1.7 + id);
         body.rotation.y = 0.08 * Math.sin(t * 1.1 + id * 2);
         body.position.y = 0.36 + 0.035 * Math.sin(t * 2.2 + id);
+        if (actor.hat && actor.zHatY === undefined) { //its hat sits a touch askew (set the once, not every frame)
+            actor.zHatY = actor.hat.rotation.y;
+            actor.hat.rotation.y = Math.PI90 * -0.1;
+        };
     },
 
     // Instead of following the gun: the arms out in front, swaying and drooping a little with the steps (a ghost's, with the bobbing).
@@ -270,6 +274,7 @@ const ZombieVisuals = {
         actor.zombieHands.setEnabled(false);
         actor.hands.setEnabled(true);
         actor.bodyMesh.rotation.y = 0;
+        if (actor.hat && actor.zHatY !== undefined) { actor.hat.rotation.y = actor.zHatY; actor.zHatY = undefined; };
         var weapon = actor.player.weapon;
         if (weapon && weapon.actor && weapon.actor.gunMesh) weapon.actor.gunMesh.setEnabled(true);
         actor.zombieHands.dispose();

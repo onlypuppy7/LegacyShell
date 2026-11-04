@@ -12,7 +12,7 @@ import { plugins } from '#plugins';
 // The two sides: humans are team 1, the horde (bots and the infected) team 2.
 export const ZombiesTeams = { HUMANS: 1, HORDE: 2 };
 
-export const ZombiesModeMaps = ['Blue', 'Castle', 'Dirt', 'Feedlot', 'Moonbase', 'Ruins', 'Shellville', 'Shipyard', 'Two Towers'];
+export const ZombiesModeMaps = ['Blue', 'Castle', 'Dirt', 'Infected Feedlot', 'Moonbase', 'Ruins', 'Shellville', 'Shipyard', 'Two Towers'];
 
 // Per-room settings, read from gameOptions.plugins.zombies. A gametype (or another plugin) can change any of them.
 export const ZombiesModeDefaults = {
