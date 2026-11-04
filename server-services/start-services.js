@@ -424,7 +424,7 @@ export default async function run (runStart) {
     
                                 userData.currentBalance += (10 * eggMultiplier);
                                 userData.kills += 1;
-                                userData.streak = Math.max(msg.currentKills, userData.streak || 0);
+                                userData.streak = Math.max(Number(msg.currentStreak) || 0, userData.streak || 0); //(was NaN when the game server sent nothing, which wiped it)
     
                                 ss.config.verbose && log.bgBlue("services: Writing to DB: set new balance + kills + streak "+userData.username, userData.currentBalance, userData.kills, userData.streak, userData.account_id);
                                 await ss.runQuery(`

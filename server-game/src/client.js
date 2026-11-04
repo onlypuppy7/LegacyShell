@@ -693,7 +693,7 @@ class ClientConstructor {
             var response = await wsrequest({
                 cmd: "addKill",
                 session: this.session,
-                currentKills: this.kills,
+                currentStreak: this.player.streak,
             }, ss.config.game.services_server, ss.config.game.auth_key);
 
             this.sendUpdateBalance(response.currentBalance);
