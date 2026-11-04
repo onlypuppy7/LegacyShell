@@ -403,10 +403,12 @@
             <div style="position: absolute; left: 1em; top: 0.5em;">
                 <span class="button" id="new" onclick="extern.onNewPressed()" title="Create new, empty map">New</span>
 
-                <input id="filename" type="text">
+                <input id="filename" type="text" title="File name used when saving to a local file">
 
                 <span class="button" id="open" onclick="extern.openMap()"
                     title="Open existing map from local file">Open</span>
+
+                <span class="button" id="save" onclick="extern.saveMap()" title="Save map to local file(s)">Save</span>
 
                 <span class="button" id="copyMap" onclick="extern.copyMap()"
                     title="Copy map data to clipboard">Copy</span>
@@ -438,7 +440,10 @@
                     title="Mass replace blocks in the map">Replace</span>
             </div>
 
-            <div style="position: absolute; left: 1em; top: 4.5em;">
+            <!-- plugins put their editor buttons in here -->
+            <div id="pluginButtons" style="position: absolute; left: 1em; top: 4.5em; display: flex; flex-wrap: wrap; gap: 0.25em;"></div>
+
+            <div style="position: absolute; left: 1em; top: 6.5em;">
                 <span class="button" style="cursor: default">
                     [R]otation
                     <select id="rotation">
@@ -451,9 +456,8 @@
         </div>
 
         <div id="editorUi2" style="position: absolute; right: 1em; top: 0.5em; text-align: right">
-            <input id="mapName" type="text" size="30" placeholder="Untitled"></input>
+            <input id="mapName" type="text" size="30" placeholder="Untitled" title="Map name shown in the game's map list"></input>
             <div style="margin-top: 0.5em">
-                <span class="button" id="save" onclick="extern.saveMap()" title="Save map to local file(s)">Save</span>
                 <span class="button" id="test" onclick="extern.testMap()"
                     title="Opens map in offline 'game' [HOTKEY: P] (fixed for Legacy)">Test</span>
                 <span class="button" onclick="extern.openDialog('mapSettings')" title="Map Settings">Settings</span>

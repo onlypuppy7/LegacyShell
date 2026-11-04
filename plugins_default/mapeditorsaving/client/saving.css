@@ -1,0 +1,27 @@
+#mes-dialog { padding: 0; width: min(760px, 96vw); height: min(560px, 90vh); max-width: none; border: none; border-radius: .25em; color: #000; background: #ffffffd9; box-shadow: 0 20px 30px #0003, 0 1px 3px #0001; overflow: hidden; font: clamp(12px, 2vh, 16px)/1.2em sans-serif; }
+#mes-dialog::backdrop { background: #0008; }
+#mes-dialog * { font-family: inherit; font-size: inherit; box-sizing: border-box; }
+#mes-dialog [hidden] { display: none !important; }
+#mes-dialog .mes-shell { display: flex; flex-direction: column; height: 100%; }
+#mes-dialog header { display: flex; align-items: center; gap: .5em; padding: .65em 1em; border-bottom: 1px solid #0003; }
+#mes-dialog h1 { font-size: 1.5em; font-weight: bold; margin: 0; flex: 1; }
+#mes-dialog button { background: #33333370; color: #fff; border: none; border-radius: .3em; padding: .25em .5em; cursor: pointer; transition: background-color .15s; }
+#mes-dialog button:hover { background: #232323; }
+#mes-dialog button:disabled { opacity: .4; cursor: default; }
+#mes-dialog button[aria-pressed="true"] { background: var(--egg-brown, #532a19); }
+#mes-dialog :focus-visible { outline: 2px solid var(--egg-brown, #532a19); outline-offset: 2px; }
+#mes-dialog .mes-tabs { display: flex; gap: .3em; padding: .5em 1em; border-bottom: 1px solid #0003; }
+#mes-dialog .mes-bar { display: flex; flex-wrap: wrap; gap: .4em; align-items: center; padding: .5em 1em; border-bottom: 1px solid #0003; }
+#mes-dialog .mes-bar input[type="text"], #mes-dialog .mes-bar input[type="search"] { flex: 1; min-width: 8em; height: 1.8em; padding: .1em .3em; background: #fff; color: #000; border: 1px solid #888; border-radius: 0; }
+#mes-dialog .mes-list { flex: 1; min-height: 0; overflow: auto; padding: .4em 1em; }
+#mes-dialog .mes-row { display: flex; align-items: center; gap: .5em; padding: .4em .5em; border-radius: .15em; }
+#mes-dialog .mes-row:hover { background: #0002; }
+#mes-dialog .mes-row .mes-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+#mes-dialog .mes-row strong { font-weight: bold; display: block; }
+#mes-dialog .mes-row small { font-size: .8em; color: #444; }
+#mes-dialog .mes-empty { color: #444; padding: 1em .5em; }
+#mes-dialog .mes-meter { height: .5em; background: #0003; border-radius: .25em; overflow: hidden; width: 100%; }
+#mes-dialog .mes-meter i { display: block; height: 100%; background: var(--egg-brown, #532a19); }
+#mes-dialog footer { padding: .5em 1em; border-top: 1px solid #0003; min-height: 2.4em; }
+#mes-dialog footer[role="alert"] { color: #a40000; }
+#mes-dialog label { display: flex; align-items: center; gap: .3em; }

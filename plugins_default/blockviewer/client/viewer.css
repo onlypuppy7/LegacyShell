@@ -52,7 +52,6 @@
 #bv-dialog .bv-status { flex: 1; font-size: .85em; color: #333; white-space: normal; }
 #bv-dialog .bv-status[role="alert"] { color: #a32312; }
 #bv-dialog #bv-export-scope { width: auto; max-width: 100%; }
-#bv-open { position: absolute; left: 1em; top: 6.5em; }
 @media (max-width: 960px) {
     #bv-dialog .bv-layout { grid-template-columns: 200px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
     #bv-dialog .bv-library { grid-row: 1 / 3; }

@@ -63,7 +63,7 @@
         button.className = 'button';
         button.textContent = 'Block viewer';
         button.title = 'Inspect blocks, collision and local models';
-        document.getElementById('editorUi').appendChild(button);
+        (document.getElementById('pluginButtons') || document.getElementById('editorUi')).appendChild(button);
         button.onclick = open;
 
         var dialog = document.createElement('dialog');
