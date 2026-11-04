@@ -16,10 +16,10 @@ class LegacySettingsOptionClass {
         const row = document.createElement("div");
         row.id = this.opt.key ? `${this.parent.id}_option_${this.opt.key}` : "";
         row.className = "ssOption";
-        if (this.opt.tooltip) {
-            row.onmouseenter = (e) => this.parent.showTooltip(this.opt.tooltip, e);
-            row.onmousemove = (e) => this.parent.moveTooltip(e);
-            row.onmouseleave = () => this.parent.hideTooltip();
+        if (this.opt.tooltip && typeof ItemToolTips !== "undefined") { //itemtooltips' tooltip, same as the shop's
+            ItemToolTips.encloseRenderPageFunc({ canvas: row, renderingItem: { name: this.opt.tooltip } });
+            row.tooltip.style.zIndex = "100300"; //over the settings overlay
+            row.tooltip.style.maxWidth = "16em";
         }
 
         if (this.opt.label) {
@@ -457,27 +457,6 @@ class LegacySettingsClass {
         style.textContent = LegacySettingsCSS;
         document.head.appendChild(style);
     }
-
-    //one shared tooltip element, fixed-position so scrolling panels can't clip it
-    showTooltip(text, e) {
-        if (!this.tooltipEl) {
-            this.tooltipEl = document.createElement("div");
-            this.tooltipEl.className = "ssTooltip";
-            document.body.appendChild(this.tooltipEl);
-        }
-        this.tooltipEl.textContent = text;
-        this.tooltipEl.style.display = "block";
-        this.moveTooltip(e);
-    }
-    moveTooltip(e) {
-        const el = this.tooltipEl;
-        if (!el) return;
-        const x = Math.min(e.clientX + 14, window.innerWidth - el.offsetWidth - 4);
-        const y = e.clientY + 18 + el.offsetHeight > window.innerHeight ? e.clientY - el.offsetHeight - 10 : e.clientY + 18;
-        el.style.left = Math.max(4, x) + "px";
-        el.style.top = Math.max(4, y) + "px";
-    }
-    hideTooltip() { if (this.tooltipEl) this.tooltipEl.style.display = "none"; }
 
     save() { localStorage.setItem(this.id, JSON.stringify(this.state)); }
     get(key, def) { return this.state[key] ?? def; }

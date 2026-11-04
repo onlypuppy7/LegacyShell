@@ -8,7 +8,7 @@ export const PluginMeta = {
     identifier: "itemtooltips",
     name: 'Item ToolTips',
     author: 'onlypuppy7',
-    version: '1.0.0',
+    version: '1.0.1',
     descriptionShort: 'Adds tooltips diplaying the name of an item in the shop', //displayed when loading
     descriptionLong: 'Adds tooltips diplaying the name of an item in the shop',
     legacyShellVersion: 374, //legacy shell version, can be found in /versionEnum.txt, or just on the homescreen

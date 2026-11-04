@@ -27,7 +27,7 @@ export const ItemToolTips = {
 
         const tooltip = document.createElement("div");
         tooltip.style.position = "absolute";
-        tooltip.style.backgroundColor = "rgba(0, 0, 0, 0.7)";
+        tooltip.style.backgroundColor = "color-mix(in srgb, var(--ss-black) 70%, transparent)"; //70% of --ss-black, as it was
         tooltip.style.color = "#fff";
         tooltip.style.padding = "5px 10px";
         tooltip.style.borderRadius = "5px";
