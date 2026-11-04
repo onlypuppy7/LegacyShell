@@ -100,6 +100,16 @@ export const addRequest = async (ss, ip, type) => {
     return true;
 };
 
+//plugins can have their own roomier allowance for their commands, see services:rateLimitBucket. kept in memory only
+const buckets = new Map();
+export const allowBucket = (ip, bucket, max, interval) => {
+    const now = Date.now(), key = bucket + ':' + ip;
+    if (buckets.size > 10000) for (const [other, entry] of buckets) if (now - entry.start > 3600000) buckets.delete(other);
+    let entry = buckets.get(key);
+    if (!entry || now - entry.start > interval * 1000) buckets.set(key, entry = { start: now, count: 0 });
+    return ++entry.count <= max;
+};
+
 export const allowRequest = async (ss, ip, type) => {
     const verdict = await addRequest(ss, ip, type);
 
@@ -108,5 +118,6 @@ export const allowRequest = async (ss, ip, type) => {
 
 export default {
     addRequest,
+    allowBucket,
     allowRequest
 };

@@ -72,8 +72,8 @@
         await trimLocal();
     };
 
-    function load(json, name) {
-        if (typeof mapEdited !== 'undefined' && mapEdited && !confirm('Unsaved changes will be scrambled. Open anyway?')) return false;
+    function load(json, name, asked) {
+        if (!asked && typeof mapEdited !== 'undefined' && mapEdited && !confirm('Unsaved changes will be scrambled. Open anyway?')) return false;
         initMap();
         maximizeMap(json);
         document.getElementById('filename').value = name + '.json';
@@ -212,6 +212,30 @@
         dialog.querySelectorAll('[data-tab]').forEach(el => el.onclick = () => show(el.dataset.tab));
         button.onclick = () => { dialog.showModal(); show(tab); };
     };
+
+    //drop a map json anywhere on the page
+    var dragDepth = 0, hasFiles = event => [...(event.dataTransfer?.types || [])].includes('Files');
+    function dropZone(show) {
+        var zone = document.getElementById('mes-drop');
+        if (!zone) { zone = document.createElement('div'); zone.id = 'mes-drop'; zone.textContent = 'Drop your map here'; document.body.append(zone); };
+        zone.hidden = !show;
+    };
+    window.addEventListener('dragenter', event => { if (!hasFiles(event)) return; event.preventDefault(); dragDepth++; dropZone(true); });
+    window.addEventListener('dragover', event => { if (hasFiles(event)) event.preventDefault(); });
+    window.addEventListener('dragleave', event => { if (hasFiles(event) && --dragDepth <= 0) { dragDepth = 0; dropZone(false); }; });
+    window.addEventListener('drop', event => {
+        if (!hasFiles(event)) return;
+        event.preventDefault(); dragDepth = 0; dropZone(false);
+        var file = [...event.dataTransfer.files].find(file => /\.json$/i.test(file.name));
+        if (!file) return alert('That is not a map .json.');
+        var reader = new FileReader();
+        reader.onload = () => {
+            try { var parsed = JSON.parse(reader.result); if (!parsed || typeof parsed.data !== 'object') throw 0; } catch { return alert(file.name + ' is not a valid map.'); };
+            var name = file.name.replace(/\.json$/i, '');
+            if (confirm('Replace the current map with ' + name + '?')) load(reader.result, name, true);
+        };
+        reader.readAsText(file);
+    });
 
     setInterval(async () => {
         if (!autosaveOn() || typeof mapEdited === 'undefined' || !mapEdited) return;

@@ -208,6 +208,10 @@ export default async function run (runStart) {
                     ip = ((rawIp.includes(":") && !rawIp.startsWith("::ffff:")) ? "6" : "4") + ip; //family prefix, sessions allow one ip per family. ::ffff: is an ipv4 the socket dressed up as v6 (no proxy in front)
     
                     let isAccepted;
+
+                    //a plugin can move its own regular commands into a separate bucket: limit.bucket = name, limit.max, limit.interval (seconds)
+                    const limit = {};
+                    if (cmdType == 'regular') await plugins.emit('rateLimitBucket', { msg, limit });
     
                     if (msg.auth_key) {
                         isAccepted = await accs.getAuthKeyData(msg.auth_key); //bypass RL
@@ -215,6 +219,8 @@ export default async function run (runStart) {
                         else log.red('Invalid auth key');
                     } else if (cmdType == 'auth_required') {
                         isAccepted = false;
+                    } else if (limit.bucket) {
+                        isAccepted = rl.allowBucket(ip, limit.bucket, limit.max || 60, limit.interval || 60);
                     } else {
                         isAccepted = await rl.allowRequest(ss, ip, cmdType);
                     };

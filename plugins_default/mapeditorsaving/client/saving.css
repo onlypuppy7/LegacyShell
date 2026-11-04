@@ -25,3 +25,5 @@
 #mes-dialog footer { padding: .5em 1em; border-top: 1px solid #0003; min-height: 2.4em; }
 #mes-dialog footer[role="alert"] { color: #a40000; }
 #mes-dialog label { display: flex; align-items: center; gap: .3em; }
+#mes-drop { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; background: #0008; color: #fff; font: bold 2.5em sans-serif; border: .15em dashed #fff; box-sizing: border-box; pointer-events: none; }
+#mes-drop[hidden] { display: none; }

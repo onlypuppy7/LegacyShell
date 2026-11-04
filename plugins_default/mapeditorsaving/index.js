@@ -11,7 +11,7 @@ export const PluginMeta = {
     identifier: 'mapeditorsaving',
     name: 'Map Editor Saving',
     author: 'onlypuppy7 (+Claude)', //NOTE! this plugin is VIBECODED.
-    version: '1.1.3',
+    version: '1.3.0',
     descriptionShort: 'Open public maps, autosave and account saves for the map editor',
     descriptionLong: 'Open any public map in the editor, keep up to 50 saves/autosaves in the browser, and save maps to your account (10MB each account, 1GB for mods and up).',
     legacyShellVersion: 675,
@@ -29,6 +29,7 @@ export class Plugin {
 
         if (this.plugins.type === 'services') {
             plugins.on('services:initTables', () => this.initTables());
+            plugins.on('services:rateLimitBucket', ({ msg, limit }) => { if (commands.includes(msg.cmd)) Object.assign(limit, { bucket: 'mapeditorsaving', max: 60, interval: 60 }); }); //browsing and saving maps shouldnt eat the general 10 a minute
             plugins.on('services:unhandledCommand', this.unhandledCommand.bind(this));
         };
         if (this.plugins.type === 'client') {

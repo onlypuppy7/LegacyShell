@@ -16,6 +16,10 @@ Saves stored in the services database (`editor_saved_maps`), per account. **10MB
 
 The editor sends the main page's stored login (`LegacyShellAuthToken`) with each request and services checks it directly. No session is created and the token isn't rotated, so an open game tab stays signed in.
 
+## Drag and drop
+
+Drop a map `.json` anywhere on the editor and it asks whether to replace the current map.
+
 ## Installation
 
 Included as a default plugin. Restart the services and client servers, then reload the editor. Prefix this folder with `_` to disable it. `node plugins_default/mapeditorsaving/test.js` checks the services side.
