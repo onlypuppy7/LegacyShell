@@ -8,7 +8,7 @@ export const PluginMeta = {
     identifier: "burntblocksets",
     name: 'Burnt Block Sets',
     author: 'Burnt Apple & onlypuppy7',
-    version: '1.0.0',
+    version: '1.0.1',
     descriptionShort: 'Adds custom block sets, created by Burnt Apple', //displayed when loading
     descriptionLong: 'Adds custom block sets, created by Burnt Apple',
     legacyShellVersion: 539, //legacy shell version, can be found in /versionEnum.txt, or just on the homescreen
