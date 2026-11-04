@@ -13,7 +13,7 @@ export const PluginMeta = {
     identifier: "legacyshellcore",
     name: 'LegacyShellCore',
     author: 'onlypuppy7',
-    version: '1.0.14',
+    version: '1.0.15',
     descriptionShort: 'Used in the public instance', //displayed when loading
     descriptionLong: 'Used in the public instance',
     legacyShellVersion: 269, //legacy shell version, can be found in /versionEnum.txt, or just on the homescreen
@@ -58,6 +58,13 @@ export class Plugin {
     };
 
     replacementsBefore(data) { //housePromo.json gets baked into the bundle from core's copy, so ours has to go in there too (the static mount above isnt asked any more)
+        var image = `https://${data.ss.config.client.this_url}/img/previewImage_LegacyShell.png`; //the share embed picture (discord etc), 1920x1018
+        data.replacementsBefore.unshift({ pattern: /<meta property="og:image" content="[^"]*" \/>/, insertion: `<meta property="og:image" content="${image}" />
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:width" content="1920" />
+        <meta property="og:image:height" content="1018" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:image" content="${image}" />` });
         for (var replacement of data.replacementsBefore) {
             if (replacement.pattern?.source !== "LEGACYSHELLHOUSEPROMO") continue;
             replacement.insertion = JSON.stringify(JSON.parse(fs.readFileSync(path.join(this.thisDir, 'client', 'housePromo.json'), 'utf8')));

@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import Config from 'puppyconfig';
+import { ss } from '#misc';
 import { REASONS, DEFAULT_REASON } from './reasons.js';
 import { renderUnavailablePage } from './unavailablePage.js';
 
@@ -8,7 +9,7 @@ export const PluginMeta = {
     identifier: "wikionlymode",
     name: 'Wiki Only Mode',
     author: 'onlypuppy7 (+Claude)',
-    version: '1.0.1',
+    version: '1.0.2',
     descriptionShort: 'Takes the client offline while keeping the wiki and services reachable',
     descriptionLong: 'Swaps the site\'s index page for a "currently unavailable" notice (with a selectable reason) while /wiki and the services connection stay up. Toggled via store/config.jsonc - see the admin plugin, which surfaces this file automatically.',
     legacyShellVersion: 600,
@@ -63,12 +64,19 @@ export class Plugin {
         // mounts do. Only intercepts `/` and `/index.html` (literally replacing index.html, per
         // the original request) - everything else, including /wiki and the shared /img assets
         // this page itself needs, falls through to next() untouched.
+        //the share embed picture is legacyshellcore's, served from the same url so the embed still works if that plugin's static mount doesnt get a look in
+        const image = path.join(this.thisDir, '..', 'legacyshellcore', 'client', 'img', 'previewImage_LegacyShell.png');
+        app.get('/img/previewImage_LegacyShell.png', (req, res, next) => {
+            if (!this.config.enabled || !fs.existsSync(image)) return next();
+            res.sendFile(image);
+        });
+
         app.use((req, res, next) => {
             if (!this.config.enabled) return next();
             if (req.path !== '/' && req.path !== '/index.html') return next();
 
             const reason = REASONS[this.config.reason] || REASONS[DEFAULT_REASON];
-            res.status(503).send(renderUnavailablePage(reason));
+            res.status(503).send(renderUnavailablePage({ ...reason, image: `https://${ss.config.client.this_url}/img/previewImage_LegacyShell.png` }));
         });
     };
 };

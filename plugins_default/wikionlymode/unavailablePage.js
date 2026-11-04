@@ -2,7 +2,7 @@
 // logo, layout) - kept as a plain string builder here rather than a static file because the
 // title/message change per selected reason and this also adds a wiki link the original page
 // doesn't have.
-export function renderUnavailablePage({ title, message }) {
+export function renderUnavailablePage({ title, message, image = '/icon.png' }) {
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -14,8 +14,12 @@ export function renderUnavailablePage({ title, message }) {
     <meta name="description" content="${message}">
     <meta property="og:title" content="LegacyShell - ${title}">
     <meta property="og:description" content="${message}">
-    <meta property="og:image" content="/icon.png">
+    <meta property="og:image" content="${image}">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:width" content="1920">
+    <meta property="og:image:height" content="1018">
     <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content="${image}">
 
     <link href="https://fonts.googleapis.com/css?family=Sigmar+One|Nunito:400,600,700,900" rel="stylesheet">
 
