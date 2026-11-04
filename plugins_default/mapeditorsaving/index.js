@@ -11,7 +11,7 @@ export const PluginMeta = {
     identifier: 'mapeditorsaving',
     name: 'Map Editor Saving',
     author: 'onlypuppy7 (+Claude)', //NOTE! this plugin is VIBECODED.
-    version: '1.1.2',
+    version: '1.1.3',
     descriptionShort: 'Open public maps, autosave and account saves for the map editor',
     descriptionLong: 'Open any public map in the editor, keep up to 50 saves/autosaves in the browser, and save maps to your account (10MB each account, 1GB for mods and up).',
     legacyShellVersion: 675,
@@ -63,6 +63,10 @@ export class Plugin {
                 const row = ss.db.prepare(`SELECT * FROM maps WHERE name = ? AND availability IN ('public', 'both')`).get(String(msg.name));
                 if (!row) throw new Error('That map is not public.');
                 for (const key of ['sun', 'fog', 'data', 'palette', 'render', 'extents', 'modes']) row[key] = JSON.parse(row[key]);
+                if (!(row.extents?.x?.min < 1e4)) { //older maps never had their extents filled in, so give them the centred ones the editor would
+                    const at = { x: 25 - Math.floor(row.width / 2), y: 0, z: 25 - Math.floor(row.depth / 2) };
+                    row.extents = { ...row.extents, x: { min: at.x, max: at.x + row.width - 1 }, y: { min: 0, max: row.height - 1 }, z: { min: at.z, max: at.z + row.depth - 1 }, width: row.width, height: row.height, depth: row.depth };
+                };
                 delete row.dateCreated; delete row.dateModified;
                 return reply({ map: row });
             };

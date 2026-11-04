@@ -8,7 +8,7 @@ misc.instantiateSS(import.meta, [], true, true);
 ss.db = new Database(':memory:');
 ss.db.exec(`CREATE TABLE users (account_id INTEGER PRIMARY KEY, username TEXT, authToken TEXT, adminRoles INTEGER DEFAULT 0)`);
 ss.db.exec(`CREATE TABLE maps (name TEXT, sun TEXT, fog TEXT, data TEXT, palette TEXT, render TEXT, extents TEXT, modes TEXT, width INT, height INT, depth INT, numPlayers INT, availability TEXT, dateCreated INT, dateModified INT)`);
-ss.db.prepare(`INSERT INTO maps VALUES ('Pub','{}','{}','{"a":[]}','[]','{}','{}','{}',1,2,3,18,'both',0,0), ('Priv','{}','{}','{}','[]','{}','{}','{}',1,2,3,18,'private',0,0)`).run();
+ss.db.prepare(`INSERT INTO maps VALUES ('Pub','{}','{}','{"a":[]}','[]','{}','{"x":{"max":0,"min":10000}}','{}',20,2,6,18,'both',0,0), ('Priv','{}','{}','{}','[]','{}','{}','{}',1,2,3,18,'private',0,0)`).run();
 ss.db.exec(`INSERT INTO users VALUES (1, 'a', 'tokena', 0), (2, 'b', 'tokenb', 10)`);
 
 const plugin = new Plugin({ type: 'services', on() {}, cancel: false }, '.');
@@ -17,6 +17,8 @@ const run = async (msg) => { let out; await plugin.unhandledCommand({ msg, ws: {
 
 assert.deepEqual((await run({ cmd: 'mapeditorsavingPublicList' })).maps.map(m => m.name), ['Pub']);
 assert.equal((await run({ cmd: 'mapeditorsavingPublicGet', name: 'Pub' })).map.data.a.length, 0);
+const filled = (await run({ cmd: 'mapeditorsavingPublicGet', name: 'Pub' })).map.extents;
+assert.deepEqual([filled.x.min, filled.z.min, filled.width], [15, 22, 20], 'placeholder extents get centred');
 assert.ok((await run({ cmd: 'mapeditorsavingPublicGet', name: 'Priv' })).error);
 assert.ok((await run({ cmd: 'mapeditorsavingList', username: 'a', authToken: 'wrong' })).error);
 assert.ok((await run({ cmd: 'mapeditorsavingList', username: 'a', authToken: '' })).error);
