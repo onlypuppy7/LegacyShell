@@ -192,11 +192,16 @@
                 duration: Number($('duration').value), phase: Number($('phase').value) };
         } else body.motion = { type: 'none' };
         if (type !== 'none' && $('centre').value === 'mesh') body.motion.centre = 'mesh'; //cell is the default, so only the other is written down
+        if (type === 'circle') for (var [key, prefix] of [['circleOffset', 'circle-offset'], ['circleRotation', 'circle-rotation']]) {
+            var value = vectorValue(prefix);
+            if (axes.some(axis => value[axis])) body.motion[key] = value; //zero is the default, so only a real one is written down
+        };
         if (type === 'path' || type === 'circle') {
             body.motion.orient = $('orient').checked;
             if (turns()) body.motion.pivot = pivotValue(body);
             body.motion.turnDuration = Number($('turn').value);
             body.motion.headingOffset = Number($('heading-offset').value);
+            if ($('turn-when').value !== 'after') body.motion.turnWhen = $('turn-when').value; //after is the default, so only the others are written down
         };
         if (type !== 'none') {
             body.motion.collidePlayers = teamRead('collide-players'); body.motion.collideItems = teamRead('collide-items'); body.motion.collideBullets = teamRead('collide-bullets');
@@ -219,17 +224,12 @@
         try {
             var body = readBody(), bounds = state.bounds(body, mapMeshes);
             var local = BABYLON.Matrix.RotationYawPitchRoll(body.rotation?.y || 0, body.rotation?.x || 0, body.rotation?.z || 0)
-            for (var [key, prefix] of [['circleOffset', 'circle-offset'], ['circleRotation', 'circle-rotation']]) {
-                var value = vectorValue(prefix);
-                if (axes.some(axis => value[axis])) body.motion[key] = value; //zero is the default, so only a real one is written down
-            };
                 .multiply(BABYLON.Matrix.Translation(body.position.x - .5, body.position.y - .5, body.position.z - .5));
             selectionBox.position.copyFrom(BABYLON.Vector3.TransformCoordinates(bounds.min.add(bounds.max).scale(.5), local));
             selectionBox.scaling.copyFrom(bounds.max.subtract(bounds.min).add(new BABYLON.Vector3(.04, .04, .04)));
             selectionBox.rotation.set(body.rotation?.x || 0, body.rotation?.y || 0, body.rotation?.z || 0);
             selectionBox.setEnabled(true);
             var sat = PlatformMotion.vector(body.motion.pivot); //in the mesh case the block sits moved onto the cell centre, and so does its pivot
-            if ($('turn-when').value !== 'after') body.motion.turnWhen = $('turn-when').value; //after is the default, so only the others are written down
             if (body.motion.centre === 'mesh' && body.blocks.length) { var meshMiddle = state.pivot(body, mapMeshes, null, 'mesh'); sat = sat.subtract(new BABYLON.Vector3(meshMiddle.x, 0, meshMiddle.z)); };
             pivotDot.position.copyFrom(BABYLON.Vector3.TransformCoordinates(sat, local));
             pivotDot.setEnabled(turns());
