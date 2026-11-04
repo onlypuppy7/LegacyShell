@@ -11,7 +11,7 @@ export const PluginMeta = {
     identifier: 'dynamicmapblocks',
     name: 'dynamicmapblocks',
     author: 'onlypuppy7 (+Codex)', //NOTE! this plugin is VIBECODED.
-    version: '1.11.1',
+    version: '1.11.2',
     descriptionShort: 'Moving blocks and platforms',
     descriptionLong: 'Shared platform geometry, motion and passenger transport, with block physics editing.',
     legacyShellVersion: 665,

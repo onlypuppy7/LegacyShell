@@ -302,6 +302,7 @@
             $('speed').value = Math.abs(motion.speed ?? 30); $('direction').value = (motion.speed ?? 30) < 0 ? '-1' : '1';
             $('phase').value = motion.phase || 0; $('duration').value = motion.duration || 8; $('loop').value = motion.loop || 'pingpong';
             $('radius').value = motion.radius || 3; $('plane').value = motion.plane || 'xz'; $('circle-direction').value = motion.reverse ? '-1' : '1';
+            vectorFields('circle-offset', motion.circleOffset); vectorFields('circle-rotation', motion.circleRotation);
             teamWrite('rotate-players', motion.rotatePlayers, false); teamWrite('rotate-items', motion.rotateItems, true);
             $('priority').value = motion.pushThroughMap ? 'block' : motion.crush > 0 ? 'crush' : 'map'; $('crush').value = motion.crush > 0 ? motion.crush : 999;
             var trig = PlatformTriggers.config(motion);
@@ -337,7 +338,6 @@
         choose({ block: { mesh: mapMeshes[cell.idx].name, x: pos.x, y: pos.y, z: pos.z,
             rx: cell.rx || 0, ry: cell.ry || 0, rz: cell.rz || 0 } });
     };
-            vectorFields('circle-offset', motion.circleOffset); vectorFields('circle-rotation', motion.circleRotation);
     function attach() {
         if (!scene || scene === attachedScene) return;
         attachedScene = scene;
