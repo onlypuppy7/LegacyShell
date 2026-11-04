@@ -229,6 +229,7 @@
             selectionBox.rotation.set(body.rotation?.x || 0, body.rotation?.y || 0, body.rotation?.z || 0);
             selectionBox.setEnabled(true);
             var sat = PlatformMotion.vector(body.motion.pivot); //in the mesh case the block sits moved onto the cell centre, and so does its pivot
+            if ($('turn-when').value !== 'after') body.motion.turnWhen = $('turn-when').value; //after is the default, so only the others are written down
             if (body.motion.centre === 'mesh' && body.blocks.length) { var meshMiddle = state.pivot(body, mapMeshes, null, 'mesh'); sat = sat.subtract(new BABYLON.Vector3(meshMiddle.x, 0, meshMiddle.z)); };
             pivotDot.position.copyFrom(BABYLON.Vector3.TransformCoordinates(sat, local));
             pivotDot.setEnabled(turns());
@@ -310,7 +311,7 @@
             $('trig-mode').value = trig.mode; $('trig-release').value = trig.release; $('trig-return').value = trig.returnSeconds; $('trig-angle').value = trig.angle;
             $('trig-start').value = trig.delayStart; $('trig-reset').value = trig.delayReset; $('trig-cooldown').value = trig.cooldown;
             teamWrite('collide-players', motion.collidePlayers, true); teamWrite('collide-items', motion.collideItems, true); teamWrite('collide-bullets', motion.collideBullets, motion.collidePlayers !== false || motion.collideItems !== false);
-            $('orient').checked = !!motion.orient; $('turn').value = motion.turnDuration ?? .25; $('heading-offset').value = motion.headingOffset || 0;
+            $('orient').checked = !!motion.orient; $('turn').value = motion.turnDuration ?? .25; $('turn-when').value = motion.turnWhen || 'after'; $('heading-offset').value = motion.headingOffset || 0;
             $('keyframes').checked = !!motion.points?.some(point => point.rotation);
             pointRows().forEach(row => row.remove()); (motion.points || [{}, { x: 4 }]).forEach(pointRow);
             fieldsChanged(); message('Choose a movement and press Apply.'); return true;
@@ -447,7 +448,7 @@
                     <div class="dmb-vector">${axes.map(axis => `<label>Rotate ${axis.toUpperCase()} (°)<input id="dmb-circle-rotation-${axis}" type="number" step="any" min="-3600" max="3600" value="0"></label>`).join('')}</div></div>
                 <div id="dmb-travel" class="dmb-grid" hidden><label>Cycle (seconds)<input id="dmb-duration" type="number" step="any" min=".01" value="8" required></label><label id="dmb-repeat-row">Repeat<select id="dmb-loop"><option value="pingpong">Back and forth</option><option value="loop">Loop</option><option value="snap">Snap back to start</option></select></label></div>
                 <div id="dmb-facing" hidden><label class="dmb-check"><input id="dmb-orient" type="checkbox">Face travel direction</label>
-                    <div class="dmb-grid"><label id="dmb-turn-row">Turn time (seconds)<input id="dmb-turn" type="number" step=".05" min="0" max="10" value=".25" required><small>0 = snap at corners</small></label><label id="dmb-offset-row">Facing offset (°)<input id="dmb-heading-offset" type="number" step="any" min="-3600" max="3600" value="0" required></label></div></div>
+                    <div class="dmb-grid"><label id="dmb-turn-row">Turn time (seconds)<input id="dmb-turn" type="number" step=".05" min="0" max="10" value=".25" required><select id="dmb-turn-when" aria-label="When the turn happens"><option value="after">After the corner</option><option value="before">Before the corner</option><option value="both">Half before, half after</option></select><small>0 = snap at corners</small></label><label id="dmb-offset-row">Facing offset (°)<input id="dmb-heading-offset" type="number" step="any" min="-3600" max="3600" value="0" required></label></div></div>
                 <div id="dmb-pivot-group" hidden>
                     <label>Pivot<select id="dmb-pivot"><option value="centre">Centre</option><option value="side">Side</option><option value="corner">Corner</option><option value="custom">Custom</option></select></label>
                     <label id="dmb-side-row" hidden>Side<select id="dmb-side">${[['+00', 'X+ side'], ['-00', 'X− side'], ['0+0', 'Top · Y+'], ['0-0', 'Bottom · Y−'], ['00+', 'Z+ side'], ['00-', 'Z− side']].map(([side, name]) => `<option value="${side}">${name}</option>`).join('')}</select></label>

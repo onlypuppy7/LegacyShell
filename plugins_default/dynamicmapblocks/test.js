@@ -1916,3 +1916,16 @@ test('circle offset moves the centre and rotation turns the circle about it, wit
         for (const axis of ['x', 'y', 'z']) { assert.ok(pose.bounds.min[axis] >= bounds.min[axis] - 1e-5); assert.ok(pose.bounds.max[axis] <= bounds.max[axis] + 1e-5); };
     };
 });
+test('turns can finish before the corner or straddle it, and still add up to the same angle', () => {
+    const motion = { type: 'path', points: [{}, { x: 2 }, { x: 2, z: 2 }, { z: 2 }], duration: 8, loop: 'loop', orient: true, turnDuration: .5 };
+    const facing = (turnWhen, t) => BABYLON.Vector3.TransformNormal(BABYLON.Axis.Z, PlatformMotion.sample(boxBody({ ...motion, turnWhen }), t));
+    close(facing('before', 1.5).x, 1); close(facing('before', 1.75).x, Math.SQRT1_2); close(facing('before', 1.75).z, Math.SQRT1_2); close(facing('before', 2).z, 1); close(facing('before', 2.25).z, 1);
+    close(facing('both', 1.75).x, 1); close(facing('both', 2).x, Math.SQRT1_2); close(facing('both', 2).z, Math.SQRT1_2); close(facing('both', 2.25).z, 1);
+    close(facing('after', 2).x, 1); close(facing('after', 2.25).x, Math.SQRT1_2);
+    for (const turnWhen of ['after', 'before', 'both']) {
+        const turning = { ...motion, turnWhen };
+        close(PlatformMotion.angularTravel(turning, 0, 80), Math.PI * 20);
+        assert.ok(BABYLON.Vector3.Distance(facing(turnWhen, 8 - 1e-5), facing(turnWhen, 8 + 1e-5)) < .001, 'seam stays smooth');
+    };
+    close(PlatformMotion.angularTravel({ ...motion, turnWhen: 'before' }, 1.4, 2.1), Math.PI / 2);
+});

@@ -50,7 +50,9 @@ export const PlatformMotion = {
             var segment = segments[i], previous = segments[(i + segments.length - 1) % segments.length];
             segment.time = segment.start / length * motion.duration;
             var snapped = open && i === 0; //it jumps back facing the first way, nothing to turn through
-            segment.turn = snapped ? 0 : Math.min(motion.turnDuration || 0, segment.span / length * motion.duration * .5);
+            var before = { before: 1, both: .5 }[motion.turnWhen] || 0, half = other => other.span / length * motion.duration * .5; //a turn takes at most half of the segment on either side of its corner
+            segment.lead = snapped ? 0 : Math.min((motion.turnDuration || 0) * before, half(previous));
+            segment.turn = snapped ? 0 : segment.lead + Math.min((motion.turnDuration || 0) * (1 - before), half(segment)); //the whole turn, starting lead seconds before the corner
             segment.angle = snapped ? 0 : 2 * Math.acos(Math.min(1, Math.abs(BABYLON.Quaternion.Dot(previous.rotation, segment.rotation))));
             segment.keyRate = keys ? 2 * Math.acos(Math.min(1, Math.abs(BABYLON.Quaternion.Dot(segment.fromKey, segment.toKey)))) / (segment.span / length * motion.duration) : 0; //radians a second
         };
@@ -69,11 +71,13 @@ export const PlatformMotion = {
             var segment = path.segments[i];
             if (distance < segment.start + segment.span || i === path.segments.length - 1) {
                 var fraction = Math.max(0, Math.min(1, (distance - segment.start) / segment.span));
-                var elapsed = phase * motion.duration - segment.time;
-                var previous = path.segments[(i + path.segments.length - 1) % path.segments.length];
-                return { position: BABYLON.Vector3.Lerp(segment.from, segment.to, fraction), custom: segment.fromKey ? BABYLON.Quaternion.Slerp(segment.fromKey, segment.toKey, fraction) : null,
-                    rotation: segment.turn > 0 ? BABYLON.Quaternion.Slerp(previous.rotation, segment.rotation,
-                        this.ease(elapsed / segment.turn)) : segment.rotation };
+                var now = phase * motion.duration, rotation = segment.rotation;
+                var previous = path.segments[(i + path.segments.length - 1) % path.segments.length], next = path.segments[(i + 1) % path.segments.length];
+                var elapsed = now - (segment.time - segment.lead); //into this corner's turn
+                if (segment.turn > 0 && elapsed < segment.turn) rotation = BABYLON.Quaternion.Slerp(previous.rotation, segment.rotation, this.ease(elapsed / segment.turn));
+                var early = (i === path.segments.length - 1 ? motion.duration : next.time) - next.lead; //the next corner's turn can start before we reach it
+                if (next.lead > 0 && now >= early) rotation = BABYLON.Quaternion.Slerp(segment.rotation, next.rotation, this.ease((now - early) / next.turn));
+                return { position: BABYLON.Vector3.Lerp(segment.from, segment.to, fraction), custom: segment.fromKey ? BABYLON.Quaternion.Slerp(segment.fromKey, segment.toKey, fraction) : null, rotation };
             };
         };
         return { position: path.points[0], rotation: BABYLON.Quaternion.Identity() };
@@ -105,8 +109,9 @@ export const PlatformMotion = {
         var total = 0;
         for (var segment of this.path(motion).segments) {
             var integral = time => {
-                var cycles = Math.floor((time - segment.time) / motion.duration);
-                var rest = time - segment.time - cycles * motion.duration;
+                var begin = segment.time - segment.lead;
+                var cycles = Math.floor((time - begin) / motion.duration);
+                var rest = time - begin - cycles * motion.duration;
                 return segment.angle * (cycles + (segment.turn ? this.ease(rest / segment.turn) : 1));
             };
             total += integral(high) - integral(low);

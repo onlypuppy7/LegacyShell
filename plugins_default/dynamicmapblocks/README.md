@@ -64,8 +64,9 @@ together, including the selected draft) and Copy/Paste movement. It is underline
 duration. The circle starts at the block's placement and its centre lies one radius
 back along the plane's first axis. **Offset** (X/Y/Z blocks) moves that centre, and **Rotate** (X/Y/Z degrees) turns the whole circle about its centre, so the block starts somewhere else on it; use both to place an orbit around any point at any angle. **Face travel direction** rotates along a linear
 or circular path. For waypoint paths, **Turn time** is the rotation time after each
-corner: 0 snaps, larger values ease in and out using quaternion interpolation. Long turns are
-capped at half the current segment's duration so the next corner remains distinct.
+corner: 0 snaps, larger values ease in and out using quaternion interpolation. Choose whether
+the turn happens **after the corner** (the default), **before the corner**, or **half before, half after**.
+Long turns are capped at half the neighbouring segment's duration on each side so the next corner remains distinct.
 **Facing offset** aligns models whose authored front faces another direction.
 
 A small table sets how players, items (grenades) and shots (bullets and rockets) treat a moving
@@ -165,7 +166,8 @@ Arbitrary axis vectors and pivots are supported by the transform sampler.
 For a circle, use `{ "type": "circle", "radius": 3, "plane": "xz", "duration": 8 }`;
 `plane` can also be `xy` or `yz`, and `reverse: true` reverses travel.
 Path and circle motion accept `orient: true` and `headingOffset` in degrees.
-Waypoint paths additionally accept `turnDuration` in seconds (0 means an instant turn).
+Waypoint paths additionally accept `turnDuration` in seconds (0 means an instant turn) and
+`turnWhen`: `"after"` (default), `"before"` or `"both"` for when that turn happens around the corner.
 
 To move existing map blocks, supply `blocks` instead of, or alongside, `shapes`:
 

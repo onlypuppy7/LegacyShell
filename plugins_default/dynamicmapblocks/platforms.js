@@ -59,6 +59,7 @@ export const PlatformMap = {
             if (motion.crush !== undefined && (!Number.isFinite(motion.crush) || motion.crush < 1 || motion.crush > 9999 || motion.pushThroughMap)) continue;
             if (motion.centre !== undefined && !['cell', 'mesh'].includes(motion.centre)) continue;
             if (motion.pivot !== undefined && (!this.finiteVector(motion.pivot) || ['x', 'y', 'z'].some(axis => Math.abs(motion.pivot[axis] || 0) > 4096))) continue;
+            if (motion.turnWhen !== undefined && !['after', 'before', 'both'].includes(motion.turnWhen)) continue;
             if (!Number.isFinite(motion.turnDuration ?? 0) || (motion.turnDuration ?? 0) < 0 || (motion.turnDuration ?? 0) > 10 ||
                 !Number.isFinite(motion.headingOffset ?? 0) || Math.abs(motion.headingOffset ?? 0) > 3600) continue;
             if (motion.type === 'spin' && (!Number.isFinite(motion.speed) || Math.abs(motion.speed) > 90 ||
