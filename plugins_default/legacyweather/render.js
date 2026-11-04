@@ -539,9 +539,16 @@ const WeatherRender = {
         };
     },
 
+    // the Weather Volume slider, which scales rain and thunder
+    soundScale() {
+        var opt = typeof LegacyWeatherPlugin !== "undefined" && LegacyWeatherPlugin.weatherVolume;
+        var value = opt ? Number(opt.get()) : 1;
+        return Number.isFinite(value) ? Math.max(0, Math.min(1, value)) : 1;
+    },
+
     // rain loop: volume follows the rain's sound part, softer when the player is under a roof
     updateRainSound() {
-        var vol = this.get("rain.sound") * this.shelter * (this.qualityFactor() > 0 ? 1 : 0);
+        var vol = this.get("rain.sound") * this.shelter * (this.qualityFactor() > 0 ? 1 : 0) * this.soundScale();
         if (vol > 0.01) {
             if (!this.rainSound) this.rainSound = playSoundIndependent2D("rain", { vol: 0.75 * vol, loop: true });
             else this.rainSound.volume(0.75 * vol);
@@ -573,12 +580,12 @@ const WeatherRender = {
         this.buildBolt(seed, angle, distance);
 
         var delay = distance / 120; //seconds until the thunder arrives
-        var vol = storm.thunder * Math.min(1, Math.max(0.25, 1.15 - distance / 150));
+        var vol = storm.thunder * Math.min(1, Math.max(0.25, 1.15 - distance / 150)); //scaled by the Weather Volume slider when it plays, below
         var rate = 1.1 - Math.min(0.3, distance / 400); //distant thunder is lower
         var timer = setTimeout(() => {
             this.thunderTimers = this.thunderTimers.filter(t => t !== timer);
             if (!inGame) return;
-            this.thunderSounds.push(playSoundIndependent2D("thunder", { vol, rate }));
+            this.thunderSounds.push(playSoundIndependent2D("thunder", { vol: vol * this.soundScale(), rate }));
             if (this.thunderSounds.length > 8) this.thunderSounds.shift();
         }, delay * 1000);
         this.thunderTimers.push(timer);

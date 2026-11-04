@@ -52,6 +52,10 @@ export const LegacyWeatherPlugin = {
                     { value: "off", label: "Off" },
                 ],
             }, 1, "Detail"); //joins the Detail group (created by legacyshellcore, or on demand)
+            this.weatherVolume = LegacySettings.addOption("General", {
+                type: "slider", key: "weatherVolume", label: "Weather Volume", min: 0, max: 1, step: 0.01, default: 1, showNumber: true,
+                tooltip: "Rain and thunder, on top of the master volume.",
+            }, 0, "Sound"); //sits under Master Volume (legacyshellcore makes the Sound group before this runs)
         };
 
         console.log("registering weather/time commands... (legacyweather plugin)");
