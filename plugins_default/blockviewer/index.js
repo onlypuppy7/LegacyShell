@@ -9,7 +9,7 @@ export const PluginMeta = {
     identifier: 'blockviewer',
     name: 'Block Viewer',
     author: 'onlypuppy7 (+Codex)', //NOTE! this plugin is VIBECODED.
-    version: '1.0.6',
+    version: '1.1.1',
     descriptionShort: 'Map editor block and collision viewer',
     descriptionLong: 'Map editor block viewer with collision, stats and read-only Babylon/GLB imports. Client server only.',
     legacyShellVersion: 665,

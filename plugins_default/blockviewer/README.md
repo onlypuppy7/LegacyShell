@@ -7,6 +7,7 @@ Adds **Block viewer** below the map editor's top toolbar. Runs on the **client s
 - Browse every loaded editor block, filter by theme, or search its full name. Each block in the list has a small preview, drawn as it scrolls into view.
 - Drag to orbit, scroll to zoom, and right drag to pan. Switching editor blocks keeps your orbit, zoom and pan; use Fit or Reset to frame the new block.
 - Toggle **Model** off to inspect collision alone. Toggle **Collision**, **Wireframe**, or **Auto turn**. **Fit** frames the model; **Reset** restores the view and rotation. **Y +90°** turns the preview without touching your palette or map.
+- **Text surfaces** shows sign models' hidden TEXT child meshes in blue. These position lettering on SIGNWALL and SIGNSTAND boards and are excluded from collision. SIGNBUBBLE props instead show a message when aimed at up close; the type definition explains this. All non-TEXT sign children are collision. Imported/exported files retain their text helpers.
 - The stats panel shows mesh, vertex, triangle and material counts, dimensions, rotation, collision type, shape count and softness.
 - Expand **Type definition** or **Softness definition** for the selected block's behavior. Hover the stat labels or values for the same definitions.
 - **Esc** or the close button returns to the editor. Typing and rotating in the viewer do not trigger map editor shortcuts.

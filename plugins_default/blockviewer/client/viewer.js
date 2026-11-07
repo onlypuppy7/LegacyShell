@@ -8,6 +8,8 @@
         meshes: [],
         nodes: [],
         colliders: [],
+        textSurfaces: [],
+        showText: false,
         mode: 'blocks',
         collision: false,
         wireframe: false,
@@ -25,6 +27,7 @@
     var collisionTypes = ['full', 'wedge', 'iwedge', 'aabb', 'obb', 'mesh', 'ladder', 'none'];
     var hasGeometry = node => typeof node.getTotalVertices === 'function' && node.getTotalVertices() > 0;
     var subtree = node => [node, ...node.getDescendants()];
+    var textHelper = node => /TEXT/i.test(node.name);
 
     function importEntries(nodes) {
         var entries = [], known = node => collisionTypes.includes(node.name.split('.')[2]);
@@ -36,7 +39,7 @@
                 return;
             };
             var type = known(node) ? node.name.split('.')[2] : null;
-            var children = node.getChildMeshes();
+            var children = node.getChildMeshes().filter(child => !textHelper(child));
             var collider = ['aabb', 'obb', 'mesh', 'ladder'].includes(type) ? children.find(child => /[. _-](collider|collision|trunk|branch)([. _-]|$)/i.test(child.name)) || (hasGeometry(node) ? children[0] : null) : null;
             var helpers = type && hasGeometry(node) ? descendants : collider ? subtree(collider) : [];
             entries.push({ mesh: node, name: node.name, theme: type ? node.name.split('.')[0] : 'Mesh', collisionType: type, collider, helpers });
@@ -100,6 +103,7 @@
                             </div>
                             <div class="bv-layer-controls" role="group" aria-label="Collision display">
                                 <button id="bv-collision" aria-pressed="false" title="Show gameplay collision bounds">Collision</button>
+                                <button id="bv-text" aria-pressed="false" title="Show authored TEXT surfaces. These position sign lettering and never collide.">Text surfaces</button>
                                 <label><input id="bv-collision-wireframe" type="checkbox"> Wireframe</label>
                             </div>
                             <button id="bv-turn" aria-pressed="false">Auto turn</button>
@@ -158,6 +162,10 @@
             filter();
             var previous = viewer.mode === 'blocks' ? viewer.lastBlock : viewer.lastImport;
             select(viewer.filtered.includes(previous) ? previous : viewer.filtered[0]);
+        };
+        $('text').onclick = () => {
+            viewer.showText = !viewer.showText; $('text').setAttribute('aria-pressed', String(viewer.showText));
+            viewer.textSurfaces.forEach(mesh => mesh.setEnabled(viewer.showText));
         };
         $('collision').onclick = () => {
             viewer.collision = !viewer.collision;
@@ -407,6 +415,8 @@
     };
 
     function disposePreview() {
+        viewer.textSurfaces.forEach(mesh => { var material = mesh.material; mesh.dispose(); material.dispose(); });
+        viewer.textSurfaces = [];
         var nodes = viewer.nodes.length ? viewer.nodes : viewer.meshes;
         var materials = new Set(nodes.map(mesh => mesh.material).filter(Boolean));
         nodes.concat(viewer.colliders).forEach(mesh => mesh.dispose(true, false));
@@ -508,6 +518,15 @@
             });
         };
         var name = entry.name.split('.');
+        var owners = entry.whole && viewer.mode === 'imported' ? viewer.imported : [entry];
+        for (var owner of owners) for (var helper of (owner.mesh?.getChildMeshes() || []).filter(textHelper)) {
+            var region = copyMesh(helper, activeRoot());
+            region.rotationQuaternion = new B.Quaternion();
+            helper.computeWorldMatrix(true).decompose(region.scaling, region.rotationQuaternion, region.position);
+            region.material.diffuseColor.set(.1, .65, 1); region.material.emissiveColor.set(.1, .65, 1); region.material.wireframe = true;
+            region.isVisible = true; region.setEnabled(viewer.showText); viewer.textSurfaces.push(region);
+        };
+        $('text').disabled = !viewer.textSurfaces.length;
         viewer.meshes.forEach(mesh => { mesh.bvVisible = mesh.isVisible; });
         updateVisibility();
         $('name').textContent = entry.whole ? 'Whole model' : viewer.mode === 'blocks' ? pretty(name[1] || entry.name) : entry.name;
@@ -596,7 +615,7 @@
         if (['aabb', 'obb', 'mesh', 'ladder'].includes(type)) {
             var collider = entry.collider || entry.mesh.colliderMesh || entry.mesh.getChildMeshes()[0];
             if (!collider) return;
-            var targets = type === 'ladder' ? [collider] : [collider, ...collider.getChildMeshes()];
+            var targets = (/^SIGN(WALL|STAND|BUBBLE)\./.test(entry.name) ? entry.mesh.getChildMeshes() : type === 'ladder' ? [collider] : [collider, ...collider.getChildMeshes()]).filter(mesh => !textHelper(mesh));
             targets.forEach(mesh => {
                 if (type === 'mesh' && !hasGeometry(mesh)) return;
                 mesh.computeWorldMatrix(true);
@@ -647,6 +666,8 @@
         };
         var recognized = viewer.mode === 'blocks' || entry.collisionType;
         $('cnote').textContent = recognized ? notes[type] || 'No known gameplay collision rule for this block.' : entry.whole && collisionAvailable(entry) ? 'Collision rules from each block name and its child meshes.' : 'No block collision type in this model name.';
+        if (['SIGNWALL', 'SIGNSTAND'].includes(fields[0])) $('cnote').textContent += ' Signboard: lettering follows the hidden TEXT child surfaces, shown in blue with Text surfaces. TEXT is excluded from collision.';
+        if (fields[0] === 'SIGNBUBBLE') $('cnote').textContent += ' Message prop: look at it within its configured distance to read its bubble.';
         var softness = fields[3] || 'Solid';
         var softnessNotes = {
             Solid: 'No softness flag. Collision follows Type; projectile impacts use the visible mesh when possible.',
