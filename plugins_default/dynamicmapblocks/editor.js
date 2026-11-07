@@ -10,6 +10,7 @@
     var movementClipboard, previewMode = null, previewStart = 0, previewBodies = [], previewKey;
     var members, grouping = false, memberBoxes = [], memberKey; //the blocks that move as one, as drafted (not saved until Apply)
     try { movementClipboard = JSON.parse(localStorage.getItem('dmbMovementClipboard')); } catch {};
+    PlatformTeleporters.triggered = () => state.bodies.filter(body => body.motion?.trigger).map(body => body.id); //for a teleporter to be powered by
 
     function disposePreview() {
         if (preview) preview.dispose();

@@ -6,20 +6,23 @@ import BABYLON from 'babylonjs';
 import Player from '#player';
 import ColliderConstructor from '#collider';
 import { SpinDisk } from './disk.js';
-import { SpinDiskRender, PlatformRender, PlatformRenderClock } from './render.js';
+import { SpinDiskRender, PlatformRender, PlatformRenderClock, TeleporterRender } from './render.js';
 import { plugins } from '#plugins';
 import { DynamicMapBlocksPlugin } from './shared.js';
 import { PlatformMap, PlatformWorld, PlatformTeams } from './platforms.js';
 import { PlatformClock, PlatformMotion } from './motion.js';
 import { PlatformShapes } from './geometry.js';
 import { PlatformTriggers } from './triggers.js';
+import { PlatformTeleporters } from './teleporters.js';
 import { PlatformProtocol } from './protocol.js';
 import { PlatformAssets } from './assets.js';
-import { PlatformEditorState } from './editor-state.js';
+import { MapSigns } from './signs.js';
+import { SignRender } from './sign-render.js';
+import { PlatformEditorState, TeleporterEditorState } from './editor-state.js';
 import { PluginManager } from '#plugins';
 import Comm from '#comm';
 import { Grenade, Bullet, Rocket } from '#bullets';
-import { PlatformGuides } from './guides.js';
+import { PlatformGuides, TeleporterGuides } from './guides.js';
 import { PlatformLighting } from './lighting.js';
 import { patchPlatformShader } from './lighting-shader.js';
 
@@ -205,7 +208,7 @@ test('render meshes and callbacks are cleaned up', () => {
     assert.equal(scene.meshes.length, before);
 });
 test('editor metadata survives save/open with a non-zero map origin', () => {
-    const context = vm.createContext({ PlatformEditorState, PlatformMap, PlatformWorld, mapMeshes: [], plugins: new PluginManager('game'),
+    const context = vm.createContext({ PlatformEditorState, PlatformMap, PlatformWorld, PlatformTeleporters, mapMeshes: [], plugins: new PluginManager('game'),
         document: { getElementById: () => null, readyState: 'loading', addEventListener() {} },
         scene: null, extern: {}, map: {}, minMap: {}, extents: {},
     });
@@ -258,6 +261,43 @@ test('physics editing turns a placed block into a platform and back without chan
     const staticBlock = state.draft(block); staticBlock.motion = { type: 'none' };
     state.apply(staticBlock, map); assert.equal(state.bodies.length, 0);
     assert.deepEqual(block, { mesh: spinner.name, x: 10, y: 2, z: 10, ry: 1 });
+});
+test('grouping puts blocks into one platform, takes them out again, and keeps each block in one place only', () => {
+    const state = new PlatformEditorState(), a = { mesh: spinner.name, x: 10, y: 2, z: 10 }, b = { mesh: spinner.name, x: 11, y: 2, z: 10, ry: 1 }, c = { mesh: spinner.name, x: 12, y: 2, z: 10 };
+    const draft = state.draft(a), original = JSON.stringify(draft);
+    const pair = state.toggle(draft, b);
+    assert.equal(JSON.stringify(draft), original); assert.deepEqual(pair.blocks, [a, b]);
+    assert.deepEqual(state.toggle(pair, b).blocks, [a]); assert.deepEqual(state.toggle(pair, a).blocks, [b]);
+    assert.throws(() => state.toggle(state.draft(a), a), /at least one/);
+    pair.motion = { type: 'spin', axis: { y: 1 }, pivot: state.pivot(pair, [spinner]), speed: 30 };
+    close(pair.motion.pivot.x, .5); close(pair.motion.pivot.z, 0);
+    state.apply(pair, map);
+    assert.equal(state.bodies.length, 1); assert.equal(state.forBlock(b), state.forBlock(a)); assert.equal(state.draft(b).blocks.length, 2);
+    const other = state.draft(c); other.motion = { type: 'spin', axis: { y: 1 }, pivot: {}, speed: 30 }; state.apply(other, map);
+    assert.throws(() => state.toggle(state.draft(a), c), /another platform/);
+    assert.throws(() => state.toggle(other, b), /another platform/);
+    const wide = state.draft({ ...a, x: 0 }); wide.blocks = Array.from({ length: 128 }, (_, i) => ({ mesh: spinner.name, x: i % 50, y: 5 + Math.floor(i / 50), z: 30 }));
+    assert.throws(() => state.toggle(wide, { mesh: spinner.name, x: 40, y: 9, z: 40 }), /128/);
+    const shrunk = state.toggle(state.draft(a), b); state.apply(shrunk, map);
+    assert.equal(state.bodies.length, 2); assert.equal(state.forBlock(b), undefined); assert.equal(state.forBlock(a).blocks.length, 1);
+    state.apply(state.toggle(state.draft(a), b), map); assert.equal(state.forBlock(a).blocks.length, 2);
+    const saved = state.save({ x: 0, y: 0, z: 0 }), loaded = new PlatformEditorState();
+    loaded.load({ width: 50, height: 50, depth: 50, data: {}, extents: { x: { min: 0 }, y: { min: 0 }, z: { min: 0 }, platforms: saved } });
+    assert.deepEqual(loaded.bodies.map(body => body.blocks.length), state.bodies.map(body => body.blocks.length));
+    const flat = state.draft(a); flat.motion = { type: 'none' }; state.apply(flat, map);
+    assert.equal(state.forBlock(a), undefined); assert.equal(state.forBlock(b), undefined); assert.equal(state.bodies.length, 1);
+});
+test('a grouped platform moves its blocks as a single rigid body', () => {
+    const groupBox = BABYLON.MeshBuilder.CreateBox('test.group.full', {}, scene); groupBox.colliderType = 'full';
+    const world = new PlatformWorld([{ id: 'pair', position: { x: 10.5, y: 2.5, z: 10.5 }, shapes: [], motion: { type: 'path', points: [{}, { x: 4 }], duration: 4, loop: 'pingpong' },
+        blocks: [{ mesh: 'test.group.full', x: 10, y: 2, z: 10 }, { mesh: 'test.group.full', x: 11, y: 2, z: 10 }] }], [groupBox], new PlatformClock(() => 0));
+    const body = world.bodies[0], at = time => world.pose(body, time).bounds;
+    assert.equal(body.parts.length, 2);
+    close(at(0).max.x - at(0).min.x, 2); close(at(2).min.x - at(0).min.x, 4); close(at(2).max.x - at(2).min.x, 2);
+    assert.ok(world.overlap({ x: 11.5, y: 2.5, z: 10.5 }, { min: new BABYLON.Vector3(-.2, -.2, -.2), max: new BABYLON.Vector3(.2, .2, .2) }, 0));
+    assert.ok(world.overlap({ x: 15.5, y: 2.5, z: 10.5 }, { min: new BABYLON.Vector3(-.2, -.2, -.2), max: new BABYLON.Vector3(.2, .2, .2) }, 2));
+    assert.ok(!world.overlap({ x: 11.5, y: 2.5, z: 10.5 }, { min: new BABYLON.Vector3(-.2, -.2, -.2), max: new BABYLON.Vector3(.2, .2, .2) }, 2));
+    groupBox.dispose();
 });
 test('editor centre and corner pivots are the cell the block sits in, whatever its collision geometry', () => {
     for (const type of ['full', 'aabb', 'obb', 'mesh']) {
@@ -1007,8 +1047,8 @@ test('client map loading initializes triangle queries without the server-only se
     const definition = { width: 24, height: 8, depth: 24, data: { 'dynamic.spinner.mesh': [{ x: 10, y: 1, z: 10 }] } };
     map.data[10][1][10] = { idx: 2, mesh: spinner };
     const context = vm.createContext({ BABYLON, Player, ColliderConstructor, isClient: true, plugins: manager,
-        PlatformMap, PlatformWorld, PlatformTeams, Bullet, Rocket, PlatformShapes, PlatformAssets, PlatformLighting, PlatformProtocol: { register() {} },
-        Collider: clientCollider, map, mapMeshes: clientMeshes, gameScene: scene, PlatformRender: { create() {} } });
+        PlatformMap, PlatformWorld, PlatformTeams, PlatformTeleporters, TeleporterRender: { create() {} }, Bullet, Rocket, PlatformShapes, PlatformAssets, PlatformLighting, PlatformProtocol: { register() {} },
+        Collider: clientCollider, map, mapMeshes: clientMeshes, gameScene: scene, MapSigns, SignRender, PlatformRender: { create() {} } });
     const source = fs.readFileSync(new URL('./shared.js', import.meta.url), 'utf8').replace(/^import .*;\r?$/gm, '').replace(/^export /gm, '');
     vm.runInContext(source, context);
     await manager.emit('createMapCellsMapLoaded', { minMap: definition, gameScene: scene });
@@ -1095,14 +1135,14 @@ test('editor preview survives edits, invalid drafts and selection changes until 
     const fields = new Map(), api = {}, created = [];
     let valid = true, time = 100;
     const element = id => {
-        if (!fields.has(id)) fields.set(id, { value: '', checked: false, disabled: false, children: [], classList: { toggle() {} },
+        if (!fields.has(id)) fields.set(id, { value: '', checked: false, disabled: false, children: [], classList: { toggle() {} }, setAttribute() {},
             querySelectorAll() { return []; }, checkValidity() { return valid; }, reportValidity() { return valid; } });
         return fields.get(id);
     };
     for (const [id, value] of Object.entries({ movement: 'spin', axis: 'y', pivot: 'custom', speed: '30', direction: '1', phase: '0' })) element(id).value = value;
     for (const axis of ['x', 'y', 'z']) element('pivot-' + axis).value = '0';
     const body = PlatformMap.fromDisk(disk); body.id = 'preview-test';
-    const context = vm.createContext({ editorAPI: api, PlatformMap, PlatformEditorState, PlatformWorld,
+    const context = vm.createContext({ editorAPI: api, PlatformMap, PlatformEditorState, PlatformWorld, PlatformTeleporters,
         PlatformGuides: { create() { return { dispose() {} }; } }, plugins: new PluginManager('game'),
         performance: { now: () => time * 1000 }, scene: {}, map, mapMeshes: [],
         mapContainer: { getChildMeshes() { return []; } },
@@ -1891,6 +1931,348 @@ test('F3 lines report the platforms, what the player rides and the targeted plat
     DynamicMapBlocksPlugin.debugLines({ ...none, player: player(), target: null });
     assert.deepEqual(none, { left: [], right: [] });
     diskWorld();
+});
+
+const tpBase = { width: 24, height: 8, depth: 24 };
+const tpRead = list => PlatformTeleporters.read({ ...tpBase, extents: { teleporters: list } });
+const tpPad = (id, x, z, extra = {}) => ({ id, block: { mesh: 'test.floor.full', x, y: 0, z }, ...extra });
+function padWorld(list) {
+    collider.platformWorld = PlatformTeleporters.attach(new PlatformWorld([], [], new PlatformClock(() => 0)), { ...tpBase, extents: { teleporters: list } });
+    return collider.platformWorld;
+};
+const walker = (overrides = {}) => player({ x: 2, y: 1, z: 4.5, playing: true, hp: 100, team: 1, ...overrides });
+const pair = (a = {}, b = {}) => [tpPad('a', 4, 4, { to: { type: 'link', id: 'b' }, cooldown: 0, ...a }), tpPad('b', 9, 9, { to: { type: 'link', id: 'a' }, cooldown: 0, ...b })];
+function walkUntil(p, until, ddx = 1, limit = 400) { for (let i = 0; i < limit && !until(); i++) p.simulateMovement({ delta: 1, ddx }); return until(); };
+
+test('teleporters are read with their limits, and bad ones are dropped one at a time', () => {
+    assert.equal(tpRead([tpPad('a', 4, 4), tpPad('b', 9, 9)]).length, 2);
+    assert.equal(tpRead([tpPad('a', 4, 4), tpPad('a', 9, 9)]).length, 1, 'one name each');
+    assert.equal(tpRead([tpPad('a', 4, 4), tpPad('b', 4, 4)]).length, 1, 'one pad to a block');
+    assert.equal(tpRead([tpPad('a', 4, 4, { to: { type: 'link', id: 'a' } })]).length, 0, 'not to itself');
+    assert.equal(tpRead([tpPad('a', 30, 4)]).length, 0, 'the block has to be in the map');
+    for (const bad of [{ players: 'green' }, { speed: 31 }, { charge: 11 }, { cooldown: -1 }, { velocity: 'fly' }, { view: 'spin' }, { zone: { radius: .1 } }, { zone: { shape: 'cone' } },
+        { look: { color: 6 } }, { power: { id: '' } }, { to: { type: 'point', x: 1, y: 1 } }, { to: { type: 'point', x: 99, y: 1, z: 1 } }, { exit: { y: 99 } }, { send: 'yes' }]) assert.equal(tpRead([tpPad('a', 4, 4, bad)]).length, 0, JSON.stringify(bad));
+    assert.equal(tpRead(Array.from({ length: 40 }, (_, i) => tpPad('p' + i, i % 20, Math.floor(i / 20) * 3))).length, 32, 'no more than 32');
+    assert.equal(PlatformTeleporters.read(tpBase).length, 0);
+    const minMap = { ...tpBase, data: {}, extents: { teleporters: [tpPad('a', 4, 4)] } };
+    assert.equal(PlatformMap.prepare(minMap), minMap, 'a pad leaves its block where it is');
+    const c = PlatformTeleporters.config(tpRead([tpPad('a', 4, 4)])[0]);
+    assert.equal(c.zone.shape, 'cylinder'); assert.equal(c.velocity, 'turn'); assert.equal(c.bullets, false); assert.equal(c.look.color, 0);
+});
+test('walking into a pad sends an egg out of the other, and it has to leave before it is sent back', () => {
+    padWorld(pair());
+    const p = walker();
+    assert.ok(walkUntil(p, () => p.dmbLastHop), 'sent');
+    assert.equal(p.dmbLastHop.from, 'a'); close(p.x, 9.5); close(p.y, 1); close(p.z, 9.5);
+    for (let i = 0; i < 30; i++) p.simulateMovement({ delta: 1 });
+    assert.equal(p.dmbLastHop.from, 'a', 'standing in the other pad does not send it back');
+    assert.ok(walkUntil(p, () => p.dmbLastHop.from === 'b', -1), 'out and back in is');
+    close(p.x, 4.5); close(p.z, 4.5);
+    diskWorld();
+});
+test('only what a pad is for is sent: teams, items, a charge, a dead player, a noclipping one', () => {
+    padWorld(pair({ players: 'red' }));
+    let p = walker({ team: 1 });
+    assert.ok(!walkUntil(p, () => p.dmbLastHop, 1, 120), 'blue is not sent by a red pad');
+    p = walker({ team: 2 }); assert.ok(walkUntil(p, () => p.dmbLastHop), 'red is');
+    padWorld(pair({ send: false }));
+    p = walker(); assert.ok(!walkUntil(p, () => p.dmbLastHop, 1, 120), 'an exit-only pad sends nothing');
+    padWorld(pair());
+    p = walker({ hp: 0 }); assert.ok(!walkUntil(p, () => p.dmbLastHop, 1, 120), 'dead');
+    p = walker({ modifiers: { scale: 1, speedModifier: 1, gravityModifier: 1, noclip: true } }); assert.ok(!walkUntil(p, () => p.dmbLastHop, 1, 120), 'noclip');
+    p = walker({ playing: false }); assert.ok(!walkUntil(p, () => p.dmbLastHop, 1, 120), 'spectating');
+    diskWorld();
+});
+test('charge and cooldown count in ticks, from the ledger of what the thing was in last tick', () => {
+    const world = padWorld(pair({ charge: .5, cooldown: 1 })), step = PlatformTeleporters.step.bind(PlatformTeleporters);
+    const out = { x: 2, y: 1.3, z: 4.5 }, inside = { x: 4.5, y: 1.3, z: 4.5 };
+    let rec = step(world, 'players', 1, out, inside, PlatformTeleporters.blank, 1, 0).rec;
+    for (let i = 1; i < 29; i++) { const next = step(world, 'players', 1, inside, inside, rec, 1, 0); assert.equal(next.def, null, 'tick ' + (i + 1)); rec = next.rec; };
+    assert.equal(step(world, 'players', 1, inside, inside, rec, 1, 0).def.id, 'a', 'charged at tick 30');
+    const after = PlatformTeleporters.after(world, world.teleporterIndex.get('a'), { x: 20, y: 1.3, z: 20 });
+    assert.deepEqual(after, { pad: null, armed: false, held: 0, wait: 60 });
+    rec = step(world, 'players', 1, out, inside, after, 1, 0).rec;
+    for (let i = 1; i < 59; i++) { const next = step(world, 'players', 1, inside, inside, rec, 1, 0); assert.equal(next.def, null, 'cooling at ' + (i + 1)); rec = next.rec; };
+    assert.equal(step(world, 'players', 1, inside, inside, rec, 1, 0).def.id, 'a', 'and ready at tick 60');
+    assert.equal(step(world, 'players', 1, inside, inside, PlatformTeleporters.blank, 1, 0).def, null, 'a hop the client missed: both ends in the pad, so it was never armed');
+    diskWorld();
+});
+test('a hop keeps, stops, turns or launches what it sends, and asks for the view to turn', () => {
+    const world = padWorld(pair({ facing: 0 }, { facing: 90 })), a = world.teleporterIndex.get('a');
+    const spot = PlatformTeleporters.resolve(world, a, null);
+    close(spot.turn, Math.PI / 2); assert.equal(spot.facing, 90);
+    const fly = mode => { const thing = { dx: .1, dy: -.05, dz: 0 }; PlatformTeleporters.velocity({ velocity: mode, speed: 6 }, thing, spot); return thing; };
+    assert.deepEqual(fly('keep'), { dx: .1, dy: -.05, dz: 0 });
+    assert.deepEqual(fly('stop'), { dx: 0, dy: 0, dz: 0 });
+    const turned = fly('turn'); close(turned.dx, 0); close(turned.dz, -.1); close(turned.dy, -.05);
+    const launched = fly('set'); close(launched.dx, .1); close(launched.dz, 0); close(launched.dy, -.05);
+    const p = walker({ yaw: 0, pitch: .3 });
+    assert.ok(walkUntil(p, () => p.dmbLastHop)); close(p.dmbView.turn, Math.PI / 2);
+    PlatformTeleporters.view({ player: p, resim: true }); assert.ok(p.dmbView, 'a replay does not turn the view again'); close(p.yaw, 0);
+    PlatformTeleporters.view({ player: p, resim: false }); assert.equal(p.dmbView, undefined); close(p.yaw, Math.PI / 2);
+    padWorld(pair({ facing: 0, view: 'face' }, { facing: 90 }));
+    const q = walker({ yaw: 3, pitch: .3 }); walkUntil(q, () => q.dmbLastHop); PlatformTeleporters.view({ player: q, resim: false });
+    close(q.yaw, Math.PI / 2); close(q.pitch, 0);
+    padWorld(pair({ view: 'keep' })); const r = walker(); walkUntil(r, () => r.dmbLastHop); assert.equal(r.dmbView, undefined);
+    diskWorld();
+});
+test('keep position in zone carries how far off the middle it went in, turned round with the exit', () => {
+    const world = padWorld(pair({ keepOffset: true, facing: 0 }, { facing: 90 })), a = world.teleporterIndex.get('a');
+    const spot = PlatformTeleporters.resolve(world, a, { x: 4.5 + .3, y: 1.3, z: 4.5 });
+    close(spot.x, 9.5); close(spot.z, 9.5 - .3, 1e-9);
+    assert.equal(PlatformTeleporters.resolve(world, world.teleporterIndex.get('b'), null).x, 4.5);
+});
+test('replaying the same steps from the same ledger sends an egg the same way', () => {
+    padWorld(pair());
+    const path = Array.from({ length: 18 }, (_, i) => ({ x: 3.2 + i * .05, y: 1, z: 4.5 }));
+    const p = walker({ x: path[0].x });
+    const run = (from, to) => { for (let i = from; i < to; i++) { const start = { x: p.x, y: p.y, z: p.z }; Object.assign(p, i === from && from === 0 ? {} : i < 17 ? path[i] : path[i]); PlatformTeleporters.player(p, start, 1, i, 0); } };
+    run(0, 18);
+    const first = { x: p.x, y: p.y, z: p.z, ledger: p.dmbHops[17], hop: p.dmbLastHop.from };
+    assert.equal(first.hop, 'a'); close(first.x, 9.5);
+    Object.assign(p, path[9]); p.dmbHopNow = PlatformTeleporters.blank; delete p.dmbLastHop;
+    run(10, 18);
+    assert.deepEqual({ x: p.x, y: p.y, z: p.z, ledger: p.dmbHops[17], hop: p.dmbLastHop.from }, first);
+    diskWorld();
+});
+test('an exit that is in something is raised a little, and refused if it stays blocked or is outside the map', () => {
+    const world = padWorld(pair()), a = world.teleporterIndex.get('a'), saved = collider.platformBounds;
+    collider.platformBounds = { width: 24, height: 8, depth: 24 };
+    close(PlatformTeleporters.arrive(collider, world, a, null, pos => pos.y < 1.35).y, 1.4);
+    assert.equal(PlatformTeleporters.arrive(collider, world, a, null, () => true), null);
+    const far = padWorld([tpPad('a', 4, 4, { to: { type: 'point', x: 5, y: 7.95, z: 5 } })]).teleporters[0];
+    assert.equal(PlatformTeleporters.arrive(collider, collider.platformWorld, far, null, () => false, .3), null, 'raised out of the top of the map');
+    assert.equal(PlatformTeleporters.arrive(collider, collider.platformWorld, tpPad('c', 4, 6, { to: { type: 'link', id: 'nobody' } }), null, () => false), null, 'a link to nothing');
+    collider.platformBounds = saved; diskWorld();
+});
+test('a thrown grenade is sent by what it flies into, by its own team, and not again at once', () => {
+    const fly = (pads, owner) => {
+        padWorld(pads);
+        const oldRoom = scene.room; scene.room = { Collider: collider };
+        owner.modifiers.grenadeTimerModifier = 1; owner.modifiers.grenadeBounceModifier = 1;
+        const grenade = new Grenade(scene); grenade.throw(owner, { x: 3, y: 1.2, z: 4.5 }, { x: .05, y: 0, z: 0 }); grenade.ttl = 1e9;
+        let hopped = false;
+        for (let i = 0; i < 200; i++) { grenade.update(1); hopped ||= grenade.x > 8; };
+        scene.room = oldRoom;
+        return { grenade, hopped };
+    };
+    const sent = fly(pair({ items: true }), walker());
+    assert.ok(sent.hopped, 'sent'); close(sent.grenade.z, 9.5, .05); assert.ok(sent.grenade.x > 9.3 && sent.grenade.x < 11, 'and left to roll on from the exit, not sent back');
+    assert.ok(!fly(pair({ items: 'red' }), walker({ team: 1 })).hopped, 'a red pad does not send a blue grenade');
+    assert.ok(!fly(pair({ items: false }), walker()).hopped, 'items off');
+    diskWorld();
+});
+test('a shot is sent on from the exit with its range worked out again, and a pad never sends one for ever', () => {
+    assert.ok(Bullet.prototype.update.dmbWrapped && Rocket.prototype.update.dmbWrapped, 'both kinds of shot are watched');
+    const world = padWorld(pair({ bullets: true }, { bullets: true })), owner = walker();
+    const make = (extra = {}) => ({ x: 4.25, y: 1.3, z: 4.5, dx: .75, dy: 0, dz: 0, range: 19, active: true, player: owner, weaponClass: { range: 20 }, ...extra });
+    const start = { x: 3.5, y: 1.3, z: 4.5 };
+    const shot = make();
+    PlatformTeleporters.shot(shot, start, collider, world);
+    close(shot.x, 9.5); close(shot.z, 9.5); close(shot.y, 1.3); close(shot.dx, .75); assert.equal(shot.dmbCount, 1); assert.equal(shot.dmbPad, 'b', 'it comes out inside the other pad, which does not send it back');
+    assert.ok(shot.range > 0 && shot.range <= 20);
+    const turned = make(); PlatformTeleporters.shot(turned, start, collider, padWorld(pair({ bullets: true, facing: 0 }, { bullets: true, facing: 90 })));
+    close(turned.dx, 0); close(turned.dz, -.75);
+    const capped = make({ dmbCount: 8 }); PlatformTeleporters.shot(capped, start, collider, padWorld(pair({ bullets: true }, { bullets: true }))); close(capped.x, 4.25);
+    const inside = make({ x: 4.85, dmbPad: 'a' }); PlatformTeleporters.shot(inside, { x: 4.1, y: 1.3, z: 4.5 }, collider, padWorld(pair({ bullets: true }, { bullets: true }))); close(inside.x, 4.85); assert.equal(inside.dmbPad, 'a', 'a shot fired from inside a pad is not sent by it');
+    const red = make({ player: walker({ team: 1 }) }); PlatformTeleporters.shot(red, start, collider, padWorld(pair({ bullets: 'red' }, { bullets: 'red' }))); close(red.x, 4.25);
+    const off = padWorld(pair({ bullets: false }, { bullets: false })); assert.equal(off.teleporterShots.length, 0, 'shots are off by default');
+    const charged = padWorld(pair({ bullets: true, charge: 1 }, { bullets: true })); assert.deepEqual(charged.teleporterShots.map(def => def.id), ['b'], 'nothing can charge in the time a shot is there');
+    const wall = make({ x: 4.25, range: -.7 }); PlatformTeleporters.shot(wall, { x: 3.5, y: 1.3, z: 4.5 }, collider, padWorld(pair({ bullets: true }, { bullets: true }))); close(wall.x, 4.25, 1e-9);
+    diskWorld();
+});
+test('a pad can be powered by a triggered block', () => {
+    const world = padWorld(pair({ power: { id: 'door', when: 'moved' } })), a = PlatformTeleporters.config(world.teleporterIndex.get('a'));
+    let progress = 0;
+    world.triggered = [{ definition: { id: 'door' }, progress: { fn: () => progress } }];
+    assert.equal(PlatformTeleporters.powered(world, a, 0), false);
+    progress = .4; assert.equal(PlatformTeleporters.powered(world, a, 0), true);
+    assert.equal(PlatformTeleporters.powered(world, { power: { id: 'door', when: 'end' } }, 0), false);
+    progress = 1; assert.equal(PlatformTeleporters.powered(world, { power: { id: 'door', when: 'end' } }, 0), true);
+    progress = 0; assert.equal(PlatformTeleporters.powered(world, { power: { id: 'door', when: 'start' } }, 0), true);
+    assert.equal(PlatformTeleporters.powered(world, { power: { id: 'gone' } }, 0), false, 'a block that is gone powers nothing');
+    assert.equal(PlatformTeleporters.powered(world, {}, 0), true);
+    const p = walker(); progress = 0;
+    assert.ok(!walkUntil(p, () => p.dmbLastHop, 1, 120), 'unpowered, it sends nothing');
+    diskWorld();
+});
+test('every side has its own axes: out of the face, across it, and turned about it by the spin', () => {
+    for (const [name, side] of Object.entries(PlatformTeleporters.sides)) for (const spin of [0, 37, 90, -135]) {
+        const { u, v, w } = PlatformTeleporters.basis(name, spin), dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+        close(dot(u, u), 1); close(dot(v, v), 1); close(dot(w, w), 1); close(dot(u, v), 0); close(dot(u, w), 0); close(dot(v, w), 0);
+        close(dot([u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]], w), 1); //turned, never mirrored
+        assert.deepEqual(v, side.v, name + ' keeps pointing out of its face');
+    };
+    assert.deepEqual(PlatformTeleporters.sideDefaults('top'), { offset: { x: 0, y: .4, z: 0 }, facing: 0, exit: { x: 0, y: .5, z: 0 } }, 'the top is what it always was');
+    assert.deepEqual(PlatformTeleporters.sideDefaults('x+'), { offset: { x: .4, y: 0, z: 0 }, facing: 90, exit: { x: 1, y: -.5, z: 0 } });
+    assert.deepEqual(PlatformTeleporters.sideDefaults('bottom').exit, { x: 0, y: -1.5, z: 0 });
+    const plain = PlatformTeleporters.config(tpRead([tpPad('a', 4, 4)])[0]);
+    assert.equal(plain.side, 'top'); assert.deepEqual(plain.exit, { x: 0, y: .5, z: 0 }); assert.deepEqual(plain.zone.offset, { x: 0, y: .4, z: 0 }); assert.equal(plain.facing, 0);
+    assert.equal(tpRead([tpPad('a', 4, 4, { side: 'up' })]).length, 0); assert.equal(tpRead([tpPad('a', 4, 4, { rotation: 5000 })]).length, 0);
+    assert.equal(tpRead([tpPad('a', 4, 4, { side: 'z-', rotation: 45 })]).length, 1);
+});
+test('a pad on a wall has its zone out from that wall, and a spin turns a cube zone about it', () => {
+    const w = tpRead([tpPad('w', 5, 5, { block: { mesh: 'test.floor.full', x: 5, y: 2, z: 5 }, side: 'x+' })])[0]; //the block's centre is 5.5, 2.5, 5.5 and the zone sits .4 out from it on the east
+    assert.deepEqual(PlatformTeleporters.zoneCentre(w), { x: 5.9, y: 2.5, z: 5.5 });
+    assert.ok(PlatformTeleporters.inside(w, { x: 6.5, y: 2.5, z: 5.5 }), 'out from the face, along its height');
+    assert.ok(!PlatformTeleporters.inside(w, { x: 5.9, y: 3.2, z: 5.5 }), 'its height is out of the wall, so straight up is across it');
+    assert.ok(PlatformTeleporters.inside(w, { x: 5.9, y: 2.5, z: 5.9 }) && !PlatformTeleporters.inside(w, { x: 5.9, y: 2.5, z: 6.1 }));
+    const long = size => tpRead([tpPad('b', 8, 8, { zone: { shape: 'box', size }, rotation: 90 })])[0];
+    const turned = long({ x: 1, y: .75, z: .25 }), straight = tpRead([tpPad('b', 8, 8, { zone: { shape: 'box', size: { x: 1, y: .75, z: .25 } } })])[0];
+    assert.ok(PlatformTeleporters.inside(straight, { x: 9.3, y: .9, z: 8.5 }) && !PlatformTeleporters.inside(straight, { x: 8.5, y: .9, z: 9.3 }), 'long one way');
+    assert.ok(!PlatformTeleporters.inside(turned, { x: 9.3, y: .9, z: 8.5 }) && PlatformTeleporters.inside(turned, { x: 8.5, y: .9, z: 9.3 }), 'and the other once turned a quarter');
+});
+test('walking into a wall pad is heading against its face, and comes out of the other pad facing out of its own', () => {
+    const high = (id, x, z, extra) => tpPad(id, x, z, { block: { mesh: 'test.floor.full', x, y: 1, z }, cooldown: 0, ...extra }); //a block one up, so the wall zone is at an egg's height
+    const fresh = padWorld([high('a', 5, 5, { side: 'x+', to: { type: 'link', id: 'b' } }), high('b', 12, 12, { side: 'z-', to: { type: 'link', id: 'a' } })]);
+    const a = fresh.teleporterIndex.get('a'), spot = PlatformTeleporters.resolve(fresh, a, null);
+    close(spot.x, 12.5); close(spot.y, 1); close(spot.z, 11.5, 1e-9); assert.equal(spot.facing, 180); close(spot.turn, -Math.PI / 2);
+    const p = walker({ x: 8, y: 1, z: 5.5 });
+    assert.ok(walkUntil(p, () => p.dmbLastHop, -1), 'sent by walking west into the east face');
+    close(p.x, 12.5); close(p.z, 11.5); close(p.y, 1);
+    assert.ok(p.dz < 0 && Math.abs(p.dx) < Math.abs(p.dz) * .1 + 1e-6, 'and now moving out of the face of the other pad, which looks to -Z');
+    close(p.dmbView.turn, -Math.PI / 2);
+    diskWorld();
+});
+test('a portal lies on the face of its pad, and a cube zone gets a frame', () => {
+    const list = PlatformTeleporters.read({ ...tpBase, extents: { teleporters: [tpPad('a', 4, 4, { side: 'x+' }), tpPad('b', 8, 8, { side: 'bottom', rotation: 30, zone: { shape: 'box' } }), tpPad('c', 10, 10, { side: 'z-', send: false })] } });
+    const meshes = scene.meshes.length, materials = scene.materials.length, portals = TeleporterRender.create(scene, list, {}, { always: true }), guides = TeleporterGuides.create(scene, list, {}, 'b');
+    const rings = portals.nodes.filter(node => node.name === 'teleporter-ring');
+    assert.equal(rings.length, 3);
+    const axis = ring => BABYLON.Vector3.TransformNormal(new BABYLON.Vector3(0, 1, 0), ring.computeWorldMatrix(true)).normalize();
+    close(axis(rings[0]).x, 1); close(axis(rings[1]).y, -1); close(axis(rings[2]).z, -1);
+    guides.dispose(); portals.dispose();
+    assert.equal(scene.meshes.length, meshes); assert.equal(scene.materials.length, materials);
+});
+test('a powered pad is built lit and unlit, and shows whichever matches whether it has power', () => {
+    let powered = true;
+    const make = look => tpRead([tpPad('a', 4, 4, { power: { id: 'door' }, look })]);
+    const build = list => { const portals = TeleporterRender.create(scene, list, {}, { always: true, active: () => powered }); return { portals, pads: portals.nodes.filter(node => node.name === 'teleporter-pad'), beams: portals.nodes.filter(node => node.name === 'teleporter-beam').length }; };
+    const meshes = scene.meshes.length, materials = scene.materials.length;
+    let r = build(make({ off: 'dim', offColor: 2 }));
+    assert.equal(r.pads.length, 2); assert.equal(r.beams, 1, 'only the lit one has a beam, the unlit one is a dim ring');
+    assert.deepEqual(r.pads.map(pad => pad.isEnabled()), [true, false]);
+    powered = false; scene.onBeforeRenderObservable.notifyObservers(scene);
+    assert.deepEqual(r.pads.map(pad => pad.isEnabled()), [false, true], 'and it switches when the power goes');
+    powered = true; scene.onBeforeRenderObservable.notifyObservers(scene);
+    assert.deepEqual(r.pads.map(pad => pad.isEnabled()), [true, false]); r.portals.dispose();
+    powered = false; r = build(make({ off: 'hide' }));
+    assert.equal(r.pads.length, 1); assert.equal(r.pads[0].isEnabled(), false, 'hidden when off: nothing to show'); r.portals.dispose();
+    powered = true; r = build(make({ off: 'keep', offColor: 4 }));
+    assert.equal(r.pads.length, 2); assert.equal(r.beams, 2, 'the whole portal, in another colour'); r.portals.dispose();
+    r = build(tpRead([tpPad('a', 4, 4)])); assert.equal(r.pads.length, 1, 'a pad with no power has only the one look'); r.portals.dispose();
+    assert.equal(scene.meshes.length, meshes); assert.equal(scene.materials.length, materials);
+    assert.equal(make({ off: 'gone' }).length, 0); assert.equal(make({ offColor: 6 }).length, 0); assert.equal(make({ off: 'hide', offColor: 5 }).length, 1);
+    assert.equal(PlatformTeleporters.config(make({})[0]).look.off, 'dim', 'dim is what it does unless told otherwise');
+});
+test('the showcase map shows every option, every send lands somewhere free, and its power blocks switch its pads', () => {
+    const map = JSON.parse(fs.readFileSync(new URL('./client/teleporters-showcase.json', import.meta.url), 'utf8'));
+    const pads = PlatformTeleporters.read(map), configs = pads.map(def => PlatformTeleporters.config(def)), cells = new Set(Object.values(map.data).flat().map(cell => cell.x + ',' + cell.y + ',' + cell.z));
+    assert.equal(pads.length, map.extents.teleporters.length, 'every pad is valid'); assert.equal(pads.length, PlatformTeleporters.limit, 'and it uses all the room there is');
+    assert.equal(PlatformMap.read(map).length, map.extents.platforms.length, 'and so is every platform');
+    const seen = list => new Set(list);
+    for (const side of Object.keys(PlatformTeleporters.sides)) assert.ok(seen(configs.map(c => c.side)).has(side), 'a pad on ' + side);
+    for (const shape of ['cylinder', 'sphere', 'box']) assert.ok(seen(configs.map(c => c.zone.shape)).has(shape) || shape === 'sphere', 'a ' + shape + ' zone'); //a sphere is the one shape not worth a station
+    for (const type of ['link', 'point', 'offset']) assert.ok(seen(configs.filter(c => c.send).map(c => c.to.type)).has(type), 'sends to ' + type);
+    for (const mode of ['stop', 'turn', 'set']) assert.ok(seen(configs.map(c => c.velocity)).has(mode), 'speed ' + mode);
+    for (const mode of ['keep', 'turn', 'face']) assert.ok(seen(configs.map(c => c.view)).has(mode), 'view ' + mode);
+    for (const who of ['blue', 'red']) assert.ok(seen(configs.map(c => c.players)).has(who), who + ' only');
+    assert.ok(configs.some(c => c.items === true && c.players === false) && configs.some(c => c.bullets === true && c.players === false), 'grenades only, and shots only');
+    assert.ok(configs.some(c => c.charge > 0) && configs.some(c => c.cooldown > 1) && configs.some(c => c.keepOffset) && configs.some(c => c.rotation) && configs.some(c => !c.send), 'charge, cooldown, keep position, spin, exit only');
+    for (const when of ['moved', 'end', 'start']) assert.ok(configs.some(c => c.power?.when === when), 'powered ' + when);
+    for (const off of ['dim', 'hide']) assert.ok(configs.some(c => c.power && c.look.off === off), 'off look ' + off);
+    assert.ok(configs.some(c => c.look.offColor !== undefined), 'an off colour'); assert.ok(new Set(configs.map(c => c.look.color)).size === PlatformTeleporters.palette.length, 'every colour');
+    const world = PlatformTeleporters.attach(new PlatformWorld(map.extents.platforms.filter(body => body.shapes), [], new PlatformClock(() => 0)), map);
+    for (const def of world.teleporters.filter(def => PlatformTeleporters.config(def).send)) { //every send lands in the map, on its feet and with room above, and not inside a block
+        const spot = PlatformTeleporters.resolve(world, def, null);
+        assert.ok(spot, def.id + ' goes somewhere');
+        assert.ok(spot.x >= 0 && spot.x < map.width && spot.z >= 0 && spot.z < map.depth && spot.y >= 1 && spot.y < map.height - 1, def.id + ' lands in the map');
+        assert.ok(!cells.has(Math.floor(spot.x) + ',' + Math.floor(spot.y + 0.01) + ',' + Math.floor(spot.z)), def.id + ' lands in the open, not in a block');
+    };
+    const plate = world.triggered.find(body => body.definition.id === 'plate'), power = id => PlatformTeleporters.powered(world, PlatformTeleporters.config(world.teleporterIndex.get(id)), 0);
+    assert.deepEqual(['g-moved', 'g-end', 'g-start'].map(power), [false, false, true], 'before the plate is pressed');
+    plate.progress.fn = () => .5; assert.deepEqual(['g-moved', 'g-end', 'g-start'].map(power), [true, false, false], 'while it is going down');
+    plate.progress.fn = () => 1; assert.deepEqual(['g-moved', 'g-end', 'g-start'].map(power), [true, true, false], 'and once it is down');
+    for (const def of pads.filter(def => PlatformTeleporters.config(def).send && def.block.y <= 2)) { //a pad out of the floor can be walked or jumped into: feet from the floor up to the top of a jump, and the point tested is a third of a block above them
+        const zone = PlatformTeleporters.zoneCentre(def), free = (x, y, z) => !cells.has(Math.floor(x) + ',' + Math.floor(y) + ',' + Math.floor(z)) && !cells.has(Math.floor(x) + ',' + Math.floor(y + .5) + ',' + Math.floor(z));
+        let reach = false;
+        for (let dx = -1.5; dx <= 1.5; dx += .1) for (let dz = -1.5; dz <= 1.5; dz += .1) for (let feet = 1; feet <= 1.6; feet += .1) reach ||= free(zone.x + dx, feet, zone.z + dz) && PlatformTeleporters.inside(def, { x: zone.x + dx, y: feet + .3, z: zone.z + dz });
+        assert.ok(reach, def.id + ' can be reached from the floor');
+    };
+    const signs = MapSigns.read(map), placed = MapSigns.entries(map);
+    assert.equal(signs.length, map.extents.signs.length, 'every sign is valid'); assert.equal(placed.length, signs.length, 'and has its block');
+    assert.ok(signs.every(sign => sign.block.mesh === 'SIGNSTAND.wood.mesh'), 'all wooden standing ones');
+    assert.ok(signs.every(sign => cells.has(sign.block.x + ',' + (sign.block.y - 1) + ',' + sign.block.z)), 'each stands on the floor or a platform of crates');
+    const spots = [...pads.map(def => PlatformTeleporters.zoneCentre(def)), ...world.teleporters.filter(def => PlatformTeleporters.config(def).send).map(def => PlatformTeleporters.resolve(world, def, null)), ...Object.entries(map.data).filter(([name]) => name.startsWith('SPECIAL.spawn')).flatMap(([, list]) => list.map(cell => ({ x: cell.x + .5, y: cell.y, z: cell.z + .5 })))];
+    for (const sign of signs) for (const spot of spots) assert.ok(Math.hypot(spot.x - sign.block.x - .5, spot.z - sign.block.z - .5) > 1.2 || Math.abs(spot.y - sign.block.y) > 2, 'no sign in the way at ' + sign.block.x + ',' + sign.block.z);
+    for (const letter of 'ABCDEFG') assert.ok(signs.some(sign => sign.text.startsWith(letter + ':') || sign.text.startsWith(letter + '1:')), 'a sign for station ' + letter);
+});
+test('a death or a respawn forgets which pad something was in', () => {
+    const p = walker(); p.dmbHops = [PlatformTeleporters.blank]; p.dmbHopNow = PlatformTeleporters.blank; p.dmbView = { turn: 1 };
+    PlatformTeleporters.reset(p); assert.deepEqual([p.dmbHops, p.dmbHopNow, p.dmbView], [undefined, undefined, undefined]);
+});
+test('F3 reports teleporters, and says nothing on maps without any', () => {
+    padWorld(pair()); const p = walker({ dmbLastHop: { from: 'a', to: 'b' } }), lines = { left: [], right: [] };
+    DynamicMapBlocksPlugin.debugLines({ ...lines, player: p, target: null });
+    assert.deepEqual(lines.left, ['', 'Teleporters: 2 Last hop: a → b']);
+    diskWorld();
+});
+test('teleporters in the editor load and save around a non-zero origin, move with the map and go with their block', () => {
+    const state = new TeleporterEditorState(), saved = { ...tpBase, width: 14, height: 6, depth: 14, extents: { x: { min: 18 }, z: { min: 18 },
+        teleporters: [tpPad('a', 2, 3, { to: { type: 'point', x: 5, y: 1, z: 6 } }), tpPad('b', 8, 8, { to: { type: 'link', id: 'a' } })] } };
+    state.load(saved);
+    assert.deepEqual(state.pads[0].block, { mesh: 'test.floor.full', x: 20, y: 0, z: 21 }); assert.deepEqual([state.pads[0].to.x, state.pads[0].to.y, state.pads[0].to.z], [23, 1, 24]);
+    assert.deepEqual(state.save({ x: 18, y: 0, z: 18 }), PlatformTeleporters.read(saved));
+    state.translate({ x: 1, y: 0, z: -1 }); assert.deepEqual([state.pads[0].block.x, state.pads[0].block.z, state.pads[0].to.x, state.pads[0].to.z], [21, 20, 24, 23]);
+    const grid = { data: [] }; grid.data[21] = [[]]; grid.data[21][0][20] = { idx: 1 };
+    state.sync(grid, [null, { name: 'test.floor.full' }]); assert.deepEqual(state.pads.map(def => def.id), ['a'], 'a pad whose block is gone goes');
+    grid.data[21][0][20] = { idx: 1 }; state.sync(grid, [null, { name: 'other.block.full' }]); assert.equal(state.pads.length, 0, 'and so does one whose block was replaced');
+    const fresh = new TeleporterEditorState(), block = { mesh: 'test.floor.full', x: 4, y: 0, z: 4 };
+    const draft = fresh.draft(block); assert.equal(fresh.pads.length, 0); assert.equal(draft.id, 'tp-1'); assert.equal(fresh.freeId(['tp-1', 'tp-2']), 'tp-3');
+    assert.throws(() => fresh.apply([{ ...draft, to: { type: 'link', id: 'nobody' } }], tpBase), /missing teleporter/);
+    const mate = { ...fresh.draft({ ...block, x: 9, z: 9 }), id: 'tp-2', send: true, to: { type: 'link', id: draft.id } };
+    fresh.apply([{ ...draft, to: { type: 'link', id: mate.id } }, mate], tpBase); assert.equal(fresh.pads.length, 2, 'a pair goes in together');
+    assert.equal(fresh.forBlock(block).id, 'tp-1'); assert.throws(() => fresh.apply([{ ...draft, speed: 99 }], tpBase), /Check the settings/);
+    fresh.remove(draft.id); assert.equal(fresh.pads.length, 1);
+    const copy = fresh.copySettings(mate); assert.equal(copy.id, undefined); assert.equal(fresh.pasteSettings(draft, copy).id, draft.id);
+});
+test('teleporter guides and portals draw, and clean everything up', () => {
+    const list = PlatformTeleporters.read({ ...tpBase, extents: { teleporters: [...pair({ facing: 45 }), tpPad('c', 4, 10, { to: { type: 'point', x: 10.5, y: 3, z: 2.5 }, zone: { shape: 'box' } }), tpPad('d', 6, 6, { send: false, zone: { shape: 'sphere' } })] } });
+    const meshes = scene.meshes.length, materials = scene.materials.length;
+    const guides = TeleporterGuides.create(scene, list, { x: .5, y: .5, z: .5 }, 'a'); assert.ok(guides.nodes.length > 20 && scene.meshes.length > meshes);
+    const portals = TeleporterRender.create(scene, list, { x: .5, y: .5, z: .5 }, { always: true }); assert.ok(portals.nodes.length >= 4 + 3);
+    guides.dispose(); portals.dispose();
+    assert.equal(scene.meshes.length, meshes); assert.equal(scene.materials.length, materials);
+    assert.equal(TeleporterRender.create(scene, []).nodes.length, 0);
+    const hidden = TeleporterRender.create(scene, tpRead([tpPad('a', 4, 4, { look: { pad: false } })])); assert.equal(hidden.nodes.length, 0); hidden.dispose();
+});
+test('the teleporter editor saves what it loaded, and nothing when there is none', () => {
+    const context = vm.createContext({ TeleporterEditorState, PlatformTeleporters, mapMeshes: [], plugins: new PluginManager('game'),
+        document: { getElementById: () => null, readyState: 'loading', addEventListener() {} }, scene: null, map: {}, extents: {},
+    });
+    vm.runInContext(`
+        var initMap = function () { plugins.emitSync('editorInitMapBefore', {}); plugins.emitSync('editorInitMapAfter', {}); };
+        var maximizeMap = function (json) { plugins.emitSync('editorLoadMapBefore', { json }); plugins.emitSync('editorLoadMapAfter', { json }); return true; };
+        var minimizeMap = function () {
+            plugins.emitSync('editorExtentsBefore', {});
+            extents = {x:{min:18,max:31},y:{min:0,max:5},z:{min:18,max:31}};
+            plugins.emitSync('editorExtentsAfter', { extents });
+            var minMap = {width:extents.width,height:extents.height,depth:extents.depth,extents};
+            plugins.emitSync('editorSaveMap', { minMap, extents });
+            return minMap;
+        };
+    `, context);
+    vm.runInContext(fs.readFileSync(new URL('./editor-teleporters.js', import.meta.url), 'utf8'), context);
+    const example = fs.readFileSync(new URL('./client/teleporters.json', import.meta.url), 'utf8'), json = JSON.parse(example);
+    assert.equal(PlatformTeleporters.read(json).length, 4, 'the example map is all valid');
+    const world = PlatformTeleporters.attach({}, json);
+    assert.deepEqual(world.teleporters.map(def => def.id), ['tp-a', 'tp-b', 'tp-c', 'tp-d']);
+    for (const def of world.teleporters) assert.ok(PlatformTeleporters.resolve(world, def, null), def.id + ' goes somewhere');
+    context.json = example;
+    vm.runInContext('maximizeMap(json); var saved = minimizeMap();', context);
+    assert.deepEqual(JSON.parse(JSON.stringify(context.saved.extents.teleporters)), PlatformTeleporters.read(json));
+    vm.runInContext('initMap(); var cleared = minimizeMap();', context);
+    assert.equal('teleporters' in context.cleared.extents, false);
 });
 
 await Promise.all(pendingChecks);

@@ -2,6 +2,63 @@
 import BABYLON from 'babylonjs';
 import { PlatformMap, PlatformWorld } from './platforms.js';
 import { PlatformMotion } from './motion.js';
+import { PlatformTeleporters } from './teleporters.js';
+
+export class TeleporterEditorState { //the pads, on the editor's own coordinates: the same shift as platforms on the way in and out, and a pad goes when its block does
+    constructor() { this.pads = []; };
+    shift(def, offset, sign) {
+        var move = point => Object.fromEntries(['x', 'y', 'z'].map(axis => [axis, point[axis] + sign * offset[axis]]));
+        var copy = { ...def, block: { ...def.block, ...move(def.block) } };
+        if (def.to?.type === 'point') copy.to = { ...def.to, ...move(def.to) };
+        return copy;
+    };
+    load(saved) {
+        var offset = { x: saved?.extents?.x?.min ?? 25 - Math.floor((saved?.width || 50) / 2), y: 0, z: saved?.extents?.z?.min ?? 25 - Math.floor((saved?.depth || 50) / 2) };
+        this.pads = PlatformTeleporters.read(saved).map(def => this.shift(def, offset, 1));
+    };
+    save(origin) { return this.pads.map(def => this.shift(def, origin, -1)); };
+    sync(map, sources) {
+        if (!map.data) return;
+        this.pads = this.pads.filter(def => {
+            var cell = map.data[def.block.x]?.[def.block.y]?.[def.block.z];
+            return cell?.idx && sources[cell.idx]?.name === def.block.mesh;
+        });
+    };
+    forBlock(block) { return this.pads.find(def => def.block.x === block.x && def.block.y === block.y && def.block.z === block.z); };
+    find(id) { return this.pads.find(def => def.id === id); };
+    draft(block) {
+        var existing = this.forBlock(block);
+        if (existing) return JSON.parse(JSON.stringify(existing));
+        return { id: this.freeId(), block: { mesh: block.mesh, x: block.x, y: block.y, z: block.z }, send: true, to: { type: 'link' } };
+    };
+    freeId(taken = []) { //the first tp-1, tp-2, ... nothing on the map, or about to be, is called
+        var names = new Set([...this.pads.map(def => def.id), ...taken]), n = 1;
+        while (names.has('tp-' + n)) n++;
+        return 'tp-' + n;
+    };
+    check(def, map) { //the same checks the map gets when it is read back
+        var valid = PlatformTeleporters.read({ width: map.width, height: map.height, depth: map.depth, extents: { teleporters: [def] } });
+        if (!valid.length) throw new Error('Check the settings. Sizes: .25 to 64. Speed: up to 30. Charge: up to 10 seconds.');
+        return valid[0];
+    };
+    remove(id) { this.pads = this.pads.filter(def => def.id !== id); };
+    apply(defs, map) { //a pad and the one it is paired with go in together, so each can point at the other
+        var valid = defs.map(def => this.check(def, map)), names = new Set([...this.pads, ...valid].map(def => def.id));
+        if (valid.some(def => def.to?.type === 'link' && def.to.id && !names.has(def.to.id))) throw new Error('Sends to a missing teleporter. Pick another.');
+        if (names.size > PlatformTeleporters.limit) throw new Error('This map already has ' + PlatformTeleporters.limit + ' teleporters.');
+        for (var def of valid) {
+            var index = this.pads.findIndex(item => item.id === def.id);
+            if (index >= 0) this.pads[index] = def; else this.pads.push(def);
+        };
+        return valid;
+    };
+    translate(offset) { this.pads = this.pads.map(def => this.shift(def, offset, 1)); };
+    copySettings(def) {
+        var { id, block, to, ...rest } = JSON.parse(JSON.stringify(def));
+        return { ...rest, to: to.type === 'link' ? { type: 'link' } : to };
+    };
+    pasteSettings(def, settings) { return { ...JSON.parse(JSON.stringify(settings)), id: def.id, block: def.block }; };
+};
 
 export class PlatformEditorState {
     constructor() { this.bodies = []; };

@@ -1,6 +1,6 @@
 # dynamicmapblocks
 
-Shared kinematic platforms and physics editing for placed map blocks.
+Shared kinematic platforms, physics editing, teleporters and signs for placed map blocks.
 This plugin is vibecoded. Version 2 replaces the original `spinningdisk` plugin;
 keep only `dynamicmapblocks` installed. Restart the client and game servers together.
 Uses generic core extension hooks; platform behavior stays in this plugin.
@@ -99,6 +99,88 @@ Its `.babylon` asset
 is merged into `map.babylon` by the same client/game preparation hooks as other model
 plugins. Rebuild the asset with `node plugins_default/dynamicmapblocks/build-model.js`.
 
+## Signs
+
+Pick a block from **SIGNWALL**, **SIGNSTAND** or **SIGNBUBBLE** and place it. Its message
+and settings open straight away. **Apply** finishes the placement; **Cancel** removes
+a new sign. Click a sign to edit it, or open **Signs** and pick one. Hold Shift to
+eyedrop its model, rotation, message and settings, then place another. Shift-click
+with the normal building tool to build against an existing sign instead of editing it.
+Signs place one at a time, including when a fill tool is selected.
+
+**SIGNWALL** and **SIGNSTAND** each have wood and metal boards. Their words are drawn
+on the board, with an ink colour, left/centre/right alignment, automatic wrapping and
+fitting. **SIGNBUBBLE** has a question-mark plaque, question-mark pedestal, speaker
+box, mailbox and open book on a lectern. Look directly at one within its **Read within**
+distance (1–12 blocks) to see its message. Walls block the view. Leaving, looking away
+or dying hides it. Messages are plain text, up to 512 characters and 12 lines; HTML
+is never interpreted. There can be 128 configured signs per map.
+
+The normal save/open, backups, undo, map movement and local/online tests keep signs.
+Deleting or replacing their block removes the assignment. Text follows a block's
+quarter turns and platform movement too. `client/signs.json` shows all nine models;
+`client/signs-stress.json` has 128 signs, half written boards and half bubble props.
+
+### Making sign models
+
+Use `SIGNWALL.name.mesh`, `SIGNSTAND.name.mesh` or `SIGNBUBBLE.name.mesh`. The root
+holds the merged visible geometry. For boards, add one or more child plane meshes
+whose names contain **TEXT** (case insensitive). Their geometry, UVs and full local
+transforms define where and how large the writing is. Move, rotate or scale the
+plane in the model; there is no table of text offsets in the plugin. Optional root
+`metadata.signInk` sets the editor's default ink colour (pale on the bundled boards).
+The TEXT planes
+are hidden helpers, replaced with non-pickable lettering when rendered. Other child
+meshes supply regular triangle collision, irrespective of their order. TEXT never
+collides. Bubble props need no TEXT plane. The block viewer's **Text surfaces** button
+shows the helpers in blue, separately from the orange collision overlay, and its
+definitions explain the two behaviours. Imports/exports retain the authored helpers.
+
+Rebuild the bundled models with `node plugins_default/dynamicmapblocks/build-model.js`;
+`build-signs.js` supplies the sign parts. Restart the client and game servers together.
+
+Saved under `extents.signs`:
+
+```json
+{ "block": { "mesh": "SIGNSTAND.wood.mesh", "x": 4, "y": 1, "z": 7 },
+  "text": "WATCH YOUR SHELL", "color": "#302315", "align": "center", "range": 5 }
+```
+
+Positions use the saved map origin, as for platforms. Rotation comes from the block.
+Bad or duplicate entries are discarded independently; assignments to missing blocks
+are ignored. No sign-specific opcode or server simulation loop is added.
+
+### Sign checks and performance
+
+Run `node plugins_default/dynamicmapblocks/test-signs.js`, the existing `test.js`,
+and `node plugins_default/blockviewer/test-viewer.mjs`. Checks cover authored transforms,
+child order and collision, validation, origin changes, deletion, wrapping, moving text,
+gameplay model names, parented and multiple cameras, range, occlusion, shared textures
+and repeated disposal. Browser checks covered placement, cancel, editing, eyedrop,
+single-step undo, save/reload, both message types and the viewer overlay.
+
+`node plugins_default/dynamicmapblocks/profile-signs.js` measures 10,000 targeting
+queries after warming up. On 2026-10-31, Node 20 measured 0.003 ms per query with 128
+distant props and 0.018 ms while aiming at one (99th percentile 0.037 ms). This excludes
+browser occlusion and rendering. Static boards have no frame callback, letters are
+uploaded once, and equal messages on equal-sized surfaces share a texture. Bubble
+queries run at most ten times a second and only change the DOM when the target changes.
+
+In the actual game's Local Test, Chrome 155 / WebGL 2 on an RTX 3060 Laptop GPU at
+1280 × 720, four alternating 4-second samples on the 128-sign stress map measured
+2.86 / 5.27 / 4.48 / 3.03 ms of render CPU time (off / on / on / off). The same map
+geometry remained loaded throughout: this isolates lettering and bubble handling.
+The difference was about 1.9 ms per rendered frame. Targeting including occlusion
+averaged 0.10–0.17 ms per query. These measure JavaScript and render submission, not
+completed GPU time or an FPS guarantee. Disposing signs returned textures from 76
+to 12 and scene meshes from 3163 to 2907 in both baseline samples.
+
+`node plugins_default/dynamicmapblocks/test-ingame.js 4 20 signs localhost 13372`
+also exercised the stress map on a live game server with four headless clients;
+`nosigns` repeats the same geometry without message metadata. Both runs joined
+and continued exchanging updates. Initial map transfer is larger with messages;
+normal sync does not carry sign text.
+
 ## Engine layout
 
 - `motion.js`: pure time-to-transform samplers (`none`, `spin`, `path`, `circle`),
@@ -117,6 +199,8 @@ plugins. Rebuild the asset with `node plugins_default/dynamicmapblocks/build-mod
 - `disk.js`: compatibility with legacy disk data.
 - `editor-state.js` / `editor.js`: block assignments, save/load and the physics panel.
 - `guides.js`: coloured movement paths, waypoint markers and direction arrows.
+- `teleporters.js`: pad definitions and limits, the shared step-in rule, destinations and how an egg, grenade or shot leaves.
+- `editor-teleporters.js`: the **Teleport** panel. `TeleporterEditorState` (`editor-state.js`) keeps its pads, `TeleporterGuides` (`guides.js`) and `TeleporterRender` (`render.js`) draw them.
 
 Geometry has no knowledge of movement types. Movement has no knowledge of player
 physics. Carrying transforms the passenger's local contact position from the previous
@@ -174,6 +258,7 @@ For spin, use `{ "type": "spin", "axis": { "y": 1 }, "pivot": { "x": -2 }, "spee
 Arbitrary axis vectors and pivots are supported by the transform sampler.
 For a circle, use `{ "type": "circle", "radius": 3, "plane": "xz", "duration": 8 }`;
 `plane` can also be `xy` or `yz`, and `reverse: true` reverses travel.
+`circleOffset` (blocks, up to 64) moves the centre and `circleRotation` (`{x, y, z}` degrees, yaw/pitch/roll order) turns the circle about it.
 Path and circle motion accept `orient: true` and `headingOffset` in degrees.
 Waypoint paths additionally accept `turnDuration` in seconds (0 means an instant turn) and
 `turnWhen`: `"after"` (default), `"before"` or `"both"` for when that turn happens around the corner.
@@ -268,7 +353,6 @@ These shared-physics measurements do not measure browser rendering or network RT
 With `debugf3` installed, F3 shows the platform count, the platform clock, what you are riding, and the platform you are looking at (motion and centre). Nothing is shown on maps without platforms.
 
 Two separate settings decide where a block turns and travels. **Centre on** chooses what its path is measured from: *Cell centre* (the default) leaves the block exactly where it was placed, so a thin wall stays flush with its neighbours; *Mesh centre* moves the block so the middle of its mesh sits on the middle of its cell (across, not up), as blocks used to, and the path then runs through the mesh's middle. **Pivot** chooses the point it turns about: the centre, the middle of any of the 6 sides, any of the 8 corners, or a point of your own, measured on the cell or on the mesh according to Centre on. Pivot applies to spins and to path and circle motion that turns (waypoint rotations or facing its way of travel), and waypoints are offsets from the block's start either way.
-`circleOffset` (blocks, up to 64) moves the centre and `circleRotation` (`{x, y, z}` degrees, yaw/pitch/roll order) turns the circle about it.
 
 **Rotate at waypoints** (linear paths only) lets any waypoint carry its own rotation in degrees (X, Y, Z). It is optional per waypoint: tick the box on a waypoint's rotation line to give it one. A waypoint without one keeps the rotation from the waypoint before, and the first starts as the block was placed. Between two rotations the block turns smoothly in step with how far along the segment it is, about its centre, and coming back on a back-and-forth path retraces the same turns. It combines with **Face travel direction** (the waypoint rotation is the block's own, then it faces its way of travel), turns riders if **Rotate with block** is on, and is saved as a `rotation` on the point. Two waypoints in the same place make a turn on the spot, which takes about as long as moving a block of path for every radian turned (a quarter turn is about 1.6 blocks' worth of the cycle).
 
@@ -282,6 +366,34 @@ Tick **Only move when triggered** on a spin, linear path or circular path and th
 - **Timing:** start delay (must be triggered this long first), reset delay (stays triggered this long after letting go) and cooldown (after a full run it will not start again from the start for this long).
 
 The server decides when a block is set off and tells the clients where it is headed; progress is a straight line in time between those moments, so everyone works out the same place and late joiners catch up from the next sync. Your own client starts, stops, reverses or snaps a block the instant you set it off or step off it, as a guess marked as predicted (it also counts the other players and grenades it can see, so a block does not stop for you while someone else is still on it). The server back-dates both a start and a release to the moment on the player's own clock that they stepped on or off (up to 0.3 s, and a reset delay still applies), so its answer lands on the same instant the client guessed and a 200 ms ping does not shift the block when the server's version arrives; whatever small difference is left is eased out over about a third of a second instead of snapping. A guess is dropped once the server has spoken of the same moment (within a tenth of a second) or of a later one, or if the server has not agreed within about half a second; a guess newer than anything the server has said stays, so a quick step on and off is not undone while the server is still hearing about it. A cycle the server has already ended and snapped back is not restarted by the client. A player's own clock only runs while they are simulated, so one left behind the blocks' clock by more than half a second (a hidden tab, a death) is put back on it, and a player running ahead of the server is dated by their own clock for up to half a second instead of being pulled back to the server's. The server counts each player's clock a step at a time and it creeps ahead of real time by a few milliseconds a second (so a session's offset was just how long it had been running); the server leans it back towards the blocks' clock by a hair each step, harder when it has wandered over a third of a second. The server also judges who is inside a zone or touching a block a tenth of a block more generously than a client does, since the two never agree to the last hair on where a player is and a guess the server turns down is a block that does not move for someone standing on it. Your own clock goes by state number: the server tells every client its clock for the next state to run, and each state's time is that plus a step on for each state since. After every server update the core replays your last few inputs to check where you should be and snaps you to the result if it is more than 0.2 blocks from where you are; replayed steps used to run on from the end of the real ones, so on a fast lift each was a few tenths of a block out and you were pulled about. Now every replayed step lands on the moment it first did. The F3 screen shows how far your clock is off, how your guesses fared (spot on, near, refused, lost) and where your clock goes each second (steps, replayed steps, what the server sync moved it, and so how far ahead of real time it runs). Triggered blocks are saved as `motion.trigger`.
+
+## Teleporters
+
+Pads that send whatever steps into them somewhere else. Open **Teleport** (beside **Physics**), click a block and choose **Sends eggs** (a pad that sends), **Exit only** (a pad eggs can only come out of) or **Off**, then press **Apply**. A pad is a plain block that stays where it is: it can also be a moving platform, and deleting or replacing the block removes the pad. **Preview** plays the draft (or, from **⋯**, every pad with **Preview all**) with a ghost egg hopping along its arc; **Show all links** draws every pad's zone, link and exit, green marking the way in. **Copy settings** and **Paste settings** carry a pad's settings to another block.
+
+- **Sends to:** *Another teleporter* (choose one, or press **Pick** and click a block: a block that is not a pad yet becomes an exit-only one; **Both ways** makes the other send back here too), *A point* (absolute coordinates) or *An offset* (from this block's centre), the last two with their own exit facing.
+- **Exit** is where eggs land when something is sent *to* this pad (X/Y/Z from the block's centre, 0.5 up is the top of a full block) and **Facing** is the way they face (0 is +Z, 90 is +X). **Keep position in zone** comes out as far off the middle as it went in, turned round with the exit.
+- **Zone** is a cylinder, sphere or cube (same size controls as a trigger zone) with an offset. The default covers an egg walking over a floor pad or standing on a block. **Side** puts the pad on the top, the bottom or any of the four walls of its block (choosing one moves the zone, exit and facing to suit that face), and **Spin** turns the zone about that face. The zone's own axes follow the side: its height runs out of the face and a cube's half sizes are along and across it. The portal lies on the face too, and a cube zone gets a square frame instead of a ring. Going into a wall pad means heading against its face, so something sent from one comes out of another pad's face heading straight out of it.
+- **Who it sends:** players, items (thrown grenades) and shots (bullets and rockets), each for everyone, nobody or one team. Shots are off by default.
+- **On the way:** *Speed* is kept, stopped dead, turned round with the exit or launched (a speed in blocks/second, which friction soon eats), and *View* is kept, turned with the exit or set to face it. **Charge** is how long something must stand in the zone first, **Cooldown** how long before the same thing can be sent again.
+- **Powered by** a triggered block: it only works once that has moved, while it is at its end, or while it is at its start.
+- **Look:** a colour, **Show portal** and a **Puff of smoke** where it goes in and comes out. A pad with a power block also has a deactivated look: **When off** is a *Dim ring*, *Hidden* or the *Full portal*, with an optional **Off colour**, and the portal switches as the block's progress does. **Show deactivated look** in **⋯** previews it.
+
+Something is sent when it comes *in from outside* a zone, so what is put inside one (a spawn, an exit, a block that just landed) is never sent straight back, and has to leave and come back in first. Nothing extra is sent over the network: the server and every client run the same rule on the same position, each thing carrying a ledger of the pad it was in last tick (kept per state for you, so replays after a server correction land the same way). A hop the client missed is put right by the server's normal correction. Your view turns through the yaw you send as input, so the server hears it like any other turn. An exit that is inside something is tried up to a block higher, and a send is refused (with no cooldown) if it cannot be placed. Shots go through the first pad their path crosses, are sent on from the exit with their range worked out again, and go through at most 8 pads. A pad on a moving block stays where it was placed, and bots and explosions do not know about pads.
+
+Saved as `extents.teleporters`, positions as for platforms (the saved map's origin). Only `id` and `block` are needed:
+
+```json
+{ "id": "tp-a", "block": { "mesh": "shipyard.crate-wood.full", "x": 4, "y": 0, "z": 4 },
+  "to": { "type": "link", "id": "tp-b" }, "facing": 45, "bullets": true,
+  "zone": { "shape": "cylinder", "radius": 0.45, "height": 0.75, "offset": { "y": 0.4 } },
+  "velocity": "turn", "view": "turn", "charge": 0, "cooldown": 0.5,
+  "power": { "id": "door", "when": "moved" }, "look": { "color": 0 } }
+```
+
+`to` is `{ "type": "link", "id" }`, `{ "type": "point", "x", "y", "z", "facing" }` or `{ "type": "offset", ... }`. `send` is false for exit-only. `side` is `top` (the default), `bottom`, `x+`, `x-`, `z+` or `z-`, and `rotation` is the spin in degrees; neither is written for a pad on top that is not turned. `look.off` is `dim` (the default), `hide` or `keep`, and `look.offColor` a colour number. `players`, `items` and `bullets` take `true`, `false`, `"blue"` or `"red"`. `velocity` is `keep`, `stop`, `turn` or `set` (with `speed`, 0–30) and `view` is `keep`, `turn` or `face`. `power.when` is `moved`, `end` or `start`. `client/teleporters.json` is a small example map with a two-way pair, a one-way pad to the top of a tower, and a pad on the tower's wall that only works once you have stepped on the pressure plate (dim coral until then, lime after). `client/teleporters-showcase.json` ("Teleporter Showcase", 30 × 12 × 33) shows off all of it at once, using all 32 pads and three physics blocks, with a wooden standing sign explaining each station and pad. Spawn in the middle and walk to each station: **A** (north west) a two-way pair that turns your view; **B** (north) speed stopped, turned and launched; **C** (north east) sent to a point and to an offset, onto a platform in the air; **D** (west) a cube with a pad on every face sending you round it, a spun cube zone, and a pad on the underside of a block to walk under; **E** (south west) pads for blue only, red only, grenades only and shots only (the team ones need the Teams mode; throw a grenade or shoot at the others); **F** (east) charge two seconds, a four second cooldown, and keep position in zone; **G** (south) three pads powered by a pressure plate (once it has moved, while it is down, until it is pressed, each with its own deactivated look), a pad that sends you onto a spinning disk to be carried round, and a pad that sends you onto a lift that rises while you stand on it. Limits: 32 pads, one per block, zones .25–64, charge up to 10 seconds, cooldown up to 60. A bad pad is dropped on its own and the rest still work. F3 (with `debugf3`) shows the pad count and the last hop.
+
+Performance (2026-10-31, Node 20 and Chrome 152 on an RTX 3060 Laptop GPU). `node plugins_default/dynamicmapblocks/profile-teleporters.js latest 3000` puts a standing player's tick at .041 ms with no pads, .054 ms with 32 and .047 ms hopping every tick; 100 shots in flight near 32 shot pads cost .06 ms a tick (the worst case, every shot hopping every tick, is .5 ms with a 3 ms 99th percentile) and 20 grenades .02 ms. `node plugins_default/dynamicmapblocks/test-ingame.js 6 40 pads` (headless bots in one room on a running game server, `nopads` for the same map without them) kept a real room at 60 ticks a second with the room worker 5.4–5.9% busy against 5.3–5.5% without pads and the same 3.0 KiB/s a bot either way; each player step through the pad rule took 1–3 µs. In a real browser (the editor's Test, patrolling back and forth through the pads, three runs each way in turn on the same map), the game's frame callbacks took 78.8 ms of JavaScript a second on average against 76.5 without pads (99th percentile 3.6 ms against 3.5 ms), a difference smaller than the spread between runs. The portal is drawn from static meshes with one ring moving up each beam: fading a material's alpha every frame made Babylon re-check it and cost more than the rest of the portal together (188 ms a second), so only positions and scales are animated.
 
 ## Engine hooks
 
@@ -305,6 +417,8 @@ movement use historical collision time with a try/finally scope around the opera
 | Editor selection | editorPointerDown, editorPointerMove, editorPointerUp |
 | Editor lifecycle | editorInitMapBefore/After, editorLoadMapBefore/After |
 | Editor serialization and movement | editorExtentsBefore/After, editorSaveMap, editorMoveMapBefore/After |
+
+Teleporters also use `game:updateBefore` (turning the view), `game:onPlayerDeath`, `game:inGameSync2` and `game:inGameSync3` (a snap instead of a glide after a correction), and watch `Bullet` and `Rocket` `update` the way `fireThis` is already watched.
 
 Editor JavaScript uses `pluginSourceInsertion` with `position: 'editor'`. The remaining
 HTML insertion loads the panel stylesheet; shader changes use `shaderSources` and its

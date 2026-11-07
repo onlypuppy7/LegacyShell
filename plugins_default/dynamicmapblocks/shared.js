@@ -6,15 +6,20 @@ import { PlatformMap, PlatformWorld, PlatformTeams } from './platforms.js';
 import { Bullet, Rocket } from '#bullets';
 import { PlatformShapes } from './geometry.js';
 import { PlatformTriggers } from './triggers.js';
+import { PlatformTeleporters } from './teleporters.js';
 import { PlatformProtocol } from './protocol.js';
 import { PlatformAssets } from './assets.js';
 import { PlatformLighting } from './lighting.js';
+import { MapSigns } from './signs.js';
+import { SignRender } from './sign-render.js';
 
 export const DynamicMapBlocksPlugin = {
     registerListeners(pluginManager) {
         this.install(pluginManager);
         PlatformProtocol.register(pluginManager);
         pluginManager.on('game:updateBefore', data => this.turnPlayer(data));
+        pluginManager.on('game:updateBefore', data => PlatformTeleporters.view(data));
+        pluginManager.on('game:onPlayerDeath', data => PlatformTeleporters.reset(data.player));
         if (isClient) pluginManager.on('game:updateBefore', data => { if (data.player.id === meId) data.player.dmbResim = !!data.resim; this.predictTriggers(data); });
         if (!isClient) pluginManager.on('game:roomStateUpdate', data => this.updateTriggers(data.this)); //only the server decides what sets a block off
         pluginManager.on('game:roomBuildMap', data => {
@@ -24,10 +29,18 @@ export const DynamicMapBlocksPlugin = {
         pluginManager.on('game:roomInitEnd', data => this.configure(data.this.Collider, data.this.minMap, data.this.mapMeshes));
         pluginManager.on('game:resetGamePlayer', data => {
             if (data.player?.Collider?.platformWorld) data.player.platformTime = data.player.Collider.platformWorld.now();
+            if (data.player) PlatformTeleporters.reset(data.player);
         });
         if (isClient) {
             pluginManager.on('game:inGameSync1', data => { if (data.id === meId && players_by_id[meId]) players_by_id[meId].dmbReplay = data.stateIdx; }); //the core is about to replay from here
-            pluginManager.on('game:inGameSync2', data => { if (data.id === meId && players_by_id[meId]) players_by_id[meId].dmbReplay = undefined; });
+            pluginManager.on('game:inGameSync2', data => {
+                if (data.id === meId && players_by_id[meId]) players_by_id[meId].dmbReplay = undefined;
+                if (data.dist > 1 && data.player?.Collider?.platformWorld?.teleporters?.length) PlatformTeleporters.snap(data.player, data.player.x, data.player.y, data.player.z); //the server sent you through a pad you had not reached: jump, do not glide
+            });
+            pluginManager.on('game:inGameSync3', data => {
+                var mesh = data.player?.actor?.mesh;
+                if (mesh && data.player.Collider?.platformWorld?.teleporters?.length && Math.hypot(mesh.position.x - data.player.x, mesh.position.y - data.player.y, mesh.position.z - data.player.z) > 2) PlatformTeleporters.snap(data.player, data.player.x, data.player.y, data.player.z);
+            });
             pluginManager.on('game:modifyMinMap', async data => {
                 await PlatformAssets.ensure(data.minMap, mapMeshes, gameScene);
                 data.minMap = PlatformMap.prepare(data.minMap);
@@ -43,11 +56,18 @@ export const DynamicMapBlocksPlugin = {
                 this.configure(Collider, data.minMap, mapMeshes);
                 PlatformRender.create(data.gameScene, Collider.platformWorld, mapMeshes, () =>
                     me?.playing && Number.isFinite(me.platformTime) ? me.platformTime : Collider.platformWorld.now(), {}, { lighting: true, smoothTime: true, material: () => SPS?.mesh?.material });
+                TeleporterRender.create(data.gameScene, Collider.platformWorld.teleporters, {}, { active: def => PlatformTeleporters.powered(Collider.platformWorld, PlatformTeleporters.config(def), me?.playing && Number.isFinite(me.platformTime) ? me.platformTime : Collider.platformWorld.now()) });
+                SignRender.create(data.gameScene, MapSigns.entries(data.minMap), mapMeshes, {
+                    world: Collider.platformWorld, time: () => me?.playing && Number.isFinite(me.platformTime) ? me.platformTime : Collider.platformWorld.now(),
+                    active: () => me?.playing && !me.isDead(),
+                    camera: () => camera,
+                    occluded: (ray, distance) => data.gameScene.pickWithRay(new BABYLON.Ray(ray.origin, ray.direction, distance), mesh => mesh.isVisible && mesh.isEnabled() && mesh.getTotalVertices() > 0, false).hit,
+                });
             });
         };
     },
     configure(collider, minMap, sources = []) {
-        collider.platformWorld = new PlatformWorld(PlatformMap.read(minMap).concat(PlatformMap.staticMeshes(minMap)), sources);
+        collider.platformWorld = PlatformTeleporters.attach(new PlatformWorld(PlatformMap.read(minMap).concat(PlatformMap.staticMeshes(minMap)), sources), minMap);
         collider.platformCells = new Map(collider.platformWorld.bodies.filter(body => body.definition.static).map(body => {
             var block = body.definition.blocks[0];
             return [[block.x, block.y, block.z].join(','), body];
@@ -90,6 +110,7 @@ export const DynamicMapBlocksPlugin = {
     },
     debugLines({ left, right, player, target }) { //debugf3
         var world = player.Collider?.platformWorld, bodies = world?.bodies.filter(body => !body.definition.static);
+        if (world?.teleporters?.length) left.push('', 'Teleporters: ' + world.teleporters.length + (player.dmbLastHop ? ' Last hop: ' + player.dmbLastHop.from + ' → ' + player.dmbLastHop.to : ''));
         if (!bodies?.length) return;
         var time = player.platformTime ?? world.now();
         var support = world.vertical(player, -.02, this.playerBounds(player), time);
@@ -249,10 +270,14 @@ export const DynamicMapBlocksPlugin = {
                 var world = player?.Collider?.platformWorld;
                 if (!world) return fire.call(this, player, ...rest);
                 world.shooterTime = player.platformTime; //a shot is dated by the shooter's clock, like a player touching a block
-                try { return world.as('bullets', () => fire.call(this, player, ...rest), player.team); } finally { world.shooterTime = undefined; }
+                try { return world.as('bullets', () => fire.call(this, player, ...rest), player.team); } finally {
+                    world.shooterTime = undefined;
+                    if (world.teleporterShots?.length) { this.dmbCount = 0; this.dmbPad = PlatformTeleporters.padAt(world, this)?.id ?? null; } //leaving a pad it was fired inside is not going through it
+                }
             };
             shot.prototype.fireThis.dmbWrapped = true;
         });
+        PlatformTeleporters.wrapShots(Bullet, Rocket);
         var colliderRayMapHandler = function (rayCollides, origin, direction, callback) {
             var hit = rayCollides.call(this, origin, direction, callback), landed = null;
             var best = hit?.pick ? BABYLON.Vector3.DistanceSquared(origin, hit.pick.pickedPoint) : Infinity;
@@ -292,11 +317,12 @@ export const DynamicMapBlocksPlugin = {
         });
         var playerMovementHandler = function (simulate, input, dontAssign) {
             var collider = this.Collider, world = collider.platformWorld;
-            if (!world?.bodies.length) return simulate.call(this, input, dontAssign);
-            var from = input.platformTime ?? this.platformTime ?? world.now();
+            if (!world?.bodies.length && !world?.teleporters?.length) return simulate.call(this, input, dontAssign);
+            var from = input.platformTime ?? this.platformTime ?? world.now(), idx;
             if (!dontAssign) from = DynamicMapBlocksPlugin.anchor(from, world); //replays keep the times they were first played at
             if (isClient && !dontAssign && this.id === meId) { //replayed steps keep the moment they first had: a state's time is the same whenever it is worked out
-                var mapped = PlatformProtocol.stateTime(this, this.dmbResim && this.dmbReplay !== undefined ? this.dmbReplay++ : this.stateIdx);
+                idx = this.dmbResim && this.dmbReplay !== undefined ? this.dmbReplay++ : this.stateIdx;
+                var mapped = PlatformProtocol.stateTime(this, idx);
                 if (mapped !== undefined) from = mapped;
             };
             if (isClient && !dontAssign && this.id === meId) { var stats = PlatformProtocol.stats, key = this.dmbResim ? 'replay' : 'real'; stats[key]++; stats[key + 'Ms'] += (input.delta ?? 1) / (this.modifiers.physicsSpeedModifier || 1) / .06; };
@@ -310,6 +336,7 @@ export const DynamicMapBlocksPlugin = {
             var out = world.at(to, () => simulate.call(this, { ...input, ...pos }, dontAssign));
             if (dontAssign) { out.platformTime = to; return out; };
             this.platformTime = isClient ? to : DynamicMapBlocksPlugin.steer(to, world, input.delta ?? 1);
+            if (world.teleporters?.length) PlatformTeleporters.player(this, pos, input.delta ?? 1, idx, to);
         };
         pluginManager.on('game:playerMovement', data => {
             if (pluginManager.cancel) return;
@@ -352,6 +379,7 @@ export const DynamicMapBlocksPlugin = {
         pluginManager.on('game:grenadeThrow', data => {
             if (pluginManager.cancel) return;
             data.result = DynamicMapBlocksPlugin.audience(data.this.player?.Collider || data.this.scene?.room?.Collider, 'items', () => grenadeThrowHandler.call(data.this, data.run, ...data.args), data.this.player?.team);
+            data.this.dmbHopNow = undefined; //a fresh grenade has been through no pad
             pluginManager.cancel = true;
         });
         var grenadeUpdateHandler = function (update, delta) {
@@ -370,7 +398,10 @@ export const DynamicMapBlocksPlugin = {
         };
         pluginManager.on('game:grenadeUpdate', data => {
             if (pluginManager.cancel) return;
-            data.result = DynamicMapBlocksPlugin.audience(data.this.player?.Collider || data.this.scene?.room?.Collider, 'items', () => grenadeUpdateHandler.call(data.this, data.run, ...data.args), data.this.player?.team);
+            var grenade = data.this, collider = grenade.player?.Collider || grenade.scene?.room?.Collider, team = grenade.player?.team;
+            var start = collider?.platformWorld?.teleporters?.length && { x: grenade.x, y: grenade.y, z: grenade.z };
+            data.result = DynamicMapBlocksPlugin.audience(collider, 'items', () => grenadeUpdateHandler.call(grenade, data.run, ...data.args), team);
+            if (start) DynamicMapBlocksPlugin.audience(collider, 'items', () => PlatformTeleporters.item(grenade, start, collider), team);
             pluginManager.cancel = true;
         });
         pluginManager.on('game:colliderProjectileCell', data => {
