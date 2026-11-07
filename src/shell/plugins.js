@@ -41,7 +41,7 @@ export class PluginManager {
     };
 
     async retrieveDependenciesCreatePluginObject(pluginFolder) {
-        const pluginObject = {pluginFolder};
+        const pluginObject = {pluginFolder, currentHash: ''};
         const timeBeforeLoadFiles = Date.now();
 
         const dependenciesPath = path.join(pluginFolder, 'dependencies.js');
@@ -49,7 +49,9 @@ export class PluginManager {
             pluginObject.dependencies = await import(pathToFileURL(dependenciesPath).href);
         };
 
-        pluginObject.currentHash = execSync(`cd ${path.join(pluginFolder)} && git rev-parse HEAD`, { encoding: 'utf-8' }).trim();
+        if (fs.existsSync(path.join(pluginFolder, '.git'))) {
+            pluginObject.currentHash = execSync(`cd ${path.join(pluginFolder)} && git rev-parse HEAD`, { encoding: 'utf-8' }).trim();
+        };
 
         pluginObject.timeToLoadFiles = Date.now() - timeBeforeLoadFiles;
 
