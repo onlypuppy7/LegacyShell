@@ -47,6 +47,15 @@ Models without a collision child can move too: the panel shows a small warning,
 and they remain visual-only. Cloned collision children stay hidden in previews and play.
 An existing multi-block platform can be edited by selecting any of its blocks.
 
+**Group blocks** makes several blocks one platform: they spin, travel and carry riders together,
+as a single rigid body with one set of settings. With a block selected, press **Group blocks**
+(or just hold Shift) and click more blocks to add them; click a block that is already in the group
+to drop it again. Each block of a group is outlined on its own, and the panel says how many move as one.
+Nothing is saved until **Apply**. A block can only be in one group, and a group holds up to 128 blocks.
+Centre and corner pivots are measured on the whole group, so **Centre** turns the group about its middle.
+Dropping every block but one leaves an ordinary single block; choosing **Static** and **Apply**
+breaks a saved group up. A new group needs a movement first, as a static group is no group at all.
+
 **Linear path** provides editable XYZ waypoint offsets, loop/back-and-forth mode
 and the duration of a complete cycle. Time offset shifts the starting phase.
 **Preview** plays the current settings without saving them; stopping it restores

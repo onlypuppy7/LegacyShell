@@ -8,6 +8,7 @@
     var teamWrite = (id, value, fallback) => { value ??= fallback; $(id).value = value === true ? 'all' : value === false ? 'none' : value; };
     var axes = ['x', 'y', 'z'], offset = { x: .5, y: .5, z: .5 };
     var movementClipboard, previewMode = null, previewStart = 0, previewBodies = [], previewKey;
+    var members, grouping = false, memberBoxes = [], memberKey; //the blocks that move as one, as drafted (not saved until Apply)
     try { movementClipboard = JSON.parse(localStorage.getItem('dmbMovementClipboard')); } catch {};
 
     function disposePreview() {
@@ -23,8 +24,16 @@
         if ($('preview-all')) $('preview-all').checked = false;
         if (wasActive) message('Preview stopped.');
     };
+    function hideMembers() { for (var box of memberBoxes) box.dispose(); memberBoxes = []; memberKey = null; };
+    function setGrouping(value) {
+        grouping = value && !!selected;
+        if (!$('group')) return;
+        $('group').classList.toggle('dmb-picking', grouping); $('group').setAttribute('aria-pressed', String(grouping));
+        $('group').textContent = grouping ? 'Done' : 'Group blocks';
+    };
     function clearSelection() {
-        selected = null;
+        selected = null; members = null; hideMembers(); setGrouping(false);
+        if ($('group-row')) $('group-row').hidden = true;
         if (selectionBox) selectionBox.setEnabled(false);
         if (pivotDot) pivotDot.setEnabled(false);
         if ($('fields')) { $('fields').disabled = true; $('selection').textContent = 'Click a block to edit its physics.'; }
@@ -97,7 +106,7 @@
                     mesh.metadata = { ...mesh.metadata, platformPreviewSelection: selection, platformPreviewMotion: body.motion };
                 };
             });
-            selectionBox?.setEnabled(false); pivotDot?.setEnabled(false);
+            selectionBox?.setEnabled(false); pivotDot?.setEnabled(false); hideMembers();
             $('preview').textContent = 'Stop preview'; $('preview').disabled = false; $('preview-all').checked = previewMode === 'all';
         } catch (error) { message(error.message); };
     };
@@ -121,8 +130,27 @@
     };
     function currentBody() {
         if (!selected) return null;
-        if (selected.block) return state.draft(selected.block);
-        return JSON.parse(JSON.stringify(state.bodies.find(body => body.id === selected.id)));
+        var body = selected.block ? state.draft(selected.block) : JSON.parse(JSON.stringify(state.bodies.find(body => body.id === selected.id)));
+        if (members) body.blocks = members.map(block => ({ ...block }));
+        return body;
+    };
+    function describe(body) { //what is selected, and anything wrong with it
+        var missing = body.blocks.filter(block => PlatformMap.blockShapes(block, body, mapMeshes).every(part => part.visualOnly));
+        $('warning').hidden = !missing.length;
+        $('warning').textContent = missing.length ? 'No collider: ' + [...new Set(missing.map(block => block.mesh))].join(', ') + '. Moves visually; players and grenades pass through it.' : '';
+        $('selection').textContent = selected.block ? selected.block.mesh + ' · ' + axes.map(axis => selected.block[axis]).join(', ') +
+            (body.blocks.length > 1 ? ' · ' + body.blocks.length + ' blocks' : '') : body.id;
+        $('group-info').textContent = body.blocks.length > 1 ? body.blocks.length + ' blocks move as one' : 'Just this block';
+    };
+    function toggleMember(block) { //shift-click, or any click while grouping: in with the others, or out again
+        if (!block) { message('Stop the preview, then click a single block.'); return; }
+        try {
+            var body = state.toggle(currentBody(), block), added = body.blocks.length > members.length;
+            members = body.blocks;
+            if (selected.block && !members.some(cell => axes.every(axis => cell[axis] === selected.block[axis]))) selected = { block: { ...members[0] } }; //the one it was picked by is gone: another stands for the group
+            describe(body); fieldsChanged();
+            message((added ? 'Added. ' : 'Dropped. ') + (members.length > 1 ? members.length + ' blocks move as one.' : 'Just the one block now.') + ' Apply to keep it.');
+        } catch (error) { message(error.message); };
     };
     function message(text) { if ($('status')) $('status').textContent = text; };
     function vectorFields(prefix, value) { for (var axis of axes) $(prefix + '-' + axis).value = value?.[axis] || 0; };
@@ -228,7 +256,17 @@
             selectionBox.position.copyFrom(BABYLON.Vector3.TransformCoordinates(bounds.min.add(bounds.max).scale(.5), local));
             selectionBox.scaling.copyFrom(bounds.max.subtract(bounds.min).add(new BABYLON.Vector3(.04, .04, .04)));
             selectionBox.rotation.set(body.rotation?.x || 0, body.rotation?.y || 0, body.rotation?.z || 0);
-            selectionBox.setEnabled(true);
+            selectionBox.setEnabled(body.blocks.length < 2);
+            var key = JSON.stringify([body.blocks.map(block => axes.map(axis => block[axis])), body.position, body.rotation]);
+            if (key !== memberKey) { //a group is outlined block by block, since one box round the lot would cover the gaps
+                hideMembers(); memberKey = key;
+                if (body.blocks.length > 1) for (var block of body.blocks) {
+                    var box = selectionBox.clone('physics-member');
+                    box.scaling.copyFromFloats(1.04, 1.04, 1.04); box.isPickable = false;
+                    box.position.copyFrom(BABYLON.Vector3.TransformCoordinates(new BABYLON.Vector3(block.x + .5 - body.position.x, block.y + .5 - body.position.y, block.z + .5 - body.position.z), local));
+                    box.rotation.copyFrom(selectionBox.rotation); box.setEnabled(true); memberBoxes.push(box);
+                };
+            };
             var sat = PlatformMotion.vector(body.motion.pivot); //in the mesh case the block sits moved onto the cell centre, and so does its pivot
             if (body.motion.centre === 'mesh' && body.blocks.length) { var meshMiddle = state.pivot(body, mapMeshes, null, 'mesh'); sat = sat.subtract(new BABYLON.Vector3(meshMiddle.x, 0, meshMiddle.z)); };
             pivotDot.position.copyFrom(BABYLON.Vector3.TransformCoordinates(sat, local));
@@ -270,7 +308,7 @@
         numberPoints(); refreshPreview(); updateMarker(); refreshGuides();
     };
     function showSelection(selection, movement) {
-        state.sync(map, mapMeshes); selected = selection;
+        state.sync(map, mapMeshes); selected = selection; members = null; setGrouping(false);
         try {
             if (selected.block) {
                 var block = selected.block, cell = map.data[block.x]?.[block.y]?.[block.z];
@@ -280,11 +318,7 @@
             var body = currentBody();
             if (movement) body = state.pasteMovement(body, movement, mapMeshes);
             var motion = body.motion;
-            var missing = body.blocks.filter(block => PlatformMap.blockShapes(block, body, mapMeshes).every(part => part.visualOnly));
-            $('warning').hidden = !missing.length;
-            $('warning').textContent = missing.length ? 'No collider: ' + [...new Set(missing.map(block => block.mesh))].join(', ') + '. Moves visually; players and grenades pass through it.' : '';
-            $('selection').textContent = selected.block ? selected.block.mesh + ' · ' + axes.map(axis => selected.block[axis]).join(', ') +
-                (body.blocks.length > 1 ? ' · ' + body.blocks.length + ' blocks' : '') : body.id;
+            members = body.blocks.map(block => ({ ...block })); describe(body); $('group-row').hidden = false;
             $('fields').disabled = false;
             for (var id of ['apply', 'preview', 'reset']) $(id).disabled = false;
             $('movement').value = motion.type;
@@ -326,17 +360,26 @@
         if (following && shown && $('movement').value !== 'none') startPreview(false);
         return shown;
     };
-    function pickBlock(pick) {
+    function pickBlock(pick, group) { //group: this click adds to (or drops from) the selected platform instead of selecting
         var mesh = pick?.pickedMesh;
         if (!pick?.hit || !mesh || mesh.name === 'ground') return;
-        if (mesh.metadata?.platformPreviewSelection) return choose(mesh.metadata.platformPreviewSelection, { motion: mesh.metadata.platformPreviewMotion });
-        if (mesh.metadata?.platformEditorBody) return choose({ id: mesh.metadata.platformEditorBody });
+        group = group && !!selected;
+        if (mesh.metadata?.platformPreviewSelection) {
+            if (group) return toggleMember(mesh.metadata.platformPreviewSelection.block);
+            return choose(mesh.metadata.platformPreviewSelection, { motion: mesh.metadata.platformPreviewMotion });
+        };
+        if (mesh.metadata?.platformEditorBody) {
+            if (group) return message('That is a shape, not a block.');
+            return choose({ id: mesh.metadata.platformEditorBody });
+        };
         while (mesh.parent && mesh.parent !== mapContainer) mesh = mesh.parent;
         if (mesh.parent !== mapContainer) return;
         var pos = mesh.position, cell = map.data[pos.x]?.[pos.y]?.[pos.z];
         if (!cell?.idx) return;
-        choose({ block: { mesh: mapMeshes[cell.idx].name, x: pos.x, y: pos.y, z: pos.z,
-            rx: cell.rx || 0, ry: cell.ry || 0, rz: cell.rz || 0 } });
+        var block = { mesh: mapMeshes[cell.idx].name, x: pos.x, y: pos.y, z: pos.z,
+            rx: cell.rx || 0, ry: cell.ry || 0, rz: cell.rz || 0 };
+        if (group) return toggleMember(block);
+        choose({ block });
     };
     function attach() {
         if (!scene || scene === attachedScene) return;
@@ -350,7 +393,7 @@
 
     };
     function setEnabled(value) {
-        enabled = value; if (!enabled) stopPreview(); attach();
+        enabled = value; if (!enabled) { stopPreview(); setGrouping(false); hideMembers(); } attach();
         document.body.classList.toggle('dmb-editing', enabled);
         $('panel').hidden = !enabled; $('open').setAttribute('aria-pressed', String(enabled));
         if (enabled) {
@@ -365,7 +408,7 @@
         if (!enabled) return;
         plugins.cancel = true;
         if (data.event.button !== 0) return;
-        pickBlock(document.pointerLockElement ? scene.pickWithRay(camera.getForwardRay()) : scene.pick(scene.pointerX, scene.pointerY, null, false, camera));
+        pickBlock(document.pointerLockElement ? scene.pickWithRay(camera.getForwardRay()) : scene.pick(scene.pointerX, scene.pointerY, null, false, camera), data.event.shiftKey || grouping);
         document.exitPointerLock?.();
     });
     for (var event of ['editorPointerMove', 'editorPointerUp']) plugins.on('game:' + event, () => {
@@ -412,7 +455,7 @@
     function initUi() {
         var button = document.createElement('button');
         button.className = 'button'; button.id = 'dmb-open'; button.textContent = 'Physics'; button.setAttribute('aria-pressed', 'false');
-        document.getElementById('editorUi').appendChild(button);
+        (document.getElementById('pluginButtons') || document.getElementById('editorUi')).appendChild(button);
         var panel = document.createElement('section');
         panel.id = 'dmb-panel'; panel.className = 'box'; panel.hidden = true; panel.setAttribute('aria-labelledby', 'dmb-heading');
         panel.innerHTML = `
@@ -424,6 +467,7 @@
                 </div></details>
                 <button type="button" id="dmb-close" aria-label="Close physics">×</button></div></header>
             <p id="dmb-selection">Click a block to edit its physics.</p>
+            <div id="dmb-group-row" class="dmb-actions" hidden><small id="dmb-group-info"></small><button type="button" id="dmb-group" aria-pressed="false" title="Click blocks to make them move as one, or click one in the group to drop it. Shift-click does the same">Group blocks</button></div>
             <p id="dmb-warning" role="status" hidden></p>
             <form id="dmb-form"><div class="dmb-controls"><fieldset id="dmb-fields" disabled>
                 <label>Movement<select id="dmb-movement"><option value="none">Static</option><option value="spin">Spin</option><option value="path">Linear path</option><option value="circle">Circular path</option></select></label>
@@ -520,11 +564,16 @@
         $('add-point').onclick = () => { pointRow(pointValue(pointRows().at(-1))); fieldsChanged(); };
         $('reverse-points').onclick = () => { pointRows().reverse().forEach(row => $('points').appendChild(row)); fieldsChanged(); };
         $('reset').onclick = () => { if (selected) showSelection(selected); };
+        $('group').onclick = () => {
+            setGrouping(!grouping);
+            message(grouping ? 'Click blocks to add them. Click one in the group to drop it.' : 'Done grouping. Apply to keep it.');
+        };
         $('form').onsubmit = event => {
             event.preventDefault();
             try {
                 var body = readBody();
                 if (!PlatformMap.read({ ...map, extents: { platforms: [body] } }).length) throw new Error('Check the settings. Spin: up to 90°/s. Path: up to 16 blocks/s.');
+                if (body.motion.type === 'none' && body.blocks.length > 1 && !body.blocks.some(block => state.forBlock(block))) throw new Error('Pick a movement first, or the group falls apart.');
                 undoPoint(); state.apply(body, map); restShapes();
                 var backups = localStorage.getItem('mapBackups');
                 saveToLocal();

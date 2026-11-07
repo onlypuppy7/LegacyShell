@@ -43,6 +43,19 @@ export class PlatformEditorState {
         return { id, position: { x: block.x + .5, y: block.y + .5, z: block.z + .5 },
             blocks: [{ ...block }], shapes: [], motion: { type: 'none' } };
     };
+    toggle(body, block) { //puts a block in with the others so they move as one, or takes it out again; every platform keeps at least one
+        var same = cell => cell.x === block.x && cell.y === block.y && cell.z === block.z;
+        var copy = JSON.parse(JSON.stringify(body)), index = copy.blocks.findIndex(same);
+        if (index >= 0) {
+            if (copy.blocks.length + (copy.shapes?.length || 0) < 2) throw new Error('A moving block needs at least one block.');
+            copy.blocks.splice(index, 1); return copy;
+        };
+        var owner = this.forBlock(block);
+        if (owner && owner.id !== body.id) throw new Error('That block already moves with another platform.');
+        if (copy.blocks.length + (copy.shapes?.length || 0) >= 128) throw new Error('A platform holds up to 128 blocks.');
+        copy.blocks.push({ ...block });
+        return copy;
+    };
     apply(body, map) {
         var valid = PlatformMap.read({ ...map, extents: { platforms: [body] } });
         if (!valid.length) throw new Error('Check the settings. Spin: up to 90°/s. Path: up to 16 blocks/s.');
