@@ -6,7 +6,7 @@ import { DeadInternetPlugin } from './shared.js';
 import Comm from '#comm';
 import { CONTROL, ItemType, classes, devlog, iteratePlayers, ticksPerSecond } from '#constants';
 import { AllItems } from '#items';
-import { findPath, lastFindPathStats, isStandable, isLadderCell, EDGE_TYPE, MOVEMENT_PROFILE } from './pathfinding.js';
+import { findPath, startPathSearch, lastFindPathStats, isStandable, isLadderCell, EDGE_TYPE, MOVEMENT_PROFILE } from './pathfinding.js';
 import { perf } from './perf.js';
 import { loadGeometryCache, saveGeometryCache, geometryStoreStats, clearGeometryStore, setStoreEnabled, setStoreCompression, isStoreEnabled } from './geometryStore.js';
 import { CombatController, resolveCombatOptions, parseCombatArgs, listPresets, registerPreset, COMBAT_OPTIONS, DIFFICULTY_PRESETS, hasLineOfSight, weaponProfile, setClassProvider, resolveClassIndex, listClasses, parseSkill, SoundTracker, SKILL_CURVES, resolveShellColor, SHELL_COLORS } from './combat.js';
@@ -31,7 +31,7 @@ export const PluginMeta = {
     identifier: "deadinternet",
     name: 'DeadInternet',
     author: 'onlypuppy7 (+Claude)', //NOTE! most of this plugin is VIBECODED.
-    version: '1.1.5',
+    version: '1.2.0',
     descriptionShort: 'Adds bot players that walk the map and fight, at any skill level', //displayed when loading
     descriptionLong: 'Adds bot players that walk the map and fight (aim, strafe, take cover, throw grenades, hear gunfire), from target dummies to nightmare skill, with ready-made fields of bots - plus a general A* pathfinding engine other plugins can use.',
     legacyShellVersion: 459, //legacy shell version, can be found in /versionEnum.txt, or just on the homescreen
@@ -479,6 +479,23 @@ export class DeadInternetBot {
         const now = Date.now();
         const force = opts.force || false;
 
+        // A search spread over earlier ticks (opts.sliceMs, see below) carries on rather than starting again. It is dropped if it can no
+        // longer be right: wanted for somewhere else, forced, too old, the bot was moved (respawn) or its physics changed (sudden death).
+        if (this.pathSearch) {
+            const pending = this.pathSearch, p = this.player;
+            if ((force && !pending.opts.force) || !(opts.sliceMs > 0) || now - pending.startedAt > 30000 || goalDistance(target, pending.target) > 15
+                || Math.hypot(p.x - pending.from.x, p.y - pending.from.y, p.z - pending.from.z) > 8 || this.pathProfileKey() !== pending.profile) this.cancelPathSearch();
+            else {
+                const fpt0 = perf.now();
+                const r = pending.search.step(opts.sliceMs);
+                perf.add('findPath', fpt0);
+                if (!r.done) return this.currentPath;
+                this.pathSearch = null;
+                this.pathPending = false;
+                return this.installPath(r.value, pending.target, pending.goalKey, pending.opts, pending.from, r.stats, true);
+            };
+        };
+
         if (!force) {
             // Backing off: the last search toward (about) here failed, so don't repeat it every time the
             // target steps into a new cell - that was a full search per step for something unreachable.
@@ -522,17 +539,64 @@ export class DeadInternetBot {
         // reachable - so a nearby goal gets a small budget, a far one more.
         const chaseBudget = () => Math.round(Math.max(400, Math.min(2500, 200 + 40 * Math.hypot(target.x - this.player.x, target.z - this.player.z))));
         const searchOpts = opts.chase ? { snapGoal: true, allowPartial: true, maxExpansions: chaseBudget() } : {};
+        const findOpts = { avoidEdges: this.pathAvoidedEdges, as: this.pathAs, ...searchOpts, ...opts };
+        const from = { x: this.player.x, y: this.player.y, z: this.player.z };
         const fpt0 = perf.now();
-        let path = findPath(this.room, this.player, target, { avoidEdges: this.pathAvoidedEdges, as: this.pathAs, ...searchOpts, ...opts });
-        perf.add('findPath', fpt0);
+        let path, stats;
+        if (opts.sliceMs > 0) {
+            // Spread over ticks: a search that cannot finish in sliceMs ms is carried on by the next pathTo() calls (this one returns the route
+            // it already has meanwhile), so one hopeless search cannot hold the whole server up for as long as it takes to flood the map.
+            const search = startPathSearch(this.room, this.player, target, findOpts);
+            const r = search.step(opts.sliceMs);
+            perf.add('findPath', fpt0);
+            if (!r.done) {
+                this.pathSearch = { search, target: { x: target.x, y: target.y, z: target.z }, goalKey, opts, from, startedAt: now, profile: this.pathProfileKey() };
+                this.pathPending = true;
+                return this.currentPath;
+            };
+            path = r.value;
+            stats = r.stats;
+        } else {
+            path = findPath(this.room, this.player, target, findOpts);
+            perf.add('findPath', fpt0);
+            stats = lastFindPathStats();
+        };
+        return this.installPath(path, target, goalKey, opts, from, stats, false, fpt0);
+    };
+
+    pathProfileKey() {
+        const m = this.player.modifiers ?? {};
+        return [Math.round((m.speedModifier ?? 1) * 10), m.gravityModifier ?? 1, m.jumpBoostModifier ?? 1, this.pathAs?.scale ?? m.scale ?? 1].join();
+    }
+
+    cancelPathSearch() {
+        this.pathSearch?.search.cancel();
+        this.pathSearch = null;
+        this.pathPending = false;
+    }
+
+    // What a search came up with becomes the route (or the failure is remembered). `from` is where the bot stood when the search began: a search
+    // spread over ticks finishes with the bot somewhere else, so the route is taken up from the waypoint nearest it, and thrown away (the
+    // next call searches again) if the bot has gone off it, twice at most so a bot that is always moving still gets its route.
+    installPath(path, target, goalKey, opts, from, stats, sliced, fpt0 = perf.now()) {
+        const now = Date.now();
         if (!path) perf.count('findPath.none');
         if (perf.enabled) {
-            const st = lastFindPathStats();
+            const st = stats;
             perf.count('expansions.' + st.outcome, st.expansions);
             perf.count('searches.' + st.outcome);
             const ms = performance.now() - fpt0;
             if (ms > 15 && (perf.slowSearches ??= []).length < 40) perf.slowSearches.push({ ms, expansions: st.expansions, outcome: st.outcome, dist: Math.hypot(target.x - this.player.x, target.z - this.player.z), up: target.y - this.player.y, chase: !!opts.chase, len: path ? path.length : 0, types: path ? [...new Set(path.map((w) => w.type))].join('/') : '' });
         };
+
+        let startIndex = 0;
+        if (sliced && path?.length) {
+            startIndex = this.nearRoute(3.5, 0, path.length - 1, path);
+            if (startIndex < 0 && (this.pathSliceMisses = (this.pathSliceMisses ?? 0) + 1) < 3) { perf.count('search.sliceDiscarded'); return this.currentPath; };
+            startIndex = Math.max(0, startIndex);
+        };
+        this.pathSliceMisses = 0;
+        if (sliced && !path && opts.giveUpOnFail) { this.pathAvoidedEdges.clear(); this.stopPath(); return null; }; //(what the caller does with a replan that found nothing, which it was not there to see, see checkStuck)
 
         if (!path) {
             // Track whether findPath() is failing repeatedly from the SAME spot, regardless of
@@ -567,7 +631,7 @@ export class DeadInternetBot {
         };
 
         this.currentPath = path;
-        this.pathIndex = 0;
+        this.pathIndex = startIndex;
         this.pathSuspended = false;
         this.ladderCatchSteeringWaypointIndex = null;
         // Every fresh path is computed from wherever the player happens to BE right now - which,
@@ -582,7 +646,7 @@ export class DeadInternetBot {
         this.pathIndex0NeedsGroundWait = true;
         this.pathGoalKey = goalKey;
         this.pathTargetPos = { x: target.x, y: target.y, z: target.z }; // so followPath()'s own stuck-recovery can re-path without the caller having to call pathTo() every tick too
-        this.pathStart = { x: this.player.x, y: this.player.y, z: this.player.z }; // where the route leaves from: what comes before path[0] (see followPath()'s JUMP branch)
+        this.pathStart = from; // where the route leaves from: what comes before path[0] (see followPath()'s JUMP branch)
         this.pathLastFailed = !path;
         // The floor between searches is spread +-30% per search: bots that all start at the same instant
         // (a freshly spawned field) would otherwise all come due again on the very same tick and search
@@ -609,8 +673,7 @@ export class DeadInternetBot {
 
     // Index of the route waypoint within `radius` blocks (horizontally, and within two blocks of height)
     // of the bot, searching waypoints [from, to] - or -1. Nearest wins.
-    nearRoute(radius, from, to) {
-        const path = this.currentPath;
+    nearRoute(radius, from, to, path = this.currentPath) {
         if (!path || !path.length) return -1;
         let best = -1, bestD = radius;
         for (let i = Math.max(0, from); i <= Math.min(path.length - 1, to); i++) {
@@ -628,8 +691,10 @@ export class DeadInternetBot {
     // itself, and which goal it was for, are kept.
     suspendPath() {
         if (!this.currentPath || this.pathSuspended) { this.player.controlKeys = 0; return; };
-        const keep = { path: this.currentPath, goalKey: this.pathGoalKey, index: this.pathIndex };
+        const keep = { path: this.currentPath, goalKey: this.pathGoalKey, index: this.pathIndex }, search = this.pathSearch;
+        this.pathSearch = null;
         this.stopPath();
+        this.pathSearch = search; this.pathPending = !!search; //(a search still going is not part of the route being put aside)
         this.currentPath = keep.path;
         this.pathGoalKey = keep.goalKey;
         this.pathIndex = keep.index;
@@ -650,6 +715,7 @@ export class DeadInternetBot {
     }
 
     stopPath() {
+        this.cancelPathSearch();
         this.pathSuspended = false;
         this.currentPath = null;
         this.pathIndex = 0;
@@ -1727,7 +1793,7 @@ export class DeadInternetBot {
             // callers, like the pathtest command, only call pathTo() once up front and then just
             // followPath() every tick after - confirmed by testing that this is a real usage
             // pattern, not a hypothetical one).
-            const replanned = this.pathTargetPos ? this.pathTo(this.pathTargetPos, { force: true }) : null;
+            const replanned = this.pathTargetPos ? this.pathTo(this.pathTargetPos, { force: true, giveUpOnFail: true }) : null;
 
             if (this.pathTargetPos && !replanned) {
                 // Every edge reachable from right here has now been tried and blacklisted for

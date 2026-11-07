@@ -158,7 +158,14 @@ Every real `colliderType` from `buildMapData` (`src/shell/loading.js`) is accoun
     same unreachable place every time the target steps to a new cell;
   - `opts.chase: true` (what the combat AI passes) snaps a mid-air goal to the floor under it, accepts a
     partial route, and searches with a budget that scales with distance;
-  - `opts.force: true` always searches (the stuck recovery uses it); other `opts` pass through to `findPath`.
+  - `opts.force: true` always searches (the stuck recovery uses it); other `opts` pass through to `findPath`;
+  - `opts.sliceMs: n` spreads a search over ticks: each call works on it for about `n` ms, and until it
+    finishes the call returns the route the bot already had and `bot.pathPending` is true. A search that
+    could not finish in one slice is the whole-map flood to somewhere with no way to it, which on a slow
+    machine is a freeze of hundreds of ms or more in one go. The result is what a search in one go gives
+    (the route is taken up from the waypoint nearest the bot, since it will have moved on, and thrown away if
+    it went somewhere else entirely). It is dropped if the goal changes by a lot, the bot is moved or its
+    physics change; `stopPath()` drops it too. Without `sliceMs` a search is as before.
   Clears the bot's avoided-edges set when the destination itself changes.
 - **`followPath(delta)`** - call once per tick to steer along the current route: sets yaw, holds forward,
   jumps on a JUMP edge. Returns `'idle'`, `'following'` or `'arrived'`.
@@ -363,6 +370,11 @@ the AI at 96% of tick time. Four things keep that in check (all in `pathfinding.
   stringifying the JSON - gzipping runs off-thread). Fill it in advance, offline, with
   `node plugins_default/deadinternet/bench-pathfinding.js <map> --store --warm 3000`;
   `/botsdebug cache [stats|save|clear]` manages it in-game. A game server also fills it itself when it has had no rooms for 20s (`idlewarm.js`, in a worker thread that is killed when a room is made); other plugins say what to warm by pushing `{ maps, modifiers, searches, priority }` to `data.jobs` in the `idleWarmJobs` event.
+- **Searching in slices.** `findPath` is a generator underneath: `startPathSearch(room, start, goal, opts)`
+  gives `{ step(ms), cancel(), done }`, and `findPath` just runs it to the end. A caller with a time budget
+  (the zombies: `searchBudgetMs` a tick for the whole horde) steps searches a few ms at a time, so one search
+  that would flood the map (a human on a tower nothing can climb) is a few ticks of a few ms rather than
+  one freeze.
 - **Searching less.** `pathTo()` reuses a route while the goal hasn't moved further than a tolerance that
   grows with distance, keeps a route through a fight (suspended, then resumed) instead of discarding it,
   waits ~0.5s between searches for a moving target, and backs off exponentially after a failed search

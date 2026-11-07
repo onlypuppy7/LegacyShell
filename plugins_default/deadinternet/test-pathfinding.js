@@ -10,7 +10,7 @@
 // plugins_default/deadinternet/README.md for how that part is checked, since that needs an
 // actual running room and can't be done from a plain Node script.
 
-import { findPath, isStandable, EDGE_TYPE, MOVEMENT_PROFILE } from './pathfinding.js';
+import { findPath, startPathSearch, isStandable, EDGE_TYPE, MOVEMENT_PROFILE } from './pathfinding.js';
 
 let passed = 0, failed = 0;
 
@@ -190,6 +190,35 @@ function pathTypes(path) {
     assert('open floor cell is standable', isStandable(map, 0, 1, 0));
     assert('cell occupied by a full block is not standable', !isStandable(map, 1, 1, 1));
     assert('cell with nothing below it is not standable', !isStandable(map, 0, 2, 0));
+};
+
+// --- Test 10: a search done in slices ends up with the same route as one done in one go ---
+{
+    console.log('Test: sliced search');
+    const map = makeMap(12, 3, 12);
+    fillFloor(map, 0, 11, 0, 11);
+    for (let z = 0; z < 10; z++) setCell(map, 5, 1, z, 'full'); //a wall with a way round the end
+    const room = { map };
+    const from = { x: 0.5, y: 1, z: 0.5 }, to = { x: 10.5, y: 1, z: 0.5 };
+
+    const whole = findPath(room, from, to);
+    const search = startPathSearch(room, from, to);
+    let steps = 0, r;
+    do { r = search.step(0); steps++; } while (!r.done && steps < 10000);
+    assert('it takes more than one step to get there', steps > 3, String(steps));
+    assert('...and ends with the same route', JSON.stringify(r.value) === JSON.stringify(whole));
+    assert('...and says how it went', r.stats?.outcome === 'found' && r.stats.expansions > 0);
+    assert('stepping a finished search gives the same answer again', search.step(0).value === r.value);
+
+    const stopped = startPathSearch(room, from, to);
+    stopped.step(0);
+    stopped.cancel();
+    assert('a cancelled search is over, with nothing', stopped.done && stopped.step(0).value === null);
+
+    const budget = startPathSearch(room, from, to, { maxExpansions: 5 });
+    let b;
+    do { b = budget.step(0); } while (!b.done);
+    assert('the expansion limit counts across slices', b.value === null && b.stats.outcome === 'limit');
 };
 
 console.log(`\n${passed} passed, ${failed} failed`);

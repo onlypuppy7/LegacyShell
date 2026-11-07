@@ -1255,7 +1255,14 @@ function snapGoalCell(map, gx, gy, gz, player, sx, sz) {
 let lastSearch = { expansions: 0, outcome: 'none' };
 export function lastFindPathStats() { return lastSearch; }
 
+// The search itself is a generator that yields once per queue task (an expansion or an edge verification), so a caller can spend a few ms
+// on it per tick (startPathSearch) instead of all of it at once (findPath). Run to the end it does exactly what it always did.
 function findPathUncached(room, start, goal, opts = {}) {
+    const search = findPathSteps(room, start, goal, opts);
+    for (let r = search.next(); ; r = search.next()) if (r.done) return r.value;
+}
+
+function* findPathSteps(room, start, goal, opts = {}) {
     lastSearch = { expansions: 0, outcome: 'none' };
     const map = room.map;
     if (!map || !map.data) return null;
@@ -1362,9 +1369,12 @@ function findPathUncached(room, start, goal, opts = {}) {
         return route;
     }
 
-    const deadline = opts.maxMs ? performance.now() + opts.maxMs : Infinity; //(optional wall clock limit: on a slow server the expansions are the wrong thing to count)
+    let usedMs = 0, resumedAt = performance.now(); //(optional time limit: on a slow server the expansions are the wrong thing to count. only the search's own time, not the gaps between slices)
 
     while (open.size) {
+        if (opts.maxMs) usedMs += performance.now() - resumedAt;
+        yield;
+        if (opts.maxMs) resumedAt = performance.now();
         const current = open.pop();
         if (current.verify) { current.verify(); continue; }
         const currentKey = key(current.x, current.y, current.z);
@@ -1376,7 +1386,7 @@ function findPathUncached(room, start, goal, opts = {}) {
         const currentDist = heuristic(current.x, current.y, current.z, gx, gy, gz);
         if (currentDist < closestDist) { closestDist = currentDist; closestNode = current; };
 
-        if (++expansions > maxExpansions || (deadline !== Infinity && !(expansions & 7) && performance.now() > deadline)) {
+        if (++expansions > maxExpansions || (opts.maxMs && !(expansions & 7) && usedMs + performance.now() - resumedAt > opts.maxMs)) {
             lastSearch = { expansions, outcome: 'limit' };
             { const partial = partialRoute(); if (partial) { lastSearch.outcome = 'partial'; return partial; }; };
             console.log(`[deadinternet findPath] no path found (expansion limit) - closest reached: ${closestNode.x},${closestNode.y},${closestNode.z} (${closestDist.toFixed(1)} from goal ${gx},${gy},${gz})`);
@@ -1998,6 +2008,31 @@ export function findPath(room, start, goal, opts = {}) {
     const undress = opts.as && start?.modifiers ? wearBody(start, opts.as) : null;
     try { return findPathUncached(room, start, goal, opts); }
     finally { geometryQueries = previous; undress?.(); }
+}
+// The same search, in slices: step(ms) works on it for about that long and says whether it is finished ({ done, value, stats }, value being
+// what findPath would have returned). Start is read when the first step runs, so step it in the tick it was started. The player is only
+// borrowed (and put back) for each step, so it carries on being played in between.
+export function startPathSearch(room, start, goal, opts = {}) {
+    const search = findPathSteps(room, start, goal, opts);
+    let finished = null;
+    return {
+        get done() { return !!finished; },
+        step(ms) {
+            if (finished) return finished;
+            const previous = geometryQueries;
+            geometryQueries = canSimulate(start) && start.Collider ? cacheFor(geometryCaches, start.Collider) : null;
+            const undress = opts.as && start?.modifiers ? wearBody(start, opts.as) : null;
+            const until = performance.now() + ms;
+            try {
+                for (let r = search.next(); ; r = search.next()) {
+                    if (r.done) { finished = { done: true, value: r.value, stats: lastSearch }; break; };
+                    if (performance.now() >= until) break;
+                };
+            } finally { geometryQueries = previous; undress?.(); }
+            return finished ?? { done: false };
+        },
+        cancel() { finished ??= { done: true, value: null, cancelled: true }; search.return(null); },
+    };
 }
 // The collider makes a new collision box whenever the scale changes, so the one made for the borrowed body is kept on the player for next time.
 function wearBody(player, mods) {

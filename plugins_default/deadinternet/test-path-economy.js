@@ -220,6 +220,58 @@ console.log('Test: the combat AI uses all of this');
     cleanup();
 }
 
+console.log('Test: a search spread over ticks (sliceMs)');
+{
+    const map = flatMap();
+    const goal = { x: 20.5, y: 1, z: 20.5 };
+    const sliced = { chase: true, sliceMs: 1e-6 }; //(each call gets one step of the search)
+    const whole = makeBot(map).pathTo(goal, { chase: true });
+
+    const bot = makeBot(map);
+    const first = bot.pathTo(goal, sliced);
+    assert('a search that has not finished leaves the bot with the route it had, and says it is still going', first === null && bot.pathPending === true && !!bot.pathSearch);
+    let route = null, calls = 0;
+    while (bot.pathPending && calls++ < 2000) { advance(16); route = bot.pathTo(goal, sliced); }
+    assert('it finishes over the next calls', !!route && !bot.pathPending && calls > 2, `${calls} calls`);
+    assert('...with the route a search in one go gives', JSON.stringify(route) === JSON.stringify(whole));
+    assert('...which is the one the bot now follows, from the start', bot.currentPath === route && bot.pathIndex === 0);
+
+    const stopped = makeBot(map);
+    stopped.pathTo(goal, sliced);
+    stopped.stopPath();
+    assert('stopping the route stops the search with it', !stopped.pathPending && !stopped.pathSearch);
+
+    const forced = makeBot(map);
+    forced.pathTo(goal, sliced);
+    forced.pathTo(goal, { force: true });
+    assert('a forced search takes over from one that was only chasing', forced.pathSearch === null && !!forced.currentPath);
+    const both = makeBot(map);
+    both.pathTo(goal, { force: true, sliceMs: 1e-6 });
+    const kept = both.pathSearch;
+    both.pathTo(goal, { force: true, sliceMs: 1e-6 });
+    assert('but not from another forced one (a stuck bot asking again must not start over)', kept && both.pathSearch === kept);
+
+    const away = makeBot(map);
+    away.pathTo(goal, sliced);
+    away.player.x += 20; away.player.z += 20; //(a respawn)
+    away.pathTo(goal, sliced);
+    assert('a bot that was moved a long way from where the search began drops it', away.pathSearch === null || away.pathSearch.from.x !== 2.5);
+
+    const gone = makeBot(map);
+    gone.pathTo(goal, sliced);
+    gone.player.x = 2.5; gone.player.z = 9.5; //(off the way, but not far)
+    const discards = counter('search.sliceDiscarded');
+    let installed = null;
+    for (let i = 0; i < 6000 && !installed; i++) { gone.pathTo(goal, sliced); if (!gone.pathPending && gone.currentPath) installed = gone.currentPath; }
+    assert('a route found from where the bot no longer is is thrown away rather than walked back to', counter('search.sliceDiscarded') > discards);
+    assert('...but a bot that keeps being off it gets a route in the end', !!installed);
+
+    const quick = makeBot(map);
+    const done = quick.pathTo(goal, { chase: true, sliceMs: 1000 });
+    assert('a search that finishes in its first slice is just a search', !!done && !quick.pathPending && JSON.stringify(done) === JSON.stringify(whole));
+    cleanup();
+}
+
 perf.stop();
 Date.now = realNow;
 console.log(`\n${passed} passed, ${failed} failed`);
