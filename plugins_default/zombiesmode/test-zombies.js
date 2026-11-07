@@ -3,7 +3,7 @@
 // clock. Covers infection, sudden death, the win conditions, eggs, the round restart and whether zombies actually reach and
 // bite someone.
 //
-// Run with: node plugins_default/zombiesmode/test-zombies.js [map name]     (takes a minute or so)
+// Run with: node plugins_default/zombiesmode/test-zombies.js [map name] [seed]     (takes a minute or so)
 
 import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
 import { fileURLToPath } from 'node:url';
@@ -14,6 +14,10 @@ if (isMainThread) {
     worker.on('error', (e) => { console.error('test worker error:', e); process.exit(1); });
     worker.on('exit', (code) => process.exit(code));
 } else {
+    if (workerData.args[1] !== undefined) {
+        let seed = +workerData.args[1] >>> 0;
+        Math.random = () => { seed = (seed + 0x6D2B79F5) >>> 0; let t = seed; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+    };
     const lines = [];
     let passed = 0, failed = 0;
     const say = (line) => parentPort.postMessage({ __test: true, line });
@@ -185,12 +189,21 @@ if (isMainThread) {
         };
 
         // ---- eggs ----
+        const eggPackets = []; //what the egg counter on screen is told: [eggs for this kill, eggs this round]
+        const sendToMe = h1.sendToMe.bind(h1);
+        h1.sendToMe = (output, debug) => {
+            if (debug === 'zombiesEggs') { const input = new Comm.In(output.buffer); eggPackets.push([input.unPackInt8U() === Comm.Code.zombiesEggs, input.unPackInt8U(), input.unPackInt16U()]); };
+            return sendToMe(output, debug);
+        };
         mute(); H1.kills = 0;
         H1.scoreKill(zs[0]); H1.scoreKill(zs[0]);
         await sleep(50); unmute();
         assert('killing zombies pays killEggs each, not the usual reward', eggs.Human1 === 4, JSON.stringify(eggs));
+        assert('...and the killer is told each one, with their total for the round', JSON.stringify(eggPackets) === JSON.stringify([[true, 2, 2], [true, 2, 4]]), JSON.stringify(eggPackets));
         mute(); for (let i = 0; i < 100; i++) H1.scoreKill(zs[0]); await sleep(50); unmute();
         assert('kill eggs are capped per round', eggs.Human1 === 100, JSON.stringify(eggs));
+        assert('...and what the counter is told stops at the cap too, 2 a kill', eggPackets.length === 50 && eggPackets.every((p, i) => p[1] === 2 && p[2] === (i + 1) * 2), `${eggPackets.length} packets, last ${JSON.stringify(eggPackets.at(-1))}`);
+        h1.sendToMe = sendToMe;
         mute(); H1.scoreKill(H2); await sleep(50); unmute();
         assert('killing a human pays nothing', eggs.Human1 === 100);
 
@@ -199,7 +212,13 @@ if (isMainThread) {
         await spawn(h1); await spawn(h2);
         await meta();
         await see(H1, H2); await meta();
+        const cues = []; //the sounds the browsers are told to play
+        const sendCue = h1.sendToMe.bind(h1);
+        h1.sendToMe = (output, debug) => { if (debug === 'zombiesSound') { const input = new Comm.In(output.buffer); cues.push([input.unPackInt8U() === Comm.Code.zombiesSound, input.unPackInt8U()]); }; return sendCue(output, debug); };
+        assert('the siren has gone off for the round by the time the horde is out', zombies.getState(room).sirened === true);
         await killByZombie(H1);
+        h1.sendToMe = sendCue;
+        assert('sudden death sounds its horn to the humans, once', JSON.stringify(cues) === JSON.stringify([[true, 1]]), JSON.stringify(cues));
         assert('a human who dies joins the horde', H1.team === 2, `${H1.team}`);
         assert('...and gets the horde\'s modifiers: bites, no gun, about 60 hp', H1.modifiers.contactDamage === 12 && H1.modifiers.damageModifier === 0 && Math.abs(H1.modifiers.resistanceModifier - 0.6) < 1e-9, JSON.stringify(H1.modifiers));
         assert('...and is announced', notes.some((n) => n.includes('Human1') && n.includes('infected')), notes.join(' | '));
@@ -207,9 +226,49 @@ if (isMainThread) {
         assert('...in a downpour with lightning every second or two', room.gameOptions.plugins.weather?.storm?.lightning >= 3 && room.gameOptions.plugins.weather?.storm?.intensity === 1 && room.gameOptions.plugins.weather?.rain >= 0.8, JSON.stringify(room.gameOptions.plugins.weather));
         assert('...and the horde is faster', zs.every((p) => Math.abs(p.modifiers.speedModifier - 1.15) < 1e-6), zs.map((p) => p.modifiers.speedModifier).join());
         assert('...which includes the infected human', Math.abs(H1.modifiers.speedModifier - 1.15) < 1e-6, `${H1.modifiers.speedModifier}`);
-        assert('...and says so', notes.some((n) => n.includes('SUDDEN DEATH')));
+        assert('...with no pop-up for it (the red text under the clock is how it is said)', !notes.some((n) => n.includes('SUDDEN DEATH')), notes.join(' | '));
         assert('...the human left is quicker (1.1 to 1.3) and reloads faster (1.2 to 1.3)', Math.abs(H2.modifiers.speedModifier - 1.3) < 1e-9 && Math.abs(H2.modifiers.reloadSpeedModifier - 1.3) < 1e-9, JSON.stringify(H2.modifiers));
         assert('...and the browsers are told', room.gameOptions.plugins.zombiesSuddenDeath === true);
+
+        // ---- an exploding ghost ----
+        {
+            const z = zombies.getState(room), cfg = room.gameOptions.plugins.zombies, inst = zombies.pluginInstance;
+            mute(); const bomber = await inst.spawnGhost(room, z, cfg, true); bomber.player.nextRespawn = 0; await bomber.respawn(); unmute();
+            const b = bomber.player, extra = {};
+            inst.packModifiers({ this: { player: b }, extra });
+            assert('an exploding ghost is a ghost the browsers are told about: its tick, no fuse yet, and the quick grenade timer', b.zBomber && b.modifiers.noclip && extra.zombieBomber === zombies.bombIdleOf(z, cfg) && extra.zombieFuse === 0 && extra.grenadeTimerModifier === 0.01, JSON.stringify(extra));
+            assert('...a gun-less one with the damage a blast should do (100 of the grenade 130)', Math.abs(b.modifiers.damageModifier - 100 / 130) < 1e-9);
+            const put = (x, z2) => { b.x = H2.x + x; b.y = H2.y; b.z = H2.z + z2; };
+            put(20, 0); inst.ghostThink(room, b);
+            assert('it keeps ticking only, with the fuse unlit, while nobody is near', !b.zFuseAt && b.modifiers.zombieFuse === 0);
+            const pace = b.modifiers.speedModifier;
+            put(2.2, 0); inst.ghostThink(room, b);
+            assert('it does not light its fuse from just outside its range (1.875 blocks)', !b.zFuseAt && b.modifiers.speedModifier === pace);
+            put(1.5, 0); inst.ghostThink(room, b);
+            assert('it lights its fuse when someone is within 1.875 blocks, and the browsers are told how long', b.zFuseAt > 0 && b.modifiers.zombieFuse === zombies.bombFuseOf(z, cfg), JSON.stringify(b.modifiers.zombieFuse));
+            assert('...and it dashes: 1.3x as quick while the fuse burns', Math.abs(b.modifiers.speedModifier - pace * 1.3) < 1e-9, `${pace} -> ${b.modifiers.speedModifier}`);
+            H2.shield = 0; const hp = H2.hp; mute(); inst.ghostThink(room, b); for (let i = 0; i < 4; i++) room.munitionsManager.update(1); unmute();
+            assert('...and nothing goes off before the fuse is out', H2.hp === hp && !b.isDead(), `${H2.hp}`);
+            inst.defuse(b);
+            assert('...and back to its pace if the fuse is put out', Math.abs(b.modifiers.speedModifier - pace) < 1e-9 && !b.zRush, `${b.modifiers.speedModifier}`);
+            clearTimeout(bomber.zombieTimer); z.bots = z.bots.filter((x) => x !== bomber); bomber.remove();
+            //the blast itself, from beside the human on whichever side has open air (the map has walls, which stop it, as they should)
+            let hurt = false, last = null, zHp = 0;
+            for (const [ox, oz] of [[0, 1], [0, -1], [-1, 0], [1, 0]]) {
+                mute(); const bomb = await inst.spawnGhost(room, z, cfg, true); bomb.player.nextRespawn = 0; await bomb.respawn(); unmute();
+                last = bomb; const p = bomb.player;
+                p.x = H2.x + ox; p.y = H2.y; p.z = H2.z + oz; H2.shield = 0; H2.hp = 100; zHp = zs[0].hp;
+                zs[0].x = p.x - 0.5; zs[0].y = p.y; zs[0].z = p.z;
+                p.zFuseAt = Date.now() - 1; mute(); inst.ghostThink(room, p); for (let i = 0; i < 4; i++) room.munitionsManager.update(1); await sleep(200); unmute();
+                hurt = H2.hp < 100;
+                if (hurt) break;
+                clearTimeout(bomb.zombieTimer); z.bots = z.bots.filter((x) => x !== bomb); bomb.remove();
+            };
+            assert('when it is out it goes off: the human is hurt', hurt, `${H2.hp}`);
+            assert('...the ghost is out of play after it (not dead, so no death animation), with its fuse put out', !last.player.playing && !last.player.isDead() && !last.player.zFuseAt && last.player.modifiers.zombieFuse === 0);
+            assert('...and a zombie standing right next to it is not hurt by it', zs[0].hp === zHp, `${zHp} -> ${zs[0].hp}`);
+            clearTimeout(last.zombieTimer); z.bots = z.bots.filter((x) => x !== last); last.remove();
+        };
 
         // ---- the horde wins ----
         await killByZombie(H2);
@@ -225,6 +284,12 @@ if (isMainThread) {
         await sleep(5);
         mute(); room.packUpdateRoomParams(new Comm.Out()); unmute(); //what everyone is sent, and anyone joining
         assert('between rounds the room params tell the browsers it is the gap', room.gameOptions.plugins.zombiesInterim === true, JSON.stringify(room.gameOptions.plugins.zombiesInterim));
+        {
+            const params = room.gameOptions.plugins;
+            assert('...and the horde winning is told too, with a card for each of them: bitten, no survival bonus', params.zombiesWinner === 2 && params.zombiesResults?.[H1.id]?.[0] === 2 && params.zombiesResults?.[H2.id]?.[0] === 2 && params.zombiesResults[H2.id][2] === 0, JSON.stringify([params.zombiesWinner, params.zombiesResults]));
+            assert('...the one who killed zombies has the eggs on theirs, a guest (no session) is marked as one', params.zombiesResults[H1.id][1] === 100 && params.zombiesResults[H1.id][4] === 2, JSON.stringify(params.zombiesResults));
+            assert('...and a streak of nothing, counting from the first round', params.zombiesStreak === 0 && params.zombiesRound >= 1 && params.zombiesNextIn > 0, JSON.stringify([params.zombiesStreak, params.zombiesRound, params.zombiesNextIn]));
+        };
 
         // ---- next round ----
         mute();
@@ -253,6 +318,7 @@ if (isMainThread) {
 
         // ---- the humans win ----
         eggs.Human1 = 0; eggs.Human2 = 0;
+        h1.userData = { ...h1.userData, upgradeMultiplier: 2, upgradeExpiryDate: Math.floor(Date.now() / 1e3) + 3600 }; //Human1 has VIP, Human2 does not (the card says how much the services will multiply it by)
         room.gameOptions.plugins.zombies.respawnSecs = 0.05; //so a zombie that did come back would do so quickly
         for (const b of bots()) { mute(); if (!b.player.playing) { b.player.nextRespawn = 0; await b.respawn(); }; unmute(); };
         const alive = () => zs.filter((p) => p.playing && !p.isDead()).length;
@@ -271,6 +337,13 @@ if (isMainThread) {
         assert("surviving the round wins it", notes.some((n) => n.includes("humans survived")), notes.join(" | "));
         assert("...and pays each survivor", eggs.Human1 === 20 && eggs.Human2 === 20, JSON.stringify(eggs));
         mute(); room.packUpdateRoomParams(new Comm.Out()); unmute();
+        {
+            const params = room.gameOptions.plugins;
+            assert('...Human2, with no VIP, has a multiplier of 1', params.zombiesResults?.[H2.id]?.[5] === 1, JSON.stringify(params.zombiesResults?.[H2.id]));
+            assert('after the humans win the survivors have cards: survived, the win bonus, no streak bonus on the first, and the VIP multiplier', params.zombiesWinner === 1 && JSON.stringify(params.zombiesResults?.[H1.id]) === JSON.stringify([1, 0, 20, 0, 2, 2]), JSON.stringify([params.zombiesWinner, params.zombiesResults]));
+            assert('...and the win starts a streak', params.zombiesStreak === 1, `${params.zombiesStreak}`);
+            assert('...the next round is worth more (20 + 10)', zombies.winBonus(zombies.getState(room), room.gameOptions.plugins.zombies) === 30);
+        };
         say(`  (after the humans win: zombiesInterim ${room.gameOptions.plugins.zombiesInterim}, round end ${room.roundEndTime - Date.now()}ms, restart in ${room.roundRestartTime - Date.now()}ms)`);
         assert('after the humans win the room params also say it is the gap', room.gameOptions.plugins.zombiesInterim === true, JSON.stringify(room.gameOptions.plugins.zombiesInterim));
 
@@ -411,7 +484,18 @@ if (isMainThread) {
             const from = { x: start.x + 0.5, y: start.y, z: start.z + 0.5 };
             mute();
             //somewhere a few levels up (not the highest place there is: that is a parkour course, not a stair)
-            const ledge = standable.filter((c) => c.y >= start.y + 2 && c.y <= start.y + 3).slice(0, 150).find((c) => deadinternet.findPath(room, from, { x: c.x + 0.5, y: c.y, z: c.z + 0.5 }));
+            //The static estimates can reach perches the real body cannot. Check the zombie's physics and the actual landing point.
+            const probe = bots()[0].player, saved = { x: probe.x, y: probe.y, z: probe.z };
+            let ledge;
+            try {
+                Object.assign(probe, from);
+                ledge = standable.filter((c) => c.y >= start.y + 2 && c.y <= start.y + 3).slice(0, 150).find((c) => {
+                    const goal = { x: c.x + 0.5, y: c.y, z: c.z + 0.5 };
+                    if (!deadinternet.findPath(room, from, goal)) return false;
+                    const end = deadinternet.findPath(room, probe, goal)?.at(-1);
+                    return end && Math.hypot(end.x - goal.x, end.y - goal.y, end.z - goal.z) < 0.3;
+                });
+            } finally { Object.assign(probe, saved); }
             unmute();
             if (!ledge) say('  (no reachable place two or three levels above the spawn found on this map: the next check is skipped)');
             else {
@@ -511,7 +595,7 @@ if (isMainThread) {
                 zombies.pluginInstance.zombieThink(fake, cmd);
                 return cmd;
             };
-            assert('a zombie on solid floor with someone level on the other side of a stairwell still walks straight at them', stairwell(15.5).engaged === true);
+            assert('a zombie sees the stairwell in its way before it reaches the edge and goes by route', stairwell(15.5).engaged === false);
             const atOpening = stairwell(19.6);
             assert('...but at the edge of the opening it goes by route instead of falling down it', atOpening.engaged === false && atOpening.state === 'hunt', JSON.stringify(atOpening));
         };
@@ -520,6 +604,7 @@ if (isMainThread) {
         {
             const cfgNow = room.gameOptions.plugins.zombies;
             cfgNow.ghostRatio = 0.5; cfgNow.count = 6; //the two new ones will be ghosts
+            cfgNow.streakGhostSpeed = 0; cfgNow.streakBrutishRatio = 0; //(the streak the round before left has its own section below)
             mute(); clearTimeout(room.roundTimeout); room.setRoundTimeout(); unmute();
             await sleep(100);
             mute(); await plugins.emit('metaLoop', { this: room }); unmute();
@@ -527,8 +612,8 @@ if (isMainThread) {
             const ghosts = bots().filter((b) => b.zGhost);
             const normal = bots().filter((b) => !b.zGhost);
             assert('the horde has ghosts among it, spread by the ratio', ghosts.length === 2 && normal.length === 4, `${ghosts.length} ghosts, ${normal.length} others`);
-            const g = ghosts[0], gp = g.player;
-            assert('a ghost is white, named Ghost, in the ghost hat', g.client.colorIdx === 0 && g.client.nickname === 'Ghost' && g.client.loadout[ItemType.Hat]?.id === 50244, `${g.client.colorIdx} ${g.client.nickname} ${g.client.loadout[ItemType.Hat]?.id}`);
+            const g = ghosts.find((b) => !b.zBomber) || ghosts[0], gp = g.player; //(a plain one if there is one: an exploding one dashes once its fuse is lit)
+            assert('a ghost is white, named Ghost, in the ghost hat', g.client.colorIdx === 0 && /^(Ghost|Bomber Ghost)$/.test(g.client.nickname) && g.client.loadout[ItemType.Hat]?.id === 50244, `${g.client.colorIdx} ${g.client.nickname} ${g.client.loadout[ItemType.Hat]?.id}`);
             assert('...has noclip, bites for ghostBite and moves at ghostSpeed', gp.modifiers.noclip === 1 && gp.modifiers.contactDamage === 6 && Math.abs(gp.modifiers.speedModifier - 0.5) < 1e-9 && Math.abs(gp.modifiers.resistanceModifier - 0.7) < 1e-9, JSON.stringify(gp.modifiers));
             assert('...and the zombies do not', normal.every((b) => !b.player.modifiers.noclip && b.player.modifiers.contactDamage === 12));
 
@@ -602,6 +687,51 @@ if (isMainThread) {
             for (const team of [2, 1]) for (const method of ['fire', 'pullTrigger']) { try { PlayerClass.prototype[method].call(shooter(team)); } catch { threw[team + method] = true; } }
             assert('the infected cannot fire or pull the trigger (the original code never runs)', !threw['2fire'] && !threw['2pullTrigger'], JSON.stringify(threw));
             assert('...and everyone else still can', threw['1fire'] && threw['1pullTrigger'], JSON.stringify(threw));
+        };
+
+        // ---- the win streak ----
+        {
+            const cfg = { ...room.gameOptions.plugins.zombies, count: 20, ghostSpeed: 0.5, streakGhostSpeed: 0.04, ghostSpeedMax: 0.9, brutishRatio: 0.1, streakBrutishRatio: 0.07, brutishRatioMax: 0.45, brutishPhysics: 0.7, streakBrutishPhysics: 0.1, brutishPhysicsMax: 1, winEggs: 20, streakWinEggs: 10, streakCap: 10 };
+            const at = (streak) => ({ streak });
+            const list = (fn, ...streaks) => streaks.map((n) => +fn(at(n), cfg).toFixed(3)).join();
+            assert('the win bonus is 20 with no streak, 30 with one, and 120 at the cap (which is where it stops)', list(zombies.winBonus, 0, 1, 10, 50) === '20,30,120,120', list(zombies.winBonus, 0, 1, 10, 50));
+            assert('...so a round pays at most the kill cap of 200 plus 120', cfg.eggCap * cfg.killEggs + zombies.winBonus(at(10), cfg) === 320);
+            assert('the brutish share goes 10%, 17%, ... up to 45%', list(zombies.brutishRatioOf, 0, 1, 3, 10) === '0.1,0.17,0.31,0.45', list(zombies.brutishRatioOf, 0, 1, 3, 10));
+            assert('...and they speed up to the pace of the plain zombies, 0.7 to 1', list(zombies.brutishPhysicsOf, 0, 1, 3, 10) === '0.7,0.8,1,1', list(zombies.brutishPhysicsOf, 0, 1, 3, 10));
+            assert('ghosts speed up 0.04 a round, to 0.9', list(zombies.ghostSpeedOf, 0, 1, 5, 10, 50) === '0.5,0.54,0.7,0.9,0.9', list(zombies.ghostSpeedOf, 0, 1, 5, 10, 50));
+
+            const bot = (extra = {}) => ({ player: { mods: [], changeModifiers(m) { this.mods.push(m); } }, removed: false, remove() { this.removed = true; }, ...extra });
+            const horde = () => [...Array(3)].map(() => bot({ zGhost: true })).concat([...Array(2)].map(() => bot({ zVariant: 'brutish' })), [...Array(3)].map(() => bot({ zVariant: 'small' })), [...Array(12)].map(() => bot()));
+            const zs3 = { streak: 3, bots: horde() };
+            const before = [...zs3.bots];
+            zombies.pluginInstance.applyStreak(room, zs3, { ...cfg, bombStreak: 99 }); //(the exploding ghosts have their own checks below)
+            const gone = before.filter((b) => b.removed);
+            assert('a round with a streak of 3 takes 4 plain zombies out, for brutish ones to come in their place (6 of 20)', gone.length === 4 && gone.every((b) => !b.zGhost && !b.zVariant) && zs3.bots.length === 16, `${gone.length} ${zs3.bots.length}`);
+            assert('...gives the ghosts there already their new pace and the brutes theirs', before.filter((b) => b.zGhost).every((b) => Math.abs(b.player.mods[0].speedModifier - 0.62) < 1e-9) && before.filter((b) => b.zVariant === 'brutish').every((b) => b.player.mods[0].physicsSpeedModifier === 1));
+            assert('...and leaves the small ones alone', before.filter((b) => b.zVariant === 'small').every((b) => !b.removed && !b.player.mods.length));
+
+            const ended = { streak: 0, bots: [...Array(6)].map(() => bot({ zVariant: 'brutish' })).concat([...Array(14)].map(() => bot())) };
+            zombies.pluginInstance.applyStreak(room, ended, cfg);
+            assert('a streak that has ended sends the extra brutes back (6 down to the usual 2)', ended.bots.filter((b) => b.zVariant === 'brutish').length === 2 && ended.bots.length === 16, `${ended.bots.length}`);
+
+            assert('exploding ghosts: none in round 1, one from round 2, two from round 4, never more', [0, 1, 2, 3, 5, 9].map((n) => zombies.bombersOf(at(n), cfg)).join() === '0,1,1,2,2,2', [0, 1, 2, 3, 5, 9].map((n) => zombies.bombersOf(at(n), cfg)).join());
+            assert('...with a fuse that goes 3s to 1.8s and a tick that goes 1.2s to 0.7s by round 10', list(zombies.bombFuseOf, 1, 9, 30) === '3000,1800,1800' && list(zombies.bombIdleOf, 1, 9, 30) === '1200,700,700', list(zombies.bombFuseOf, 1, 9, 30) + ' ' + list(zombies.bombIdleOf, 1, 9, 30));
+            const zb = { streak: 1, bots: horde() }, ghostsBefore = zb.bots.filter((b) => b.zGhost);
+            zombies.pluginInstance.applyStreak(room, zb, { ...cfg, streakBrutishRatio: 0 });
+            assert('round 2 takes a plain ghost out for the exploding one to come in its place', ghostsBefore.filter((b) => b.removed).length === 1 && zb.bots.filter((b) => b.zGhost).length === 2, `${ghostsBefore.filter((b) => b.removed).length}`);
+            const zc = { streak: 0, bots: [bot({ zGhost: true, zBomber: true }), bot({ zGhost: true })] };
+            zombies.pluginInstance.applyStreak(room, zc, cfg);
+            assert('...and a streak that has ended turns it back into a plain one', zc.bots.length === 1 && !zc.bots[0].zBomber);
+            const zd = { streak: 4, bots: [bot({ zGhost: true, zBomber: true }), bot({ zGhost: true })] };
+            zombies.pluginInstance.applyStreak(room, zd, cfg);
+            assert('a bomber in the horde gets the speed of the ghosts and its own tick for the round', Math.abs(zd.bots[0].player.mods[0].speedModifier - 0.66) < 1e-9 && zd.bots[0].player.mods[0].zombieBomber === zombies.bombIdleOf(zd, cfg), JSON.stringify(zd.bots[0].player.mods));
+
+            const zroom = zombies.getState(room), keep = zroom.streak, ghost = (speedModifier) => ({ room, modifiers: { noclip: 1, speedModifier }, changeModifiers(m) { this.modifiers = { ...this.modifiers, ...m }; } });
+            const sd = { ...room.gameOptions.plugins.zombies, ghostSpeed: 0.5, streakGhostSpeed: 0.04, ghostSpeedMax: 0.9 };
+            zroom.streak = 0; const slow = ghost(0.5); zombies.pluginInstance.speedUp(slow, sd);
+            zroom.streak = 5; const quick = ghost(0.7); zombies.pluginInstance.speedUp(quick, sd);
+            zroom.streak = keep;
+            assert('in sudden death a ghost keeps its place under the zombies: slower with no streak, as quick as them once it is fast enough', Math.abs(slow.modifiers.speedModifier - 1.15 * 0.5 / sd.zombieSpeed) < 1e-9 && Math.abs(quick.modifiers.speedModifier - 1.15) < 1e-9, `${slow.modifiers.speedModifier} ${quick.modifiers.speedModifier}`);
         };
 
         // ---- the maps ----
