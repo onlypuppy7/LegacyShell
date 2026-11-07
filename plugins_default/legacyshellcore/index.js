@@ -13,7 +13,7 @@ export const PluginMeta = {
     identifier: "legacyshellcore",
     name: 'LegacyShellCore',
     author: 'onlypuppy7',
-    version: '1.0.16',
+    version: '1.0.17',
     descriptionShort: 'Used in the public instance', //displayed when loading
     descriptionLong: 'Used in the public instance',
     legacyShellVersion: 269, //legacy shell version, can be found in /versionEnum.txt, or just on the homescreen
@@ -154,6 +154,10 @@ export class Plugin {
             insertBefore: '\nconsole.log("inserting before... (LegacyShellCore settings)");',
             filepath: path.join(this.thisDir, 'settings.js'),
             insertAfter: '\nconsole.log("inserting after... (LegacyShellCore settings)!");',
+            position: 'after'
+        });
+        data.pluginInsertion.files.push({
+            filepath: path.join(this.thisDir, 'debug.js'),
             position: 'after'
         });
         data.pluginInsertion.files.push({

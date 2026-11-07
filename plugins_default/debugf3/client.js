@@ -8,23 +8,22 @@ export const DebugF3 = {
     lastUpdate: 0,
     maxFps: 0,
 
+    enabled: function () {
+        return !this.managed || typeof LegacySettings === "undefined" || !!LegacySettings.get("enableDebug", false);
+    },
+
+    binding: function () {
+        return typeof LegacySettings === "undefined" ? "F3" : LegacySettings.get("debugF3Key", "F3");
+    },
+
+    setShown: function (shown) {
+        this.shown = shown && this.enabled();
+        try { localStorage.setItem("debugF3", this.shown ? "1" : "0") } catch (e) {};
+        this.update(true);
+    },
+
     init: function () {
         try { this.shown = localStorage.getItem("debugF3") === "1" } catch (e) {};
-
-        if (typeof LegacySettings !== "undefined") {
-            const tab = LegacySettings.addTab("General", [1, 1]);
-            if (tab.panels.length < 2) { //legacyshellcore already made General as one panel, split it so this can sit on the right
-                tab.panels.forEach(panel => panel.width = 0.5);
-                tab.panels.push({ width: 0.5, categories: [], standalone: [] });
-            };
-            LegacySettings.addOption("General", {
-                type: "checkbox",
-                key: "debugF3HideInfo",
-                label: "Hide identifying info in F3",
-                default: false,
-                tooltip: "Hides your GPU, CPU thread count, display size, browser and the room code from the F3 debug screen, so it's safe to stream or screenshot.",
-            }, 1, "Debug");
-        };
 
         const style = document.createElement("style");
         style.textContent = `
@@ -44,13 +43,19 @@ export const DebugF3 = {
         document.body.appendChild(this.left);
         document.body.appendChild(this.right);
 
-        window.addEventListener("keydown", (event) => {
-            if (event.key !== "F3") return;
-            event.preventDefault();
-            this.shown = !this.shown;
-            try { localStorage.setItem("debugF3", this.shown ? "1" : "0") } catch (e) {};
-            this.update(true);
+        const toggle = (event, key) => {
+            if (!this.enabled() || event.repeat || typeof inGame === "undefined" || !inGame) return;
+            if (typeof LegacySettings !== "undefined" && (LegacySettings.globalBindingActive || LegacySettings.root?.style.display === "block")) return;
+            if (event.target?.closest?.('input, textarea, select, [contenteditable="true"]')) return;
+            if (key !== this.binding()) return;
+            event.preventDefault(); this.setShown(!this.shown);
+        };
+        window.addEventListener("keydown", event => {
+            if (event.ctrlKey || event.altKey || event.metaKey) return;
+            toggle(event, event.key === " " ? "SPACE" : event.key.toUpperCase());
         });
+        window.addEventListener("mousedown", event => toggle(event, "MOUSE " + event.button));
+        window.addEventListener("wheel", event => toggle(event, event.deltaY < 0 ? "WHEEL UP" : "WHEEL DOWN"), { passive: false });
 
         const loop = () => {
             this.update();
@@ -85,8 +90,9 @@ export const DebugF3 = {
     },
 
     update: function (force) {
+        if (!this.left || !this.right) return;
         const now = performance.now();
-        if (!this.shown || typeof inGame === "undefined" || !inGame || !me || !gameScene || !engine) {
+        if (!this.enabled() || !this.shown || typeof inGame === "undefined" || !inGame || !me || !gameScene || !engine) {
             if (force || this.left.style.display !== "none") this.left.style.display = this.right.style.display = "none";
             return;
         };
@@ -157,7 +163,7 @@ export const DebugF3 = {
             `Health: ${Math.floor(p.hp)} Grenades: ${p.grenadeCount}`,
             target ? `Looking at block: ${target.voxel.x} ${target.voxel.y} ${target.voxel.z}` : "Looking at block: none",
             "",
-            `Debug: F3: toggle`,
+            `Debug: ${this.binding()}: toggle`,
         ];
 
         const right = [

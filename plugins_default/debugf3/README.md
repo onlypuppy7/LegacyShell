@@ -1,13 +1,13 @@
 # Debug F3
 
-Press **F3** in game to toggle a Minecraft style debug screen: the same layout, with the same translucent grey highlight behind every line.
+With LegacyShellCore, turn on **Settings → General → Enable Debug**, then use **F3** in game to toggle a Minecraft style debug screen. The Debug tab lets you rebind that key.
 
 ## What it shows
 
 - Left: version/gamemode/map, fps, server and ping, rendered meshes and triangles, entity/bullet/rocket/grenade counts, player count, room code, `XYZ`, `Block`, velocity, `Facing` (with Minecraft-style yaw/pitch, so yaw turns the other way), ground/climbing state, map, gamemode and team, health, and the block you're looking at.
 - Right: browser, JS heap memory (Chromium only), CPU thread count, display size, GPU vendor/renderer/GL version, and the targeted block's coordinates and mesh name.
 
-The toggle is remembered in `localStorage`. Only drawn while in a game. Settings > General > Debug has a checkbox that hides identifying info (browser, CPU, display, GPU, room code) for streaming and screenshots (needs LegacySettings).
+The toggle is remembered in `localStorage`. Only drawn while in a game. **Settings → Debug → Hide identifying info in F3** hides browser, CPU, display, GPU and room code for streaming and screenshots. Disabling Enable Debug hides the overlay. Without LegacyShellCore, the standalone plugin still uses F3 without that gate.
 
 ## Notes
 
