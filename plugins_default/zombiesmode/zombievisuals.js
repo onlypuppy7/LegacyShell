@@ -147,7 +147,8 @@ const ZombieVisuals = {
         this.ghostly(actor, this.isGhost(actor));
         if (this.isGhost(actor)) {
             this.glow(actor);
-            return this.float(actor); //(no stumble: it does not walk)
+            this.float(actor); //(no stumble: it does not walk)
+            return this.bomb(actor, delta);
         };
 
         //How far through the stumble it is. The game's own walk cycle (player.bobble) is no use for this: it wraps at a full turn, and anything
@@ -247,10 +248,78 @@ const ZombieVisuals = {
         body.rotation.z = 0.05 * Math.sin(t * 1.7 + id);
         body.rotation.y = 0.08 * Math.sin(t * 1.1 + id * 2);
         body.position.y = 0.36 + 0.035 * Math.sin(t * 2.2 + id);
-        if (actor.hat && actor.zHatY === undefined) { //its hat sits a touch askew (set the once, not every frame)
+        if (actor.hat && actor.zHatMesh !== actor.hat) { //its hat sits a touch askew (set the once per hat, not every frame: the game makes a new one when it is worn again)
+            actor.zHatMesh = actor.hat;
             actor.zHatY = actor.hat.rotation.y;
             actor.hat.rotation.y = Math.PI90 * -0.1;
         };
+    },
+
+    // An exploding ghost (the server marks it: zombieBomber is the gap between its slow ticks, zombieFuse is how long its fuse is once it is lit).
+    // Unlit it ticks slowly and flashes yellow with every tick. Lit, it ticks and flashes the way a grenade does (the same beep, the same
+    // timing, run over the length of the fuse, so a shorter fuse is quicker ticking) and its hat spins, faster and faster. The tick is at its
+    // position, so the sound fades with distance like any other.
+    bomb(actor, delta) {
+        var m = actor.player.modifiers, now = Date.now(), alive = actor.player.hp > 0 && (!actor.bodyMesh.isEnabled || actor.bodyMesh.isEnabled());
+        if (!(m.zombieBomber > 0) || !alive) return this.defuse(actor);
+
+        var lit = m.zombieFuse > 0, left = 1, on;
+        if (lit) {
+            if (!actor.zFuseStart) {
+                actor.zFuseStart = now;
+                if (typeof playSoundIndependent === "function") try { playSoundIndependent("grenade.pin", { pos: actor.bodyMesh.getAbsolutePosition() }); } catch (e) { }; //(the pin out, as the fuse is lit)
+            };
+            left = Math.max(0, 1 - (now - actor.zFuseStart) / m.zombieFuse);
+            on = 1 < Math.sqrt(150 * left) % 2; //(a grenade's timer is 150 ticks, and it beeps while this is so)
+            if (actor.hat) actor.hat.rotation.y += (delta || 1) * (0.12 + 0.8 * (1 - left));
+            actor.zSpun = true;
+        } else {
+            actor.zFuseStart = 0;
+            on = ((now + actor.player.id * 137) % m.zombieBomber) < 120;
+            this.unspin(actor);
+        };
+
+        if (on && !actor.zLit && typeof playSoundIndependent === "function") {
+            try { playSoundIndependent("grenade.beep", { pos: actor.bodyMesh.getAbsolutePosition(), rate: lit ? 1 + 0.4 * (1 - left) : 0.85 }); } catch (e) { };
+        };
+        actor.zLit = on;
+        this.flash(actor, on);
+        if (on) this.bombGlow(actor, lit);
+    },
+
+    // Yellow light on the ground and walls around it with every flash, the way a grenade does it (fancygraphics' Fancy Glow, drawn by legacyweather),
+    // brighter and wider once the fuse is lit. This replaces the ghost's cold light for the frames it is flashing.
+    bombGlow(actor, lit) {
+        if (typeof WeatherRender === "undefined" || typeof FancyItemsPlugin === "undefined" || !FancyItemsPlugin.fancyGlow || !FancyItemsPlugin.fancyGlow.get()) return;
+        var p = actor.bodyMesh.getAbsolutePosition();
+        WeatherRender.glowAt(actor, { x: p.x, y: p.y + 0.3, z: p.z, color: [1, 1, 0], radius: lit ? 4.5 : 3, intensity: lit ? 0.9 : 0.6, minDark: 0.3 });
+    },
+
+    // Yellow over the whole of it (the overlay the spawn shield uses, in the grenade's flash colour), or back to how it was.
+    flash(actor, on) {
+        if (!!actor.zFlash === on) return;
+        actor.zFlash = on;
+        var meshes = [actor.bodyMesh, actor.zombieHands];
+        if (actor.hat) meshes.push(actor.hat);
+        for (var i = 0; i < meshes.length; i++) {
+            var mesh = meshes[i];
+            if (!mesh) continue;
+            if (on) { mesh.overlayColor = BABYLON.Color3.Yellow(); mesh.overlayAlpha = 0.7; mesh.renderOverlay = true; }
+            else { mesh.overlayColor = BABYLON.Color3.Green(); mesh.renderOverlay = actor.player.shield > 0; };
+        };
+    },
+
+    unspin(actor) {
+        if (!actor.zSpun) return;
+        actor.zSpun = false;
+        if (actor.hat) actor.hat.rotation.y = Math.PI90 * -0.1; //(back to how float() sets it askew)
+    },
+
+    // Not (or no longer) a bomber, or out of play: no flash, no spin, and the next fuse starts over.
+    defuse(actor) {
+        actor.zFuseStart = 0; actor.zLit = false;
+        this.flash(actor, false);
+        this.unspin(actor);
     },
 
     // Instead of following the gun: the arms out in front, swaying and drooping a little with the steps (a ghost's, with the bobbing).
@@ -270,11 +339,13 @@ const ZombieVisuals = {
 
     // No longer on the horde (cured at the start of a round): the model's own hands and the gun back, and the egg upright.
     revert(actor) {
+        this.defuse(actor);
         this.ghostly(actor, false);
         actor.zombieHands.setEnabled(false);
         actor.hands.setEnabled(true);
         actor.bodyMesh.rotation.y = 0;
-        if (actor.hat && actor.zHatY !== undefined) { actor.hat.rotation.y = actor.zHatY; actor.zHatY = undefined; };
+        if (actor.hat && actor.zHatMesh === actor.hat) actor.hat.rotation.y = actor.zHatY;
+        actor.zHatMesh = null; actor.zHatY = undefined;
         var weapon = actor.player.weapon;
         if (weapon && weapon.actor && weapon.actor.gunMesh) weapon.actor.gunMesh.setEnabled(true);
         actor.zombieHands.dispose();
