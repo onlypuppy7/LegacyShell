@@ -1,5 +1,6 @@
 //legacyshell: basic
 import { isClient } from "#constants";
+import Comm from "#comm";
 //legacyshell: plugins
 import { plugins } from '#plugins';
 //
@@ -11,8 +12,9 @@ import { plugins } from '#plugins';
 // "Zombies" mode when the maps are loaded into the database, which is what the gametype's map pool is made of.
 // The two sides: humans are team 1, the horde (bots and the infected) team 2.
 export const ZombiesTeams = { HUMANS: 1, HORDE: 2 };
+export const ZombiesCues = ['siren', 'suddenDeath']; //the sounds the server can tell the browsers to play, by the u8 they are sent as
 
-export const ZombiesModeMaps = ['Blue', 'Castle', 'Dirt', 'Infected Feedlot', 'Moonbase', 'Ruins', 'Shellville', 'Shipyard', 'Two Towers'];
+export const ZombiesModeMaps = ['Blue', 'Castle', 'Infected Feedlot', 'Moonbase', 'Ruins', 'Two Towers'];
 
 // Per-room settings, read from gameOptions.plugins.zombies. A gametype (or another plugin) can change any of them.
 export const ZombiesModeDefaults = {
@@ -22,7 +24,15 @@ export const ZombiesModeDefaults = {
     killEggs: 2,            //eggs per zombie killed (instead of the usual per-kill reward)
     eggCap: 100,            //most kill eggs one player can earn in a round
     winEggs: 20,            //eggs for each survivor when the humans win
-    suddenDeathSecs: 60,    //a lone human (or a solo player) gets this long before sudden death at the latest
+    streakWinEggs: 10,      //each round the humans have won in a row adds this many eggs to the win bonus
+    streakCap: 10,          //...and the streak stops counting for anything (bonus, brutes, ghosts) beyond this many rounds
+    streakBrutishRatio: 0.07, //...and the brutish share of the horde goes up this much per round (replacing plain zombies)
+    brutishRatioMax: 0.45,  //...to at most this share
+    streakBrutishPhysics: 0.1, //...and the brutish get this much faster per round
+    brutishPhysicsMax: 1,   //...until they move at the plain zombies' pace
+    streakGhostSpeed: 0.04, //...and ghosts get this much faster per round
+    ghostSpeedMax: 0.9,     //...to at most this speed modifier (sudden death still puts the horde's pace at suddenDeathSpeed at most)
+    suddenDeathSecs: 60,    //sudden death comes at the latest when this long is left
     suddenDeathSpeed: 1.15, //zombies' speed in sudden death (the speed itself, not a multiplier)
     suddenDeathReload: 1.3, //the humans' reload speed modifier in sudden death (1.2 the rest of the time: reloadSpeedModifier in the gametype)
     suddenDeathHumanSpeed: 0.2, //...and how much faster they move then (added to their speed modifier)
@@ -47,6 +57,16 @@ export const ZombiesModeDefaults = {
     ghostSpeed: 0.5,        //a ghost's speed modifier (1 is the pace of a walking player), under the zombies'
     ghostBite: 6,           //hp a ghost's touch takes (a zombie's is the team's contactDamage)
     ghostResistance: 0.7,   //...and its resistance
+    bombStreak: 1,          //an exploding ghost (it replaces one of the ghosts) comes at this streak, round 2: one of them...
+    bombSecondStreak: 3,    //...and a second from this streak, round 4
+    bombMax: 2,             //...and never more than this many
+    bombRange: 1.875,        //it lights its fuse when someone is this close (it ticks slowly the whole time, so it can be heard before that)
+    bombRush: 1.3,          //...and its speed is multiplied by this from then on (it makes a dash for them)
+    bombFuseMs: 3000,       //how long the fuse is at the first of them...
+    bombFuseMinMs: 1800,    //...down to this by round 10
+    bombIdleMs: 1200,       //the gap between its slow ticks before the fuse, at the first...
+    bombIdleMinMs: 700,     //...down to this by round 10
+    bombDamage: 100,        //what its blast does at point blank, falling off to nothing at 3 blocks (humans only: the horde cannot hurt itself)
     brutishRatio: 0.1,      //the share of the horde that are brutish: slow, tough, hit hard, big hands
     brutishPhysics: 0.7,    //...their physicsSpeedModifier (not speedModifier: that would throw the pathfinding off)
     brutishResistance: 3.5, //...and resistance (5x the zombies')
@@ -70,6 +90,54 @@ export const ZombiesModePlugin = {
         this.plugins.on('game:onPageLoadedEnd', this.onPageLoadedEnd.bind(this)); //(browser only)
         this.plugins.on('game:roomParamsUpdated', this.roomParamsUpdated.bind(this)); //(browser only)
         this.plugins.on('game:leaveGame', this.leaveGame.bind(this)); //(browser only)
+        this.plugins.on('game:permissionsAfterSetup', this.permissionsAfterSetup.bind(this));
+        this.plugins.on('game:LegacyShellOnMessage', this.LegacyShellOnMessage.bind(this)); //(browser only)
+        this.plugins.on('game:loadSounds', this.loadSounds.bind(this)); //(browser only)
+        this.plugins.on('game:grenadeThrow', this.grenadeThrow.bind(this)); //(browser only)
+    },
+
+    // The first of two packets this mode adds: to someone who has just earned eggs for a zombie, u8 how many that was and u16 how many they have
+    // earned this round. Counted in the mode's own eggs (killEggs, up to eggCap), which is not what the account is paid: the services
+    // multiply every payout by the account's VIP multiplier, so the balance cannot be used for it.
+    permissionsAfterSetup() {
+        if (Comm.Code.zombiesEggs === undefined) Comm.Add("zombiesEggs");
+        if (Comm.Code.zombiesSound === undefined) Comm.Add("zombiesSound");
+    },
+
+    // The other: u8 which sound, off ZombiesCues (the siren when the horde starts spawning, the horn of sudden death, which the siren follows).
+    loadSounds(data) {
+        data.soundsList.push(["sound/zombies/siren.mp3", "zombies.siren"], ["sound/zombies/suddenDeath.mp3", "zombies.suddenDeath"]);
+    },
+
+    // The grenade an exploding ghost goes off with is only the blast: no pin sound, no beep, and no grenade to see (the ghost's own pin sound
+    // went when its fuse was lit). The grenades are pooled, so every throw says again whether it is one of these.
+    grenadeThrow(data) {
+        var actor = isClient && data.this.actor, owner = data.args[0];
+        if (!actor) return;
+        actor.zBomb = !!(owner && owner.modifiers && owner.modifiers.zombieBomber);
+        if (!actor.zBomb) return;
+        var emitter = actor.soundEmitter;
+        if (!emitter.zPlay) {
+            emitter.zPlay = emitter.play;
+            emitter.play = function () { if (!actor.zBomb) return emitter.zPlay.apply(emitter, arguments); };
+        };
+        this.plugins.cancel = true;
+        data.result = data.run.apply(null, data.args);
+        actor.mesh.setEnabled(false);
+    },
+
+    LegacyShellOnMessage(data) {
+        if (isClient && data.cmd === Comm.Code.zombiesSound) {
+            var cue = ZombiesCues[data.input.unPackInt8U()];
+            if (cue) try { playSoundIndependent2D("zombies." + cue); } catch (e) { };
+            if (cue === "suddenDeath") setTimeout(function () { try { playSoundIndependent2D("zombies.siren"); } catch (e) { }; }, 1500); //(the siren follows the horn, a moment after)
+            this.plugins.cancel = true;
+            return;
+        };
+        if (!isClient || data.cmd !== Comm.Code.zombiesEggs) return;
+        var gained = data.input.unPackInt8U(), total = data.input.unPackInt16U();
+        try { ZombiesUI.eggs(gained, total); } catch (e) { };
+        this.plugins.cancel = true;
     },
 
     // The horde has no gun: an infected player's trigger does nothing (the zombies' own damage is already off, this stops the shot itself, and
@@ -130,12 +198,30 @@ export const ZombiesModePlugin = {
         };
     },
 
+    // The leaderboard is rebuilt for every spawn, death and score, and a horde of twenty respawning all the time makes that a few times a second
+    // (every row's text and styles, and the other plugins' icons on top): in a zombies room it is done at most every quarter second instead. It is
+    // wrapped here, the first time a room says it is a zombies one, so this is on the outside of the other plugins' wraps.
+    throttleList() {
+        if (!isClient || this.listThrottled || typeof rebuildPlayerList !== "function") return;
+        this.listThrottled = true;
+        var rebuild = rebuildPlayerList, last = 0, timer = null;
+        rebuildPlayerList = function () {
+            if (!(gameOptions && gameOptions.plugins && gameOptions.plugins.zombies)) return rebuild.apply(this, arguments);
+            var wait = 250 - (Date.now() - last);
+            if (wait <= 0) { last = Date.now(); return rebuild.apply(this, arguments); };
+            if (!timer) timer = setTimeout(function () { timer = null; last = Date.now(); try { rebuild(); } catch (e) { }; }, wait);
+        };
+    },
+
     // Sudden death changes the humans' reload speed on the server, which the modifiers packet does not carry, so the browser's own idea of it
     // (the reload timer on the HUD) follows the room params instead.
     roomParamsUpdated(data) {
-        if (!isClient || typeof me === "undefined" || !me) return;
+        if (!isClient) return;
         var params = data.roomParamsObj.plugins, cfg = params && params.zombies;
         if (!cfg) return;
+        try { ZombiesUI.params(params); } catch (e) { }; //(before the check for me: someone who has only just joined has none yet, and still needs the countdowns)
+        this.throttleList();
+        if (typeof me === "undefined" || !me) return;
         me.changeModifiers({ reloadSpeedModifier: params.zombiesSuddenDeath ? cfg.suddenDeathReload : gameOptions.reloadSpeedModifier[me.team] });
     },
 
@@ -146,6 +232,7 @@ export const ZombiesModePlugin = {
     // Whether it is the gap comes from the server (gameOptions.plugins.zombiesInterim, sent when it starts and to anyone joining during it):
     // what this browser thinks about rounds depends on which packets it happened to be there for.
     interimTick() {
+        try { ZombiesUI.tick(); } catch (e) { if (!ZombiesModePlugin.uiFailed) { ZombiesModePlugin.uiFailed = true; console.error("zombies hud failed", e); }; };
         try {
             var menu = document.getElementById("gameMenu");
             var interim = !!(gameOptions && gameOptions.plugins && gameOptions.plugins.zombies && gameOptions.plugins.zombiesInterim === true && inGame && me && (me.playing || (menu && menu.style.display === "none")));
@@ -156,10 +243,10 @@ export const ZombiesModePlugin = {
                 waiting = document.createElement("div");
                 waiting.id = "zombiesWaiting";
                 var style = window.getComputedStyle(document.getElementById("gameClock")); //the same look as the clock, smaller
-                waiting.style.cssText = "position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none;z-index:5;text-align:center;"
+                waiting.style.cssText = "position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none;text-align:center;"
                     + "font-family:" + style.fontFamily + ";font-weight:" + style.fontWeight + ";color:" + style.color + ";text-shadow:" + style.textShadow + ";font-size:1.2em";
                 waiting.innerText = "WAITING...";
-                document.body.appendChild(waiting);
+                (document.getElementById("game") || document.body).appendChild(waiting); //(in #game: hidden along with it)
             };
             waiting.style.display = interim ? "block" : "none";
         } catch (e) { };
@@ -176,6 +263,7 @@ export const ZombiesModePlugin = {
         try {
             closeAlertDialog(); //the "continue to the next round?" prompt, among others
             closeSettingsMenu();
+            plugins.emit("playPressed"); //(what pressing PLAY says, for the player profile and the settings to get out of the way)
             document.getElementById("help").style.display = "none";
             document.getElementById("feedback").style.display = "none";
             captureKeys(); //(the dialogs let go of them)
