@@ -1,9 +1,12 @@
-import { AchievementDefinitions, AchievementMaxPins } from './definitions.js';
+import { AchievementDefinitions, AchievementMaxPins, WeaponKeys, AirKeys } from './definitions.js';
 
 //how far an account is towards a definition, new metrics go here
 export function progressOf(definition, user) {
     if (definition.metric === 'account') return 1;
     if (definition.metric === 'kills') return Math.max(0, user.kills || 0);
+    if (definition.metric === 'deaths') return Math.max(0, user.deaths || 0);
+    if (definition.metric === 'weapon') return Math.max(0, user.weapons?.[definition.weapon] || 0);
+    if (definition.metric === 'midair') return [...AirKeys].filter(key => user.weapons?.[key] > 0).length; //weapons they have had a kill in mid-jump with
     return 0;
 };
 
@@ -21,14 +24,35 @@ export class AchievementStore {
             reward TEXT NOT NULL,
             PRIMARY KEY (account_id, achievement_id)
         )`);
+        db.exec(`CREATE TABLE IF NOT EXISTS achievement_weapon_kills (
+            account_id INTEGER NOT NULL,
+            weapon TEXT NOT NULL,
+            kills INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY (account_id, weapon)
+        )`);
         db.exec(`CREATE TABLE IF NOT EXISTS achievement_showcases (
             account_id INTEGER PRIMARY KEY, pins TEXT NOT NULL
         )`);
     };
 
     user(id) {
-        return this.db.prepare(`SELECT account_id, username, kills, currentBalance, ownedItemIds,
+        const user = this.db.prepare(`SELECT account_id, username, kills, deaths, currentBalance, ownedItemIds,
             upgradeProductId, upgradeMultiplier, upgradeAdFree, upgradeExpiryDate FROM users WHERE account_id = ?`).get(id);
+        return user && { ...user, weapons: this.weapons(id) };
+    };
+
+    //lifetime kills per weapon, only the game server can add to these
+    weapons(id) {
+        return Object.fromEntries(this.db.prepare('SELECT weapon, kills FROM achievement_weapon_kills WHERE account_id = ?').all(id).map(row => [row.weapon, row.kills]));
+    };
+
+    addWeaponKills(id, counts) {
+        const entries = counts && typeof counts === 'object' && !Array.isArray(counts) ? Object.entries(counts) : [];
+        if (!entries.length || entries.length > WeaponKeys.size + AirKeys.size || entries.some(([weapon, count]) => !(WeaponKeys.has(weapon) || AirKeys.has(weapon)) || !Number.isInteger(count) || count < 1 || count > 1000)) throw new Error('Those weapon kills cannot be recorded.');
+        if (!this.user(id)) throw new Error('Account not found.');
+        const add = this.db.prepare(`INSERT INTO achievement_weapon_kills (account_id, weapon, kills) VALUES (?, ?, ?)
+            ON CONFLICT(account_id, weapon) DO UPDATE SET kills = kills + excluded.kills`);
+        this.db.transaction(() => { for (const [weapon, count] of entries) add.run(id, weapon, count); })();
     };
 
     evaluate(id, now = Math.floor(Date.now() / 1000)) {
@@ -68,8 +92,8 @@ export class AchievementStore {
 
     publicList(username) {
         if (typeof username !== 'string' || !/^[A-Za-z0-9?!._-]{3,}$/.test(username)) return null;
-        const user = this.db.prepare('SELECT account_id, username, kills FROM users WHERE username = ?').get(username);
-        return user ? { username: user.username, achievements: this.list(user), featured: this.featured(user.account_id) } : null;
+        const user = this.db.prepare('SELECT account_id, username, kills, deaths FROM users WHERE username = ?').get(username);
+        return user ? { username: user.username, achievements: this.list({ ...user, weapons: this.weapons(user.account_id) }), featured: this.featured(user.account_id) } : null;
     };
 
     featured(id) {

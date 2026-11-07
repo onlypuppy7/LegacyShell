@@ -1,6 +1,7 @@
 import { ss } from '#misc';
 import sess from '#sessionManagement';
 import { AchievementStore } from './storage.js';
+import { GameChallenges } from './definitions.js';
 
 const maxWatchers = 3; //subscribed sockets kept per account, the oldest go first
 
@@ -10,15 +11,15 @@ export class AchievementService {
         this.sessions = sessions;
         this.watchers = new Map();
         plugins.on('services:initTables', () => this.store);
-        for (const event of ['addKill', 'validateRegisterSuccess', 'validateLoginSuccess', 'validateLoginViaAuthTokenSuccess']) {
+        for (const event of ['addKill', 'addDeath', 'validateRegisterSuccess', 'validateLoginSuccess', 'validateLoginViaAuthTokenSuccess']) {
             plugins.on('services:' + event, async ({ userData }) => {
                 if (!userData?.account_id) return;
                 const earned = this.store.evaluate(userData.account_id);
-                if (earned.length || event === 'addKill') await this.broadcast(userData.account_id);
+                if (earned.length || event === 'addKill' || event === 'addDeath') await this.broadcast(userData.account_id);
             });
         };
         plugins.on('services:unhandledCommand', async data => {
-            if (!['achievementsGet', 'achievementsWatch', 'achievementsClaim', 'achievementsSeen', 'achievementsFeature', 'achievementsZombiesWin'].includes(data.msg.cmd)) return;
+            if (!['achievementsGet', 'achievementsWatch', 'achievementsClaim', 'achievementsSeen', 'achievementsFeature', 'achievementsZombiesWin', 'achievementsChallenge', 'achievementsWeaponKills'].includes(data.msg.cmd)) return;
             plugins.cancel = true;
             try { await this.handle(data); }
             catch (error) {
@@ -49,12 +50,17 @@ export class AchievementService {
     };
 
     async handle({ msg, ws, ip, accs }) {
-        if (msg.cmd === 'achievementsZombiesWin') {
+        if (msg.cmd === 'achievementsZombiesWin' || msg.cmd === 'achievementsChallenge' || msg.cmd === 'achievementsWeaponKills') {
+            //the older zombies command can only mean the zombies challenge, the new one names a challenge the game server is allowed to report
+            const achievement = msg.cmd === 'achievementsZombiesWin' ? 'zombies_no_primary' : msg.achievement;
             if (typeof msg.auth_key !== 'string' || !msg.auth_key || !accs || !await accs.getAuthKeyData(msg.auth_key)) throw new Error('Game server authentication required.');
+            const weapons = msg.cmd === 'achievementsWeaponKills'; //kills per weapon, counted by the game server and sent in batches
+            if (!weapons && !GameChallenges.has(achievement)) throw new Error('That challenge cannot be reported.');
             const list = this.store.publicList(msg.username);
             if (!list) throw new Error('Player not found.');
             const { account_id: id } = this.store.db.prepare('SELECT account_id FROM users WHERE username = ?').get(list.username);
-            this.store.unlock(id, 'zombies_no_primary');
+            if (weapons) { this.store.addWeaponKills(id, msg.kills); this.store.evaluate(id); }
+            else this.store.unlock(id, achievement);
             this.send(ws, { type: 'recorded' }, msg.requestId);
             await this.broadcast(id);
             return;

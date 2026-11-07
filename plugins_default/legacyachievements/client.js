@@ -385,9 +385,20 @@ export const LegacyAchievements = {
         };
         const close = this.element('button', 'la-popup-close', '×', popup);
         close.type = 'button'; close.setAttribute('aria-label', 'Dismiss achievement'); close.onclick = () => this.dismiss();
-        try { playSoundIndependent2D('ammo', { vol: .55 }); } catch { };
+        this.chime();
         if (this.socket?.readyState === 1) this.socket.send(JSON.stringify({ cmd: 'achievementsSeen', achievement: achievement.id, session: playerAccount.session }));
         this.popupTimer = setTimeout(() => this.dismiss(), this.state.hasClaimed ? 6500 : 10000);
+    },
+
+    //the unlock and redeem sounds, a plain audio element so it needs nothing from the game's sound list. they follow the volume slider and stay quiet at 0
+    chime(name = 'achievement.mp3') {
+        try {
+            const volume = (typeof settings === 'object' && Number.isFinite(settings.volume) ? settings.volume : 1) * .55;
+            if (!(volume > 0)) return;
+            const audio = new Audio('/legacyachievements/sfx/' + name);
+            audio.volume = Math.min(1, volume);
+            audio.play()?.catch?.(() => { });
+        } catch { };
     },
 
     dismiss() {
@@ -516,7 +527,7 @@ export const LegacyAchievements = {
             claim.type = 'button';
             claim.onclick = async () => {
                 claim.disabled = true;
-                try { await this.request('achievementsClaim', { achievement: achievement.id }); }
+                try { await this.request('achievementsClaim', { achievement: achievement.id }); this.chime('redeem.wav'); }
                 catch (error) {
                     if (!claim.isConnected) return;
                     claim.disabled = false;

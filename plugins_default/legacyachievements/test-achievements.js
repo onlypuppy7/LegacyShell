@@ -13,7 +13,7 @@ import { Plugin } from './index.js';
 
 function fixture() {
     const db = new Database(':memory:');
-    db.exec(`CREATE TABLE users (account_id INTEGER PRIMARY KEY, username TEXT UNIQUE, kills INTEGER DEFAULT 0,
+    db.exec(`CREATE TABLE users (account_id INTEGER PRIMARY KEY, username TEXT UNIQUE, kills INTEGER DEFAULT 0, deaths INTEGER DEFAULT 0,
         currentBalance INTEGER DEFAULT 1000, ownedItemIds TEXT DEFAULT '[200000]',
         upgradeProductId INTEGER DEFAULT 0, upgradeMultiplier INTEGER DEFAULT NULL,
         upgradeAdFree INTEGER DEFAULT 1, upgradeExpiryDate INTEGER DEFAULT 0);
@@ -56,7 +56,7 @@ test('showcases preserve order, only accept earned pins, and never grant or cons
         assert.equal(store.user(1).currentBalance, 1000);
         assert.deepEqual(store.publicList('other_egg').featured, []);
         assert.equal(store.list(store.user(1))[0].tier, null);
-        assert.deepEqual(store.list(store.user(1)).slice(1).map(entry => entry.tier), [1, 2, 3, 4, 5, 6, null]);
+        assert.deepEqual(store.list(store.user(1)).slice(1).map(entry => entry.tier), [...Array(2).fill([1, 2, 3, 4, 5, 6, 7, 8]).flat(), 1, 2, 3, ...Array(6).fill([1, 2, 3, 4, 5, 6, 7, 8]).flat(), null, 1, null, 1, 2, null, 3, null, null, null, 2, null, 4]); //kills and deaths of eight tiers, the zombies of three, six weapons of eight, then the challenges (easiest first), where Air Mail is two tiers and Hard Boiled four
         store.feature(1, []);
         assert.deepEqual(store.featured(1), []);
     } finally { db.close(); };
@@ -102,7 +102,7 @@ test('skin rewards deduplicate and VIP time extends existing expiry without down
             upgradeMultiplier = 4, upgradeAdFree = 0, upgradeExpiryDate = 50000 WHERE account_id = 1`);
         store.evaluate(1, 100);
         const result = store.claim(1, 'kills_100', 1000);
-        assert.equal(result.account.currentBalance, 3500);
+        assert.equal(result.account.currentBalance, 2000);
         assert.deepEqual(result.account.ownedItemIds, [200000, 200001]);
         assert.equal(result.account.upgradeExpiryDate, 53600);
         assert.equal(result.account.upgradeProductId, 3);
@@ -203,11 +203,11 @@ test('zombies unlock reports require a trusted game server and cannot forge rewa
         for (const auth_key of [undefined, '', 'invalid', {}]) {
             await invoke({ cmd: 'achievementsZombiesWin', username: 'first_egg', session: 'browser', auth_key });
             assert.equal(ws.sent.at(-1).legacyachievements.type, 'error');
-            assert.equal(service.store.publicList('first_egg').achievements.at(-1).unlockedAt, null);
+            assert.equal(service.store.publicList('first_egg').achievements.find(entry => entry.id === 'zombies_no_primary').unlockedAt, null);
         };
         const msg = { cmd: 'achievementsZombiesWin', username: 'first_egg', auth_key: 'test-game-key', achievement: 'kills_10000', reward: { eggs: 999999 } };
         await invoke(msg);
-        const row = service.store.publicList('first_egg').achievements.at(-1);
+        const row = service.store.publicList('first_egg').achievements.find(entry => entry.id === 'zombies_no_primary');
         assert.equal(row.id, 'zombies_no_primary');
         assert.equal(row.progress, 1);
         assert.ok(row.unlockedAt);
@@ -215,7 +215,7 @@ test('zombies unlock reports require a trusted game server and cannot forge rewa
         assert.deepEqual(row.reward, { eggs: 2500 });
         assert.equal(service.store.publicList('first_egg').achievements.find(entry => entry.id === 'kills_10000').unlockedAt, null);
         await invoke(msg);
-        assert.equal(service.store.publicList('first_egg').achievements.at(-1).unlockedAt, row.unlockedAt);
+        assert.equal(service.store.publicList('first_egg').achievements.find(entry => entry.id === 'zombies_no_primary').unlockedAt, row.unlockedAt);
         assert.equal(service.store.claim(1, 'zombies_no_primary').account.currentBalance, 3500);
         assert.equal(service.store.claim(1, 'zombies_no_primary').account.currentBalance, 3500);
         assert.equal(service.store.user(2).currentBalance, 1000);
@@ -225,7 +225,7 @@ test('zombies unlock reports require a trusted game server and cannot forge rewa
 test('kill milestones use their thresholds as IDs and unlock only at the authoritative total', () => {
     const { db, store } = fixture();
     try {
-        const milestones = [5, 100, 500, 1000, 5000, 10000];
+        const milestones = [5, 100, 500, 1000, 5000, 10000, 25000, 100000];
         for (const goal of milestones) {
             db.prepare('UPDATE users SET kills = ? WHERE account_id = 1').run(goal - 1);
             store.evaluate(1);
@@ -245,7 +245,7 @@ test('browser code minifies, loads without profiles, and definitions have real e
     const ids = new Set();
     for (const definition of AchievementDefinitions) {
         assert.equal(ids.has(definition.id), false); ids.add(definition.id);
-        const image = definition.image ? new URL('../../server-client/src/client-imgs' + definition.image, import.meta.url) : new URL('client/img/placeholder.png', import.meta.url);
+        const image = definition.image?.startsWith('/legacyachievements/') ? new URL('client' + definition.image.slice('/legacyachievements'.length), import.meta.url) : definition.image ? new URL('../../server-client/src/client-imgs' + definition.image, import.meta.url) : new URL('client/img/placeholder.png', import.meta.url);
         assert.equal(fs.existsSync(image), true);
         assert.equal(definition.reward.eggs > 0, true);
     };
@@ -353,7 +353,7 @@ test('achievement filters combine category, status and search while the tab keep
     const locked = { ...AchievementDefinitions[3], unlockedAt: null, claimedAt: null };
     const ready = { ...AchievementDefinitions[1], unlockedAt: 100, claimedAt: null };
     const claimed = { ...ready, claimedAt: 101 };
-    assert.equal(matches(locked, 'Combat', 'locked', 'CRACKING III'), true);
+    assert.equal(matches(locked, 'Combat', 'locked', 'KILLS III'), true);
     assert.equal(matches(locked, 'Account', '', ''), false);
     assert.equal(matches(ready, 'Combat', 'ready', '5 eggs'), true);
     assert.equal(matches(ready, '', 'claimed', ''), false);
@@ -363,11 +363,11 @@ test('achievement filters combine category, status and search while the tab keep
     assert.equal(matches(ready, '', '', 'missing achievement'), false);
     const achievements = AchievementDefinitions.map(entry => ({ ...entry, unlockedAt: null }));
     context.client.updateCount({ achievements });
-    assert.equal(button.textContent, 'Achievements 0/8');
+    assert.equal(button.textContent, 'Achievements 0/81');
     achievements[1].unlockedAt = 100;
     context.client.updateCount({ achievements });
-    assert.equal(button.textContent, 'Achievements 1/8');
-    assert.equal(section.label, 'Achievements 1/8');
+    assert.equal(button.textContent, 'Achievements 1/81');
+    assert.equal(section.label, 'Achievements 1/81');
 });
 
 test('reward icons reuse ItemToolTips, support focus and clean up tooltips when their list is removed', () => {
@@ -410,10 +410,11 @@ test('a claim refreshes account inventory, VIP and the own profile without reloa
 });
 
 test('popup queue plays one sound per unlock, shows first-redemption help and handles missing images', () => {
-    const body = new Element(), sent = [], sounds = [];
+    const body = new Element(), sent = [], sounds = [], settings = { volume: 1 };
+    class Audio { constructor(src) { this.src = src; sounds.push(this); }; play() { this.played = true; return Promise.resolve(); }; }
     const context = vm.createContext({ isClient: false, playerAccount: { isLoggedIn: true, username: 'first_egg', session: 'token' },
         document: { body, createElement: () => new Element() }, catalog: { findItemById() {} },
-        setTimeout: () => 1, clearTimeout() {}, playSoundIndependent2D: (...args) => sounds.push(args) });
+        setTimeout: () => 1, clearTimeout() {}, Audio, settings });
     vm.runInContext(misc.prepareForClient(fs.readFileSync(new URL('client.js', import.meta.url), 'utf8')) + '\nglobalThis.client = LegacyAchievements;', context);
     const client = context.client;
     client.key = 'first_egg\ntoken'; client.socket = { readyState: 1, send: data => sent.push(JSON.parse(data)) };
@@ -421,6 +422,9 @@ test('popup queue plays one sound per unlock, shows first-redemption help and ha
     const snapshot = { username: 'first_egg', pending: achievements.map(entry => entry.id), achievements, hasClaimed: false, type: 'snapshot' };
     client.receive(snapshot); client.receive(snapshot);
     assert.equal(sounds.length, 1);
+    assert.equal(sounds[0].src, '/legacyachievements/sfx/achievement.mp3');
+    assert.equal(sounds[0].played, true);
+    assert.ok(Math.abs(sounds[0].volume - .55) < 1e-9);
     assert.equal(client.queue.length, 1);
     const text = element => [element.textContent || '', ...element.children.map(text)].join(' ');
     assert.match(text(client.popup), /Redeem your reward from your profile/);
@@ -430,6 +434,13 @@ test('popup queue plays one sound per unlock, shows first-redemption help and ha
     client.dismiss();
     assert.equal(sounds.length, 2);
     assert.doesNotMatch(text(client.popup), /Redeem your reward from your profile/);
+    settings.volume = 0; client.chime(); //muted in the game settings
+    assert.equal(sounds.length, 2);
+    settings.volume = .5; client.chime();
+    assert.ok(Math.abs(sounds.at(-1).volume - .275) < 1e-9);
+    client.chime('redeem.wav');
+    assert.equal(sounds.at(-1).src, '/legacyachievements/sfx/redeem.wav');
+    for (const file of ['achievement.mp3', 'redeem.wav']) assert.ok(fs.statSync(new URL('client/sfx/' + file, import.meta.url)).size > 1000);
     const image = client.image({ image: '/missing.png' }, body);
     image.onerror();
     assert.equal(image.src, '/legacyachievements/img/placeholder.png');
@@ -450,4 +461,156 @@ test('an older public lookup cannot overwrite a different profile tab', async ()
     resolve({ achievements: [] });
     await render;
     assert.equal(pane.children[0], loadout);
+});
+
+test('game challenges are reported by name, only for ids the game server may report, and never pay out directly', async () => {
+    const { db } = fixture(), events = {};
+    const service = new AchievementService({ on: (event, listener) => events[event] = listener }, () => ({ db }), {});
+    const ws = new Socket();
+    const accs = { getAuthKeyData: async key => key === 'test-game-key' ? { name: 'test server' } : null };
+    const invoke = msg => events['services:unhandledCommand']({ msg, ws, accs });
+    const row = id => service.store.publicList('first_egg').achievements.find(entry => entry.id === id);
+    try {
+        await invoke({ cmd: 'achievementsChallenge', username: 'first_egg', achievement: 'shutdown', auth_key: 'invalid' });
+        assert.equal(ws.sent.at(-1).legacyachievements.type, 'error');
+        assert.equal(row('shutdown').unlockedAt, null);
+        for (const achievement of [undefined, 'nope', 'fresh_egg', 'kills_10000', 5, {}]) {
+            await invoke({ cmd: 'achievementsChallenge', username: 'first_egg', achievement, auth_key: 'test-game-key' });
+            assert.equal(ws.sent.at(-1).legacyachievements.type, 'error');
+        };
+        assert.equal(row('kills_10000').unlockedAt, null);
+        assert.equal(row('fresh_egg').claimedAt, null);
+        const rewards = { shutdown: 1000, revenge_fried: 500, long_shot: 2500, last_gasp: 1500, from_beyond: 2500, omelette: 5000, air_mail: 1000 };
+        for (const [achievement, eggs] of Object.entries(rewards)) {
+            await invoke({ cmd: 'achievementsChallenge', username: 'first_egg', achievement, auth_key: 'test-game-key', reward: { eggs: 999999 } });
+            assert.equal(ws.sent.at(-1).legacyachievements.type, 'recorded');
+            assert.ok(row(achievement).unlockedAt);
+            assert.equal(row(achievement).claimedAt, null);
+            assert.deepEqual(row(achievement).reward, { eggs });
+            assert.equal(row(achievement).image, '/legacyachievements/img/placeholder.png');
+        };
+        const balance = service.store.user(1).currentBalance;
+        await invoke({ cmd: 'achievementsChallenge', username: 'first_egg', achievement: 'omelette', auth_key: 'test-game-key' });
+        assert.equal(service.store.user(1).currentBalance, balance);
+        assert.equal(service.store.claim(1, 'omelette').account.currentBalance, balance + 5000);
+        assert.equal(service.store.claim(1, 'omelette').account.currentBalance, balance + 5000);
+        assert.equal(service.store.user(2).currentBalance, 1000);
+    } finally { service.dispose(); db.close(); };
+});
+
+test('death milestones use their thresholds as IDs, unlock only at the authoritative total and do not count towards kills', () => {
+    const { db, store } = fixture();
+    try {
+        for (const goal of [5, 100, 500, 1000, 5000, 10000, 25000, 100000]) {
+            db.prepare('UPDATE users SET deaths = ? WHERE account_id = 1').run(goal - 1);
+            store.evaluate(1);
+            assert.equal(store.list(store.user(1)).find(entry => entry.id === 'deaths_' + goal).unlockedAt, null);
+            db.prepare('UPDATE users SET deaths = ? WHERE account_id = 1').run(goal);
+            assert.deepEqual(store.evaluate(1), ['deaths_' + goal]);
+        };
+        const list = store.list(store.user(1));
+        assert.equal(list.filter(entry => entry.id.startsWith('kills_') && entry.unlockedAt).length, 0);
+        assert.equal(list.find(entry => entry.id === 'deaths_5').name, 'Deaths I');
+        assert.equal(list.find(entry => entry.id === 'deaths_100000').name, 'Deaths VIII');
+        assert.equal(list.find(entry => entry.id === 'deaths_100000').image, '/legacyachievements/img/deaths-8.svg');
+    } finally { db.close(); };
+});
+
+test('dying checks the death tiers and tells anyone watching, like a kill does', async () => {
+    const { db } = fixture(), events = {};
+    const service = new AchievementService({ on: (event, listener) => events[event] = listener }, () => ({ db }), {});
+    try {
+        assert.equal(typeof events['services:addDeath'], 'function');
+        db.prepare('UPDATE users SET deaths = 5 WHERE account_id = 1').run();
+        await events['services:addDeath']({ userData: { account_id: 1 } });
+        assert.ok(service.store.list(service.store.user(1)).find(entry => entry.id === 'deaths_5').unlockedAt);
+        await events['services:addDeath']({ userData: {} });
+    } finally { service.dispose(); db.close(); };
+});
+
+test('grades order the single challenges easiest first, set their default reward, and every tier line has eight tiers and a badge', () => {
+    const challenges = AchievementDefinitions.filter(definition => definition.category === 'Challenges');
+    assert.deepEqual(challenges.map(definition => definition.grade), [...challenges.map(definition => definition.grade)].sort((a, b) => a - b));
+    for (const definition of AchievementDefinitions.filter(definition => !definition.tier)) assert.ok(Number.isInteger(definition.grade) && definition.grade >= 1 && definition.grade <= 8, definition.id);
+    const eggs = id => AchievementDefinitions.find(definition => definition.id === id).reward.eggs;
+    assert.deepEqual(['revenge_fried', 'shutdown', 'last_gasp', 'long_shot', 'omelette'].map(eggs), [500, 1000, 1500, 2500, 5000]);
+    assert.equal(eggs('zombies_no_primary'), 2500);
+    const lines = new Map();
+    for (const definition of AchievementDefinitions.filter(definition => definition.tier && definition.icon)) { //(Air Mail's two tiers are challenges with no badge of their own yet)
+        lines.set(definition.icon, [...(lines.get(definition.icon) || []), definition]);
+        assert.equal(definition.image, '/legacyachievements/img/' + definition.icon + '-' + definition.tier + '.svg');
+    };
+    assert.deepEqual([...lines.keys()], ['kills', 'deaths', 'zombies', 'eggk47', 'dozen', 'csg1', 'rpegg', 'cluck', 'grenade']);
+    for (const line of lines.values()) {
+        assert.deepEqual(line.map(definition => definition.tier), line[0].icon === 'zombies' ? [1, 2, 3] : [1, 2, 3, 4, 5, 6, 7, 8]);
+        assert.deepEqual(line.map(definition => definition.goal), [...line.map(definition => definition.goal)].sort((a, b) => a - b));
+        assert.deepEqual(line.map(definition => definition.reward.eggs), [...line.map(definition => definition.reward.eggs)].sort((a, b) => a - b));
+    };
+    //the whole kills line stays smaller than what it was, weapon tiers on top of it would be too much otherwise
+    assert.ok(AchievementDefinitions.filter(definition => definition.icon === 'kills').reduce((total, definition) => total + definition.reward.eggs, 0) < 200000);
+});
+
+test('weapon kills only add up through the store and unlock the weapon tiers at their goals', () => {
+    const { db, store } = fixture();
+    try {
+        for (const bad of [null, [], {}, { nope: 1 }, { eggk47: 0 }, { eggk47: 1.5 }, { eggk47: 1001 }, { eggk47: '5' }]) assert.throws(() => store.addWeaponKills(1, bad), /cannot be recorded/);
+        assert.throws(() => store.addWeaponKills(99, { eggk47: 1 }), /not found/);
+        store.addWeaponKills(1, { eggk47: 24, grenade: 9 });
+        assert.deepEqual(store.evaluate(1), ['fresh_egg']); //one short of both, only the account one
+        assert.equal(store.list(store.user(1)).find(entry => entry.id === 'eggk47_25').progress, 24);
+        store.addWeaponKills(1, { eggk47: 1, grenade: 1, cluck: 100 });
+        assert.deepEqual(store.evaluate(1).sort(), ['cluck_100', 'cluck_25', 'eggk47_25', 'grenade_10']);
+        assert.equal(store.publicList('first_egg').achievements.find(entry => entry.id === 'cluck_100').unlockedAt > 0, true);
+        assert.equal(store.publicList('other_egg').achievements.find(entry => entry.id === 'eggk47_25').progress, 0);
+        assert.deepEqual(store.weapons(2), {});
+    } finally { db.close(); };
+});
+
+test('weapon kill batches need a trusted game server and only count real weapons', async () => {
+    const { db } = fixture(), events = {};
+    const service = new AchievementService({ on: (event, listener) => events[event] = listener }, () => ({ db }), {});
+    const ws = new Socket();
+    const accs = { getAuthKeyData: async key => key === 'test-game-key' ? { name: 'test server' } : null };
+    const invoke = msg => events['services:unhandledCommand']({ msg, ws, accs });
+    const row = id => service.store.publicList('first_egg').achievements.find(entry => entry.id === id);
+    try {
+        await invoke({ cmd: 'achievementsWeaponKills', username: 'first_egg', kills: { eggk47: 30 }, auth_key: 'invalid' });
+        assert.equal(ws.sent.at(-1).legacyachievements.type, 'error');
+        for (const kills of [{ nope: 5 }, { eggk47: -1 }, 'eggk47', null]) {
+            await invoke({ cmd: 'achievementsWeaponKills', username: 'first_egg', kills, auth_key: 'test-game-key' });
+            assert.equal(ws.sent.at(-1).legacyachievements.type, 'error');
+        };
+        await invoke({ cmd: 'achievementsWeaponKills', username: 'nobody_here', kills: { eggk47: 30 }, auth_key: 'test-game-key' });
+        assert.equal(ws.sent.at(-1).legacyachievements.type, 'error');
+        assert.equal(row('eggk47_25').unlockedAt, null);
+        await invoke({ cmd: 'achievementsWeaponKills', username: 'first_egg', kills: { eggk47: 20 }, auth_key: 'test-game-key' });
+        assert.equal(ws.sent.at(-1).legacyachievements.type, 'recorded');
+        assert.equal(row('eggk47_25').progress, 20);
+        await invoke({ cmd: 'achievementsWeaponKills', username: 'first_egg', kills: { eggk47: 5, rpegg: 25 }, auth_key: 'test-game-key' });
+        assert.ok(row('eggk47_25').unlockedAt);
+        assert.ok(row('rpegg_25').unlockedAt);
+        assert.deepEqual(row('eggk47_25').reward, { eggs: 100 });
+        assert.equal(row('eggk47_25').claimedAt, null);
+        assert.equal(service.store.user(2).currentBalance, 1000);
+    } finally { service.dispose(); db.close(); };
+});
+
+test('Air Mail II counts the weapons a mid-jump kill has been made with, and unlocks on the sixth', () => {
+    const { db, store } = fixture();
+    try {
+        const air = () => store.list(store.user(1)).find(entry => entry.id === 'air_mail_every_weapon');
+        assert.equal(air().goal, 6);
+        assert.equal(air().tier, 2);
+        assert.equal(store.list(store.user(1)).find(entry => entry.id === 'air_mail').tier, 1); //the challenge it follows, under the id it always had
+        store.evaluate(1); //(Fresh Egg and the like, out of the way)
+        for (const bad of [{ air_whipper: 1 }, { air_zombies: 1 }, { air_eggk47: 0 }, { air_eggk47: 1.5 }]) assert.throws(() => store.addWeaponKills(1, bad), /cannot be recorded/);
+        store.addWeaponKills(1, { air_eggk47: 3, air_dozen: 1, air_csg1: 1, air_rpegg: 1, air_cluck: 1, eggk47: 5 });
+        assert.deepEqual(store.evaluate(1), []);
+        assert.equal(air().progress, 5); //a weapon counts once however many kills it has
+        store.addWeaponKills(1, { air_grenade: 1 });
+        assert.deepEqual(store.evaluate(1), ['air_mail_every_weapon']);
+        assert.equal(air().progress, 6);
+        assert.ok(air().unlockedAt);
+        assert.equal(air().reward.eggs, 2500);
+    } finally { db.close(); };
 });

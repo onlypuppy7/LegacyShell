@@ -9,25 +9,65 @@ Runs on **services, game and client**. LegacyProfiles is used for the Achievemen
 | Category | Achievement | Requirement | Reward |
 | --- | --- | --- | --- |
 | Account | Fresh Egg | Make an account | 250 eggs |
-| Combat | Getting Cracking I | 5 lifetime kills | 500 eggs |
-| Combat | Getting Cracking II | 100 lifetime kills | 2,500 eggs, Eggk47 GOLD, 1 hour VIP |
-| Combat | Getting Cracking III | 500 lifetime kills | 5,000 eggs |
-| Combat | Getting Cracking IV | 1,000 lifetime kills | 10,000 eggs |
-| Combat | Getting Cracking V | 5,000 lifetime kills | 25,000 eggs |
-| Combat | Getting Cracking VI | 10,000 lifetime kills | 50,000 eggs |
-| Challenges | Sidearm Survivor | Survive a full Zombies round on Blue with at least 50 kills, without firing a primary | 2,500 eggs |
+| Combat | Kills I–VIII | 5 / 100 / 500 / 1,000 / 5,000 / 10,000 / 25,000 / 100,000 lifetime kills | 250 / 1,000 (+ Eggk47 GOLD and 1 hour VIP) / 2,500 / 5,000 / 10,000 / 20,000 / 40,000 / 100,000 eggs |
+| Combat | Deaths I–VIII | 5 / 100 / 500 / 1,000 / 5,000 / 10,000 / 25,000 / 100,000 lifetime deaths | 100 / 500 / 1,000 / 2,000 / 5,000 / 10,000 / 20,000 / 50,000 eggs |
+| Combat | Rotten Eggs I–III | 250 / 2,500 / 10,000 zombies killed in the Zombies gamemode | 500 / 2,500 / 10,000 eggs |
+| Weapons | Eggk-cellent Soldier I–VIII | 25 / 100 / 250 / 500 / 1,000 / 2,500 / 5,000 / 10,000 kills with the Eggk47 | 100 / 250 / 500 / 1,000 / 2,500 / 5,000 / 10,000 / 20,000 eggs |
+| Weapons | Scrambled Legs I–VIII | 25 / 100 / 250 / 500 / 1,000 / 2,500 / 5,000 / 10,000 kills with the Dozen Gauge | 100 / 250 / 500 / 1,000 / 2,500 / 5,000 / 10,000 / 20,000 eggs |
+| Weapons | Free Range I–VIII | 25 / 100 / 250 / 500 / 1,000 / 2,500 / 5,000 / 10,000 kills with the CSG-1 | 100 / 250 / 500 / 1,000 / 2,500 / 5,000 / 10,000 / 20,000 eggs |
+| Weapons | Big Bang Theory I–VIII | 25 / 100 / 250 / 500 / 1,000 / 2,500 / 5,000 / 10,000 kills with the RPEGG | 100 / 250 / 500 / 1,000 / 2,500 / 5,000 / 10,000 / 20,000 eggs |
+| Weapons | Pea Shooter I–VIII | 25 / 100 / 250 / 500 / 1,000 / 2,500 / 5,000 / 10,000 kills with the Cluck 9mm | 100 / 250 / 500 / 1,000 / 2,500 / 5,000 / 10,000 / 20,000 eggs |
+| Weapons | Shellshock I–VIII | 10 / 50 / 100 / 250 / 500 / 1,000 / 2,500 / 5,000 kills with grenades | 100 / 250 / 500 / 1,000 / 2,500 / 5,000 / 10,000 / 20,000 eggs |
+
+Single challenges, easiest first. The grade picks the hexagon of the badge and the reward when none is given.
+
+| Grade | Achievement | Requirement | Reward |
+| --- | --- | --- | --- |
+| 1 (bronze) | Revenge Is Best Served Fried | Kill whoever last killed you | 500 eggs |
+| 2 (silver) | Shutdown | End someone's streak of 10 or more | 1,000 eggs |
+| 2 (silver) | Air Mail I | Get a kill while mid-jump | 1,000 eggs |
+| 4 (platinum) | Air Mail II | Get a kill while mid-jump with every gun | 2,500 eggs |
+| 3 (gold) | Last Gasp | Get a kill while on 10 HP or less | 1,500 eggs |
+| 4 (platinum) | Sidearm Survivor | Survive a full Zombies round on Blue with at least 50 kills, without firing a primary | 2,500 eggs |
+| 4 (platinum) | Long Shot | Get a CSG-1 kill from 40 metres or more | 2,500 eggs |
+| 4 (platinum) | From Beyond the Shell | Get a kill after you have died | 2,500 eggs |
+| 5 (ruby) | Omelette | Get 3 or more kills with a single explosion | 5,000 eggs |
+| 1 (bronze) | Hard Boiled I | Survive a Zombies round | 500 eggs |
+| 2 (silver) | Hard Boiled II | Survive 3 Zombies rounds in a row | 1,000 eggs |
+| 3 (gold) | Hard Boiled III | Survive 5 Zombies rounds in a row | 1,500 eggs |
+| 5 (ruby) | Hard Boiled IV | Survive 10 Zombies rounds in a row | 5,000 eggs |
 
 Existing accounts qualify too. Signing in or connecting to achievements checks the authoritative account totals, so past kills count. Kills come from the existing services `addKill` event, never a client progress message. Guests cannot earn or claim account rewards.
 
-Achievements use existing game PNGs where assigned. Locked achievements are greyed out, with progress underneath. Unassigned or missing images fall back to `client/img/placeholder.png`, copied from the existing notification icon. The popup uses the game's fonts, cream/brown/orange colours and buttons; it plays the existing `ammo` sound as a placeholder. It queues multiple unlocks without stealing keyboard focus. If no reward has ever been redeemed on the account, the popup explains that rewards are redeemed from the profile.
+Every tier line has its own badge SVGs in `client/img/` (`kills-1.svg` to `kills-8.svg`, and the same for `deaths`, `eggk47`, `dozen`, `csg1`, `rpegg`, `cluck` and `grenade`, bronze to RGB; gold and above have animated sparkles, the gems shimmer; built by `legacyprofiles/badges/build-badges.js`) Sidearm Survivor has its own badge too, a silver hexagon with the zombie egg and a pistol (`sidearm-survivor.svg`).. Other achievements use existing game PNGs where assigned. Locked achievements are greyed out, with progress underneath. Unassigned or missing images fall back to `client/img/placeholder.png`, copied from the existing notification icon. The popup uses the game's fonts, cream/brown/orange colours and buttons; it plays `client/sfx/achievement.mp3` (the Plants vs. Zombies achievement sound, an audio element at 55% of the game's volume setting, silent when it is at 0). A successful Redeem plays `client/sfx/redeem.wav` the same way. It queues multiple unlocks without stealing keyboard focus. If no reward has ever been redeemed on the account, the popup explains that rewards are redeemed from the profile.
 
-The profile tab shows `Achievements X/Y` for the viewed account, independent of active filters. Achievements are grouped into category lists with search, category and status filters (locked, unlocked, rewards ready, redeemed). List rows carry the same category colour as their pins. Live progress updates preserve the filter controls, and claimed rewards keep the current filters. Kill tiers share a title with I–VI suffixes and use threshold-based IDs (`kills_5`, `kills_100`, etc.). No migration is included for the local development IDs.
+The profile tab shows `Achievements X/Y` for the viewed account, independent of active filters. Achievements are grouped into category lists with search, category and status filters (locked, unlocked, rewards ready, redeemed). List rows carry the same category colour as their pins. Live progress updates preserve the filter controls, and claimed rewards keep the current filters. Tier lines share a title (Kills, Deaths, Eggk-cellent Soldier and so on) with I–VIII suffixes and use threshold-based IDs (`kills_5`, `kills_100`, `deaths_5`, `eggk47_25`, etc.). Deaths come from the account total the services keep, checked on every `addDeath` like a kill. No migration is included for the local development IDs.
 
 Sidearm Survivor uses the ZombiesMode plugin's `zombiesRoundStarted` and `zombiesRoundFinished` events. On the installed Blue map, the game server records logged-in participants at the start, counts their scored kills through `scoreKillEggs`, observes actual primary ammunition consumption through a small wrapper around `Player.fire`, and checks surviving humans with at least 50 kills at the finish. Kills must be earned in that round; the victory cleanup does not count. Custom maps named Blue do not qualify. Dry fires and blocked shots do not count. Late joins and reconnects cannot qualify for that round; a cheat flag observed during the round disqualifies it. A registered game-server auth key is required to report the win to services. The browser cannot report progress for this challenge. It records an unlock only; rewards still need redemption in the profile.
+
+The seven kill challenges above are caught on the game server. It wraps `Player.die`, `Player.hit`, `Player.scoreKill` and `Bullet.collidesWithPlayer` (the same way the primary-shot watcher wraps `Player.fire`), so core is unchanged. Each kill is read as it is scored: the victim's streak is captured as they die (the game zeroes it first), the killer's hp, jump and death state are read when the kill lands, and a CSG-1 kill is known from the bullet's weapon. An explosion is any hit that arrives outside a bullet with a damage figure; every player one blast hits shares the shooter and blast position, so three kills from the same pair within 100 ms count as one omelette. Falls, suicides and guests never count, and neither does anything in a room with cheats on.
+
+Air Mail II is the second tier of Air Mail (Air Mail I keeps the `air_mail` id it always had, so existing unlocks are untouched). Each mid-jump kill, one the killer lands with their feet off the ground and not on a ladder, is also counted for the weapon that made it, as `air_<weapon>` next to the weapon kills (`air_eggk47`, `air_dozen` and so on), and goes to the services in the same ten second batch, which only accepts those keys and weapons. "Every gun" is every weapon that has a tier line in `definitions.js` (each one adds itself to `MidairWeapons`, which also sets the goal), so adding a gun's tier line adds it here too. A weapon counts once however many such kills it has, so the profile shows progress out of the number of guns (6 today). Mid-jump kills on zombies count for their weapon too, and guests and rooms with cheats on never count. There is no badge art for either tier yet (they use the placeholder).
+
+Hard Boiled is a run of Zombies rounds survived as a human, counted per player by the game server (`ZombieRoundGoals` in `definitions.js`). Surviving a round the humans won adds one, and any round they are in without surviving it (bitten, joined the horde, the horde winning) starts them back at nothing, as does leaving the room. Guests and cheats never count. The goals are reported through `achievementsChallenge` as `zombie_rounds_<n>`, and like the other challenges they use the placeholder image and need redeeming in the profile.
+
+Zombie kills (a kill in a Zombies room on the other team) are their own count, `zombies`, kept like a weapon's: they never add to a weapon's tiers, and ZombiesMode already keeps them out of the account's kills by cancelling the default kill reward. The badges (`zombies-1.svg` to `zombies-3.svg`) are the Sidearm Survivor's zombie egg and crosshair without the pistol.
+
+Long Shot is measured in game units, one unit being a metre, and needs 40 (`longShotUnits` in `game.js`). The CSG-1 bullet travels 50 units, so that is the furthest it can ever be. From Beyond the Shell needs the killer to have been dead for a quarter of a second, so a blast that takes you out with them does not count.
+
+Each is reported once per account and server through `achievementsChallenge` (`{ auth_key, username, achievement }`). Services only accept ids in `GameChallenges` (the Sidearm Survivor and every `metric: 'game'` definition) from a registered game server, so a report cannot unlock a kill tier or pay anything out. Like Sidearm Survivor they only unlock; rewards still need redeeming in the profile. These use the default placeholder image until they have their own.
 
 Eggs, exact skin thumbnails and VIP time are small reward icons in the list and popup. The optional ItemToolTips plugin supplies the hover tooltips; reward icons also support keyboard focus. Without it, icons retain native title tooltips and accessible labels. Tooltips are removed when rows are filtered, tabs change, popups are dismissed or the profile closes. Skin and stamp thumbnails reuse the existing item renderer at its native 256px size, displayed small in CSS.
 
 Unlocking does **not** grant the reward. Open your profile's Achievements tab and press **Redeem** on an unlocked achievement. Other players can view achievements but cannot claim someone else's rewards. Earned, unclaimed rewards persist across logout and restarts. Popup acknowledgements are stored separately from redemption; dismissing a popup cannot lose a reward.
+
+## Tiers, grades and weapon kills
+
+A line of eight tiers is built by `line()` in `definitions.js`. `tier` is the roman numeral and also the hexagon its badge gets, 1 bronze to 8 rgb. Anything that is not a tier line carries a `grade` from 1 to 8 instead: it orders the single challenges easiest first (categories keep the order they first appear in, inside one the grade decides), it picks the hexagon of their badge, and it is the reward when a challenge names none (500, 1,000, 1,500, 2,500, 5,000, 10,000, 20,000 and 40,000 eggs). `icon` names the badge a definition is built from. The Weapons category has its own ribbon colour.
+
+Weapon tiers count lifetime kills with one weapon (`metric: 'weapon'`). The gun kills are read the same way as the kill challenges: a bullet names its weapon, and an explosion only has its damage, so a blast of the RPEGG's size (`RPEGG.damage`) counts for it and one of 130 for grenades (`grenadeDamage` in `game.js`). Only logged in humans count, never with cheats on. A kill a connection would be far too many, so the game server keeps the counts and sends them to the services in one batch every ten seconds (`achievementsWeaponKills`, `{ auth_key, username, kills: { eggk47: 3 } }`), putting a batch back if it cannot be sent. The services keep the totals in `achievement_weapon_kills`, accept only known weapons and counts up to 1,000 a message from a registered game server, and check the tiers on every batch. A crashed game server loses at most the last ten seconds.
+
+The badges are built by `legacyprofiles/badges/build-badges.js`, which reads the definitions: every one with an `icon` and an image gets a badge, with the hexagon of its tier or grade. The weapon icons are drawn flat in the master and come out with the same colours and gradient outline as the hand finished ones.
 
 ## Profile display pins
 
