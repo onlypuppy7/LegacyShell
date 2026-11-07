@@ -572,6 +572,20 @@ test('role icons distinguish guests, signed-in players and permission ranks', ()
     };
 });
 
+test('ranks with an icon from the admin panel use it, everyone else keeps the default', () => {
+    const svg = '<svg viewBox="0 0 1 1"><path d="M0 0h1v1z"/></svg>';
+    const context = vm.createContext({ isClient: false, permissions: { ranks: { 0: 'Guest', 1: 'Signed In', 5: 'Content Creator', 10: 'Moderator', 30: 'Helper' }, rankIcons: { 5: 'tiktok', 30: svg, 10: '../evil' } } });
+    vm.runInContext(misc.prepareForClient(fs.readFileSync(new URL('client.js', import.meta.url), 'utf8')) + '\nglobalThis.viewer = LegacyProfiles;', context);
+    const icon = (profile) => context.viewer.customIcon(profile);
+    assert.equal(icon({ rank: { value: 5 } }), '/legacyprofiles/icons/roles/tiktok.svg');
+    assert.equal(icon({ rank: { value: 7 } }), '/legacyprofiles/icons/roles/tiktok.svg', 'in between counts as the rank below');
+    assert.equal(icon({ rank: { value: 200 } }), 'data:image/svg+xml,' + encodeURIComponent(svg));
+    assert.equal(icon({ rank: { value: 10 } }), null, 'a made up name is not a path');
+    assert.equal(icon({ rank: { value: 1 } }), null);
+    assert.equal(icon({ guest: true, rank: { value: 30 } }), null);
+    assert.equal(icon({ bot: true, rank: { value: 30 } }), null);
+});
+
 test('leaderboard badges follow actual core row sorting without overwriting names, scores or ping icons', () => {
     class Element {
         constructor(tag) {
@@ -601,7 +615,7 @@ test('leaderboard badges follow actual core row sorting without overwriting name
         { id: 2, uniqueId: 8, name: 'Owner egg', score: 1, team: 1, adminRoles: 255 },
     ];
     const context = vm.createContext({
-        isClient: false, extern: {}, players_by_id: players, meId: 0, playerLimit: 4,
+        isClient: false, extern: {}, players_by_id: players, meId: 0, playerLimit: 4, maxServerSlots: 50,
         permissions: { ranks: { 0: 'Guest', 1: 'Signed In', 255: 'Superuser' } },
         gameOptions: { teamsEnabled: false }, lastLeadingTeam: 1,
         iteratePlayers(callback) { players.forEach((player, i) => { if (player) callback(player, i); }); },
@@ -629,11 +643,13 @@ test('leaderboard badges follow actual core row sorting without overwriting name
             assert.equal(row.children[0].innerText, player.name);
             assert.equal(row.children[1].innerText, player.score);
             assert.equal(row.querySelector('img').src, '/img/ping1.png');
-            assert.equal(badge.title, !player.uniqueId ? 'Guest' : profileRank(player.adminRoles, context.permissions.ranks).name);
-            assert.equal(badge.style['--lp-role-icon'], 'url("/legacyprofiles/icons/roles/' + context.viewer.rankIcon({ guest: !player.uniqueId, rank: profileRank(player.adminRoles) }) + '.svg")');
+            const bot = player.id >= 50;
+            if (!bot && !player.uniqueId) { assert.ok(!badge || badge.style.display === 'none'); return; }; //(a badge that is no use here is hidden, not rebuilt later)
+            assert.equal(badge.title, bot ? 'Bot' : profileRank(player.adminRoles, context.permissions.ranks).name);
+            assert.equal(badge.style['--lp-role-icon'], 'url("/legacyprofiles/icons/roles/' + context.viewer.rankIcon({ bot, rank: profileRank(player.adminRoles) }) + '.svg")');
             assert.equal(row.children.filter(child => child.className.includes('lp-rank-badge')).length, 1);
         });
-        for (let i = expected.length; i < list.children.length; i++) assert.equal(list.children[i].querySelector('.lp-rank-badge'), undefined);
+        for (let i = expected.length; i < list.children.length; i++) { const spare = list.children[i].querySelector('.lp-rank-badge'); assert.ok(!spare || spare.style.display === 'none'); };
     };
     check([players[1], players[0], players[2]]);
     const badge = list.children[0].querySelector('.lp-rank-badge');
@@ -647,6 +663,10 @@ test('leaderboard badges follow actual core row sorting without overwriting name
     check([players[0], players[2], players[1]]);
     players[0] = null;
     check([players[1], players[2]]);
+    players[3] = { id: 50, uniqueId: null, name: 'Bot egg', score: 100, team: 1, adminRoles: 0 };
+    check([players[3], players[2], players[1]]);
+    assert.equal(context.viewer.rankIcon({ bot: true, guest: true, rank: { value: 0 } }), 'bot');
+    assert.equal(fs.existsSync(new URL('client/icons/roles/bot.svg', import.meta.url)), true);
 });
 
 test('inventory supports broad categories and individual weapons with name search', () => {

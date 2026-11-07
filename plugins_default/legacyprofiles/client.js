@@ -14,6 +14,7 @@ export const LegacyProfiles = {
         pluginManager.on('game:onPageLoadedEnd', () => this.setup());
         pluginManager.on('game:setupComplete', () => this.setup());
         pluginManager.on('game:leaveGame', () => this.close());
+        pluginManager.on('game:playPressed', () => this.close());
         pluginManager.on('game:playerClicked', click => {
             if (click.handled) return;
             click.handled = true;
@@ -76,6 +77,8 @@ export const LegacyProfiles = {
         if (!player || player.uniqueId !== uniqueId) return;
         this.open(Number(uniqueId) > 0 ? player.username : null, { id, uniqueId, player });
     },
+
+    isBot(player) { return player.id >= maxServerSlots; }, //bots get out of bounds ids
 
     livePlayer() {
         if (!this.target || !inGame) return null;
@@ -174,9 +177,10 @@ export const LegacyProfiles = {
         const primary = [], secondary = [];
         primary[player.classIdx] = player.primaryWeaponItem?.id;
         secondary[player.classIdx] = player.secondaryWeaponItem?.id;
+        const bot = this.isBot(player);
         return {
-            username: null, guest: true,
-            rank: { name: 'Guest', value: 0 }, vip: { active: false }, inventory: [],
+            username: null, guest: true, bot,
+            rank: { name: bot ? 'Bot' : 'Guest', value: 0 }, vip: { active: false }, inventory: [],
             loadout: { classIdx: player.classIdx, colorIdx: player.shellColor, primaryId: primary, secondaryId: secondary, hatId: player.hatItem?.id, stampId: player.stampItem?.id },
         };
     },
@@ -217,6 +221,7 @@ export const LegacyProfiles = {
     ratio(kills, deaths) { return (Math.max(0, Number(kills) || 0) / Math.max(1, Number(deaths) || 0)).toFixed(2); },
 
     rankIcon(profile) {
+        if (profile.bot) return 'bot';
         if (profile.guest) return 'guest';
         const name = (profile.rank?.name || '').toLowerCase();
         if (name.includes('developer')) return 'developer';
@@ -230,13 +235,29 @@ export const LegacyProfiles = {
         return 'player';
     },
 
+    customIcon(profile) { //an icon picked for the rank in the admin panel's AdminRoles tab
+        if (profile.guest || profile.bot) return null;
+        const ranks = permissions.ranks || {}, icons = permissions.rankIcons || {};
+        const key = Object.keys(ranks).map(Number).filter(n => n <= profile.rank.value).sort((a, b) => b - a)[0];
+        const icon = icons[key];
+        if (typeof icon !== 'string') return null;
+        if (icon.startsWith('<')) return 'data:image/svg+xml,' + encodeURIComponent(icon);
+        return /^[a-z]+$/.test(icon) ? '/legacyprofiles/icons/roles/' + icon + '.svg' : null;
+    },
+
     roleBadge(profile, parent) {
         const badge = this.element('span', 'lp-role-icon', undefined, parent);
         badge.title = profile.rank.name;
         badge.setAttribute('role', 'img');
         badge.setAttribute('aria-label', profile.rank.name);
-        badge.style.setProperty('--lp-role-icon', 'url("/legacyprofiles/icons/roles/' + this.rankIcon(profile) + '.svg")');
+        this.styleRoleBadge(badge, profile);
         return badge;
+    },
+
+    styleRoleBadge(badge, profile) {
+        badge.title = profile.rank.name;
+        badge.setAttribute('aria-label', profile.rank.name);
+        badge.style.setProperty('--lp-role-icon', 'url("' + (this.customIcon(profile) || '/legacyprofiles/icons/roles/' + this.rankIcon(profile) + '.svg') + '")');
     },
 
     updateRankBadges() {
@@ -249,16 +270,23 @@ export const LegacyProfiles = {
         players.sort((a, b) => score(b) - score(a));
         for (let i = 0; i < list.children.length; i++) {
             const row = list.children[i];
-            const current = row.querySelector('.lp-rank-badge');
+            const current = row.querySelector('.lp-rank-badge'); //(kept and restyled, never rebuilt: the list reorders constantly and a new icon each time is a stutter)
             const player = players[i];
-            if (!player) { current?.remove(); continue; };
+            if (!player) { if (current) current.style.display = 'none'; continue; };
             row.classList.add('lp-ranked-player');
-            const guest = !(Number(player.uniqueId) > 0);
-            const rank = guest ? { name: 'Guest', value: 0 } : profileRank(player.adminRoles, permissions.ranks);
-            const key = [guest, rank.value, rank.name].join(':');
-            if (current?.dataset.rank === key) continue;
-            current?.remove();
-            const badge = this.roleBadge({ guest, rank }, null);
+            const bot = this.isBot(player);
+            const guest = !bot && !(Number(player.uniqueId) > 0);
+            if (guest) { if (current) current.style.display = 'none'; continue; };
+            const rank = bot ? { name: 'Bot', value: 0 } : profileRank(player.adminRoles, permissions.ranks);
+            const key = [bot, rank.value, rank.name].join(':');
+            if (current) {
+                current.style.display = '';
+                if (current.dataset.rank === key) continue;
+                this.styleRoleBadge(current, { bot, rank });
+                current.dataset.rank = key;
+                continue;
+            };
+            const badge = this.roleBadge({ bot, rank }, null);
             badge.classList.add('lp-rank-badge');
             badge.dataset.rank = key;
             row.appendChild(badge);
@@ -281,7 +309,7 @@ export const LegacyProfiles = {
         const nickname = this.target?.player.name || (this.isOwn() ? document.getElementById('nickname')?.value : null) || profile.username;
         this.element('h1', '', profile.username ? '@' + profile.username : nickname, summary);
         if (profile.username && nickname !== profile.username) this.element('p', 'lp-username', 'Nickname: ' + nickname, summary);
-        else if (!profile.username) this.element('p', 'lp-username', 'Guest player', summary);
+        else if (!profile.username) this.element('p', 'lp-username', profile.bot ? 'Bot player' : 'Guest player', summary);
         const tags = this.element('div', 'lp-tags', undefined, summary);
         const role = this.element('span', 'lp-tag', undefined, tags);
         const roleIcon = this.roleBadge(profile, role);
