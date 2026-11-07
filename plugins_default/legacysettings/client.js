@@ -445,6 +445,7 @@ class LegacySettingsClass {
         this.plugins = pluginManager;
 
         this.plugins.on('game:waitForSetupAndAuthCompleteReady', this.waitForSetupAndAuthCompleteReady.bind(this));
+        this.plugins.on('game:playPressed', () => this.root && this.close());
     }
 
     waitForSetupAndAuthCompleteReady(data) {
