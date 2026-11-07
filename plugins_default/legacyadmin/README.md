@@ -86,6 +86,12 @@ Audit-log IPs are the real client address (services passes `rawIp` alongside the
 the `unhandledCommand` / `adminSqlAudit` emits); the hashed `ip` is still what session checks
 use.
 
+## AdminRoles tab
+
+Edits the `ranks` list in `store/config/distributed_permissions.yaml` (the numbers `adminRoles` is matched against) and a `rankIcons` block next to it, one icon per rank for LegacyProfiles' profile and leaderboard badges. Positions are 0-255 and each can only be used once. Guest (0), Signed In (1), Moderator (10), Admin (20) and Superuser (255) can't move or be renamed, and Content Creator (5) can't move, because permissions and login look them up. Icons are one of LegacyProfiles' built in ones or an uploaded svg (needs a viewBox, 8KB max, no scripts or outside links). Only the file's `ranks` and `rankIcons` blocks are rewritten, comments elsewhere stay, and the old file is kept beside it as `.bak`.
+
+Moderator+ can look, saving is Admin or the SQL password (`adminGetRoles` / `adminSetRoles`, audit-logged). Services serves the new list straight away but game and client read it at boot, so the tab offers a restart. `test-adminroles.js` checks the services side against a temp config.
+
 ## Security model notes
 
 - **Audit log.** Every privileged action (SQL exec, config read/write, restart, moderation

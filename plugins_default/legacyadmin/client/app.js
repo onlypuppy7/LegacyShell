@@ -285,6 +285,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         import('./moderation-tab.js'),
         import('./rooms-tab.js'),
         import('./storage-tab.js'),
+        import('./adminroles-tab.js'),
         import('./logs-tab.js'),
     ]);
 
