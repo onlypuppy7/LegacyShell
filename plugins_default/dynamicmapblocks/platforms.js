@@ -121,13 +121,14 @@ export const PlatformMap = {
             block.y + .5 - body.position.y, block.z + .5 - body.position.z));
         var softness = source.softness || block.mesh.split('.')[3];
         if (type === 'full') return [{ definition: { type: 'box', min: { x: -.5, y: -.5, z: -.5 }, max: { x: .5, y: .5, z: .5 } }, matrix: placed, softness }];
-        var collider = source.colliderMesh || source.getChildMeshes()[0];
-        if (!['aabb', 'obb', 'mesh'].includes(type) || !collider || ![collider, ...collider.getChildMeshes()].some(mesh => mesh.getTotalVertices() > 0)) {
+        var collider = source.colliderMesh && !/TEXT/i.test(source.colliderMesh.name) ? source.colliderMesh : source.getChildMeshes().find(mesh => !/TEXT/i.test(mesh.name));
+        var colliders = /^SIGN(WALL|STAND|BUBBLE)\./.test(block.mesh) ? source.getChildMeshes() : collider ? [collider, ...collider.getChildMeshes()] : [];
+        colliders = colliders.filter(mesh => !/TEXT/i.test(mesh.name));
+        if (!['aabb', 'obb', 'mesh'].includes(type) || !colliders.some(mesh => mesh.getTotalVertices() > 0)) {
             var box = source.getBoundingInfo().boundingBox;
             return [{ definition: { type: 'box', min: box.minimum, max: box.maximum }, matrix: placed, visualOnly: true }];
         };
         var inverse = source.computeWorldMatrix(true).clone().invert();
-        var colliders = [collider, ...collider.getChildMeshes()];
         colliders.forEach(mesh => mesh.computeWorldMatrix(true));
         return colliders.filter(mesh => mesh.getTotalVertices() > 0).map(mesh => {
             var box = mesh.getBoundingInfo().boundingBox;

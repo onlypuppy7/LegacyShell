@@ -1,6 +1,7 @@
 //node plugins_default/dynamicmapblocks/build-model.js
 import fs from 'node:fs';
 import BABYLON from 'babylonjs';
+import { buildSigns } from './build-signs.js';
 
 const engine = new BABYLON.NullEngine();
 const scene = new BABYLON.Scene(engine);
@@ -32,6 +33,7 @@ collider.id = 'dynamic-spinner-collision';
 collider.position.y = -.125;
 collider.parent = model;
 collider.isVisible = false;
+buildSigns(scene);
 const output = BABYLON.SceneSerializer.Serialize(scene);
 for (const mesh of output.meshes) {
     const source = scene.getMeshByID(mesh.id);
