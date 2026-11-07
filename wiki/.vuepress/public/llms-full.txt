@@ -2783,37 +2783,39 @@ Every `plugins.emit(...)` and `plugins.emitSync(...)` call site found in the fil
 | `gunActorSetup` | `server-client/src/client-static/src/shellshock.min.js:2630` | `{ gunActor: this, shadowGen }` | A weapon's visual model finished setup. |
 | `gunActorFired` | `server-client/src/client-static/src/shellshock.min.js:2710` | `{ gunActor: this }` | A gun actor fired client-side (any player), right after its fire sound plays and before the muzzle flash is shown. |
 | `onPageLoadedEnd` | `server-client/src/client-static/src/shellshock.min.js:3573` | `{}` | The game's HTML page finished loading. |
-| `joinGame` | `server-client/src/client-static/src/shellshock.min.js:3606` | `{ joinGameIdPassed }` | The client is about to send its join request. |
-| `onExtraParams` | `server-client/src/client-static/src/shellshock.min.js:3701` | `{ extraParams }` | Extra join params (session, custom map, etc.) are being assembled. |
-| `clientOnExtraGameInfo` | `server-client/src/client-static/src/shellshock.min.js:3811` | `{ extraInfo }` | Extra per-game info received from the server after joining. |
-| `onShadowGeneratorCreated` | `server-client/src/client-static/src/shellshock.min.js:4082` | `{ shadowGen }` | The Babylon shadow generator was created for the scene. |
-| `loadMaterials` | `server-client/src/client-static/src/shellshock.min.js:4376` | `{ scene }` | Core's built-in materials have just been defined - lets a plugin define its own right after (e.g. legacyweather's wet material). |
-| `loadSounds` | `server-client/src/client-static/src/shellshock.min.js:4430` | `{ soundsList }` | Before the Apollo/Howler sound list is loaded. |
-| `createMapCellsMapLoaded` | `server-client/src/client-static/src/shellshock.min.js:4561` | `{ minMap, SPS, gameScene, shadowGen, shadowLight }` | The raw map JSON has been fetched and is about to be turned into cells. |
-| `modifyMinMap` | `server-client/src/client-static/src/shellshock.min.js:4611` | `event` | A direct hook to rewrite the map data itself before cell generation. |
-| `createMapCells` | `server-client/src/client-static/src/shellshock.min.js:4638` | `{ minMap, SPS, gameScene, shadowGen, shadowLight }` | Map cells are being generated from `minMap`. |
-| `lightmapReady` | `server-client/src/client-static/src/shellshock.min.js:4886` | `{ gameScene, lightMap, w, h, d }` | Synchronous notification after the static light field is calculated, before applying it to terrain. Payload includes scene, lightMap and grid dimensions w/h/d; reuse the field without new raycasts. |
-| `onMapCompleteBeforeSetup` | `server-client/src/client-static/src/shellshock.min.js:5044` | `{ gameScene, minMap }` | Before final map setup finishes. |
-| `onMapComplete` | `server-client/src/client-static/src/shellshock.min.js:5073` | `{ gameScene }` | After final map setup finishes. |
-| `resetGamePlayer` | `server-client/src/client-static/src/shellshock.min.js:5347` | `{player}` | Client-local counterpart to the server's `resetGamePlayer` — round-scoped UI/state reset. |
-| `leaveGame` | `server-client/src/client-static/src/shellshock.min.js:5469` | `{}` | The player is leaving the game for the main menu - fired just before the game scene is disposed. A plugin should stop anything it started for the game (sounds, timers). |
-| `playerClicked` | `server-client/src/client-static/src/shellshock.min.js:5692` | `click` | A current player-list entry was clicked, before the default player menu opens. Receives `{ player, playerId, uniqueId, username, event, handled }`. Set `handled = true` on this event object to replace the default menu; it is local to this click and supports async listeners. The player is checked again after listeners finish, so a departed player or reused slot cannot open the fallback menu. LegacyProfiles consumes this event to open its profile viewer. |
-| `addKillTextBefore` | `server-client/src/client-static/src/shellshock.min.js:5791` | `{msgs}` | Before the kill-feed text is rendered. |
-| `onBalanceUpdated` | `server-client/src/client-static/src/shellshock.min.js:5813` | `{balance: playerAccount.currentBalance}` | The player's currency balance display changed. |
-| `onResourcesLoadedEnd` | `server-client/src/client-static/src/shellshock.min.js:5866` | `{}` | All game resources (models/sounds/textures) finished loading. |
-| `shadowsToggled` | `server-client/src/client-static/src/shellshock.min.js:6664` | `{ shadowsEnabled: false }` | Shadows were just switched on or off (by the settings or the auto-detail optimiser) and the map's material swapped with them; `data.shadowsEnabled` is the new state. Lets a plugin re-apply anything that replaces the map material. |
-| `shadowsToggled` | `server-client/src/client-static/src/shellshock.min.js:6671` | `{ shadowsEnabled: true }` | Shadows were just switched on or off (by the settings or the auto-detail optimiser) and the map's material swapped with them; `data.shadowsEnabled` is the new state. Lets a plugin re-apply anything that replaces the map material. |
-| `explosionSpriteAfter` | `server-client/src/client-static/src/shellshock.min.js:7223` | `{ sprite: s, manager, isFire: manager == explosionFireManager }` | After an explosion or rocket-trail smoke/fire sprite has been set up (spawned with its animColors, which are re-applied to sprite.color every tick, so a plugin recolours them by replacing sprite.animColors). |
-| `explosionFx` | `server-client/src/client-static/src/shellshock.min.js:7228` | `{ x, y, z, damage, radius }` | An explosion's visual effects are about to be spawned client-side (grenade or rocket), with its position, damage and radius. |
-| `shellFragBurstBefore` | `server-client/src/client-static/src/shellshock.min.js:7256` | `{ player, count, theSize, theAnimLength }` | Before a shell-casing particle burst effect plays. |
-| `shellFragBurstAfter` | `server-client/src/client-static/src/shellshock.min.js:7285` | `{ player, count }` | After an egg's shell fragments have been spawned (death or heavy damage); the fragment sprites are in shellFragManager. |
-| `yolkBurstAfter` | `server-client/src/client-static/src/shellshock.min.js:7313` | `{ player, manager: yolkManager }` | After the yolk particles of an egg death have been spawned; `manager` is the yolk sprite manager. |
-| `syncToServer` | `server-client/src/client-static/src/shellshock.min.js:7993` | `{loadout}` | The client is about to push a loadout change to the server. |
-| `waitForSetupAndAuthComplete` | `server-client/src/client-static/src/shellshock.min.js:8278` | `{waitIteration}` | The startup poll loop, waiting for auth and page setup to both finish, has started. |
-| `waitForSetupAndAuthCompleteCheck` | `server-client/src/client-static/src/shellshock.min.js:8291` | `{waitIteration, customizer, authAttemptComplete, houseAdsLoaded}` | The startup poll loop is checking whether auth and page setup have both finished yet. |
-| `waitForSetupAndAuthCompleteReady` | `server-client/src/client-static/src/shellshock.min.js:8294` | `{waitIteration}` | The startup poll loop has confirmed both auth and page setup are ready. |
-| `setupComplete` | `server-client/src/client-static/src/shellshock.min.js:8315` | `{}` | The startup poll loop concluded successfully. |
-| `reachedEnd` | `server-client/src/client-static/src/shellshock.min.js:9308` | `{}` | End of the whole client script file, once. |
+| `playPressed` | `server-client/src/client-static/src/shellshock.min.js:3581` | `` | PLAY was pressed (on the main menu, or in the game menu): anything open over it, like a profile or the settings, should close. |
+| `joinGame` | `server-client/src/client-static/src/shellshock.min.js:3607` | `{ joinGameIdPassed }` | The client is about to send its join request. |
+| `onExtraParams` | `server-client/src/client-static/src/shellshock.min.js:3702` | `{ extraParams }` | Extra join params (session, custom map, etc.) are being assembled. |
+| `clientOnExtraGameInfo` | `server-client/src/client-static/src/shellshock.min.js:3812` | `{ extraInfo }` | Extra per-game info received from the server after joining. |
+| `onShadowGeneratorCreated` | `server-client/src/client-static/src/shellshock.min.js:4083` | `{ shadowGen }` | The Babylon shadow generator was created for the scene. |
+| `loadMaterials` | `server-client/src/client-static/src/shellshock.min.js:4377` | `{ scene }` | Core's built-in materials have just been defined - lets a plugin define its own right after (e.g. legacyweather's wet material). |
+| `loadSounds` | `server-client/src/client-static/src/shellshock.min.js:4431` | `{ soundsList }` | Before the Apollo/Howler sound list is loaded. |
+| `createMapCellsMapLoaded` | `server-client/src/client-static/src/shellshock.min.js:4562` | `{ minMap, SPS, gameScene, shadowGen, shadowLight }` | The raw map JSON has been fetched and is about to be turned into cells. |
+| `modifyMinMap` | `server-client/src/client-static/src/shellshock.min.js:4612` | `event` | A direct hook to rewrite the map data itself before cell generation. |
+| `createMapCells` | `server-client/src/client-static/src/shellshock.min.js:4639` | `{ minMap, SPS, gameScene, shadowGen, shadowLight }` | Map cells are being generated from `minMap`. |
+| `lightmapReady` | `server-client/src/client-static/src/shellshock.min.js:4887` | `{ gameScene, lightMap, w, h, d }` | Synchronous notification after the static light field is calculated, before applying it to terrain. Payload includes scene, lightMap and grid dimensions w/h/d; reuse the field without new raycasts. |
+| `onMapCompleteBeforeSetup` | `server-client/src/client-static/src/shellshock.min.js:5045` | `{ gameScene, minMap }` | Before final map setup finishes. |
+| `onMapComplete` | `server-client/src/client-static/src/shellshock.min.js:5074` | `{ gameScene }` | After final map setup finishes. |
+| `resetGamePlayer` | `server-client/src/client-static/src/shellshock.min.js:5348` | `{player}` | Client-local counterpart to the server's `resetGamePlayer` — round-scoped UI/state reset. |
+| `leaveGame` | `server-client/src/client-static/src/shellshock.min.js:5470` | `{}` | The player is leaving the game for the main menu - fired just before the game scene is disposed. A plugin should stop anything it started for the game (sounds, timers). |
+| `playerClicked` | `server-client/src/client-static/src/shellshock.min.js:5693` | `click` | A current player-list entry was clicked, before the default player menu opens. Receives `{ player, playerId, uniqueId, username, event, handled }`. Set `handled = true` on this event object to replace the default menu; it is local to this click and supports async listeners. The player is checked again after listeners finish, so a departed player or reused slot cannot open the fallback menu. LegacyProfiles consumes this event to open its profile viewer. |
+| `addKillTextBefore` | `server-client/src/client-static/src/shellshock.min.js:5792` | `{msgs}` | Before the kill-feed text is rendered. |
+| `onBalanceUpdated` | `server-client/src/client-static/src/shellshock.min.js:5814` | `{balance: playerAccount.currentBalance}` | The player's currency balance display changed. |
+| `onResourcesLoadedEnd` | `server-client/src/client-static/src/shellshock.min.js:5867` | `{}` | All game resources (models/sounds/textures) finished loading. |
+| `shadowsToggled` | `server-client/src/client-static/src/shellshock.min.js:6665` | `{ shadowsEnabled: false }` | Shadows were just switched on or off (by the settings or the auto-detail optimiser) and the map's material swapped with them; `data.shadowsEnabled` is the new state. Lets a plugin re-apply anything that replaces the map material. |
+| `shadowsToggled` | `server-client/src/client-static/src/shellshock.min.js:6672` | `{ shadowsEnabled: true }` | Shadows were just switched on or off (by the settings or the auto-detail optimiser) and the map's material swapped with them; `data.shadowsEnabled` is the new state. Lets a plugin re-apply anything that replaces the map material. |
+| `explosionSpriteAfter` | `server-client/src/client-static/src/shellshock.min.js:7224` | `{ sprite: s, manager, isFire: manager == explosionFireManager }` | After an explosion or rocket-trail smoke/fire sprite has been set up (spawned with its animColors, which are re-applied to sprite.color every tick, so a plugin recolours them by replacing sprite.animColors). |
+| `explosionFx` | `server-client/src/client-static/src/shellshock.min.js:7229` | `{ x, y, z, damage, radius }` | An explosion's visual effects are about to be spawned client-side (grenade or rocket), with its position, damage and radius. |
+| `shellFragBurstBefore` | `server-client/src/client-static/src/shellshock.min.js:7257` | `{ player, count, theSize, theAnimLength }` | Before a shell-casing particle burst effect plays. |
+| `shellFragBurstAfter` | `server-client/src/client-static/src/shellshock.min.js:7286` | `{ player, count }` | After an egg's shell fragments have been spawned (death or heavy damage); the fragment sprites are in shellFragManager. |
+| `yolkBurstAfter` | `server-client/src/client-static/src/shellshock.min.js:7314` | `{ player, manager: yolkManager }` | After the yolk particles of an egg death have been spawned; `manager` is the yolk sprite manager. |
+| `syncToServer` | `server-client/src/client-static/src/shellshock.min.js:7995` | `{loadout}` | The client is about to push a loadout change to the server. |
+| `waitForSetupAndAuthComplete` | `server-client/src/client-static/src/shellshock.min.js:8280` | `{waitIteration}` | The startup poll loop, waiting for auth and page setup to both finish, has started. |
+| `waitForSetupAndAuthCompleteCheck` | `server-client/src/client-static/src/shellshock.min.js:8293` | `{waitIteration, customizer, authAttemptComplete, houseAdsLoaded}` | The startup poll loop is checking whether auth and page setup have both finished yet. |
+| `waitForSetupAndAuthCompleteReady` | `server-client/src/client-static/src/shellshock.min.js:8296` | `{waitIteration}` | The startup poll loop has confirmed both auth and page setup are ready. |
+| `setupComplete` | `server-client/src/client-static/src/shellshock.min.js:8317` | `{}` | The startup poll loop concluded successfully. |
+| `playPressed` | `server-client/src/client-static/src/shellshock.min.js:8632` | `` | PLAY was pressed (on the main menu, or in the game menu): anything open over it, like a profile or the settings, should close. |
+| `reachedEnd` | `server-client/src/client-static/src/shellshock.min.js:9311` | `{}` | End of the whole client script file, once. |
 | `loadMeshesBeforeMaterial` | `server-client/src/client-static/editor/js/mapEdit.js:88280` | `{mesh}` | Same hook as the shared `loading.js` version, duplicated for the standalone map-editor page. |
 | `editorPointerDown` | `server-client/src/client-static/editor/js/mapEdit.js:88869` | `{ event: evt, pick: pickResult }` | Before the normal editor pointer-down action. Synchronous and cancellable. |
 | `editorPointerUp` | `server-client/src/client-static/editor/js/mapEdit.js:88942` | `{ event: evt, pick: pickResult }` | Before the normal editor pointer-up action. Synchronous and cancellable. |
@@ -8174,7 +8176,14 @@ Every real `colliderType` from `buildMapData` (`src/shell/loading.js`) is accoun
     same unreachable place every time the target steps to a new cell;
   - `opts.chase: true` (what the combat AI passes) snaps a mid-air goal to the floor under it, accepts a
     partial route, and searches with a budget that scales with distance;
-  - `opts.force: true` always searches (the stuck recovery uses it); other `opts` pass through to `findPath`.
+  - `opts.force: true` always searches (the stuck recovery uses it); other `opts` pass through to `findPath`;
+  - `opts.sliceMs: n` spreads a search over ticks: each call works on it for about `n` ms, and until it
+    finishes the call returns the route the bot already had and `bot.pathPending` is true. A search that
+    could not finish in one slice is the whole-map flood to somewhere with no way to it, which on a slow
+    machine is a freeze of hundreds of ms or more in one go. The result is what a search in one go gives
+    (the route is taken up from the waypoint nearest the bot, since it will have moved on, and thrown away if
+    it went somewhere else entirely). It is dropped if the goal changes by a lot, the bot is moved or its
+    physics change; `stopPath()` drops it too. Without `sliceMs` a search is as before.
   Clears the bot's avoided-edges set when the destination itself changes.
 - **`followPath(delta)`** - call once per tick to steer along the current route: sets yaw, holds forward,
   jumps on a JUMP edge. Returns `'idle'`, `'following'` or `'arrived'`.
@@ -8379,6 +8388,11 @@ the AI at 96% of tick time. Four things keep that in check (all in `pathfinding.
   stringifying the JSON - gzipping runs off-thread). Fill it in advance, offline, with
   `node plugins_default/deadinternet/bench-pathfinding.js <map> --store --warm 3000`;
   `/botsdebug cache [stats|save|clear]` manages it in-game. A game server also fills it itself when it has had no rooms for 20s (`idlewarm.js`, in a worker thread that is killed when a room is made); other plugins say what to warm by pushing `{ maps, modifiers, searches, priority }` to `data.jobs` in the `idleWarmJobs` event.
+- **Searching in slices.** `findPath` is a generator underneath: `startPathSearch(room, start, goal, opts)`
+  gives `{ step(ms), cancel(), done }`, and `findPath` just runs it to the end. A caller with a time budget
+  (the zombies: `searchBudgetMs` a tick for the whole horde) steps searches a few ms at a time, so one search
+  that would flood the map (a human on a tower nothing can climb) is a few ticks of a few ms rather than
+  one freeze.
 - **Searching less.** `pathTo()` reuses a route while the goal hasn't moved further than a tolerance that
   grows with distance, keeps a route through a fight (suspended, then resumed) instead of discarding it,
   waits ~0.5s between searches for a moving target, and backs off exponentially after a failed search
@@ -8480,14 +8494,14 @@ that didn't clear as estimated.
 
 # Debug F3
 
-Press **F3** in game to toggle a Minecraft style debug screen: the same layout, with the same translucent grey highlight behind every line.
+With LegacyShellCore, turn on **Settings → General → Enable Debug**, then use **F3** in game to toggle a Minecraft style debug screen. The Debug tab lets you rebind that key.
 
 ## What it shows
 
 - Left: version/gamemode/map, fps, server and ping, rendered meshes and triangles, entity/bullet/rocket/grenade counts, player count, room code, `XYZ`, `Block`, velocity, `Facing` (with Minecraft-style yaw/pitch, so yaw turns the other way), ground/climbing state, map, gamemode and team, health, and the block you're looking at.
 - Right: browser, JS heap memory (Chromium only), CPU thread count, display size, GPU vendor/renderer/GL version, and the targeted block's coordinates and mesh name.
 
-The toggle is remembered in `localStorage`. Only drawn while in a game. Settings > General > Debug has a checkbox that hides identifying info (browser, CPU, display, GPU, room code) for streaming and screenshots (needs LegacySettings).
+The toggle is remembered in `localStorage`. Only drawn while in a game. **Settings → Debug → Hide identifying info in F3** hides browser, CPU, display, GPU and room code for streaming and screenshots. Disabling Enable Debug hides the overlay. Without LegacyShellCore, the standalone plugin still uses F3 without that gate.
 
 ## Notes
 
@@ -9011,6 +9025,45 @@ The checkboxes are read live (`.get()`) inside the relevant render hooks, not ca
 
 ---
 
+## wiki/plugins/Plugin Docs/Default/francium/info.md
+
+> **Canonical source:** [`plugins_default/francium/README.md`](https://github.com/onlypuppy7/LegacyShell/blob/main/plugins_default/francium/README.md) - edit that file, not this page (this page is built live from it, nothing here is a tracked copy).
+
+# Francium
+
+A client performance plugin. Collision, physics, game tick rate and network protocol stay unchanged. Simple Map changes the static map's visual geometry.
+
+- **Comparison toggle:** **Settings → Debug → Francium Improvements** defaults to On. Change it, then reload the page before playing or recording. Off bypasses candidate filtering, material indexing, HUD/crosshair changes, sprite changes, shader preparation and Simple Map; the original F3 frame loop is used. Simple Map preferences are retained for re-enabling. The scripted benchmark remains available, and its results record whether improvements were active. Enable the Debug tab under General first.
+- **Unlock FPS:** **Debug → Performance → Unlock FPS** defaults to Off and applies live. With Debug enabled, the game engine schedules frames through MessageChannel tasks instead of waiting for display refresh. It works independently of Francium Improvements, including during the benchmark. Menus, unrelated animation callbacks, hidden tabs and VR requesters retain normal scheduling. This changes rendering cadence, not the simulation tick rate or display refresh rate; browser/GPU limits still apply. Benchmark results record the selected mode. Use the same mode for comparison runs.
+- **Local Benchmark:** **Settings → General → Enable Debug**, then **Debug → Local Benchmark → Open Test** loads a dedicated local Castle scene. It uses the real game loader, Player/PlayerActor models, normal weapons, pooled projectiles, collision queries, particles and sound. No game-server connection, AI bot plugin or replay plugin is required. Six actors follow fixed spawn-based tracks with timed jumps, shots, reloads, grenades, deaths and respawns. The camera follows the same authored 45-second route. The scene warms up before showing a ready screen: start a DevTools Performance recording there, then press Run Fly-through. A 3-second countdown precedes the `Francium scripted benchmark` measure in the Timings track. It runs all 2,700 simulation ticks at 60 Hz without skipping ticks on slow devices, with seeded synchronous effects and a fixed simulation-time camera. Severe stalls can extend wall duration while the simulation catches up. Current graphics options apply; Auto Detail is temporarily held off to avoid changing resolution/workload between runs, then restored. The run cancels on Esc, hiding the active tab or changing render dimensions. Esc during loading queues cancellation until the map-complete boundary. Completion returns home with scenario version, seed, resolution, detail mode, elapsed wall time and action counts; Last Benchmark → Results reopens that summary until page reload. Both benchmark buttons are disabled/guarded during normal games, pending game connections and an existing benchmark. The load confirmation rechecks this guard. Account kill/death/streak bookkeeping is excluded. Input handlers, settings, local socket state, observers and benchmark UI are restored/cleaned up on exit. Scripted actors do not measure server AI, authoritative combat, network traffic or client movement prediction; native animation/audio timing and driver/GC behaviour can still vary. A benchmark-local alias works around the bundled RocketActor's `bullet.player` access without changing the core prototype or normal games.
+- **Render candidates:** disabled hats, gun skins, map-block templates and pooled objects stay available for cloning/collision without being checked every rendered frame. Each camera only evaluates relevant layers, retaining forced-active meshes, action managers, LOD callbacks and enabled instance sources. Layer, camera-mask and forced-active changes take effect on the next evaluation. Lists reuse their storage, retain scene order and follow enable/disable, parenting, addition and removal; existing providers that return a different list, such as octrees, are left alone.
+- **Simple Map:** choose Off, Simple or Ultra under Graphics → Detail. Simple remains the default: full blocks become cubes, wedges/inverted wedges become triangular ramps, and AABB blocks use their collider bounds in the source mesh's coordinates. Ultra also replaces OBBs, ladders and remaining decorative shapes with boxes. Collider boxes retain their local rotation and scale; shapes without colliders use their visual bounds, with a tiny thickness for flat decorations. Empty templates stay empty. Original vertex colors and UVs are sampled onto flat faces; the normal map material, lightmap generation, fog and shadows still apply. Original model/collider geometry and map cells stay untouched. Simple keeps unsupported shapes and AABBs without valid collider bounds unchanged. This applies to static map construction; moving blocks keep their own renderer. Changes apply from the next game. Existing checkbox preferences carry over as Simple or Off. Castle's real assets build with 32,274 map triangles on Simple (89.8% fewer than the original 315,496), or 9,968 on Ultra (96.8% fewer than the original; 69.1% fewer than Simple).
+- **HUD:** unchanged health numbers, health-circle attributes and crosshair transforms are not rewritten. Crosshair offsets round to 0.01em to ignore subpixel spread jitter; spread/FOV changes still move the crosshair and readiness changes are immediate. External crosshair changes, including replay transforms, are checked against the current DOM. The visible FPS counter updates at most four times a second; internal FPS calculations are unchanged. During a game, upgraded-player names use their static color and health-circle transitions are immediate. Damage/healing information stays current. F3 stops requesting frames while hidden and resumes when opened.
+- **Sprites:** empty managers skip uploads/draws. Nonempty managers upload only their populated vertices, retaining the full CPU buffer for context restoration. Sprite animation, fog, blending and depth behavior are preserved.
+- **Materials:** changes use an index of meshes assigned to that material. Assignments, cloning, instances, scene additions/removals and disposal update it. Unassigned meshes are visited only when the scene's current default material changes, including after replacing that default. Only multi-material users need the general fallback scan, so changing a multi-material slot still works.
+- **Shader preparation:** representative attribute/bone/material variants, including instancing, are prepared before the render loop starts while unspawned. Egg-shell and outline/overlay variants are included. New player actors only queue their meshes after construction; preparation and shader queries wait until the local player is out of play. Queued work runs at most one mesh and one shader job per timer, with late texture readiness retried up to 40 attempts. Repeated equivalent assets reuse the shader variant; each preparation call is bounded to 64 jobs. Scene disposal cancels queued work. Initial loading and lobby preparation can still block on the driver, and a newly visible shader needed during play can still compile through the normal renderer.
+
+The engine adapters target the bundled Babylon 3.3.0. Recheck `_syncParentEnabledState`, `_syncSubMeshes`, the material setter/dirty mechanism and sprite buffer layout when upgrading Babylon. Changes should use normal scene/material/parent APIs, not write private fields directly. The F3 build adapter matches the existing loop; if its source changes, only that adapter is skipped.
+
+Restart the client server and reload the page to load the plugin. Rename the folder to `_francium`, restart the client server and reload to disable it. Like other bundled plugins, it uses the main repository's Git history.
+
+## Verification
+
+```sh
+node plugins_default/francium/test.js
+node plugins_default/francium/test-features.js
+node plugins_default/francium/test-rendering.js
+node plugins_default/francium/test-benchmark.js
+node plugins_default/francium/test-assets.js # needs the client's prepared models
+node plugins_default/francium/test-map-assets.js # also needs server-game/store/maps.json
+```
+
+Tests use the browser's bundled Babylon build with a NullEngine, including templates, clones, instances, parenting, material changes/multi-materials, default-material replacement, scene lifecycle, render evaluation and shader preparation. Two-camera tests compare visible mesh sets and readiness/matrix calls, including cross-layer instances and forced/action/LOD exceptions. Map tests check ramp orientation/winding, collider-relative bounds, rotated/scaled/mirrored boxes, flat decorations, UV/color sampling, cell rotations, setting compatibility, disabling and disposal. Real Castle SPS builds check both detail levels' triangle counts and untouched source/collider geometry and map definitions. Real-asset checks also ensure unrelated material changes skip the thousands of unassigned templates. HUD tests check unchanged writes, immediate health, crosshair jitter/FOV/readiness/external changes and F3 toggling. Shader scheduling checks prohibit preparation during play, bound each queued timer to one shader job and check disposal cancellation. Sprite tests compare animation/blending/depth draw behavior with the original renderer and check empty/partial uploads. Performance gains and driver compilation still need an A/B recording on the target device.
+
+Benchmark tests check disabled buttons and direct-call guards for games/connections/re-entry, confirmation races, local socket setup, blocked joins, restoration without account bookkeeping, safe loading/render-stack cancellation, fixed routes/event schedules, scoped RNG restoration and catch-up without skipped ticks. Full-client browser checks exercise loading, shader preparation, the complete actor/effect sequence, return home and repeated runs.
+
+---
+
 ## wiki/plugins/Plugin Docs/Default/healthpackitem/info.md
 
 > **Canonical source:** [`plugins_default/healthpackitem/README.md`](https://github.com/onlypuppy7/LegacyShell/blob/main/plugins_default/healthpackitem/README.md) - edit that file, not this page (this page is built live from it, nothing here is a tracked copy).
@@ -9110,25 +9163,65 @@ Runs on **services, game and client**. LegacyProfiles is used for the Achievemen
 | Category | Achievement | Requirement | Reward |
 | --- | --- | --- | --- |
 | Account | Fresh Egg | Make an account | 250 eggs |
-| Combat | Getting Cracking I | 5 lifetime kills | 500 eggs |
-| Combat | Getting Cracking II | 100 lifetime kills | 2,500 eggs, Eggk47 GOLD, 1 hour VIP |
-| Combat | Getting Cracking III | 500 lifetime kills | 5,000 eggs |
-| Combat | Getting Cracking IV | 1,000 lifetime kills | 10,000 eggs |
-| Combat | Getting Cracking V | 5,000 lifetime kills | 25,000 eggs |
-| Combat | Getting Cracking VI | 10,000 lifetime kills | 50,000 eggs |
-| Challenges | Sidearm Survivor | Survive a full Zombies round on Blue with at least 50 kills, without firing a primary | 2,500 eggs |
+| Combat | Kills I–VIII | 5 / 100 / 500 / 1,000 / 5,000 / 10,000 / 25,000 / 100,000 lifetime kills | 250 / 1,000 (+ Eggk47 GOLD and 1 hour VIP) / 2,500 / 5,000 / 10,000 / 20,000 / 40,000 / 100,000 eggs |
+| Combat | Deaths I–VIII | 5 / 100 / 500 / 1,000 / 5,000 / 10,000 / 25,000 / 100,000 lifetime deaths | 100 / 500 / 1,000 / 2,000 / 5,000 / 10,000 / 20,000 / 50,000 eggs |
+| Combat | Rotten Eggs I–III | 250 / 2,500 / 10,000 zombies killed in the Zombies gamemode | 500 / 2,500 / 10,000 eggs |
+| Weapons | Eggk-cellent Soldier I–VIII | 25 / 100 / 250 / 500 / 1,000 / 2,500 / 5,000 / 10,000 kills with the Eggk47 | 100 / 250 / 500 / 1,000 / 2,500 / 5,000 / 10,000 / 20,000 eggs |
+| Weapons | Scrambled Legs I–VIII | 25 / 100 / 250 / 500 / 1,000 / 2,500 / 5,000 / 10,000 kills with the Dozen Gauge | 100 / 250 / 500 / 1,000 / 2,500 / 5,000 / 10,000 / 20,000 eggs |
+| Weapons | Free Range I–VIII | 25 / 100 / 250 / 500 / 1,000 / 2,500 / 5,000 / 10,000 kills with the CSG-1 | 100 / 250 / 500 / 1,000 / 2,500 / 5,000 / 10,000 / 20,000 eggs |
+| Weapons | Big Bang Theory I–VIII | 25 / 100 / 250 / 500 / 1,000 / 2,500 / 5,000 / 10,000 kills with the RPEGG | 100 / 250 / 500 / 1,000 / 2,500 / 5,000 / 10,000 / 20,000 eggs |
+| Weapons | Pea Shooter I–VIII | 25 / 100 / 250 / 500 / 1,000 / 2,500 / 5,000 / 10,000 kills with the Cluck 9mm | 100 / 250 / 500 / 1,000 / 2,500 / 5,000 / 10,000 / 20,000 eggs |
+| Weapons | Shellshock I–VIII | 10 / 50 / 100 / 250 / 500 / 1,000 / 2,500 / 5,000 kills with grenades | 100 / 250 / 500 / 1,000 / 2,500 / 5,000 / 10,000 / 20,000 eggs |
+
+Single challenges, easiest first. The grade picks the hexagon of the badge and the reward when none is given.
+
+| Grade | Achievement | Requirement | Reward |
+| --- | --- | --- | --- |
+| 1 (bronze) | Revenge Is Best Served Fried | Kill whoever last killed you | 500 eggs |
+| 2 (silver) | Shutdown | End someone's streak of 10 or more | 1,000 eggs |
+| 2 (silver) | Air Mail I | Get a kill while mid-jump | 1,000 eggs |
+| 4 (platinum) | Air Mail II | Get a kill while mid-jump with every gun | 2,500 eggs |
+| 3 (gold) | Last Gasp | Get a kill while on 10 HP or less | 1,500 eggs |
+| 4 (platinum) | Sidearm Survivor | Survive a full Zombies round on Blue with at least 50 kills, without firing a primary | 2,500 eggs |
+| 4 (platinum) | Long Shot | Get a CSG-1 kill from 40 metres or more | 2,500 eggs |
+| 4 (platinum) | From Beyond the Shell | Get a kill after you have died | 2,500 eggs |
+| 5 (ruby) | Omelette | Get 3 or more kills with a single explosion | 5,000 eggs |
+| 1 (bronze) | Hard Boiled I | Survive a Zombies round | 500 eggs |
+| 2 (silver) | Hard Boiled II | Survive 3 Zombies rounds in a row | 1,000 eggs |
+| 3 (gold) | Hard Boiled III | Survive 5 Zombies rounds in a row | 1,500 eggs |
+| 5 (ruby) | Hard Boiled IV | Survive 10 Zombies rounds in a row | 5,000 eggs |
 
 Existing accounts qualify too. Signing in or connecting to achievements checks the authoritative account totals, so past kills count. Kills come from the existing services `addKill` event, never a client progress message. Guests cannot earn or claim account rewards.
 
-Achievements use existing game PNGs where assigned. Locked achievements are greyed out, with progress underneath. Unassigned or missing images fall back to `client/img/placeholder.png`, copied from the existing notification icon. The popup uses the game's fonts, cream/brown/orange colours and buttons; it plays the existing `ammo` sound as a placeholder. It queues multiple unlocks without stealing keyboard focus. If no reward has ever been redeemed on the account, the popup explains that rewards are redeemed from the profile.
+Every tier line has its own badge SVGs in `client/img/` (`kills-1.svg` to `kills-8.svg`, and the same for `deaths`, `eggk47`, `dozen`, `csg1`, `rpegg`, `cluck` and `grenade`, bronze to RGB; gold and above have animated sparkles, the gems shimmer; built by `legacyprofiles/badges/build-badges.js`) Sidearm Survivor has its own badge too, a silver hexagon with the zombie egg and a pistol (`sidearm-survivor.svg`).. Other achievements use existing game PNGs where assigned. Locked achievements are greyed out, with progress underneath. Unassigned or missing images fall back to `client/img/placeholder.png`, copied from the existing notification icon. The popup uses the game's fonts, cream/brown/orange colours and buttons; it plays `client/sfx/achievement.mp3` (the Plants vs. Zombies achievement sound, an audio element at 55% of the game's volume setting, silent when it is at 0). A successful Redeem plays `client/sfx/redeem.wav` the same way. It queues multiple unlocks without stealing keyboard focus. If no reward has ever been redeemed on the account, the popup explains that rewards are redeemed from the profile.
 
-The profile tab shows `Achievements X/Y` for the viewed account, independent of active filters. Achievements are grouped into category lists with search, category and status filters (locked, unlocked, rewards ready, redeemed). List rows carry the same category colour as their pins. Live progress updates preserve the filter controls, and claimed rewards keep the current filters. Kill tiers share a title with I–VI suffixes and use threshold-based IDs (`kills_5`, `kills_100`, etc.). No migration is included for the local development IDs.
+The profile tab shows `Achievements X/Y` for the viewed account, independent of active filters. Achievements are grouped into category lists with search, category and status filters (locked, unlocked, rewards ready, redeemed). List rows carry the same category colour as their pins. Live progress updates preserve the filter controls, and claimed rewards keep the current filters. Tier lines share a title (Kills, Deaths, Eggk-cellent Soldier and so on) with I–VIII suffixes and use threshold-based IDs (`kills_5`, `kills_100`, `deaths_5`, `eggk47_25`, etc.). Deaths come from the account total the services keep, checked on every `addDeath` like a kill. No migration is included for the local development IDs.
 
 Sidearm Survivor uses the ZombiesMode plugin's `zombiesRoundStarted` and `zombiesRoundFinished` events. On the installed Blue map, the game server records logged-in participants at the start, counts their scored kills through `scoreKillEggs`, observes actual primary ammunition consumption through a small wrapper around `Player.fire`, and checks surviving humans with at least 50 kills at the finish. Kills must be earned in that round; the victory cleanup does not count. Custom maps named Blue do not qualify. Dry fires and blocked shots do not count. Late joins and reconnects cannot qualify for that round; a cheat flag observed during the round disqualifies it. A registered game-server auth key is required to report the win to services. The browser cannot report progress for this challenge. It records an unlock only; rewards still need redemption in the profile.
+
+The seven kill challenges above are caught on the game server. It wraps `Player.die`, `Player.hit`, `Player.scoreKill` and `Bullet.collidesWithPlayer` (the same way the primary-shot watcher wraps `Player.fire`), so core is unchanged. Each kill is read as it is scored: the victim's streak is captured as they die (the game zeroes it first), the killer's hp, jump and death state are read when the kill lands, and a CSG-1 kill is known from the bullet's weapon. An explosion is any hit that arrives outside a bullet with a damage figure; every player one blast hits shares the shooter and blast position, so three kills from the same pair within 100 ms count as one omelette. Falls, suicides and guests never count, and neither does anything in a room with cheats on.
+
+Air Mail II is the second tier of Air Mail (Air Mail I keeps the `air_mail` id it always had, so existing unlocks are untouched). Each mid-jump kill, one the killer lands with their feet off the ground and not on a ladder, is also counted for the weapon that made it, as `air_<weapon>` next to the weapon kills (`air_eggk47`, `air_dozen` and so on), and goes to the services in the same ten second batch, which only accepts those keys and weapons. "Every gun" is every weapon that has a tier line in `definitions.js` (each one adds itself to `MidairWeapons`, which also sets the goal), so adding a gun's tier line adds it here too. A weapon counts once however many such kills it has, so the profile shows progress out of the number of guns (6 today). Mid-jump kills on zombies count for their weapon too, and guests and rooms with cheats on never count. There is no badge art for either tier yet (they use the placeholder).
+
+Hard Boiled is a run of Zombies rounds survived as a human, counted per player by the game server (`ZombieRoundGoals` in `definitions.js`). Surviving a round the humans won adds one, and any round they are in without surviving it (bitten, joined the horde, the horde winning) starts them back at nothing, as does leaving the room. Guests and cheats never count. The goals are reported through `achievementsChallenge` as `zombie_rounds_<n>`, and like the other challenges they use the placeholder image and need redeeming in the profile.
+
+Zombie kills (a kill in a Zombies room on the other team) are their own count, `zombies`, kept like a weapon's: they never add to a weapon's tiers, and ZombiesMode already keeps them out of the account's kills by cancelling the default kill reward. The badges (`zombies-1.svg` to `zombies-3.svg`) are the Sidearm Survivor's zombie egg and crosshair without the pistol.
+
+Long Shot is measured in game units, one unit being a metre, and needs 40 (`longShotUnits` in `game.js`). The CSG-1 bullet travels 50 units, so that is the furthest it can ever be. From Beyond the Shell needs the killer to have been dead for a quarter of a second, so a blast that takes you out with them does not count.
+
+Each is reported once per account and server through `achievementsChallenge` (`{ auth_key, username, achievement }`). Services only accept ids in `GameChallenges` (the Sidearm Survivor and every `metric: 'game'` definition) from a registered game server, so a report cannot unlock a kill tier or pay anything out. Like Sidearm Survivor they only unlock; rewards still need redeeming in the profile. These use the default placeholder image until they have their own.
 
 Eggs, exact skin thumbnails and VIP time are small reward icons in the list and popup. The optional ItemToolTips plugin supplies the hover tooltips; reward icons also support keyboard focus. Without it, icons retain native title tooltips and accessible labels. Tooltips are removed when rows are filtered, tabs change, popups are dismissed or the profile closes. Skin and stamp thumbnails reuse the existing item renderer at its native 256px size, displayed small in CSS.
 
 Unlocking does **not** grant the reward. Open your profile's Achievements tab and press **Redeem** on an unlocked achievement. Other players can view achievements but cannot claim someone else's rewards. Earned, unclaimed rewards persist across logout and restarts. Popup acknowledgements are stored separately from redemption; dismissing a popup cannot lose a reward.
+
+## Tiers, grades and weapon kills
+
+A line of eight tiers is built by `line()` in `definitions.js`. `tier` is the roman numeral and also the hexagon its badge gets, 1 bronze to 8 rgb. Anything that is not a tier line carries a `grade` from 1 to 8 instead: it orders the single challenges easiest first (categories keep the order they first appear in, inside one the grade decides), it picks the hexagon of their badge, and it is the reward when a challenge names none (500, 1,000, 1,500, 2,500, 5,000, 10,000, 20,000 and 40,000 eggs). `icon` names the badge a definition is built from. The Weapons category has its own ribbon colour.
+
+Weapon tiers count lifetime kills with one weapon (`metric: 'weapon'`). The gun kills are read the same way as the kill challenges: a bullet names its weapon, and an explosion only has its damage, so a blast of the RPEGG's size (`RPEGG.damage`) counts for it and one of 130 for grenades (`grenadeDamage` in `game.js`). Only logged in humans count, never with cheats on. A kill a connection would be far too many, so the game server keeps the counts and sends them to the services in one batch every ten seconds (`achievementsWeaponKills`, `{ auth_key, username, kills: { eggk47: 3 } }`), putting a batch back if it cannot be sent. The services keep the totals in `achievement_weapon_kills`, accept only known weapons and counts up to 1,000 a message from a registered game server, and check the tiers on every batch. A crashed game server loses at most the last ten seconds.
+
+The badges are built by `legacyprofiles/badges/build-badges.js`, which reads the definitions: every one with an `icon` and an image gets a badge, with the hexagon of its tier or grade. The weapon icons are drawn flat in the master and come out with the same colours and gradient outline as the hand finished ones.
 
 ## Profile display pins
 
@@ -9277,6 +9370,12 @@ Audit-log IPs are the real client address (services passes `rawIp` alongside the
 the `unhandledCommand` / `adminSqlAudit` emits); the hashed `ip` is still what session checks
 use.
 
+## AdminRoles tab
+
+Edits the `ranks` list in `store/config/distributed_permissions.yaml` (the numbers `adminRoles` is matched against) and a `rankIcons` block next to it, one icon per rank for LegacyProfiles' profile and leaderboard badges. Positions are 0-255 and each can only be used once. Guest (0), Signed In (1), Moderator (10), Admin (20) and Superuser (255) can't move or be renamed, and Content Creator (5) can't move, because permissions and login look them up. Icons are one of LegacyProfiles' built in ones or an uploaded svg (needs a viewBox, 8KB max, no scripts or outside links). Only the file's `ranks` and `rankIcons` blocks are rewritten, comments elsewhere stay, and the old file is kept beside it as `.bak`.
+
+Moderator+ can look, saving is Admin or the SQL password (`adminGetRoles` / `adminSetRoles`, audit-logged). Services serves the new list straight away but game and client read it at boot, so the tab offers a restart. `test-adminroles.js` checks the services side against a temp config.
+
 ## Security model notes
 
 - **Audit log.** Every privileged action (SQL exec, config read/write, restart, moderation
@@ -9351,6 +9450,28 @@ The dashboard has no authentication of its own - anyone who can reach port 663 c
 
 ---
 
+## wiki/plugins/Plugin Docs/Default/legacylightmaps/info.md
+
+> **Canonical source:** [`plugins_default/legacylightmaps/README.md`](https://github.com/onlypuppy7/LegacyShell/blob/main/plugins_default/legacylightmaps/README.md) - edit that file, not this page (this page is built live from it, nothing here is a tracked copy).
+
+# LegacyLightmaps
+
+Makes the game use the map editor's existing lightmap exports. Vibecoded. The editor, its UI and its export format are unchanged.
+
+Render a map in the editor, then use its normal Save/Export. Install the exported `.json` as usual and put the `.lightmap` in `server-client/src/client-static/maps/` (or a plugin's static `maps/` folder), served at `/maps/<map name>.lightmap`. Use the map's **name**, which can differ from its export filename. Both the editor's raw RGB bytes and older JSON RGB arrays are supported. Requests are asynchronous and revalidate the browser cache.
+
+The editor's **Test** button already puts the rendered RGB array in `localStorage`. Offline tests read that existing value. Minerva's Test ONLINE does not transfer a lightmap; online games use the hosted sidecar.
+
+The game rebuilds the editor's original vertex order from its x/y/z block scan, then matches baked colors by position, surface normal and original paint color. This keeps coincident vertices on banner emblems and painted edges separate. Baked maps retain their original geometry when Francium is installed, without changing the Simple Map preference. Missing files, invalid data and incorrect vertex counts fall back to normal lighting. The existing format has no map fingerprint: after editing a map, render/export both files again; an old bake with the same vertex count cannot be identified reliably.
+
+Baked vertices skip the game's extra dirt and directional shading. Player shadows, fog and LegacyWeather's effects still apply. Time-of-day tint is relative to the baked sun color. Moving blocks keep their own lighting.
+
+Included as a default plugin. Restart the client server and reload the game. Prefix the folder with `_` to disable it. No services/game changes or database migration needed.
+
+Run `node plugins_default/legacylightmaps/test.js` from the repo root.
+
+---
+
 ## wiki/plugins/Plugin Docs/Default/legacyprofiles/info.md
 
 > **Canonical source:** [`plugins_default/legacyprofiles/README.md`](https://github.com/onlypuppy7/LegacyShell/blob/main/plugins_default/legacyprofiles/README.md) - edit that file, not this page (this page is built live from it, nothing here is a tracked copy).
@@ -9363,7 +9484,7 @@ Click **My Profile** beside Logout (or your stats) on the title screen. Clicking
 
 Profiles use the account username as the heading, with a different current nickname underneath. Guests use their nickname. Profiles show rank, join date, VIP, eggs, lifetime kills/deaths/KDR/best streak, a rotatable 3D loadout and a searchable inventory. Filter by item category or an individual weapon, including plugin weapons. The Loadout tab also shows this game's stats when opened from the player list. Guests get their loadout and player actions, with no made-up account stats. The in-game loadout is the one they are wearing; outside a game it is their saved equipment.
 
-Rank badges use the supplied SVGs in `client/icons/roles`, both inside profiles and to the right of ping in the in-game leaderboard: account-off for guests, person shield for players, YouTube for creators, police badge for moderators, tools for admins and crown shield for owners. Custom Developer, Twitch and TikTok ranks use their matching logos. Profile text labels stay visible; leaderboard badges show their role on hover. The SVG viewBoxes have equal artwork padding, and leaderboard badges use a fixed size outside the row highlight, unaffected by the own/other-player text scaling. Room-owner markers sit after the rank badge. Profile icons follow the surrounding text colour; leaderboard icons use the game's white. The leaderboard uses the existing server-supplied `adminRoles` and account ID, with no profile requests. Its plugin wrapper follows the core's score/team ordering and leaves name, score, ping and private-game owner indicators intact. Both views share `ranks.js` for configured role names.
+Rank badges use the supplied SVGs in `client/icons/roles`, both inside profiles and to the right of ping in the in-game leaderboard: account-off for guests in profiles only (guests get no leaderboard badge), robot for bots (spotted by their out of bounds ids), person shield for players, YouTube for creators, police badge for moderators, tools for admins and crown shield for owners. Custom Developer, Twitch and TikTok ranks use their matching logos. Profile text labels stay visible; leaderboard badges show their role on hover. The SVG viewBoxes have equal artwork padding, and leaderboard badges use a fixed size outside the row highlight, unaffected by the own/other-player text scaling. Room-owner markers sit after the rank badge. Profile icons follow the surrounding text colour; leaderboard icons use the game's white. The leaderboard uses the existing server-supplied `adminRoles` and account ID, with no profile requests. Its plugin wrapper follows the core's score/team ordering and leaves name, score, ping and private-game owner indicators intact. Both views share `ranks.js` for configured role names.
 
 Class names come from the registered class list, including plugin classes such as Crackshot; public loadouts preserve those class indexes. Missing weapon slots on older accounts use the registered default primary and secondary weapons, without writing to the account loadout; this also applies when saving a featured class. Arrows beside the loadout heading cycle through the account's saved weapon classes when more than one is available. The weapon preview and primary/secondary cards change together, without changing the account's equipped class. The egg, hat, stamp and camera stay in place; weapon models are loaded once per open profile.
 
@@ -9402,6 +9523,16 @@ The preview reuses the game's engine, with its own scene, offscreen render textu
 
 The preview borrows `Customizer.poseWithHat` and `poseWithStamp` with a preview-only actor adapter, plus the existing actor helpers for hats, shell colours and hand/weapon bone posing. Mesh and skeleton clones use the game's scene helpers, including skeleton-specific gun selection for classic models. Customizer itself is unchanged. Its constructor, scene setup, weapon selection and stamp application touch account state, global stamp/shadow state or live menu controls, so the preview keeps its own scene, weapon lifecycle and stamp texture. Shared materials cannot be reused safely because their bindings include the live game's global shadow and stamp state.
 
+## Kills badge artwork
+
+`badges/badges-master.svg` is the Inkscape project for the LegacyAchievements badges (bronze, silver, gold, platinum, ruby, emerald, diamond, rgb), with the egg and lightning icon on its own layer. `badges/build-badges.js` turns it into the finished, self-contained badges (one per achievement in its `definitions.js` that has an `icon`, with the hexagon of its tier or grade) in LegacyAchievements' `client/img/`. Run it after editing the master:
+
+```sh
+node plugins_default/legacyprofiles/badges/build-badges.js
+```
+
+The tier designs, gem facets, rim-set stars and animated sparkles are all described in the script; the master only supplies the icon and its outline filter. Every badge shares one crop, measured from a render of the biggest of them, so it fills its square instead of sitting in a 256 box with spare room round it, and the hexagons of different badges line up. Sparkle layouts come from a fixed seed, so the same master always builds the same badges. The sparkles, facet colours and rgb hue cycling are css animations that play wherever the badge is shown as an image; Inkscape shows them still.
+
 ## Checking it
 
 ```sh
@@ -9409,6 +9540,8 @@ node --test plugins_default/legacyprofiles/test-profiles.js
 ```
 
 The tests cover the public data boundary, read-only behavior, username validation, rejection of old ID requests, numeric usernames, client request payloads, legacy JSON, VIP expiry, ranks/icons, player-click interception and fallback, stale player slots, browser minification, inventory filters, loadout cycling and preview input/disposal/default-scene isolation. Preview tests execute the existing Customizer/actor helpers and check that account, stamp and shadow globals stay untouched.
+
+Ranks with an icon chosen in the admin panel's AdminRoles tab (`rankIcons` in `distributed_permissions.yaml`: a built in icon name or an svg) use it on profiles and the leaderboard in place of the defaults. Guests and bots keep theirs.
 
 ---
 
@@ -9594,7 +9727,7 @@ Existing settings added before this plugin's own UI takes over are preserved: `f
 
 ## Option types
 
-`checkbox`, `slider` (with an optional live number readout), `button`, `bind` (captures the next keypress/mouse button/scroll direction as a keybind), `select`, `radio`, `text`, `info` (static, but updatable text), `list` (removable and/or drag-reorderable), `gallery` (a small image carousel), and `customDiv` (wraps an arbitrary existing DOM element - this is the mechanism `absorbOldSettings` itself uses). Any option can also take a `tooltip` string, shown immediately in a floating tooltip that follows the cursor while it is over the row (label and control). An unrecognized `type` renders a visible "Unknown option type" placeholder rather than failing silently, which is worth knowing if a typo'd type string doesn't show what you expected.
+`checkbox`, `slider` (with an optional live number readout), `button`, `bind` (captures the next keypress/mouse button/scroll direction as a keybind), `select`, `radio`, `text`, `info` (static, but updatable text), `list` (removable and/or drag-reorderable), `gallery` (a small image carousel), and `customDiv` (wraps an arbitrary existing DOM element - this is the mechanism `absorbOldSettings` itself uses). Any option can also take a `tooltip` string, shown in a floating tooltip that follows the cursor while it is over the row (label and control), drawn by the `itemtooltips` plugin (same as the shop's). An unrecognized `type` renders a visible "Unknown option type" placeholder rather than failing silently, which is worth knowing if a typo'd type string doesn't show what you expected.
 
 ## Notes
 
@@ -9617,6 +9750,14 @@ The flagship content-pack plugin - custom maps, items, stamps, a baseline shop p
 - **Stamps**: registers its own `stamps/` folder via `client:stampImageDirs` (see [Stamps and Babylons](../../../../docs/05-Codebase%20Reference/stamps-and-babylons.md)).
 - **A permanent baseline shop pool**: registers a synthetic seasonal event (`services:eventsInit`) named `_legacyshellcore` that starts `01-01` and lasts `999w` - functionally "always active" - defining `tier1pool`/`tier2pool`/`tier3pool` item-tag lists (`tier2count: 3`, `tier3count: 8`). This is the real mechanism the public instance uses to give the [weekly shop rotation](../../../../docs/05-Codebase%20Reference/catalog-and-items.md#the-weekly-shop-rotation-algorithm-setupshopavailable) a permanent pool to draw from, expressed as an ordinary (if unusually long) seasonal event rather than a separate system.
 - **A map tag tweak via `insertMaps`**: adds a `Hiroshima` gamemode flag to the "Ruins" and "Shipyard" maps specifically (the source comment: "better than modifying the maps directly") - a real example of adjusting default map data from a plugin instead of hand-editing the shipped map JSON.
+
+## Debug settings
+
+**Settings → General → Enable Debug** reveals a Debug tab; it is off by default. The tab contains the rebindable F3 overlay key, **Hide identifying info in F3**, and Francium's local benchmark controls when Francium is installed. Benchmark controls are unavailable during games or pending game connections. Disabling debug hides the tab and overlay.
+
+**Debug Maps** and **Removed Gamemodes** are saved placeholder checkboxes with no gameplay effect. The existing F3 privacy preference is preserved.
+
+Run the focused settings and overlay checks with `node plugins_default/legacyshellcore/test-debug.js`.
 
 ## Sound packs
 
@@ -9870,6 +10011,10 @@ Up to **50** saves kept in the browser's IndexedDB. **Autosave** (on by default,
 Saves stored in the services database (`editor_saved_maps`), per account. **10MB** per account, **1GB** for moderators and up (`adminRoles >= 10`). Saving over a name replaces it, and only the difference counts against the quota.
 
 The editor sends the main page's stored login (`LegacyShellAuthToken`) with each request and services checks it directly. No session is created and the token isn't rotated, so an open game tab stays signed in.
+
+## Drag and drop
+
+Drop a map `.json` anywhere on the editor and it asks whether to replace the current map.
 
 ## Installation
 
@@ -10159,25 +10304,26 @@ Needs the DeadInternet plugin (the zombies are its bots) and the Modern Shell Ha
 
 ## How a round goes
 
-- Timed rounds (3 minutes), on the maps in the `Zombies` pool: `ZombiesModeMaps` in `shared.js` (Blue, Castle, Dirt, Feedlot, Moonbase, Ruins, Shellville, Shipyard, Two Towers). The plugin hooks services' `insertMaps` event, which fires for each map as it goes into the database on every services start, and adds a `Zombies` mode to those maps' `modes` (the gametype's `mapPool`); the other maps are not touched, so they never come up for this mode. Humans are team 1, the horde is team 2. Nobody can switch teams.
+- Timed rounds (3 minutes), on the maps in the `Zombies` pool: `ZombiesModeMaps` in `shared.js` (Blue, Castle, Infected Feedlot, Moonbase, Ruins, Two Towers). The plugin hooks services' `insertMaps` event, which fires for each map as it goes into the database on every services start, and adds a `Zombies` mode to those maps' `modes` (the gametype's `mapPool`); the other maps are not touched, so they never come up for this mode. Humans are team 1, the horde is team 2. Nobody can switch teams.
 - **Everyone is spawned into the round the moment it starts**, whether or not they pressed PLAY (the browser closes the menu and takes the pointer lock for them; if the browser refuses the lock without a click, the first click on the game does it). The horde follows after a head start (`headStartSecs`, 6) and spawns spread over `staggerSecs` (8), so nobody spawns into a horde that has already walked to the spawn. A human who still has not spawned in `spawnFailsafeSecs` (15) after the round started (or after they joined it) is infected.
 - The room keeps `count` (20) zombie bots in play while at least one human is in it. A killed zombie comes back after a few seconds. Zombies (the bots and the infected) spawn at a random spawn point with no human within `spawnClearRadius` (12 blocks, at most 40% of the map's size), so the horde is spread around the map rather than appearing on top of anyone.
 - **WAITING...** is shown in the middle of the screen to someone who is in play while it is the gap between two rounds. That is only ever someone who has joined during the gap: everyone in the room when a round ends is taken out of play, and the game does not let you spawn again until the next round starts. They are put into the next round when it starts. Whether it is the gap is sent by the server in the room params (`gameOptions.plugins.zombiesInterim`), rather than the browser working it out from the game's own round state, which depends on which packets it happened to be there for.
 - **Getting to you**: a zombie only walks straight at someone it can see when they are level with it, not far, and there is ground all the way: a gap or a drop in between is for the route to cross (a bot in sight never follows a route, and its ledge guard would leave it standing at the edge for good). Someone higher up (a ledge, stairs, a roof) is gone to by route, which is what takes it up there, rather than standing below looking up; and it always knows where the humans are, so it never wastes time going to where it last saw one. Walking straight is never off an edge unless the human is down there.
 - **Ghosts**: one in every 6 of the horde (`ghostRatio`, spread evenly: the 6th, the 12th...) is a ghost instead of a zombie. A ghost has **noclip** (the base game's modifier), so it floats straight through walls: no pathfinding, it just points at whoever is nearest and moves at them in a straight line, at a constant speed on all three axes. It is white and see-through (a copy of the shared player shader with a constant alpha, for the body, hands and hat), wears the Ghost Hat (`ghostHat`, an item id from modernshellhats; 0 for none), is slower than a zombie (`ghostSpeed` 0.5, about half the pace of a walking player), bites for less (`ghostBite` 6) and has `ghostResistance` (0.7). It is shot, killed and paid for like any zombie. In sudden death it speeds up by the same factor as the zombies do, so it stays slower.
+- **Exploding ghosts**: from round 2 (streak 1) one of the ghosts is an exploding one, and from round 4 two (`bombStreak`, `bombSecondStreak`, `bombMax`). It is a ghost in every way (it replaces a plain ghost, so the horde stays the same size) and just as quick as the other ghosts of the round. It ticks slowly the whole time, with the grenade's own beep at its own position (so it fades with distance like any sound) and a yellow flash on each tick (with a yellow light on its surroundings when Fancy Glow is on, brighter once the fuse is lit), so it can be heard coming. When someone gets within `bombRange` (1.875 blocks) its fuse is lit, and it speeds up by `bombRush` (1.3x) for the dash: it ticks and flashes the way a grenade does, over the length of the fuse (`bombFuseMs`, 3s, down to `bombFuseMinMs` by round 10, so the ticking is quicker the later the round), and its hat spins, faster and faster. It then goes off wherever it is by then. Shooting it dead never sets it off. The blast is a real grenade thrown at its own feet with a timer short enough that it goes at once (the browsers play the game's own explosion, and the damage comes from the game's own explosion code): `bombDamage` (100) at point blank, falling off to nothing at 3 blocks. It cannot hurt the horde (the same team), and the ghost goes out of play with it (it does not die, so there is no death animation, and the blast does not hit it) and comes back after a while like any other. The pin sound plays when the fuse is lit; the grenade it explodes with is silent and unseen (the browsers drop its pin sound, beep and model in `game:grenadeThrow`), so only the blast is heard. The browsers know which ghosts are bombers, and how long their tick and fuse are, from two extra modifiers (`zombieBomber Ghost`, `zombieFuse`) sent on the end of the modifiers packet (`game:packModifiers`).
 - **Brutish and small zombies**: of the rest of the horde, 1 in 10 (`brutishRatio`) is brutish and 3 in 20 (`smallRatio`) small, spread evenly like the ghosts. A brutish one has big hands, a `physicsSpeedModifier` of 0.7 (not `speedModifier`, which would throw the pathfinding off), five times a zombie's resistance and a bite 1.25x as hard, a tan egg and a Zombie Eggshell hat (`brutishHat`, from legacyshellcore). A small one has a `physicsSpeedModifier` of 1.25, half the bite and a scale of 0.5, which also halves its health (damage taken is divided by scale), a pinkish grey egg and Devil Horns (`smallHat`). Both take the plain zombies' routes and pathfinding cache: physics speed is not part of a pathfinding profile, and the small ones search as a full size body (`pathAs`). Their egg colours go out through legacyshellcore's `setEggColor`.
 - **Unreachable humans**: someone on a tower nothing can walk up to is still the target. Zombies search harder for a way (`searchBudget`); if there is none they try the blocks in the 5x5 columns around the human, closest to them first, and go to the first that has a route; and close to someone they cannot quite reach (above them, or just standing short) they jump now and then (about once every 3 seconds on average), and when they are going somewhere but not getting anywhere (standing at a ledge they will not step off while in sight, or at the end of the route to the closest point) they wander off to a random spot 3 to 8 blocks away for a few seconds, then try the route again, so the horde does not stand about (or pile up) on the one point.
 - A zombie has about 70 HP (about 2 rifle hits), walks at about 60% of a human's speed (humans are 1.1), never shoots, does no aiming (it turns straight to face you) and walks right into you rather than stopping a gun's distance away, and knows where the humans are from anywhere on the map. It bites by touching: team 2's `contactDamage` (12) hits on a half second cooldown. Touching comes from the core `contactDamage` game option (hp per hit, per team, 0 = off; `/contactDamage` sets it), with `contactCooldown` and `contactReach` (how far past the two bodies just touching still counts, 0.1) alongside.
 - A human who dies switches to team 2 and respawns as a zombie, with about 60 HP (they are faster and cleverer than the bots, so they break more easily), a bite and no gun.
 - **Leaving through the menu infects you too**: pressing escape and respawning is not a way out. (The game takes you out of play a few seconds after you press escape; that is what is noticed.)
 - Someone who first spawns more than `graceSecs` (30) into a round comes in as a zombie.
-- The round ends early when the last human is infected (the horde wins). Otherwise, when the timer runs out, the surviving humans win and are paid `winEggs` each. **When the humans win the whole horde (the bots and the infected) dies**, one after another `victoryGapMs` (100) apart, credited to a survivor in the kill feed but not scored; nothing bites or comes back while that happens, and the round ends `victoryHoldMs` (1500) after the last one goes. (The plugin takes over the room's round timer to be able to do this: the round ends through `roundTimeUp` in `index.js`.)
+- The round ends early when the last human is infected (the horde wins). Otherwise, when the timer runs out, the surviving humans win and are paid the win bonus each (`winEggs`, 20, plus the streak: see Eggs). **When the humans win the whole horde (the bots and the infected) dies**, one after another `victoryGapMs` (100) apart, credited to a survivor in the kill feed but not scored; nothing bites or comes back while that happens, and the round ends `victoryHoldMs` (1500) after the last one goes. (The plugin takes over the room's round timer to be able to do this: the round ends through `roundTimeUp` in `index.js`.)
 - **The sky** (with legacyweather): a round starts as an ordinary day, and within about 45 seconds (`dayHoldSecs` 4, then `darkenSecs` 40) has turned into a dark, stormy dusk with rain, wind and the odd bolt. From there it slowly gets darker and the storm builds, reaching night and a heavy storm by the end of the round. The clients blend between the few states the server sends, so it is a smooth change rather than steps. It goes back to the room's own weather when the round ends. `weatherArc: false` leaves the weather alone.
-- **Sudden death** starts when one human is left of two or more, or for a player on their own when `suddenDeathSecs` (60) are left: it goes to full night in a downpour with lightning every second or two, and every zombie (the bots and the infected) goes up to `suddenDeathSpeed` (1.15). The humans get a little quicker too: `suddenDeathHumanSpeed` (+0.2, so 1.3) and a `suddenDeathReload` (1.3) reload, up from the 1.2 reload they have the rest of the round (`reloadSpeedModifier` in the gametype).
+- **Sudden death** starts when one human is left of two or more, or whenever `suddenDeathSecs` (60) are left, whoever is still alive: it goes to full night in a downpour with lightning every second or two, and every zombie (the bots and the infected) goes up to `suddenDeathSpeed` (1.15). The humans get a little quicker too: `suddenDeathHumanSpeed` (+0.2, so 1.3) and a `suddenDeathReload` (1.3) reload, up from the 1.2 reload they have the rest of the round (`reloadSpeedModifier` in the gametype).
 - A new round cures everyone.
 - **Health packs** (from the healthpackitem plugin, when it is loaded) spawn in this gamemode, for the humans, at a quarter of the usual rate (one per 240 blocks of map, at least one). Health packs, ammo and grenades are for the humans only: the horde walks over them without taking anything.
 
-Infections and round results go to the room's chat (green lines from the server); only sudden death gets the on-screen pop-up.
+Infections and round results go to the room's chat (green lines from the server); there are no pop-ups: sudden death is the red text under the clock. What the round looks like on screen is under Screen below.
 
 ## How zombies look
 
@@ -10191,7 +10337,35 @@ Everyone on the horde (the bots and the infected, anywhere in the browser, inclu
 
 ## Eggs
 
-The usual per-kill reward is replaced: a human earns `killEggs` (2) per zombie killed, up to `eggCap` (100) a round, and nothing for anything else. Nothing is paid in rooms with cheats on. This uses the `scoreKillEggs` event.
+The usual per-kill reward is replaced: a human earns `killEggs` (2) per zombie killed, up to `eggCap` (100) a round, and nothing for anything else. Nothing is paid in rooms with cheats on. This uses the `scoreKillEggs` event. A zombie kill never counts as a kill in the account's stats (the default reward, which is what bumps them, is cancelled); LegacyAchievements keeps its own `zombies` count for the Rotten Eggs tiers.
+
+A survivor is also paid the **win bonus** when the humans win: `winEggs` (20) plus `streakWinEggs` (10) for every round in a row the humans have won, up to `streakCap` (10). Someone who was infected, left through the menu or came in as a zombie gets no bonus, and neither does a guest (nothing is paid to someone without a session) or anyone with cheats on. The kills that put the horde down when the humans win are not scored and pay nothing.
+
+Most a round can pay one player: the kill cap (100 x 2 = 200) plus the win bonus at the cap (20 + 10 x 10 = 120), so **320 eggs**. A good round with no streak is nearer 60 to 120.
+
+## The win streak
+
+Rounds in a row the humans have won, per room (the horde winning, or the room emptying of humans, starts it over; a round with nobody in it neither adds nor ends one). It adds to the win bonus and makes the horde worse, all of it up to `streakCap` (10) rounds:
+
+- **Brutish zombies** take over from plain ones: the brutish share is `brutishRatio` (10%) plus `streakBrutishRatio` (7%) per round, up to `brutishRatioMax` (45%). At the start of a round plain zombies are taken out and the horde fills back up with brutish ones.
+- **They get quicker**: their physics speed goes from `brutishPhysics` (0.7) up by `streakBrutishPhysics` (0.1) per round to `brutishPhysicsMax` (1, the pace of the plain zombies), so by the third round they are tough without being slow.
+- **Ghosts get quicker**: `ghostSpeed` (0.5) plus `streakGhostSpeed` (0.04) per round, up to `ghostSpeedMax` (0.9). In sudden death they still never go faster than the zombies' `suddenDeathSpeed`.
+
+## Screen
+
+All browser-side and in `zombiesui.js` (spliced into the client bundle next to `shared.js`), drawn from what the server already sends in the room params (`zombiesStreak`, `zombiesRound`, `zombiesWinner`, `zombiesResults`, `zombiesNextIn`, `zombiesGraceLeft`, `zombiesSuddenDeath`, `zombiesInterim`); the one thing added to the wire protocol is a `zombiesEggs` packet (`Comm.Add`, handled in `shared.js`) the killer gets for each zombie: u8 eggs for that kill and u16 eggs earned this round. It is counted in the mode's own eggs (`killEggs`, up to `eggCap`) rather than from the account's balance, because the services multiply every payout by the account's VIP multiplier (an hour of 2x comes with Kills II in LegacyAchievements), so a VIP's balance goes up by twice as much as the mode says. The multiplier still applies to what is actually paid. A guest, who is never paid, does not see the egg lines.
+
+- **Under the clock**: SUDDEN DEATH in red while it lasts, then `EGGS 24 / 100` (with a +2 floating up from it on each kill), `SURVIVE FOR +30 WIN BONUS` (struck through once infected, `NEXT ROUND: +35 WIN BONUS` in the gap) and `WIN STREAK x3`.
+- **End of round card**: during the gap, for each player who was in the round: YOU SURVIVED!, YOU WERE INFECTED, YOU FLED THE FIGHT, YOU JOINED THE HORDE or THE HORDE WINS, with the kill eggs, the survival bonus (struck out if it was lost), the streak bonus, a VIP BOOST row for an account with a VIP multiplier (the services pay everything out times it, so the total is what the account really gets, while the counter under the clock stays in the mode's own eggs, out of `eggCap`) and the total, and the streak going on or being lost. A note says if cheats were on or the player is a guest.
+- **Under the PLAY button**: what pressing it does: the countdown to the next round and that you start as a human, the horde's welcome if you are infected, how long you can still come in as a human in a round that has started or that you will join the horde, and for someone who has just pressed escape in a round that leaving infects them (the game takes you out of play 3 seconds later, then keeps the button grey for 5).
+
+When the humans win a round, anyone still out in the game has the game menu brought up for them (once a round), so the end of round card and the countdown to the next round are in front of them without pressing esc. Pressing PLAY while an open player profile, the settings or a dialog is in the way closes them first.
+
+The leaderboard is only rebuilt at most every quarter of a second in a zombies room (the core rebuilds it for every spawn, death and score, and a horde respawning all the time made that a stutter). The round box sits in the game's own container with no z-index of its own, so the dark overlay behind a dialog covers it like the rest of the game.
+
+## Sounds
+
+Two sounds, in `client/sound/zombies/` (served by the plugin, added to the game's sound list on `game:loadSounds`): a siren when the horde starts spawning (once a round, as the head start ends) and a horn when sudden death starts (with the siren again 1.5 seconds after it). The server tells each human in the room with a second small packet, `zombiesSound` (a u8 off `ZombiesCues` in `shared.js`), so they play on the sound volume and anyone joining later does not hear a cue that already went.
 
 ## Settings
 
@@ -10208,11 +10382,17 @@ Everything is in `gameOptions.plugins.zombies` (the gametype sets the defaults i
 | `staggerSecs` | 8 | how long the horde takes to spawn in, spread out |
 | `spawnClearRadius` | 12 | zombies only spawn at spawn points with no human this close (blocks) |
 | `searchBudget` | 1500 | how hard a zombie looks for a way to someone (path search steps: a failed search spends all of them) |
-| `searchBudgetMs` | 6 | once the horde's route searches have taken this many ms in a tick, the others wait for a later one |
+| `searchBudgetMs` | 6 | the most the horde's route searching takes in a tick, in ms: a search that is not finished by then carries on in the next ticks (the zombie keeps its old route, or stands, meanwhile), and the others wait. Lower on a slower machine for smoother ticks, higher for zombies that find their way sooner |
 | `zombieSpeed` | 0.65 | zombie bots' speed modifier. Not much lower than this: how far a bot can jump depends on its speed, and a two block gap tried from a four block run-up is too wide at 0.6 (and 0.62 is enough) |
 | `ghostRatio` | 1/6 | the share of the horde that are ghosts |
 | `ghostSpeed` / `ghostResistance` | 0.5 / 0.7 | a ghost's speed modifier (1 is the pace of a walking player) and resistance |
 | `ghostBite` | 6 | hp a ghost's touch takes |
+| `bombStreak` / `bombSecondStreak` / `bombMax` | 1 / 3 / 2 | the streak the first and second exploding ghost come at, and the most there are |
+| `bombRange` | 1.875 | how close someone gets to light its fuse |
+| `bombRush` | 1.3 | its speed multiplier once the fuse is lit |
+| `bombFuseMs` / `bombFuseMinMs` | 3000 / 1800 | its fuse at round 2, down to this by round 10 |
+| `bombIdleMs` / `bombIdleMinMs` | 1200 / 700 | the gap between its slow ticks before the fuse, round 2 down to round 10 |
+| `bombDamage` | 100 | what its blast does at point blank, humans only |
 | `brutishRatio` / `smallRatio` | 0.1 / 0.15 | the share of the horde that are brutish / small |
 | `brutishPhysics` / `brutishResistance` / `brutishDamage` | 0.7 / 3.5 / 1.25 | a brutish one's physics speed, resistance and bite multiplier |
 | `smallPhysics` / `smallDamage` / `smallScale` | 1.25 / 0.5 / 0.5 | a small one's physics speed, bite multiplier and scale |
@@ -10225,7 +10405,11 @@ Everything is in `gameOptions.plugins.zombies` (the gametype sets the defaults i
 | `killEggs` | 2 | eggs per zombie killed |
 | `eggCap` | 100 | most kill eggs one player can earn in a round |
 | `winEggs` | 20 | eggs for each survivor when the humans win |
-| `suddenDeathSecs` | 60 | when sudden death comes at the latest for a lone player |
+| `streakWinEggs` / `streakCap` | 10 / 10 | eggs added to the win bonus per round won in a row, and the number of rounds the streak stops counting at |
+| `streakBrutishRatio` / `brutishRatioMax` | 0.07 / 0.45 | the brutish share goes up this much per round, to this |
+| `streakBrutishPhysics` / `brutishPhysicsMax` | 0.1 / 1 | the brutish get this much quicker per round, to this physics speed |
+| `streakGhostSpeed` / `ghostSpeedMax` | 0.04 / 0.9 | the ghosts get this much quicker per round, to this |
+| `suddenDeathSecs` | 60 | when sudden death comes at the latest |
 | `suddenDeathSpeed` | 1.15 | the zombies' speed in sudden death (the speed itself, for the bots and the infected alike) |
 | `suddenDeathHumanSpeed` | 0.2 | added to the humans' speed in sudden death |
 | `suddenDeathReload` | 1.3 | the humans' reload speed modifier in sudden death |
@@ -10235,7 +10419,8 @@ The horde's team options (`damageModifier`, `contactDamage`, `contactCooldown`, 
 ## Testing
 
 ```bash
-node plugins_default/zombiesmode/test-zombies.js [map]    # Two Towers by default
+node plugins_default/zombiesmode/test-zombies.js [map] [seed] # Two Towers by default; an optional seed repeats the same choices
+node plugins_default/zombiesmode/test-navigation-policy.js # route resumption, search limits and direct pursuit (no room needed)
 node plugins_default/zombiesmode/test-navigation.js [map] [seed] [plain|small|brutish|sudden] # Blue by default
 node plugins_default/zombiesmode/test-client-registration.js
 ```
@@ -10246,9 +10431,13 @@ The cost of the mode is route searching (the zombies' AI is otherwise cheap): ev
 
 - The cache fills itself: a game server with no rooms running for 20 seconds starts warming it (DeadInternet's `idlewarm.js`, in a worker thread), for every speed and variant a zombie is at (usual and sudden death, plain, brutish and small) on the maps the mode is played on, and stops the moment a room is made, carrying on next time it is quiet. It is kept in `plugins_default/deadinternet/store/` and is thrown away whenever the physics or pathfinding code changes. On a PC the worst tick in a test round went from about 1.3s to under 0.1s with a warm cache.
 - Fewer zombies cost proportionally less: `count` (20 by default; try 10-12 on a Pi 4).
-- The horde shares one route search budget per tick (`searchBudgetMs`), and the search for a way to someone out of reach is shared between them (and kept for a few seconds) instead of every zombie doing its own.
+- The horde shares one route search budget per tick (`searchBudgetMs`), and a search is carried over several ticks when it does not fit (a zombie after someone it cannot reach would otherwise flood the whole map in one go: hundreds of ms on a desktop, seconds cold on a Pi, with everyone frozen), and the search for a way to someone out of reach is shared between them (and kept for a few seconds) instead of every zombie doing its own.
 
-`test-zombies.js` boots a real room headlessly with stand-in humans: the gametype, the horde and its head start, eggs, infection (by dying, by leaving through the menu, by joining late), sudden death, both ways a round can end, the next round (including everyone being spawned into it), where zombies spawn (and that the position is in the respawn packet), whether they reach and bite a standing human, whether they find their way up to a human a few levels higher, whether they jump a one block gap from a run-up, whether they get as close as they can to a human on a tower they cannot walk up, and that they wander when they are stuck on the way (`NOSWARM=1` turns that off to compare). Takes a minute or so.
+`test-zombies.js` boots a real room headlessly with stand-in humans: the gametype, the horde and its head start, eggs, infection (by dying, by leaving through the menu, by joining late), sudden death, both ways a round can end, the next round (including everyone being spawned into it), where zombies spawn (and that the position is in the respawn packet), whether they reach and bite a standing human, whether they find their way up to a human a few levels higher, whether they jump a one block gap from a run-up, whether they get as close as they can to a human on a tower they cannot walk up, and that they wander when they are stuck on the way (`NOSWARM=1` turns that off to compare), the cards each player gets at the end of a round, the win streak and what it does to the horde. Takes a minute or so.
+
+`test-navigation-policy.js` checks that a kept route resumes even when the horde has spent its search budget, that another zombie's failed search cannot hold an old route in place, and that waiting for a search is not recorded as an unreachable goal. Direct pursuit checks the whole floor between the zombie and the human; gaps, props and low walls hand over to a route before the zombie reaches them. Incidental jumps leave route execution alone.
+
+The elevated target in `test-zombies.js` is checked against a real zombie's physics and landing point before the human is placed there, so an estimated route onto a blocked prop or a different part of a ramp is not mistaken for a reachable perch.
 
 `test-client-registration.js` loads `shared.js` and `zombievisuals.js` the way the browser bundle does and checks the gametype registers, the browser-side spawn behaves, the WAITING... text, and the zombie look (the hooks on the actors, the stumble, the gun and hands, and that humans are left alone), with no server and the meshes stood in for.
 

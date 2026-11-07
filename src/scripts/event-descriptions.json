@@ -185,6 +185,7 @@
   "server-client/src/client-static/src/shellshock.min.js#gunActorSetup": "A weapon's visual model finished setup.",
   "server-client/src/client-static/src/shellshock.min.js#onPageLoadedEnd": "The game's HTML page finished loading.",
   "server-client/src/client-static/src/shellshock.min.js#joinGame": "The client is about to send its join request.",
+  "server-client/src/client-static/src/shellshock.min.js#playPressed": "PLAY was pressed (on the main menu, or in the game menu): anything open over it, like a profile or the settings, should close.",
   "server-client/src/client-static/src/shellshock.min.js#onExtraParams": "Extra join params (session, custom map, etc.) are being assembled.",
   "server-client/src/client-static/src/shellshock.min.js#clientOnExtraGameInfo": "Extra per-game info received from the server after joining.",
   "server-client/src/client-static/src/shellshock.min.js#onShadowGeneratorCreated": "The Babylon shadow generator was created for the scene.",
