@@ -45,6 +45,16 @@ The preview reuses the game's engine, with its own scene, offscreen render textu
 
 The preview borrows `Customizer.poseWithHat` and `poseWithStamp` with a preview-only actor adapter, plus the existing actor helpers for hats, shell colours and hand/weapon bone posing. Mesh and skeleton clones use the game's scene helpers, including skeleton-specific gun selection for classic models. Customizer itself is unchanged. Its constructor, scene setup, weapon selection and stamp application touch account state, global stamp/shadow state or live menu controls, so the preview keeps its own scene, weapon lifecycle and stamp texture. Shared materials cannot be reused safely because their bindings include the live game's global shadow and stamp state.
 
+## Kills badge artwork
+
+`badges/badges-master.svg` is the Inkscape project for the LegacyAchievements badges (bronze, silver, gold, platinum, ruby, emerald, diamond, rgb), with the egg and lightning icon on its own layer. `badges/build-badges.js` turns it into the finished, self-contained badges (one per achievement in its `definitions.js` that has an `icon`, with the hexagon of its tier or grade) in LegacyAchievements' `client/img/`. Run it after editing the master:
+
+```sh
+node plugins_default/legacyprofiles/badges/build-badges.js
+```
+
+The tier designs, gem facets, rim-set stars and animated sparkles are all described in the script; the master only supplies the icon and its outline filter. Every badge shares one crop, measured from a render of the biggest of them, so it fills its square instead of sitting in a 256 box with spare room round it, and the hexagons of different badges line up. Sparkle layouts come from a fixed seed, so the same master always builds the same badges. The sparkles, facet colours and rgb hue cycling are css animations that play wherever the badge is shown as an image; Inkscape shows them still.
+
 ## Checking it
 
 ```sh
