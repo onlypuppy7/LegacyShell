@@ -259,6 +259,7 @@ export class RoomRecorder {
             startTime: this.startTime + startTMs,
             players,
             plugins: Object.keys(plugins.plugins),
+            comm: { ...Comm.Code }, //plugins add codes in load order, so what a number meant then is kept
         };
     };
 

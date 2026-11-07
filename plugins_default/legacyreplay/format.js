@@ -103,6 +103,13 @@ export const ReplayFormat = {
             return clean;
         });
 
+        header.comm = null;
+        if (F.isPlainObject(raw.comm)) {
+            const names = Object.keys(raw.comm);
+            if (names.length > 1024 || !names.every((name) => name.length <= 64 && F.isInt(raw.comm[name], 0, 255))) throw new Error("bad comm");
+            header.comm = { ...raw.comm };
+        };
+
         return header;
     },
 

@@ -32,7 +32,7 @@ export const ReplaySession = {
         var recent = this.recent || (this.recent = []);
         recent.push(data.cmd);
         if (recent.length > 6) recent.shift();
-        var strays = [Comm.Code.gameJoined, Comm.Code.keyUp, Comm.Code.controlKeys];
+        var strays = [Comm.Code.gameJoined, Comm.Code.keyUp, Comm.Code.controlKeys, Comm.Code.warp]; //warp would join a real game
         if (data.cmdName !== "unknownCode" && !strays.includes(data.cmd)) return false;
         var record = this.current;
         if (record && !this.warned) {
@@ -111,6 +111,17 @@ export const ReplaySession = {
         this.warned = false;
         this.playing = false;
         this.active = true;
+
+        if (!this.joinGameOriginal) { //nothing in a recording may join a real game (warp, a stray byte). said once with where it came from
+            this.joinGameOriginal = joinGame;
+            joinGame = (...args) => console.log("[legacyreplay] a join was asked for during a replay and refused:", args, new Error().stack);
+        };
+
+        if (this.header.comm && !this.commOriginal) { //the codes the recording was made with, in place of this server's (older replays have none, and are read with this server's)
+            this.commOriginal = { ...Comm.Code };
+            Object.keys(Comm.Code).forEach((name) => delete Comm.Code[name]);
+            Object.assign(Comm.Code, this.header.comm);
+        };
 
         //what a join would have set. the embedded map is used instead of looking one up by number, so editing a map later cant break an old replay
         document.getElementById("mainMenu").style.display = "none";
@@ -206,6 +217,12 @@ export const ReplaySession = {
         if (!this.active) return;
         ReplayReel.stop();
         this.active = this.playing = this.live = false;
+        if (this.joinGameOriginal) { joinGame = this.joinGameOriginal; this.joinGameOriginal = null };
+        if (this.commOriginal) {
+            Object.keys(Comm.Code).forEach((name) => delete Comm.Code[name]);
+            Object.assign(Comm.Code, this.commOriginal);
+            this.commOriginal = null;
+        };
         this.records = [];
         document.body.classList.remove("replayMode");
         freezeFrame = false;
