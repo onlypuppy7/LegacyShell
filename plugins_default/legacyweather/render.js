@@ -318,6 +318,27 @@ const WeatherRender = {
         this.stopRainSound();
     },
 
+    // The scene is not the weather's to keep: back at the main menu the sunlight, fog and sky are the map's own again (the title screen's
+    // egg is lit by the same sunlight, and a night would otherwise stay on it).
+    restoreScene() {
+        if (typeof gameScene === "undefined" || !gameScene || !gameScene.sunLight) return;
+        var sun = typeof minMap !== "undefined" && minMap && minMap.sun && minMap.sun.color ? BABYLON.Color3.FromHexString(minMap.sun.color) : BABYLON.Color3.White();
+        gameScene.sunLight.diffuse.copyFrom(sun);
+        var fog = this.baseFog();
+        gameScene.fogColor.r = fog.r; gameScene.fogColor.g = fog.g; gameScene.fogColor.b = fog.b;
+        gameScene.fogDensity = fog.density;
+        gameScene.fogEnabled = fog.density > 0.0001;
+        if (this.lastSkyMat && this.lastSkyMat.reflectionTexture) this.lastSkyMat.reflectionTexture.level = 1;
+
+        //the wet/glow uniforms live on the materials the title screen's egg uses too, and nothing updates them once the weather is stopped: left as they were, the last
+        //wetness, flash and glows (a lit grenade, a ghost) stay on whatever the menu draws
+        this.lastGlowCount = 0;
+        for (var i = 0; i < this.wetMats.length; i++) {
+            var m = this.wetMats[i];
+            m.setFloat("glowCount", 0); m.setFloat("wetness", 0); m.setFloat("wetPuddles", 0); m.setFloat("flashAmount", 0); m.setFloat("wetRipple", 0);
+        };
+    },
+
     // the map's own fog, i.e. what setFog() in core would pick
     baseFog() {
         var fog = typeof minMap !== "undefined" && minMap && minMap.fog;

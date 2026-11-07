@@ -385,6 +385,7 @@ export const LegacyWeatherPlugin = {
     leaveGame(data) {
         if (isServer) return;
         WeatherRender.reset();
+        WeatherRender.restoreScene();
         WeatherRender.disposePrecip();
     },
 
