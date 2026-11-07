@@ -134,6 +134,12 @@ export const TimeMachinePlugin = {
         this.eggYolkMaterial.disableLighting = true;
         this.eggYolkMaterial.emissiveColor = BABYLON.Color3.White();
 
+        //they are unlit (the classic burst was), so the time of day would never reach them: they take the sunlight colour the shader gives everything else (legacyweather changes it for night)
+        scene.registerBeforeRender(() => {
+            const sun = scene.sunLight && scene.sunLight.diffuse;
+            if (sun) { this.eggWhiteMaterial.emissiveColor.set(sun.r, sun.g, sun.b); this.eggYolkMaterial.emissiveColor.set(sun.r, sun.g, sun.b); };
+        });
+
         // this.normalBackfaceMaterial = new BABYLON.StandardMaterial("normalBackFace", scene);
         // this.normalBackfaceMaterial.diffuseColor = new BABYLON.Color3(0.5, 0.5, 0.5);
         // this.normalBackfaceMaterial.ambientColor = new BABYLON.Color3(0.5, 0.5, 0.5);
@@ -142,27 +148,68 @@ export const TimeMachinePlugin = {
         // this.normalBackfaceMaterial.twoSidedLighting = true;
     },
 
-    //only made when the classic death animation first plays: cloning eggExplode costs about 26ms, which every egg joining used to pay
+    //cloning eggExplode (a root with twenty shards, and the white and yolk) cost over 100ms for every player's first death: each cloned mesh sets its
+    //material, and setting a material goes through every mesh in the scene. So the loaded meshes only get their material the once and what a
+    //player gets are instances of them (the way the bullets are), which share it and set nothing. Instances only copy position and rotation, so the
+    //rest of the transform and the animations are copied across by hand. Made a little after the player spawns (see prepareExplodeMeshes), and
+    //whatever is not there yet when someone dies is made right then.
     createExplodeMeshes(playerActor) {
-        if (playerActor.explodeMesh) return;
-        const scene = playerActor.player.scene;
+        for (let step = 0; step < 3; step++) this.createExplodeMesh(playerActor, step);
+    },
+
+    explodeSources(scene) {
+        if (this.sources) return this.sources;
         this.createMaterials(scene);
+        const root = scene.getMeshByName("eggExplode"), white = scene.getMeshByName("eggWhite"), yolk = scene.getMeshByName("eggYolk");
+        root.setMaterial(scene.getMaterialByName("normalBackFace"));
+        white.material = this.eggWhiteMaterial;
+        yolk.material = this.eggYolkMaterial;
+        return this.sources = { root, white, yolk };
+    },
 
-        playerActor.explodeMesh = scene.cloneMesh("eggExplode", playerActor.mesh);
-        playerActor.explodeMesh.position.y = .32;
-        playerActor.explodeMesh.parent = playerActor.mesh;
-        playerActor.explodeMesh.setMaterial(scene.getMaterialByName("normalBackFace"));
-        playerActor.explodeMesh.setEnabled(false);
+    instanceOf(source, parent) {
+        const instance = source.createInstance("");
+        instance.rotationQuaternion = source.rotationQuaternion ? source.rotationQuaternion.clone() : null;
+        instance.scaling.copyFrom(source.scaling);
+        instance.animations = source.animations.slice();
+        instance.parent = parent;
+        return instance;
+    },
 
-        playerActor.whiteMesh = scene.cloneMesh("eggWhite", playerActor.mesh);
-        playerActor.whiteMesh.parent = playerActor.explodeMesh;
-        playerActor.whiteMesh.setMaterial(this.eggWhiteMaterial);
-        playerActor.whiteMesh.setEnabled(false);
+    createExplodeMesh(playerActor, step) {
+        const sources = this.explodeSources(playerActor.player.scene);
 
-        playerActor.yolkMesh = scene.cloneMesh("eggYolk", playerActor.mesh);
-        playerActor.yolkMesh.parent = playerActor.explodeMesh;
-        playerActor.yolkMesh.setMaterial(this.eggYolkMaterial);
-        playerActor.yolkMesh.setEnabled(false);
+        if (step === 0 && !playerActor.explodeMesh) {
+            const root = new BABYLON.TransformNode("", playerActor.player.scene);
+            root.scaling.copyFrom(sources.root.scaling);
+            root.rotation.copyFrom(sources.root.rotation);
+            root.position.y = .32;
+            root.parent = playerActor.mesh;
+            for (const shard of sources.root.getChildMeshes(true)) this.instanceOf(shard, root);
+            root.setEnabled(false);
+            playerActor.explodeMesh = root;
+        };
+        if (step === 1 && !playerActor.whiteMesh) {
+            this.createExplodeMesh(playerActor, 0);
+            playerActor.whiteMesh = this.instanceOf(sources.white, playerActor.explodeMesh);
+            playerActor.whiteMesh.setEnabled(false);
+        };
+        if (step === 2 && !playerActor.yolkMesh) {
+            this.createExplodeMesh(playerActor, 0);
+            playerActor.yolkMesh = this.instanceOf(sources.yolk, playerActor.explodeMesh);
+            playerActor.yolkMesh.setEnabled(false);
+        };
+    },
+
+    prepareExplodeMeshes(playerActor) {
+        if (playerActor.explodePrepared || this.deathAnimation.get() === "0.15.4d") return;
+        playerActor.explodePrepared = true;
+        for (let step = 0; step < 3; step++) {
+            setTimeout(() => {
+                if (!playerActor.mesh || playerActor.mesh.isDisposed()) return;
+                try { this.createExplodeMesh(playerActor, step); } catch (e) { };
+            }, 400 + Math.random() * 2500 + step * 200);
+        };
     },
 
     beginAnimation: function (mesh, start, end, loop, speed) {
@@ -191,11 +238,10 @@ export const TimeMachinePlugin = {
 
     playerActorRestoreToPlay: function (data) {
         const { playerActor } = data;
-        if (playerActor.explodeMesh) {
-            playerActor.explodeMesh.setEnabled(false);
-            playerActor.whiteMesh.setEnabled(false);
-            playerActor.yolkMesh.setEnabled(false);
-        };
+        this.prepareExplodeMeshes(playerActor);
+        if (playerActor.explodeMesh) playerActor.explodeMesh.setEnabled(false); //(the white and yolk may not be made yet)
+        if (playerActor.whiteMesh) playerActor.whiteMesh.setEnabled(false);
+        if (playerActor.yolkMesh) playerActor.yolkMesh.setEnabled(false);
         playerActor.bodyMesh.setEnabled(true);
         playerActor.head.setEnabled(true);
         playerActor.eye.setEnabled(true);
